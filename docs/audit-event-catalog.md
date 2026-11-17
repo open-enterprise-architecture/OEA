@@ -822,6 +822,17 @@ A plateau was created or edited ([US-084](../requirements/user-stories/US-084-cr
 | Target | `plateau`, ID of the plateau |
 | Details | `name` and `status` (created); `name` and `fields`, the names of the changed fields among `name`, `description`, `validFrom`, `succeeds` and `basis` (updated) |
 
+### `plateau.went-live`
+
+A plateau went live ([US-088](../requirements/user-stories/US-088-go-live-atomic-transition.md), [US-157](../requirements/user-stories/US-157-plateau-solutions-go-live.md), [REQ-088](../requirements/req/REQ-088-go-live-atomic-transition.md); change us-086-plateau-go-live): its active solutions went live, it became the baseline, and the old baseline was realized. Each solution writes its own `solution.went-live`, and each plateau that now succeeds the new baseline writes `plateau.updated` naming `succeeds`. A refused or failed go-live writes nothing.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `plateau:go-live` |
+| Target | `plateau`, ID of the new baseline |
+| Details | `name`, `realizedId` and `realizedName` (the old baseline), `solutionIds` (in the order of the go-live), and the sums `created`, `modified`, `retired` and `openIssues` |
+
 ### `solution.created`
 
 A solution was created in project mode or with plateau references ([US-038](../requirements/user-stories/US-038-create-solution.md), [REQ-038](../requirements/req/REQ-038-create-solution.md)). Rejected creations (taken or blank name, invalid input, missing permission) are not audited.

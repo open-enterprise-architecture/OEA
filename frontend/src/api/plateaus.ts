@@ -52,3 +52,42 @@ export function updatePlateau(id: string, plateau: PlateauUpdate, fetchFn: typeo
 export function plannedPlateaus(plateaus: Plateau[]): Plateau[] {
   return plateaus.filter((plateau) => plateau.status === 'target' || plateau.status === 'transition')
 }
+
+export type PlateauGoLivePreview = components['schemas']['PlateauGoLivePreview']
+export type PlateauGoLiveResult = components['schemas']['PlateauGoLiveResult']
+
+/**
+ * GET /plateaus/{id}/go-live: what the go-live of the plateau would do (US-086, US-087, US-157);
+ * 409 `plateau-not-next` for a plateau that does not succeed the baseline.
+ */
+export async function fetchPlateauGoLivePreview(
+  id: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: PlateauGoLivePreview } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${PLATEAUS}/${encodeURIComponent(id)}/go-live`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as PlateauGoLivePreview }
+}
+
+/**
+ * POST /plateaus/{id}/go-live with the exact name of the plateau (US-086, US-088): 422 naming
+ * `name` for another name, 409 `merge-required` with the conflicts of its solutions.
+ */
+export async function goLivePlateau(
+  id: string,
+  name: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: PlateauGoLiveResult } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${PLATEAUS}/${encodeURIComponent(id)}/go-live`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+    body: JSON.stringify({ name }),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as PlateauGoLiveResult }
+}

@@ -108,6 +108,9 @@ describe('Plateaus of a solution', () => {
     expect(proposed.find('[data-testid="baseline-modify"]').exists()).toBe(false)
     expect(proposed.find('[data-testid="baseline-retire"]').exists()).toBe(false)
     expect(byName('ERP-Core').find('[data-testid^="baseline-lifecycle"]').exists()).toBe(false)
+    // a solution of a plateau goes live with its plateau (US-157 AC3)
+    expect(wrapper.find('[data-testid="solution-go-live"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="solution-goes-live-with-plateau"]').text()).toBe('Goes live with plateau Target 2028')
     wrapper.unmount()
   })
 

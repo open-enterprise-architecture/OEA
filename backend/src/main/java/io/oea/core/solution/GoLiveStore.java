@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -98,6 +99,14 @@ public class GoLiveStore {
 	}
 
 	/** Records the entity the go-live created for a delta {@code new}. */
+	/** The target plateau of the solution; empty in project mode. */
+	public Optional<UUID> plateauOf(UUID solutionId) {
+		return this.jdbc.queryForList("SELECT to_plateau_id FROM solutions WHERE id = ?", UUID.class, solutionId)
+			.stream()
+			.filter(Objects::nonNull)
+			.findFirst();
+	}
+
 	public void setDeltaEntity(UUID deltaId, int entityId) {
 		this.jdbc.update("UPDATE entity_deltas SET entity_id = ? WHERE id = ?", entityId, deltaId);
 	}

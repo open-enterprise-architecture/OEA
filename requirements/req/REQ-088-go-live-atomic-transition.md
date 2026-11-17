@@ -4,9 +4,9 @@ title: Go-live as an atomic DB transaction
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -52,6 +52,8 @@ The go-live transition affects several tables. A partial commit would lead to an
 
 ## Implementation Notes
 
+- Realigned by the OpenSpec change `us-086-plateau-go-live` (owner decisions 2026-11-17): the transition also takes the active solutions of the plateau live (US-157); `validFrom`/`validTo` are the day of the go-live (UTC); `lifecycle_state=retired` is the soft deletion of the entity by its delta `retiring`; only the plateau that succeeds the baseline goes live, and the plateaus that succeeded the old baseline succeed the new one
+
 - Transaction isolation at least `REPEATABLE READ`
 - Spring `@Transactional` with explicit rollback on all exceptions
 - UTC timestamps for `validFrom`/`validTo` from system time at transaction start
@@ -61,3 +63,4 @@ The go-live transition affects several tables. A partial commit would lead to an
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-086-plateau-go-live | Implemented: `goLivePlateau` in one transaction (`PlateauGoLiveTests`) |

@@ -982,7 +982,9 @@
       "none": "Kein Plateau (Projektmodus)",
       "target": "Zielplateau",
       "targetHint": "Optional: das Plateau, auf das die Lösung hinarbeitet.",
-      "start": "Startet von {name}"
+      "start": "Startet von {name}",
+      "goesLiveWith": "Geht mit Plateau {name} live",
+      "goesLiveWithPlateau": "Geht mit seinem Plateau live"
     }
   },
   "history": {
@@ -1212,6 +1214,28 @@
       "target": "Ziel",
       "transition": "Übergang",
       "realized": "Realisiert"
+    },
+    "goLive": {
+      "action": "Live schalten",
+      "title": "{name} live schalten",
+      "hint": "Das Plateau wird zur neuen Baseline, und seine Lösungen gehen mit ihm live.",
+      "summary": "{plateau} wird die neue Baseline; {baseline} wird realisiert und ist danach schreibgeschützt.",
+      "counts": "{created} neue, {modified} geänderte und {retired} abgelöste Entitäten",
+      "solutions": "Keine Lösung geht mit live | Eine Lösung geht mit live | {n} Lösungen gehen mit live",
+      "conflictCount": "ein Konflikt | {n} Konflikte",
+      "resolve": "Auflösen",
+      "warnings": "Warnungen – sie blockieren das Go-live nicht",
+      "notApproved": "keine Lösung | Eine Lösung ist noch nicht genehmigt: {names} | {n} Lösungen sind noch nicht genehmigt: {names}",
+      "openIssues": "kein offener Punkt | Ein offener Punkt bleibt nach dem Go-live | {n} offene Punkte bleiben nach dem Go-live",
+      "irreversible": "Diese Aktion kann nicht rückgängig gemacht werden.",
+      "nameLabel": "Gib {name} zur Bestätigung ein",
+      "confirm": "Go-live bestätigen",
+      "conflicts": "Felder seiner Lösungen wurden inzwischen geändert. Löse zuerst die Konflikte.",
+      "blocked": "Eine Entität seiner Lösungen hat offene Punkte einer anderen Lösung.",
+      "notNext": "Nur das Plateau, das auf die Baseline folgt, kann live gehen.",
+      "forbidden": "Du darfst Plateaus nicht live schalten.",
+      "failed": "Das Go-live ist fehlgeschlagen; nichts wurde geändert.",
+      "loadFailed": "Die Vorschau des Go-lives konnte nicht geladen werden."
     }
   }
 }

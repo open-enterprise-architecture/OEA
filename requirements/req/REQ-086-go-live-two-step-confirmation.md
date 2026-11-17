@@ -4,9 +4,9 @@ title: Go-live two-step confirmation
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -57,6 +57,8 @@ Go-live is irreversible. A two-step confirmation prevents accidental transitions
 
 ## Implementation Notes
 
+- Realigned by the OpenSpec change `us-086-plateau-go-live`: the dialog is SCR-066 on SCR-065; the server checks the name as well (`goLivePlateau` answers 422 naming `name` for another name, compared exactly); the warnings are the solutions not yet approved and the open issues the go-live leaves (CEL violations follow with ADR-018)
+
 - Name validation in the frontend via real-time comparison (no API request needed)
 - Diff display: P1 becomes baseline, P0 becomes realized — name both changes
 - CEL violations and non-implemented solutions as separate warning sections
@@ -66,3 +68,4 @@ Go-live is irreversible. A two-step confirmation prevents accidental transitions
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-17 | Change us-086-plateau-go-live | Implemented: SCR-066 and the name check of `goLivePlateau` |

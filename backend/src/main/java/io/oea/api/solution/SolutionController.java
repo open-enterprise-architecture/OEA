@@ -88,24 +88,28 @@ public class SolutionController implements SolutionsApi {
 		return ResponseEntity.ok(new SolutionGoLivePreview().solutionId(preview.solutionId())
 			.counts(counts(preview.counts()))
 			.conflicts(preview.conflicts().stream().map(SolutionController::conflict).toList())
-			.violations(preview.violations()
-				.stream()
-				.map((violation) -> new SolutionGoLiveViolation().deltaId(violation.deltaId())
-					.entityId(violation.entityId())
-					.entityName(violation.entityName())
-					.field(violation.field())
-					.label(violation.label())
-					.kind(SolutionGoLiveViolation.KindEnum.fromValue(violation.kind())))
-				.toList()));
+			.violations(preview.violations().stream().map(SolutionController::violation).toList()));
+	}
+
+	static SolutionGoLiveViolation violation(SolutionGoLive.Violation violation) {
+		return new SolutionGoLiveViolation().deltaId(violation.deltaId())
+			.entityId(violation.entityId())
+			.entityName(violation.entityName())
+			.field(violation.field())
+			.label(violation.label())
+			.kind(SolutionGoLiveViolation.KindEnum.fromValue(violation.kind()));
 	}
 
 	@Override
 	public ResponseEntity<SolutionGoLiveResult> goLiveSolution(UUID id) {
-		SolutionGoLive.Result result = this.goLive.goLive(principal(), id);
-		return ResponseEntity.ok(new SolutionGoLiveResult().solutionId(result.solutionId())
+		return ResponseEntity.ok(result(this.goLive.goLive(principal(), id)));
+	}
+
+	static SolutionGoLiveResult result(SolutionGoLive.Result result) {
+		return new SolutionGoLiveResult().solutionId(result.solutionId())
 			.status(SolutionStatus.fromValue(result.status()))
 			.counts(counts(result.counts()))
-			.openIssues(result.openIssues().stream().map(SolutionController::openIssue).toList()));
+			.openIssues(result.openIssues().stream().map(SolutionController::openIssue).toList());
 	}
 
 	@Override
@@ -138,9 +142,10 @@ public class SolutionController implements SolutionsApi {
 	}
 
 	/** A field conflict of the preview. */
-	private static DeltaConflict conflict(SolutionGoLive.Conflict conflict) {
+	static DeltaConflict conflict(SolutionGoLive.Conflict conflict) {
 		return new DeltaConflict().kind(DeltaConflict.KindEnum.fromValue(conflict.kind()))
 			.deltaId(conflict.deltaId())
+			.solutionId(conflict.solutionId())
 			.entityId(conflict.entityId())
 			.entityName(conflict.entityName())
 			.field(conflict.field())
@@ -152,7 +157,7 @@ public class SolutionController implements SolutionsApi {
 			.redacted(conflict.redacted());
 	}
 
-	private static SolutionGoLiveCounts counts(SolutionGoLive.Counts counts) {
+	static SolutionGoLiveCounts counts(SolutionGoLive.Counts counts) {
 		return new SolutionGoLiveCounts().created(counts.created())
 			.modified(counts.modified())
 			.retired(counts.retired())
@@ -160,7 +165,7 @@ public class SolutionController implements SolutionsApi {
 			.notInMetamodel(counts.notInMetamodel());
 	}
 
-	private static SolutionOpenIssue openIssue(OpenIssues.OpenIssue issue) {
+	static SolutionOpenIssue openIssue(OpenIssues.OpenIssue issue) {
 		return new SolutionOpenIssue().id(issue.id())
 			.entityId(issue.entityId())
 			.entityName(issue.entityName())

@@ -1,8 +1,8 @@
 ---
 title: Plateaus
 covers:
-  screens: [SCR-065]
-  stories: [US-084, US-085, US-089, US-155]
+  screens: [SCR-065, SCR-066]
+  stories: [US-084, US-085, US-086, US-087, US-088, US-089, US-155, US-157]
 ---
 
 # Plateaus
@@ -56,6 +56,27 @@ Wähle *Bearbeiten* neben einem Plateau, um Name, Beschreibung, Datum, Vorgänge
 
 Ein realisiertes Plateau ist schreibgeschützt: Es hat kein *Bearbeiten*, und die API antwortet „Realized plateau is read-only“.
 
+## Ein Plateau live schalten {#go-live}
+
+Ist der geplante Zustand erreicht, geht das Plateau live: Es wird die neue Baseline, die alte Baseline wird realisiert, und die Änderungen seiner Lösungen kommen in den Katalog. Du brauchst die Berechtigung `plateau:go-live` (zum Beispiel die Rolle `enterprise-architect`).
+
+Nur das Plateau, das direkt auf die Baseline folgt, kann live gehen; es zeigt *Live schalten*. Der Dialog *Plateau live schalten* zeigt:
+
+- welches Plateau die Baseline wird und welches realisiert wird;
+- wie viele Entitäten angelegt, geändert und abgelöst werden;
+- die Lösungen, die mit dem Plateau live gehen;
+- Warnungen, die das Go-live nicht stoppen: noch nicht genehmigte Lösungen und die offenen Punkte, die das Go-live hinterlässt.
+
+Gib den genauen Namen des Plateaus ein und wähle *Go-live bestätigen*. Das Go-live kann nicht rückgängig gemacht werden.
+
+Alle aktiven Lösungen des Plateaus gehen in einem Schritt live, in der Reihenfolge, in der ihre Änderungen zuletzt bearbeitet wurden, jede so, wie eine einzelne [Lösung live geht](./solutions#go-live). Wurde ein Feld, das eine Lösung ändert, inzwischen geändert, im Katalog oder durch eine Lösung, die vor ihr live geht, listet der Dialog den Konflikt bei dieser Lösung; *Auflösen* öffnet *Konflikte auflösen*. Solange nicht jeder Konflikt aufgelöst ist, geht nichts live. Schlägt beim Go-live etwas fehl, ändert sich nichts.
+
+Nach dem Go-live:
+
+- ist das Plateau ab heute die Baseline, und die alte Baseline ist bis heute realisiert und schreibgeschützt;
+- sind die Lösungen des Plateaus *Umgesetzt*, und abgelöste Entitäten sind aus dem Katalog gelöscht;
+- folgen Plateaus, die auf die alte Baseline folgten, nun der neuen, und ihre Lösungen starten von ihr.
+
 ## Über die API
 
-`GET /api/v1/plateaus` listet die Plateaus, `POST /api/v1/plateaus` legt eines an, und `GET` und `PUT /api/v1/plateaus/{id}` lesen und bearbeiten eines. Anlegen und Bearbeiten werden als `plateau.created` und `plateau.updated` protokolliert.
+`GET /api/v1/plateaus` listet die Plateaus, `POST /api/v1/plateaus` legt eines an, und `GET` und `PUT /api/v1/plateaus/{id}` lesen und bearbeiten eines. `GET /api/v1/plateaus/{id}/go-live` zeigt, was das Go-live tun würde, und `POST` mit dem Namen des Plateaus schaltet es live. Anlegen, Bearbeiten und Go-live werden als `plateau.created`, `plateau.updated` und `plateau.went-live` protokolliert.

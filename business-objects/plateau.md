@@ -2,7 +2,7 @@
 identifier: plateau
 name_de: Plateau
 name_en: Architecture Plateau
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -70,7 +70,7 @@ The plateau concept originates from TOGAF and ArchiMate and forms the basis for 
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
 | BR-01 | An OEA instance has exactly one plateau with `status=baseline` at any point in time | onStatusChange | – |
-| BR-02 | A plateau with `status=baseline` can only be set to `status=realized` through a controlled go-live process; at the same time an existing target or transition plateau becomes the new baseline | onStatusChange | – |
+| BR-02 | A plateau with `status=baseline` can only be set to `status=realized` through a controlled go-live process; at the same time an existing target or transition plateau becomes the new baseline. Only the plateau that succeeds the baseline goes live, together with its active solutions, in one transaction; it loses its predecessor and basis, and the plateaus that succeeded the old baseline succeed it (US-157; owner decisions 2026-11-17) | onStatusChange | – |
 | BR-03 | A plateau with `status=realized` is read-only; no entity changes possible | onUpdate | – |
 | BR-04 | A `target` or `transition` plateau has a predecessor that is not realized; the chain of predecessors has no cycle; the predecessor does not change while a solution targets the plateau (US-084; change us-084-plateaus) | onCreate, onUpdate | – |
 | BR-05 | The status is set at creation (`baseline`, `target` or `transition`) and changed only by the plateau go-live; creating and editing plateaus needs `plateau:write` (owner decision 2026-11-17) | onCreate, onUpdate | – |
@@ -104,3 +104,4 @@ TOGAF reference: "Plateau" in the migration layer (TOGAF 10, Part IV). ArchiMate
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Business Engineer | Initial draft |
 | 0.2.0 | 2026-11-17 | Change us-084-plateaus | Attribute `basis`; plateau mode starts with the first baseline; BR-04 predecessor chain, BR-05 status and permission (V37) |
+| 0.3.0 | 2026-11-17 | Change us-086-plateau-go-live | BR-02: the go-live of the next plateau with its solutions; `retired` is the soft deletion of the entity (V38) |

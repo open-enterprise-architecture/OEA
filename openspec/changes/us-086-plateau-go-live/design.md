@@ -131,7 +131,7 @@
 
 ## Risks / Trade-offs
 
-- **A long transaction:** a plateau with many solutions and deltas holds locks for the whole go-live. Plateau go-lives are rare and deliberate, and the solution go-live has the same shape, so this is accepted. The test measures a go-live of 1,000 deltas and records its time.
+- **A long transaction:** a plateau with many solutions and deltas holds locks for the whole go-live. Plateau go-lives are rare and deliberate, and the solution go-live has the same shape, so this is accepted. The test measures a go-live of 1,000 deltas: on 2026-11-17, one plateau with four solutions and 1,000 deltas over 50,000 entities went live in 2.5 s (`SolutionLandscapeLatencyIT`).
 - **The overlay of the preview and the real order can differ.** A delta changed between the preview and the go-live changes the order. The go-live therefore plans again under lock (step 2), and the preview is advisory.
 - **Refusing single go-lives** changes the behavior of change 1 for plateau solutions only. Project solutions are unaffected.
 

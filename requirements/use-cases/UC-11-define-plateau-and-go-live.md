@@ -5,7 +5,7 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-27
 last_updated: 2026-11-17
 primary_actor: SH-03
@@ -248,6 +248,7 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 ## Realignment
 
 - 2026-11-17, OpenSpec change `us-084-plateaus` (owner decisions 2026-11-17): plateau mode starts with the first baseline plateau, without an instance setting; solutions without plateaus keep working in project mode. Creating and editing plateaus needs the new permission `plateau:write`, the go-live `plateau:go-live`. A target or transition plateau has a predecessor and a basis (US-155). The overview is SCR-065. A metamodel change asks once per plateau for its solutions (US-156). The go-live (basic flow) follows in S14 change 4.
+- 2026-11-17, OpenSpec change `us-086-plateau-go-live` (owner decisions 2026-11-17): only the plateau that succeeds the baseline goes live, together with its active solutions in one transaction (US-157); a solution of a plateau no longer goes live on its own; the plateaus that succeeded the old baseline succeed the new one; the warnings are the solutions not yet approved and the open issues the go-live leaves, CEL violations follow with ADR-018; `retired` is the soft deletion of the entity; the dialog is SCR-066. The dashboard entry for the CIO (step 11) follows with the dashboards (S16–S17); the audit event `plateau.went-live` records the go-live meanwhile.
 
 ## Change History
 
@@ -255,3 +256,4 @@ OEA supports this process by allowing Kurt to create the initial baseline, plan 
 |---|---|---|---|
 | 0.1.0 | 2026-06-27 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-11-17 | Change us-084-plateaus | A1–A3 and the overview realigned: implicit plateau mode, `plateau:write`, basis of a plateau |
+| 0.3.0 | 2026-11-17 | Change us-086-plateau-go-live | Basic flow realigned: go-live of the next plateau with its solutions, warnings, SCR-066 |

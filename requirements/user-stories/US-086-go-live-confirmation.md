@@ -2,8 +2,9 @@
 
 **ID**: US-086
 **Story Points**: 3
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-086-plateau-go-live` – the dialog SCR-066 with "Confirm go-live" enabled only for the exact plateau name, and the name check of `goLivePlateau` (422 naming `name`) (AC1–AC3)
 
 ## Story
 
@@ -35,5 +36,5 @@ As Kurt – Lead Enterprise Architect, I want to see a confirmation dialog with 
 ## Definition of Done
 
 - [ ] AC1–AC3 fulfilled
-- [ ] Tests present
+- [x] Tests present
 - [ ] Code review; linter green; entered in trace matrix

@@ -43,6 +43,8 @@ export const Grouped: Story = {
     await expect(canvas.getByText('Target Cloud Migration 2027')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /Realized plateaus \(1\)/ })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Plateaus' })).toBeInTheDocument()
+    // "Go live" on the plateaus that succeed the baseline (us-086-plateau-go-live)
+    await expect(canvas.getAllByRole('button', { name: 'Go live' })).toHaveLength(2)
   },
 }
 

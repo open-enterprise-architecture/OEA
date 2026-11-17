@@ -320,12 +320,23 @@ const createdAt = computed(() =>
           :label="t(`solutions.status.${solution.status}`)"
         />
         <UButton
-          v-if="canWrite"
+          v-if="canWrite && !solution.toPlateauId"
           data-testid="solution-go-live"
           class="ms-auto"
           icon="i-lucide-rocket"
           :label="t('solutions.goLive.action')"
           @click="startGoLive"
+        />
+        <!-- a solution of a plateau goes live with its plateau (US-157 AC3) -->
+        <UButton
+          v-if="solution.toPlateauId && solution.status !== 'implemented' && solution.status !== 'archived'"
+          data-testid="solution-goes-live-with-plateau"
+          class="ms-auto"
+          to="/plateaus"
+          color="neutral"
+          variant="link"
+          icon="i-lucide-layers"
+          :label="toPlateau ? t('solutions.plateaus.goesLiveWith', { name: toPlateau.name }) : t('solutions.plateaus.goesLiveWithPlateau')"
         />
       </div>
       <UAlert v-if="goLiveFailure" data-testid="go-live-failure" color="error" variant="subtle" :description="goLiveFailure" />

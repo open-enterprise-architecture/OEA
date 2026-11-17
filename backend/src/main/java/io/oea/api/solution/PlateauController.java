@@ -5,9 +5,16 @@ import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.Plateau;
 import io.oea.api.generated.model.PlateauBasis;
 import io.oea.api.generated.model.PlateauCreate;
+import io.oea.api.generated.model.PlateauGoLivePreview;
+import io.oea.api.generated.model.PlateauGoLivePreviewWarnings;
+import io.oea.api.generated.model.PlateauGoLiveRequest;
+import io.oea.api.generated.model.PlateauGoLiveResult;
+import io.oea.api.generated.model.PlateauGoLiveSolution;
+import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.PlateauStatus;
 import io.oea.api.generated.model.PlateauUpdate;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.solution.PlateauGoLive;
 import io.oea.app.solution.Plateaus;
 import io.oea.config.security.OeaAuthentication;
 import java.net.URI;
@@ -27,8 +34,38 @@ public class PlateauController implements PlateausApi {
 
 	private final Plateaus plateaus;
 
-	public PlateauController(Plateaus plateaus) {
+	private final PlateauGoLive goLive;
+
+	public PlateauController(Plateaus plateaus, PlateauGoLive goLive) {
 		this.plateaus = plateaus;
+		this.goLive = goLive;
+	}
+
+	@Override
+	public ResponseEntity<PlateauGoLivePreview> previewPlateauGoLive(UUID id) {
+		PlateauGoLive.Preview preview = this.goLive.preview(principal(), id);
+		return ResponseEntity.ok(new PlateauGoLivePreview().plateauId(preview.plateauId())
+			.baselineId(preview.baselineId())
+			.counts(SolutionController.counts(preview.counts()))
+			.solutions(preview.solutions()
+				.stream()
+				.map((solution) -> new PlateauGoLiveSolution().id(solution.id())
+					.name(solution.name())
+					.status(SolutionStatus.fromValue(solution.status()))
+					.counts(SolutionController.counts(solution.preview().counts()))
+					.conflicts(solution.preview().conflicts().stream().map(SolutionController::conflict).toList()))
+				.toList())
+			.violations(preview.violations().stream().map(SolutionController::violation).toList())
+			.warnings(new PlateauGoLivePreviewWarnings().notApproved(preview.notApproved())
+				.openIssues(preview.openIssues())));
+	}
+
+	@Override
+	public ResponseEntity<PlateauGoLiveResult> goLivePlateau(UUID id, PlateauGoLiveRequest request) {
+		PlateauGoLive.Result result = this.goLive.goLive(principal(), id, request.getName());
+		return ResponseEntity.ok(new PlateauGoLiveResult().baseline(plateau(result.baseline()))
+			.realized(plateau(result.realized()))
+			.solutions(result.solutions().stream().map(SolutionController::result).toList()));
 	}
 
 	@Override
