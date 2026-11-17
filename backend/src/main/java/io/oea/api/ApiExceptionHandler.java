@@ -32,6 +32,7 @@ import io.oea.app.metamodel.MetamodelChangeException;
 import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.PackageConflictException;
+import io.oea.app.metamodel.SolutionDecisionRequiredException;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.security.OeaPrincipal;
@@ -41,6 +42,7 @@ import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.EntityDeletedException;
+import io.oea.app.entity.EntityBlockedException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.InvalidSolutionQueryException;
 import io.oea.app.history.InvalidHistoryQueryException;
@@ -60,6 +62,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.ObjectProvider;
@@ -326,6 +329,57 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> entityDeleted(EntityDeletedException ex) {
 		ProblemDetail problem = problem(HttpStatus.CONFLICT, "entity-deleted", "Entity deleted", ex.getMessage());
 		problem.setProperty("deltaIds", ex.getDeltaIds().stream().map(UUID::toString).toList());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+	}
+
+	/** A metamodel change without a decision per affected solution (design D9 of us-153-open-issues). */
+	@ExceptionHandler(SolutionDecisionRequiredException.class)
+	ResponseEntity<ProblemDetail> solutionDecisionRequired(SolutionDecisionRequiredException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "solution-decision-required", "Solution decision required",
+				ex.getMessage());
+		problem.setProperty("solutions", ex.getSolutions().stream().map((solution) -> {
+			Map<String, Object> shown = new LinkedHashMap<>();
+			shown.put("id", solution.id().toString());
+			shown.put("name", solution.name());
+			shown.put("status", solution.status());
+			shown.put("deltaValues", solution.deltaValues());
+			shown.put("extensionMetatypes", solution.extensionMetatypes());
+			shown.put("properties", solution.lost().stream().map((lost) -> {
+				Map<String, Object> property = new LinkedHashMap<>();
+				property.put("metatypeId", lost.metatypeId().toString());
+				property.put("propertyDefId", lost.propertyDefId().toString());
+				property.put("label", solution.labels().getOrDefault(lost.propertyDefId(), lost.propertyDefId().toString()));
+				property.put("enumValue", lost.enumValue());
+				return property;
+			}).toList());
+			return shown;
+		}).toList());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+	}
+
+	/** A write of an entity with open issues of a solution (design D3 of us-153-open-issues). */
+	@ExceptionHandler(EntityBlockedException.class)
+	ResponseEntity<ProblemDetail> entityBlocked(EntityBlockedException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "entity-blocked", "Entity blocked", ex.getMessage());
+		problem.setProperty("entities", ex.getBlocks().stream().map((block) -> {
+			Map<String, Object> entity = new LinkedHashMap<>();
+			entity.put("entityId", block.entityId());
+			entity.put("entityName", block.entityName());
+			entity.put("issues", block.issues().stream().map((issue) -> {
+				Map<String, Object> shown = new LinkedHashMap<>();
+				shown.put("id", issue.id().toString());
+				shown.put("field", issue.field());
+				shown.put("label", issue.label());
+				shown.put("kind", issue.kind());
+				shown.put("solutionId", issue.solutionId().toString());
+				shown.put("solutionName", issue.solutionName());
+				return shown;
+			}).toList());
+			return entity;
+		}).toList());
+		if (!ex.getDeltaIds().isEmpty()) {
+			problem.setProperty("deltaIds", ex.getDeltaIds().stream().map(UUID::toString).toList());
+		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
 	}
 

@@ -259,7 +259,31 @@ export async function resolveDeltaConflicts(
   return { ok: true, value: (await response.json()) as SolutionDelta }
 }
 
-/** GET /solutions/{id}/open-issues: the metamodel violations taken live by the go-live. */
+/** GET /solutions/{id}/open-issues: the metamodel violations taken live by the go-live, each with its status (US-153). */
 export function fetchSolutionOpenIssues(id: string, fetchFn: typeof fetch = fetch): Promise<SolutionOpenIssue[]> {
   return read(`${SOLUTIONS}/${encodeURIComponent(id)}/open-issues`, fetchFn)
+}
+
+export type OpenIssueResolution = components['schemas']['SolutionOpenIssueResolution']['resolutions'][number]
+
+/**
+ * POST /solutions/{id}/open-issues/resolution: resolves open issues with a value or by removing it
+ * (US-153); answers every issue of the solution. 422 names the issues in `invalidFields`, 403
+ * without `solution:write` or `entity:write` or for a value the person may not write.
+ */
+export async function resolveOpenIssues(
+  id: string,
+  resolutions: OpenIssueResolution[],
+  fetchFn: typeof fetch = fetch,
+): Promise<{ ok: true; value: SolutionOpenIssue[] } | { ok: false; rejection: Rejection }> {
+  const response = await fetchFn(`${SOLUTIONS}/${encodeURIComponent(id)}/open-issues/resolution`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: writeHeaders(),
+    body: JSON.stringify({ resolutions }),
+  })
+  if (!response.ok) {
+    return { ok: false, rejection: await readRejection(response) }
+  }
+  return { ok: true, value: (await response.json()) as SolutionOpenIssue[] }
 }

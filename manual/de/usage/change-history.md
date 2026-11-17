@@ -13,6 +13,8 @@ Jede Änderung an einer Entität erzeugt eine neue Version. Die Seite *Änderung
 
 Wähle in einem [Katalog](./catalogs) oder in einem Katalog des [Portals](./portal) in der Zeile einer Entität *Historie*. Die Seite öffnet sich mit den Versionen der Entität, die neueste zuerst. *Zurück zum Katalog* führt zum Katalog, von dem du gekommen bist, auf derselben Seite und mit derselben Sortierung.
 
+Hat die Entität [offene Punkte](./solutions#open-issues) einer Lösung, nennt ein Hinweis über den Einträgen sie mit einem Link zur Lösung. Bis sie aufgelöst sind, kann die Entität nicht wiederhergestellt werden.
+
 ## Die Einträge lesen
 
 Jeder Eintrag zeigt:

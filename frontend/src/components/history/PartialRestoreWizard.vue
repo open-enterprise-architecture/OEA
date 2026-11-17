@@ -241,6 +241,8 @@ async function confirm() {
     if (outcome.rejection.status === 412) {
       changedMeanwhile.value = true
       await load(true)
+    } else if (outcome.rejection.problemType === 'entity-blocked') {
+      failure.value = t('restore.blocked')
     } else if (outcome.rejection.problemType === 'nothing-to-restore' || outcome.rejection.invalidFields.includes('fields')) {
       failure.value = t('partialRestore.selectionOutdated')
       await load(true)

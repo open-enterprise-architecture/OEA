@@ -23,7 +23,7 @@ Trace: US-153 AC1, owner decision 2026-11-17
 
 ### Requirement: Snapshots in the checks of deltas
 
-The checks of a delta SHALL treat the snapshots of its solution as part of the metamodel: a property or enumeration value that a snapshot names SHALL be accepted in a delta of that solution and rejected in a delta of any other solution.
+The checks of a delta SHALL treat the snapshots of its solution as part of the metamodel: a property or enumeration value that a snapshot names SHALL be accepted in a delta of that solution. In a delta of any other solution it SHALL be handled as any property the metatype does not have: an unmapped property is ignored, and a deleted enumeration value is rejected.
 
 Trace: US-154 AC3
 
@@ -35,4 +35,4 @@ Trace: US-154 AC3
 #### Scenario: Snapshot property in another solution
 
 - **WHEN** Michael sets "Cost Center" in a delta of "ERP Extension", which has no snapshot
-- **THEN** the answer is 422 naming the property
+- **THEN** the delta is stored without the value

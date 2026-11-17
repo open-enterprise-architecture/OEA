@@ -530,7 +530,7 @@ An organization metatype was created, changed or deleted ([US-032](../requiremen
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the metamodel administrator, or for a metatype of an extension the architect (`solution-metamodel:write`) |
 | Target | `metatype`, ID of the metatype |
-| Details | `name`, `baseMetatypeId` and, in an extension, `configId` (created), `changedFields`, `entitiesWithRemovedValues` and `entitiesMarked` if the base type changed (updated), `name` (deleted) |
+| Details | `name`, `baseMetatypeId` and, in an extension, `configId` (created), `changedFields`, `entitiesWithRemovedValues` and `entitiesMarked` if the base type changed, and `solutionDecisions` if active solutions were asked (updated), `name` (deleted) |
 
 ### `metamodel.property-created` / `metamodel.property-updated` / `metamodel.property-deleted`
 
@@ -552,7 +552,7 @@ A value of an organization enum property was added or deleted; deleting removes 
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the metamodel administrator |
 | Target | `property-definition`, ID of the definition |
-| Details | `valueId`, `value`; on delete also `entitiesWithRemovedValues` and `entitiesMarked` (entities now missing a mandatory value) |
+| Details | `valueId`, `value`; on delete also `entitiesWithRemovedValues`, `entitiesMarked` (entities now missing a mandatory value) and `solutionDecisions` if active solutions were asked |
 
 ### `metamodel.category-created` / `metamodel.category-updated` / `metamodel.category-deleted`
 
@@ -574,7 +574,9 @@ An organization property was mapped to a metatype or removed from it ([US-032](.
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the metamodel administrator |
 | Target | `metatype`, ID of the metatype |
-| Details | `mappingId`, `propertyDefId`; `necessity`, `validFrom` and `entitiesMarked` (created; 0 for a future entry); `entitiesWithRemovedValues` (deleted by an administrator); `batchId` and `reason` = `reimport` (deleted by a re-import) |
+| Details | `mappingId`, `propertyDefId`; `necessity`, `validFrom` and `entitiesMarked` (created; 0 for a future entry); `entitiesWithRemovedValues` and `solutionDecisions` (deleted by an administrator); `batchId` and `reason` = `reimport` (deleted by a re-import) |
+
+`solutionDecisions` lists, for a change that removes values active solutions use, one `{solutionId, decision}` per affected solution: `apply` removed the values from its deltas, `keep` stored a snapshot until its go-live ([US-154](../requirements/user-stories/US-154-metamodel-change-in-solutions.md); change us-153-open-issues). A package import does not ask.
 
 ### `metamodel.mapping-effective`
 
@@ -851,7 +853,7 @@ An entity delta was removed from a solution, with its property values ([REQ-040]
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the removing person (`solution:write`) |
 | Target | `solution`, ID of the solution |
-| Details | the details of `solution.delta-added` for the removed delta |
+| Details | the details of `solution.delta-added` for the removed delta; a modification left without a change by the decision `apply` of a metamodel change is removed with `deltaId`, `deltaType`, `entityId` and `reason` = `metamodel-change` (US-154) |
 
 ### `solution.went-live`
 
@@ -865,6 +867,17 @@ A solution went live in project mode ([US-152](../requirements/user-stories/US-1
 | Details | `name`, `created`, `modified`, `retired`, `retiredConnections`, `openIssues` (the metamodel violations taken live) |
 
 The resolution of field conflicts before a go-live writes `solution.delta-updated` with `resolvedFields` (the keys of the resolved fields).
+
+### `solution.open-issues-resolved`
+
+Open issues of a solution were resolved with a value, or by removing or discarding the value ([US-153](../requirements/user-stories/US-153-resolve-open-issues.md), [US-154](../requirements/user-stories/US-154-metamodel-change-in-solutions.md) AC4; change us-153-open-issues). The values are audited with `entity.updated` of each written entity. An issue whose violation no longer holds counts as resolved without an event. Rejected resolutions (invalid value, resolved issue, missing permission) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the resolving person (`solution:write`, or `entity:write` with the write roles of the values) |
+| Target | `solution`, ID of the solution |
+| Details | `solutionId`, `name`, `issueIds`, `entityIds` |
 
 ### `entity.deleted`
 

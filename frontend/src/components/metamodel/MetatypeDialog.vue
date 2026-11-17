@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createMetatype, INSTANCE_CONFIGURATION, updateMetatype, type MetatypeDetail } from '../../api/metamodel'
+import { createMetatype, INSTANCE_CONFIGURATION, updateMetatype, type MetatypeDetail, type SolutionDecision } from '../../api/metamodel'
+import type { AffectedSolution } from '../../api/problem'
 import { label, labelKeys } from '../../i18n/labels'
 import { metamodel, metatypeById, reloadMetamodel } from '../../metamodel/store'
 import CollisionWarning from './CollisionWarning.vue'
+import SolutionDecisions from './SolutionDecisions.vue'
 import { rejectionMessage } from './messages'
 
 // Creating and changing an organization metatype in SCR-030 (US-032 AC1, AC2, REQ-032, UC-04 A4;
@@ -36,6 +38,9 @@ function allowed(direction: 'source' | 'target'): string[] {
 const errors = ref<Partial<Record<Field, string>>>({})
 const failure = ref<string>()
 const submitting = ref(false)
+const affected = ref<AffectedSolution[]>([])
+const decisions = ref<Record<string, SolutionDecision['decision'] | undefined>>({})
+const decided = computed(() => affected.value.every((solution) => decisions.value[solution.id] !== undefined))
 const stale = ref(false)
 
 const current = computed(() => metatypeById(props.metatype?.id))
@@ -89,6 +94,11 @@ async function submit(version = props.metatype?.version) {
     allowedTargetMetatypeIds: form.connection ? form.allowedTargets : [],
     configId: INSTANCE_CONFIGURATION,
     baseMetatypeId: form.baseMetatypeId === NONE ? null : form.baseMetatypeId,
+    ...(affected.value.length > 0
+      ? {
+          solutionDecisions: affected.value.map((solution) => ({ solutionId: solution.id, decision: decisions.value[solution.id]! })),
+        }
+      : {}),
   }
   try {
     const outcome = props.metatype
@@ -100,7 +110,11 @@ async function submit(version = props.metatype?.version) {
       return
     }
     const rejection = outcome.rejection
-    if (rejection.problemType === 'stale-version') {
+    if (rejection.problemType === 'solution-decision-required') {
+      // a base type change that removes inherited values asks per affected solution (US-154)
+      decisions.value = {}
+      affected.value = rejection.solutions ?? []
+    } else if (rejection.problemType === 'stale-version') {
       // show the warning with the current state of the other change, also if reloading fails
       try {
         await reloadMetamodel(props.fetchFn)
@@ -205,9 +219,10 @@ async function submit(version = props.metatype?.version) {
       <USelect v-model="form.baseMetatypeId" data-testid="metatype-base" :items="baseItems" class="w-full" />
     </UFormField>
 
+    <SolutionDecisions v-if="affected.length > 0" v-model="decisions" :solutions="affected" />
     <div v-if="!stale" class="flex justify-end gap-2">
       <UButton data-testid="metatype-cancel" color="neutral" variant="ghost" :label="t('common.cancel')" @click="emit('cancel')" />
-      <UButton type="submit" data-testid="metatype-submit" :loading="submitting" :label="t('metamodel.save')" />
+      <UButton type="submit" data-testid="metatype-submit" :loading="submitting" :disabled="!decided" :label="t('metamodel.save')" />
     </div>
   </form>
 </template>

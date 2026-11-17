@@ -8,6 +8,20 @@ type Problem = components['schemas']['Problem'] & {
   count?: number
   currentVersion?: number
   errors?: { field: string; message: string }[]
+  solutions?: AffectedSolution[]
+}
+
+/**
+ * An active solution a metamodel change affects (409 `solution-decision-required`, US-154): its
+ * delta values and extension metatypes that the change touches, and the properties it loses.
+ */
+export interface AffectedSolution {
+  id: string
+  name: string
+  status: string
+  deltaValues: number
+  extensionMetatypes: number
+  properties: { metatypeId: string; propertyDefId: string; label: string; enumValue?: string | null }[]
 }
 
 /** A rejected request, reduced to what the pages need (RFC 9457 problem types of the contract). */
@@ -24,6 +38,8 @@ export interface Rejection {
   currentVersion?: number
   /** `validation-failed` with a message per field, where the contract gives one */
   errors?: { field: string; message: string }[]
+  /** `solution-decision-required`: the active solutions that need a decision */
+  solutions?: AffectedSolution[]
   detail?: string
 }
 
@@ -73,6 +89,7 @@ export async function readRejection(response: Response): Promise<Rejection> {
     count: problem?.count,
     currentVersion: problem?.currentVersion,
     errors: problem?.errors ?? [],
+    solutions: problem?.solutions,
     detail: problem?.detail,
   }
 }

@@ -1,5 +1,7 @@
 package io.oea.app.history;
 
+import io.oea.app.entity.EntityBlockedException;
+import io.oea.app.entity.EntityBlocks;
 import io.oea.app.access.LanguagePreferences;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.EntityValidator;
@@ -81,10 +83,13 @@ public class EntityRestore {
 
 	private final Clock clock;
 
+	private final EntityBlocks blocks;
+
 	public EntityRestore(EntityStore entities, EntityVersionStore versions, EntityVersions display,
 			EntityHistoryStore history,
 			PropertyAccess access, EntityWriter writer, PropertyValueStore values, MetamodelLabels labels,
-			LanguagePreferences languages, JdbcTemplate jdbc, Clock clock) {
+			LanguagePreferences languages, JdbcTemplate jdbc, Clock clock, EntityBlocks blocks) {
+		this.blocks = blocks;
 		this.entities = entities;
 		this.versions = versions;
 		this.display = display;
@@ -176,6 +181,7 @@ public class EntityRestore {
 	 * @throws PreconditionRequiredException without {@code If-Match} (428)
 	 * @throws StaleEntityVersionException when the entity is at another version (412)
 	 * @throws NothingToRestoreException when every restorable field has its target value (422)
+	 * @throws EntityBlockedException while the entity has open issues of a solution (409)
 	 */
 	@Transactional
 	public Result restore(OeaPrincipal principal, int entityId, int targetVersion, Long expectedVersion,
@@ -195,6 +201,8 @@ public class EntityRestore {
 			throw new StaleEntityVersionException(entity.version());
 		}
 		checkTarget(entity, targetVersion);
+		// an entity with open issues of a solution is written only by resolving them (US-153 AC1)
+		this.blocks.check(principal, List.of(entityId));
 		Plan plan = plan(principal, entity, targetVersion, (fields != null) ? new LinkedHashSet<>(fields) : null);
 		if (plan.restorable().isEmpty()) {
 			throw new NothingToRestoreException();

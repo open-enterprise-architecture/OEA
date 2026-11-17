@@ -18,7 +18,8 @@ import org.springframework.stereotype.Repository;
 /**
  * The rows the go-live of a solution reads and writes (design D1, D3, D4 of
  * us-152-solution-go-live): the solution, its deltas with their field values, the entity a delta
- * {@code new} created, the status, the resolution of field conflicts and the open issues.
+ * {@code new} created, the status, and the resolution of field conflicts; the open
+ * issues live in {@link OpenIssueStore}.
  */
 @Repository
 public class GoLiveStore {
@@ -53,10 +54,6 @@ public class GoLiveStore {
 	}
 
 	/** An open issue with the name of its entity. */
-	public record OpenIssueRow(UUID id, int entityId, String entityName, String field, UUID propertyDefId, String kind,
-			Instant createdAt) {
-	}
-
 	/** The solution, without a lock. */
 	public Optional<SolutionRow> find(UUID id) {
 		return this.jdbc.query("SELECT id, name, status FROM solutions WHERE id = ?", GoLiveStore::solution, id)
@@ -145,35 +142,6 @@ public class GoLiveStore {
 	public void touch(UUID deltaId, long personId, Instant now) {
 		this.jdbc.update("UPDATE entity_deltas SET updated_at = ?, updated_by = ? WHERE id = ?", Timestamp.from(now),
 				personId, deltaId);
-	}
-
-	/** Stores an open issue of the go-live. */
-	public UUID insertOpenIssue(UUID solutionId, int entityId, String field, UUID propertyDefId, String kind,
-			Instant now) {
-		UUID id = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO solution_open_issues (id, solution_id, entity_id, field, property_def_id, kind, created_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""", id, solutionId, entityId, field, propertyDefId,
-				kind, Timestamp.from(now));
-		return id;
-	}
-
-	/** The open issues of the solution, by entity name and field. */
-	public List<OpenIssueRow> openIssues(UUID solutionId) {
-		return this.jdbc.query("""
-				SELECT i.id, i.entity_id, e.name, i.field, i.property_def_id, i.kind, i.created_at
-				FROM solution_open_issues i JOIN entities e ON e.id = i.entity_id
-				WHERE i.solution_id = ? ORDER BY lower(e.name), i.entity_id, i.field""",
-				(rs, n) -> new OpenIssueRow(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3), rs.getString(4),
-						rs.getObject(5, UUID.class), rs.getString(6), rs.getTimestamp(7).toInstant()),
-				solutionId);
-	}
-
-	/** The number of open issues of the solution. */
-	public int openIssueCount(UUID solutionId) {
-		Integer count = this.jdbc.queryForObject("SELECT count(*) FROM solution_open_issues WHERE solution_id = ?",
-				Integer.class, solutionId);
-		return (count != null) ? count : 0;
 	}
 
 	private static SolutionRow solution(ResultSet rs, int row) throws SQLException {

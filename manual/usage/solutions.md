@@ -1,8 +1,8 @@
 ---
 title: Solutions
 covers:
-  screens: [SCR-060, SCR-061, SCR-062, SCR-063]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152]
+  screens: [SCR-060, SCR-061, SCR-062, SCR-063, SCR-064]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153]
 ---
 
 # Solutions
@@ -79,6 +79,20 @@ When the initiative is done, *Go live* takes the solution into the catalog. It n
 
 Values that no longer fit the metamodel, for example a required property that was added after the capture, do not stop the go-live. They are taken over and listed under *Open issues* on the page of the solution.
 
+If the solution kept a property as a snapshot after a [metamodel change](../administration/metamodel-editing#removing-a-property), the dialog *Resolve conflicts* also lists each value of it, with *Discard the value* or *Resolve later as an open issue*. These values do not stop the go-live either.
+
+## Open issues {#open-issues}
+
+An open issue blocks its entity until it is resolved: nobody can change the entity in the catalog, restore an earlier version of it, or capture a modification or retirement of it in a solution, and no other solution that changes it can go live. The catalog marks the entity, and its [change history](./change-history) names the issue with a link to the solution.
+
+The list *Open issues* shows each issue with its status. With `solution:write`, or with `entity:write` and the write roles of the values, choose *Resolve*:
+
+- Enter a valid value for each issue. A missing required value needs a value.
+- For a value that is not valid for an optional property, *Remove the value* also resolves the issue.
+- For a value that is no longer in the metamodel, *Discard the kept value* resolves the issue. To keep it, map the property again (or add the value to the selection list again), then enter the value.
+
+*Apply* writes the values as a new version of each entity. An issue also counts as resolved when the metamodel makes its value valid, for example when a required property becomes optional; the list then shows *Resolved by the metamodel*.
+
 ## Compare
 
 *Compare* in the area *Changes* opens the comparison of the solution. For each change, it shows the entity as it is in the catalog now, the *current state*, next to how it will be after the solution, the *target state*. Entities without a change do not appear. On a narrow screen, the two states are shown one below the other.
@@ -124,7 +138,7 @@ curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 ```
 
-`GET /solutions/{id}/go-live` shows what the go-live would do: the counts, the field `conflicts` and the `violations` that become open issues. `POST /solutions/{id}/deltas/{deltaId}/resolution` with `{"fields": [{"field": "…", "choice": "current" | "delta" | "value", "value": "…"}]}` resolves conflicts; a field without a conflict answers 422 naming it. `POST /solutions/{id}/go-live` takes the solution live; it answers 409 `merge-required` with the `conflicts` while one is unresolved, and 409 `solution-completed` for an implemented or archived solution. `GET /solutions/{id}/open-issues` lists the open issues.
+`GET /solutions/{id}/go-live` shows what the go-live would do: the counts, the field `conflicts` and the `violations` that become open issues. `POST /solutions/{id}/deltas/{deltaId}/resolution` with `{"fields": [{"field": "…", "choice": "current" | "delta" | "value", "value": "…"}]}` resolves conflicts; a field without a conflict answers 422 naming it. `POST /solutions/{id}/go-live` takes the solution live; it answers 409 `merge-required` with the `conflicts` while one is unresolved, and 409 `solution-completed` for an implemented or archived solution. `GET /solutions/{id}/open-issues` lists the open issues with their `status` and `resolution`. `POST /solutions/{id}/open-issues/resolution` with `{"resolutions": [{"issueId": "…", "value": "…"}, {"issueId": "…", "remove": true}]}` resolves up to 200 issues at once; it answers 422 naming the issues it refuses, and nothing changes then. A write of a blocked entity answers 409 `entity-blocked` with the entities and their issues.
 
 `POST /solutions` answers 201 with the solution, 422 naming `name` for a blank or taken name, and 403 without `solution:write`. Every creation is recorded in the audit log as `solution.created`.
 

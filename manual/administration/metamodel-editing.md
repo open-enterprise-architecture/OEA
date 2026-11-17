@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154]
 ---
 
 # Editing the metamodel
@@ -102,13 +102,20 @@ A metamodel evolves: a property that is optional today can become mandatory from
 - Entries are made on the entity type that holds the property, not on its subtypes.
 - To correct an entry, remove it and add a new one. Removing one of several entries of a property deletes no values.
 
-### Removing a property
+### Removing a property {#removing-a-property}
 
 You can always remove your own entries of a property (*Remove entry*).
 
 ::: warning Values are deleted
 If the entity type then no longer has the property and entities of the type or its subtypes have values for it, these values are deleted. Every affected entity gets a new version; the removed value remains visible in its history. The dialog warns you before. Deleting a value of a selection list works the same way for the entities that hold this value.
 :::
+
+If active [solutions](../usage/solutions) use the values, the dialog lists them after your first confirmation, and you decide for each one. This also applies when a changed base type takes properties away:
+
+- **Apply to this solution:** the values are removed from the changes of the solution as well. A modification that changed nothing else is removed.
+- **Keep as snapshot:** the solution keeps the property, or the value of the selection list, until its go-live. Its changes keep their values and can still set them. At the go-live, each such value is either discarded or becomes an [open issue](../usage/solutions#open-issues).
+
+A property that a solution keeps as a snapshot cannot be deleted until that solution went live. Changes inside the extension of a solution, and package imports, do not ask.
 
 ## Translating labels {#translating-labels}
 

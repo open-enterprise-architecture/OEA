@@ -1,5 +1,7 @@
 package io.oea.api.entity;
 
+import io.oea.api.generated.model.EntityOpenIssue;
+import io.oea.app.entity.EntityBlocks;
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.EntitiesApi;
 import io.oea.api.generated.model.EntityHistoryActor;
@@ -56,7 +58,11 @@ public class EntityHistoryController implements EntitiesApi {
 
 	private final EntityRestore restore;
 
-	public EntityHistoryController(EntityHistory history, EntityVersions versions, EntityRestore restore) {
+	private final EntityBlocks blocks;
+
+	public EntityHistoryController(EntityHistory history, EntityVersions versions, EntityRestore restore,
+			EntityBlocks blocks) {
+		this.blocks = blocks;
 		this.history = history;
 		this.versions = versions;
 		this.restore = restore;
@@ -74,8 +80,18 @@ public class EntityHistoryController implements EntitiesApi {
 		EntityHistory.Page result = this.history.read(principal(), id,
 				new EntityHistory.Query((from != null) ? from.toInstant() : null, (to != null) ? to.toInstant() : null,
 						actorId, (page != null) ? page : 0, (pageSize != null) ? pageSize : 50, cursor));
+		EntityBlocks.Block block = this.blocks.open(principal(), List.of(result.entityId())).get(result.entityId());
 		EntityHistoryResponse response = new EntityHistoryResponse().entityId(result.entityId())
 			.entityName(result.entityName())
+			.openIssues((block != null) ? block.issues()
+				.stream()
+				.map((issue) -> new EntityOpenIssue().id(issue.id())
+					.field(issue.field())
+					.label(issue.label())
+					.kind(EntityOpenIssue.KindEnum.fromValue(issue.kind()))
+					.solutionId(issue.solutionId())
+					.solutionName(issue.solutionName()))
+				.toList() : List.of())
 			.currentVersion(result.currentVersion())
 			.actors(result.actors().stream().map(EntityHistoryController::actor).toList())
 			.versions(result.versions()

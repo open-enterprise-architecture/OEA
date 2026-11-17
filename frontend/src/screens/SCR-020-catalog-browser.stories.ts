@@ -90,6 +90,16 @@ export const SortByClicking: Story = {
 
 export const EmptyCatalog: Story = catalog([])
 
+// an entity with open issues of a solution is marked next to "History" (US-153 AC5)
+export const OpenIssues: Story = {
+  ...catalog(APPLICATIONS.map((application, index) => (index === 0 ? { ...application, openIssues: true } : application))),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('img', { name: /Open issues/ })).toBeInTheDocument()
+    await expect(canvas.getAllByRole('img', { name: /Open issues/ })).toHaveLength(1)
+  },
+}
+
 export const CatalogList: Story = { args: { fetchFn: overviewApi(ME_ARCHITECT, CATALOGS) } }
 
 export const EmptyOverview: Story = { args: { fetchFn: overviewApi(ME_VIEWER, []) } }

@@ -222,10 +222,29 @@ export function createMapping(
   return write<PropertyMapping>('POST', `${METAMODEL}/metatypes/${at(metatypeId)}/property-mappings`, body, version, fetchFn)
 }
 
-export function deleteMapping(metatypeId: string, mappingId: string, version: number | undefined, fetchFn: typeof fetch = fetch) {
+/** A decision for an active solution a metamodel change affects (US-154). */
+export type SolutionDecision = components['schemas']['SolutionDecision']
+
+/** The decisions as the repeated query parameter `decision=<solutionId>:apply|keep`. */
+function decisionQuery(decisions: SolutionDecision[]): string {
+  const query = decisions.map((entry) => `decision=${encodeURIComponent(`${entry.solutionId}:${entry.decision}`)}`).join('&')
+  return query === '' ? '' : `?${query}`
+}
+
+/**
+ * DELETE /metamodel/metatypes/{id}/property-mappings/{mappingId}; affected active solutions need a
+ * decision each, else 409 `solution-decision-required` lists them (US-154).
+ */
+export function deleteMapping(
+  metatypeId: string,
+  mappingId: string,
+  version: number | undefined,
+  fetchFn: typeof fetch = fetch,
+  decisions: SolutionDecision[] = [],
+) {
   return write<void>(
     'DELETE',
-    `${METAMODEL}/metatypes/${at(metatypeId)}/property-mappings/${at(mappingId)}`,
+    `${METAMODEL}/metatypes/${at(metatypeId)}/property-mappings/${at(mappingId)}${decisionQuery(decisions)}`,
     undefined,
     version,
     fetchFn,
@@ -294,10 +313,17 @@ export function createEnumValue(propertyId: string, value: string, version: numb
   )
 }
 
-export function deleteEnumValue(propertyId: string, valueId: string, version: number | undefined, fetchFn: typeof fetch = fetch) {
+/** DELETE of an enum value; affected active solutions need a decision each (US-154). */
+export function deleteEnumValue(
+  propertyId: string,
+  valueId: string,
+  version: number | undefined,
+  fetchFn: typeof fetch = fetch,
+  decisions: SolutionDecision[] = [],
+) {
   return write<void>(
     'DELETE',
-    `${METAMODEL}/property-definitions/${at(propertyId)}/enum-values/${at(valueId)}`,
+    `${METAMODEL}/property-definitions/${at(propertyId)}/enum-values/${at(valueId)}${decisionQuery(decisions)}`,
     undefined,
     version,
     fetchFn,

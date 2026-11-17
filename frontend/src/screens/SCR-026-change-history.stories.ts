@@ -173,3 +173,43 @@ export const PartiallyRestored: Story = {
     await expect(canvas.getAllByRole('button', { name: 'Partially restore' })).toHaveLength(CRM_VERSIONS.length)
   },
 }
+
+// the open issues of solutions that block the entity, with a link to their solution (US-153 AC5)
+export const OpenIssues: Story = {
+  render: () => ({
+    components: { AppHeader, EntityHistoryPage },
+    setup: () => {
+      session.me = ME_HISTORY_READER as unknown as Me
+      session.loaded = true
+      const fetchFn = historyApi({
+        me: ME_HISTORY_READER,
+        entities: {
+          [HISTORY_IDS.crm]: {
+            name: 'CRM System',
+            versions: CRM_VERSIONS,
+            state: crmState,
+            openIssues: [
+              {
+                id: '0e000000-0000-4000-8000-000000000001',
+                field: 'fd000000-0000-4000-8000-000000000009',
+                label: 'Contact',
+                kind: 'mandatory-missing',
+                solutionId: '5d000000-0000-4000-8000-000000000001',
+                solutionName: 'CRM Replacement',
+              },
+            ],
+          },
+        },
+      }).fetch
+      return { fetchFn, id: String(HISTORY_IDS.crm) }
+    },
+    template: `
+      <AppHeader :fetch-fn="fetchFn" />
+      <EntityHistoryPage :id="id" :fetch-fn="fetchFn" />`,
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Open issues')).toBeInTheDocument()
+    await expect(canvas.getByRole('link', { name: 'CRM Replacement' })).toBeInTheDocument()
+  },
+}

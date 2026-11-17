@@ -1,5 +1,6 @@
 package io.oea.api.portal;
 
+import io.oea.app.entity.EntityBlocks;
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.catalog.CatalogQueryMapping;
 import io.oea.api.generated.PortalApi;
@@ -23,7 +24,10 @@ public class PortalController implements PortalApi {
 
 	private final PortalCatalogs catalogs;
 
-	public PortalController(PortalCatalogs catalogs) {
+	private final EntityBlocks blocks;
+
+	public PortalController(PortalCatalogs catalogs, EntityBlocks blocks) {
+		this.blocks = blocks;
 		this.catalogs = catalogs;
 	}
 
@@ -37,7 +41,8 @@ public class PortalController implements PortalApi {
 	public ResponseEntity<CatalogQueryResult> queryPortalCatalog(UUID id, Integer page, Integer pageSize, String sort,
 			String cursor) {
 		return ResponseEntity
-			.ok(CatalogQueryMapping.result(this.catalogs.query(principal(), id, page, pageSize, sort, cursor)));
+			.ok(CatalogQueryMapping.result(this.catalogs.query(principal(), id, page, pageSize, sort, cursor),
+					this.blocks));
 	}
 
 	private static OeaPrincipal principal() {

@@ -10,6 +10,7 @@ import type {
   RestoredField,
   RestoreField,
 } from '../api/history'
+import type { components } from '../api/generated/schema'
 
 // A fake backend for SCR-026 (us-098-entity-history, us-099-version-diff): the history of an
 // entity with the period and person filters, paging by cursor, 404 for an unknown entity, the
@@ -180,7 +181,11 @@ interface HistoryEntity {
   versions: EntityVersion[]
   /** The fields of a version; without it, only the name. */
   state?: (version: number) => EntityVersionField[]
+  /** The open issues of solutions that block the entity (US-153 AC5). */
+  openIssues?: EntityOpenIssue[]
 }
+
+export type EntityOpenIssue = components['schemas']['EntityOpenIssue']
 
 export function historyApi(
   options: {
@@ -349,6 +354,7 @@ export function historyApi(
       return json({
         entityId: Number(match[1]),
         entityName: entity.name,
+        openIssues: entity.openIssues ?? [],
         currentVersion: latest(entity),
         created: { changedAt: created.changedAt, changedBy: created.changedBy },
         actors,

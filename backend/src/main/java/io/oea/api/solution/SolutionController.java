@@ -31,6 +31,8 @@ import io.oea.api.generated.model.SolutionLandscapeEntity;
 import io.oea.api.generated.model.SolutionLandscapeEntry;
 import io.oea.api.generated.model.SolutionLandscapePage;
 import io.oea.api.generated.model.SolutionOpenIssue;
+import io.oea.api.generated.model.SolutionOpenIssueResolution;
+import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.SolutionSummary;
 import io.oea.app.entity.EntityInput;
@@ -38,6 +40,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.solution.SolutionConflicts;
 import io.oea.app.solution.SolutionDeltas;
 import io.oea.app.solution.SolutionDiff;
+import io.oea.app.solution.OpenIssues;
 import io.oea.app.solution.SolutionGoLive;
 import io.oea.app.solution.SolutionLandscape;
 import io.oea.app.solution.Solutions;
@@ -67,8 +70,11 @@ public class SolutionController implements SolutionsApi {
 
 	private final SolutionGoLive goLive;
 
+	private final OpenIssues openIssues;
+
 	public SolutionController(Solutions solutions, SolutionLandscape landscape, SolutionDeltas deltas,
-			SolutionDiff diff, SolutionGoLive goLive) {
+			SolutionDiff diff, SolutionGoLive goLive, OpenIssues openIssues) {
+		this.openIssues = openIssues;
 		this.solutions = solutions;
 		this.landscape = landscape;
 		this.deltas = deltas;
@@ -105,7 +111,21 @@ public class SolutionController implements SolutionsApi {
 	@Override
 	public ResponseEntity<List<SolutionOpenIssue>> listSolutionOpenIssues(UUID id) {
 		return ResponseEntity
-			.ok(this.goLive.openIssues(principal(), id).stream().map(SolutionController::openIssue).toList());
+			.ok(this.openIssues.list(principal(), id).stream().map(SolutionController::openIssue).toList());
+	}
+
+	@Override
+	public ResponseEntity<List<SolutionOpenIssue>> resolveSolutionOpenIssues(UUID id,
+			SolutionOpenIssueResolution request) {
+		return ResponseEntity.ok(this.openIssues
+			.resolve(principal(), id, request.getResolutions()
+				.stream()
+				.map((item) -> new OpenIssues.Resolution(item.getIssueId(), item.getValue(),
+						Boolean.TRUE.equals(item.getRemove())))
+				.toList())
+			.stream()
+			.map(SolutionController::openIssue)
+			.toList());
 	}
 
 	@Override
@@ -119,7 +139,8 @@ public class SolutionController implements SolutionsApi {
 
 	/** A field conflict of the preview. */
 	private static DeltaConflict conflict(SolutionGoLive.Conflict conflict) {
-		return new DeltaConflict().deltaId(conflict.deltaId())
+		return new DeltaConflict().kind(DeltaConflict.KindEnum.fromValue(conflict.kind()))
+			.deltaId(conflict.deltaId())
 			.entityId(conflict.entityId())
 			.entityName(conflict.entityName())
 			.field(conflict.field())
@@ -135,17 +156,29 @@ public class SolutionController implements SolutionsApi {
 		return new SolutionGoLiveCounts().created(counts.created())
 			.modified(counts.modified())
 			.retired(counts.retired())
-			.retiredConnections(counts.retiredConnections());
+			.retiredConnections(counts.retiredConnections())
+			.notInMetamodel(counts.notInMetamodel());
 	}
 
-	private static SolutionOpenIssue openIssue(SolutionGoLive.OpenIssue issue) {
+	private static SolutionOpenIssue openIssue(OpenIssues.OpenIssue issue) {
 		return new SolutionOpenIssue().id(issue.id())
 			.entityId(issue.entityId())
 			.entityName(issue.entityName())
 			.field(issue.field())
 			.label(issue.label())
+			.dataType(EntityVersionDataType.fromValue(issue.dataType()))
 			.kind(SolutionOpenIssue.KindEnum.fromValue(issue.kind()))
-			.createdAt(issue.createdAt().atOffset(ZoneOffset.UTC));
+			.createdAt(issue.createdAt().atOffset(ZoneOffset.UTC))
+			.status(SolutionOpenIssue.StatusEnum.fromValue(issue.status()))
+			.resolution((issue.resolution() != null) ? SolutionOpenIssue.ResolutionEnum.fromValue(issue.resolution())
+					: null)
+			.resolvedAt((issue.resolvedAt() != null) ? issue.resolvedAt().atOffset(ZoneOffset.UTC) : null)
+			.resolvedBy((issue.resolvedBy() != null)
+					? new EntityHistoryActor().id(issue.resolvedBy().id()).name(issue.resolvedBy().name()) : null)
+			.currentValue(issue.currentValue())
+			.keptValue(issue.keptValue())
+			.removable(issue.removable())
+			.redacted(issue.redacted());
 	}
 
 	@Override
@@ -164,7 +197,7 @@ public class SolutionController implements SolutionsApi {
 	@Override
 	public ResponseEntity<Solution> getSolution(UUID id) {
 		Solutions.Solution solution = this.solutions.get(id);
-		return ResponseEntity.ok(solution(solution, this.goLive.openIssueCount(id)));
+		return ResponseEntity.ok(solution(solution, this.openIssues.openCount(id)));
 	}
 
 	@Override

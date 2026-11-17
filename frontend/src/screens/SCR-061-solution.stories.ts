@@ -236,12 +236,13 @@ export const Implemented: Story = {
       me: ME_SOLUTION_ARCHITECT,
       deltas: [...DELTAS, MODIFIED_ERP],
       openIssues: OPEN_ISSUES,
-      solutions: [{ ...SOLUTIONS[0]!, status: 'implemented', openIssueCount: 1 }, ...SOLUTIONS.slice(1)],
+      solutions: [{ ...SOLUTIONS[0]!, status: 'implemented', openIssueCount: 2 }, ...SOLUTIONS.slice(1)],
     }),
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(await canvas.findByText('Open issues (1)')).toBeInTheDocument()
+    await expect(await canvas.findByText('Open issues (2)')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: 'Go live' })).not.toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Resolve' })).toBeInTheDocument()
   },
 }

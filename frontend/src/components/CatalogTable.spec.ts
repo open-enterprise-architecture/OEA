@@ -15,8 +15,8 @@ import CatalogTable from './CatalogTable.vue'
 const RESULT: CatalogQueryResult = {
   columns: [{ key: 'name', label: 'Name', sortable: true, filterType: 'text' }],
   rows: [
-    { entityId: 101, values: { name: 'CRM System' } },
-    { entityId: 102, values: { name: 'Billing' } },
+    { entityId: 101, openIssues: true, values: { name: 'CRM System' } },
+    { entityId: 102, openIssues: false, values: { name: 'Billing' } },
   ],
   page: { page: 0, pageSize: 50, totalElements: 2, totalPages: 1 },
 } as unknown as CatalogQueryResult
@@ -61,5 +61,12 @@ describe('CatalogTable', () => {
   it('offers no history without entity:read', async () => {
     const { wrapper } = await mountTable(ME_PORTAL_ONLY, '/portal/catalogs/c0000000-0000-4000-8000-000000000001', true)
     expect(wrapper.find('[data-testid="history-101"]').exists()).toBe(false)
+  })
+
+  // spec catalog/catalog-query "Entities with open issues in the catalog" (US-153 AC5)
+  it('marks a row whose entity has open issues of a solution', async () => {
+    const { wrapper } = await mountTable(ME_HISTORY_READER, '/catalogs/1')
+    expect(wrapper.find('[data-testid="open-issues-101"]').attributes('aria-label')).toContain('Open issues')
+    expect(wrapper.find('[data-testid="open-issues-102"]').exists()).toBe(false)
   })
 })

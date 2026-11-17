@@ -12,11 +12,13 @@ import io.oea.api.generated.model.JoinMode;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.app.catalog.CatalogQueries;
+import io.oea.app.entity.EntityBlocks;
 import io.oea.app.catalog.Catalogs;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -28,12 +30,17 @@ public final class CatalogQueryMapping {
 	private CatalogQueryMapping() {
 	}
 
-	/** One page of a catalog query as the contract's {@code CatalogQueryResult}. */
-	public static CatalogQueryResult result(CatalogQueries.Result result) {
+	/**
+	 * One page of a catalog query as the contract's {@code CatalogQueryResult}; {@code blocks}
+	 * names the entities with open issues of a solution (US-153 AC5).
+	 */
+	public static CatalogQueryResult result(CatalogQueries.Result result, EntityBlocks blocks) {
+		Set<Integer> blocked = blocks.blocked(result.rows().stream().map(CatalogQueries.Row::entityId).toList());
 		return new CatalogQueryResult(result.columns().stream().map(CatalogQueryMapping::column).toList(),
 				result.rows()
 					.stream()
-					.map((row) -> new CatalogRow(row.entityId(), new LinkedHashMap<>(row.values()))
+					.map((row) -> new CatalogRow(row.entityId(), blocked.contains(row.entityId()),
+							new LinkedHashMap<>(row.values()))
 						.joinResults(joinResults(row.joinResults())))
 					.toList(),
 				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),

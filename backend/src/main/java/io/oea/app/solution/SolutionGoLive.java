@@ -1,6 +1,8 @@
 package io.oea.app.solution;
 
 import io.oea.app.access.LanguagePreferences;
+import io.oea.app.entity.EntityBlockedException;
+import io.oea.app.entity.EntityBlocks;
 import io.oea.app.entity.EntityValidator;
 import io.oea.app.entity.EntityWriter;
 import io.oea.app.entity.MetatypeRules;
@@ -21,6 +23,8 @@ import io.oea.core.entity.TypedValue;
 import io.oea.core.solution.GoLiveStore;
 import io.oea.core.solution.GoLiveStore.DeltaRow;
 import io.oea.core.solution.GoLiveStore.FieldRow;
+import io.oea.core.solution.OpenIssueStore;
+import io.oea.core.solution.SnapshotStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -47,14 +51,22 @@ import org.springframework.transaction.annotation.Transactional;
  * delta {@code retiring} soft-deletes its entity and the connections of that entity (ADR-019).
  * Metamodel violations do not block; they become open issues of the solution. The values of the
  * deltas are taken as captured, without a new check of write roles (owner decision 2026-11-16).
- * SQL runs only in the stores of core (ADR-051).
+ * An entity with an open issue blocks a delta {@code modified} or {@code retiring} of it (design D3
+ * of us-153-open-issues). A value whose property or enumeration value only a snapshot of the
+ * solution keeps is a conflict {@code not-in-metamodel}: it does not stop the go-live and becomes
+ * an open issue keeping the value; the go-live drops the snapshots (D11, US-154 AC4). SQL runs only
+ * in the stores of core (ADR-051).
  */
 @Service
 public class SolutionGoLive {
 
-	static final String MANDATORY_MISSING = "mandatory-missing";
+	static final String MANDATORY_MISSING = EntityBlocks.MANDATORY_MISSING;
 
-	static final String INVALID_VALUE = "invalid-value";
+	static final String INVALID_VALUE = EntityBlocks.INVALID_VALUE;
+
+	static final String NOT_IN_METAMODEL = EntityBlocks.NOT_IN_METAMODEL;
+
+	static final String FIELD = "field";
 
 	private static final Set<String> COMPLETED = Set.of("implemented", "archived");
 
@@ -84,9 +96,22 @@ public class SolutionGoLive {
 
 	private final Clock clock;
 
+	private final OpenIssueStore issues;
+
+	private final OpenIssues openIssues;
+
+	private final SnapshotStore snapshots;
+
+	private final EntityBlocks blocks;
+
 	SolutionGoLive(GoLiveStore store, EntityStore entities, EntityVersionStore versions, PropertyValueStore values,
 			MetatypeRuleStore ruleStore, EntityWriter writer, PropertyAccess access, MetamodelLabels labels,
-			LanguagePreferences languages, SolutionDeltas deltas, AuditWriter audit, Clock clock) {
+			LanguagePreferences languages, SolutionDeltas deltas, AuditWriter audit, Clock clock, OpenIssueStore issues,
+			OpenIssues openIssues, SnapshotStore snapshots, EntityBlocks blocks) {
+		this.issues = issues;
+		this.openIssues = openIssues;
+		this.snapshots = snapshots;
+		this.blocks = blocks;
 		this.store = store;
 		this.entities = entities;
 		this.versions = versions;
@@ -102,11 +127,14 @@ public class SolutionGoLive {
 	}
 
 	/** The counts of a go-live; connections retired with an endpoint are counted separately. */
-	public record Counts(int created, int modified, int retired, int retiredConnections) {
+	public record Counts(int created, int modified, int retired, int retiredConnections, int notInMetamodel) {
 	}
 
-	/** A field conflict; the three values are text and {@code null} when redacted. */
-	public record Conflict(UUID deltaId, int entityId, String entityName, String field, String label,
+	/**
+	 * A conflict {@code field} or {@code not-in-metamodel}; the three values are text and
+	 * {@code null} when redacted; {@code entityId} and {@code current} are {@code null} for a delta new.
+	 */
+	public record Conflict(String kind, UUID deltaId, Integer entityId, String entityName, String field, String label,
 			String dataType, String before, String current, String after, boolean redacted) {
 	}
 
@@ -119,27 +147,34 @@ public class SolutionGoLive {
 	public record Preview(UUID solutionId, Counts counts, List<Conflict> conflicts, List<Violation> violations) {
 	}
 
-	/** An open issue left by a go-live. */
-	public record OpenIssue(UUID id, int entityId, String entityName, String field, String label, String kind,
-			Instant createdAt) {
-	}
-
 	/** The outcome of a go-live. */
-	public record Result(UUID solutionId, String status, Counts counts, List<OpenIssue> openIssues) {
+	public record Result(UUID solutionId, String status, Counts counts, List<OpenIssues.OpenIssue> openIssues) {
 	}
 
-	/** The resolution of one conflicting field: {@code current}, {@code delta} or {@code value}. */
+	/**
+	 * The resolution of one conflicting field: {@code current}, {@code delta} or {@code value} for a
+	 * conflict {@code field}, {@code discard} for a conflict {@code not-in-metamodel}.
+	 */
 	public record Choice(String field, String choice, String value) {
 	}
 
 	/** The plan of a go-live: the deltas, the rules of today and what the deltas would do. */
 	private record Plan(GoLiveStore.SolutionRow solution, List<DeltaRow> deltas, MetatypeRules rules,
 			Map<Integer, StoredEntity> entities, Map<Integer, Map<UUID, TypedValue>> current, Counts counts,
-			Set<Integer> retiredConnections, List<RawConflict> conflicts, List<RawViolation> violations) {
+			Set<Integer> retiredConnections, List<RawConflict> conflicts, List<RawViolation> violations,
+			List<RawConflict> snapshotValues) {
+
+		/** Whether the field of the delta holds a value only a snapshot keeps. */
+		boolean snapshotOnly(DeltaRow delta, FieldRow field) {
+			return this.snapshotValues.stream()
+				.anyMatch((conflict) -> conflict.delta().id().equals(delta.id())
+						&& conflict.field().key().equals(field.key()));
+		}
+
 	}
 
-	/** A conflict before the display rules: raw values. */
-	private record RawConflict(DeltaRow delta, FieldRow field, TypedValue current) {
+	/** A conflict before the display rules: raw values; {@code current} is {@code null} for a delta new. */
+	private record RawConflict(String kind, DeltaRow delta, FieldRow field, TypedValue current) {
 	}
 
 	/** A violation before the display rules. */
@@ -160,7 +195,9 @@ public class SolutionGoLive {
 		Plan plan = plan(solution, false);
 		PropertyAccess.Snapshot reader = this.access.of(principal);
 		String language = this.languages.language(principal);
-		return new Preview(solutionId, plan.counts(), conflicts(plan, reader, language),
+		List<RawConflict> all = new ArrayList<>(plan.conflicts());
+		all.addAll(plan.snapshotValues());
+		return new Preview(solutionId, plan.counts(), conflicts(plan, all, reader, language),
 				violations(plan, language));
 	}
 
@@ -182,9 +219,25 @@ public class SolutionGoLive {
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
 		Plan plan = plan(solution, true);
+		Set<Integer> touched = new TreeSet<>();
+		plan.deltas()
+			.stream()
+			.filter((delta) -> !"new".equals(delta.type()))
+			.map(DeltaRow::entityId)
+			.forEach(touched::add);
+		Map<Integer, EntityBlocks.Block> blocked = this.blocks.open(principal, touched);
+		if (!blocked.isEmpty()) {
+			throw new EntityBlockedException(List.copyOf(blocked.values()),
+					plan.deltas()
+						.stream()
+						.filter((delta) -> delta.entityId() != null && blocked.containsKey(delta.entityId())
+								&& !"new".equals(delta.type()))
+						.map(DeltaRow::id)
+						.toList());
+		}
 		if (!plan.conflicts().isEmpty()) {
 			throw new MergeRequiredException(
-					conflicts(plan, this.access.of(principal), this.languages.language(principal)));
+					conflicts(plan, plan.conflicts(), this.access.of(principal), this.languages.language(principal)));
 		}
 		Instant now = this.clock.instant();
 		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), AuditEvent.Agent.NONE);
@@ -203,21 +256,29 @@ public class SolutionGoLive {
 		for (RawViolation violation : plan.violations()) {
 			int entityId = (violation.delta().entityId() != null) ? violation.delta().entityId()
 					: createdEntities.get(violation.delta().id());
-			this.store.insertOpenIssue(solutionId, entityId, violation.field(), violation.propertyDefId(),
-					violation.kind(), now);
+			this.issues.insert(solutionId, entityId, violation.field(), violation.propertyDefId(), violation.kind(), null,
+					now);
 			if (MANDATORY_MISSING.equals(violation.kind())) {
 				missing.computeIfAbsent(entityId, (k) -> new HashSet<>()).add(violation.propertyDefId());
 			}
 		}
 		missing.forEach((entityId, properties) -> this.values.mark(entityId, properties, now));
+		for (RawConflict kept : plan.snapshotValues()) {
+			int entityId = (kept.delta().entityId() != null) ? kept.delta().entityId()
+					: createdEntities.get(kept.delta().id());
+			this.issues.insert(solutionId, entityId, kept.field().key(), kept.field().propertyDefId(), NOT_IN_METAMODEL,
+					kept.field().after().asText(), now);
+		}
+		this.snapshots.deleteOf(solutionId);
 		this.store.setStatus(solutionId, "implemented");
-		List<OpenIssue> issues = openIssues(principal, solutionId);
+		List<OpenIssues.OpenIssue> issues = this.openIssues.list(principal, solutionId);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", solution.name());
 		details.put("created", plan.counts().created());
 		details.put("modified", plan.counts().modified());
 		details.put("retired", plan.counts().retired());
 		details.put("retiredConnections", plan.counts().retiredConnections());
+		details.put("notInMetamodel", plan.counts().notInMetamodel());
 		details.put("openIssues", issues.size());
 		this.audit.append(new AuditEvent("solution.went-live", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "solution",
@@ -248,8 +309,7 @@ public class SolutionGoLive {
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("delta " + deltaId));
 		Map<String, RawConflict> conflicts = new LinkedHashMap<>();
-		plan.conflicts()
-			.stream()
+		java.util.stream.Stream.concat(plan.conflicts().stream(), plan.snapshotValues().stream())
 			.filter((conflict) -> conflict.delta().id().equals(deltaId))
 			.forEach((conflict) -> conflicts.put(conflict.field().key(), conflict));
 		List<FieldRow> replacements = new ArrayList<>();
@@ -261,7 +321,12 @@ public class SolutionGoLive {
 				throw new InvalidSolutionException(choice.field(), "The field has no conflict to resolve.");
 			}
 			FieldRow field = conflict.field();
-			switch (Objects.requireNonNullElse(choice.choice(), "")) {
+			String chosen = Objects.requireNonNullElse(choice.choice(), "");
+			if (NOT_IN_METAMODEL.equals(conflict.kind()) != "discard".equals(chosen)) {
+				throw new InvalidSolutionException(choice.field(), "The choice does not fit the conflict.");
+			}
+			switch (chosen) {
+				case "discard" -> removals.add(field);
 				case "current" -> removals.add(field);
 				case "delta" -> replacements
 					.add(new FieldRow(field.systemField(), field.propertyDefId(), conflict.current(), field.after()));
@@ -276,36 +341,14 @@ public class SolutionGoLive {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("deltaId", deltaId.toString());
 		details.put("deltaType", delta.type());
-		details.put("entityId", delta.entityId());
+		if (delta.entityId() != null) {
+			details.put("entityId", delta.entityId());
+		}
 		details.put("resolvedFields", choices.stream().map(Choice::field).toList());
 		this.audit.append(new AuditEvent("solution.delta-updated", AuditEvent.Category.CHANGE,
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"solution", solutionId.toString(), details));
 		return this.deltas.get(principal, solutionId, deltaId);
-	}
-
-	/**
-	 * The open issues of the solution with their field labels.
-	 *
-	 * @throws NoSuchElementException for an unknown solution (404)
-	 */
-	@Transactional(readOnly = true)
-	public List<OpenIssue> openIssues(OeaPrincipal principal, UUID solutionId) {
-		this.store.find(solutionId).orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
-		List<GoLiveStore.OpenIssueRow> rows = this.store.openIssues(solutionId);
-		Set<UUID> properties = new HashSet<>();
-		rows.stream().map(GoLiveStore.OpenIssueRow::propertyDefId).filter(Objects::nonNull).forEach(properties::add);
-		Map<UUID, String> propertyLabels = this.labels.propertyLabels(this.languages.language(principal), properties);
-		return rows.stream()
-			.map((row) -> new OpenIssue(row.id(), row.entityId(), row.entityName(), row.field(),
-					label(row.field(), row.propertyDefId(), propertyLabels), row.kind(), row.createdAt()))
-			.toList();
-	}
-
-	/** The number of open issues of the solution. */
-	@Transactional(readOnly = true)
-	public int openIssueCount(UUID solutionId) {
-		return this.store.openIssueCount(solutionId);
 	}
 
 	private static void requireOpen(GoLiveStore.SolutionRow solution) {
@@ -321,6 +364,8 @@ public class SolutionGoLive {
 	private Plan plan(GoLiveStore.SolutionRow solution, boolean lock) {
 		List<DeltaRow> rows = this.store.deltas(solution.id());
 		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock));
+		List<SnapshotStore.SnapshotRow> kept = this.snapshots.of(solution.id());
+		List<RawConflict> snapshotValues = new ArrayList<>();
 		Set<Integer> ids = new TreeSet<>();
 		rows.stream().map(DeltaRow::entityId).filter(Objects::nonNull).forEach(ids::add);
 		Map<Integer, StoredEntity> stored = new HashMap<>();
@@ -340,7 +385,9 @@ public class SolutionGoLive {
 		for (DeltaRow delta : rows) {
 			if ("new".equals(delta.type())) {
 				created++;
-				violations.addAll(violationsOfNew(delta, rules));
+				List<FieldRow> onlyKept = snapshotOnly(delta.metatypeId(), delta, rules, kept);
+				onlyKept.forEach((field) -> snapshotValues.add(new RawConflict(NOT_IN_METAMODEL, delta, field, null)));
+				violations.addAll(violationsOfNew(delta, rules, onlyKept));
 				continue;
 			}
 			StoredEntity entity = stored.get(delta.entityId());
@@ -356,13 +403,17 @@ public class SolutionGoLive {
 			}
 			modified++;
 			Map<UUID, TypedValue> values = current.computeIfAbsent(entity.id(), this.entities::values);
+			List<FieldRow> onlyKept = snapshotOnly(entity.metatypeId(), delta, rules, kept);
 			for (FieldRow field : delta.fields()) {
 				TypedValue now = currentValue(entity, values, field);
-				if (!Objects.equals(text(now), text(field.before()))) {
-					conflicts.add(new RawConflict(delta, field, now));
+				if (onlyKept.contains(field)) {
+					snapshotValues.add(new RawConflict(NOT_IN_METAMODEL, delta, field, now));
+				}
+				else if (!Objects.equals(text(now), text(field.before()))) {
+					conflicts.add(new RawConflict(FIELD, delta, field, now));
 				}
 			}
-			violations.addAll(violationsOfModified(delta, entity, rules));
+			violations.addAll(violationsOfModified(delta, entity, rules, onlyKept));
 		}
 		if (lock && !deleted.isEmpty()) {
 			throw new EntityDeletedException(deleted);
@@ -375,8 +426,39 @@ public class SolutionGoLive {
 				}
 			}
 		}
-		Counts counts = new Counts(created, modified, retiring.size(), retiredConnections.size());
-		return new Plan(solution, rows, rules, stored, current, counts, retiredConnections, conflicts, violations);
+		Counts counts = new Counts(created, modified, retiring.size(), retiredConnections.size(),
+				snapshotValues.size());
+		return new Plan(solution, rows, rules, stored, current, counts, retiredConnections, conflicts, violations,
+				snapshotValues);
+	}
+
+	/**
+	 * The property fields of the delta whose value only a snapshot of the solution keeps: the
+	 * metatype no longer has the property, or the enumeration no longer has the value (US-154 AC4).
+	 */
+	private static List<FieldRow> snapshotOnly(UUID metatypeId, DeltaRow delta, MetatypeRules rules,
+			List<SnapshotStore.SnapshotRow> kept) {
+		if (kept.isEmpty()) {
+			return List.of();
+		}
+		MetatypeRules.Metatype metatype = rules.metatype(metatypeId);
+		List<FieldRow> fields = new ArrayList<>();
+		for (FieldRow field : delta.fields()) {
+			if (field.propertyDefId() == null || field.after() == null) {
+				continue;
+			}
+			MetatypeRules.Mapping mapping = (metatype != null) ? metatype.mappings().get(field.propertyDefId()) : null;
+			boolean match = kept.stream()
+				.filter((snapshot) -> snapshot.metatypeId().equals(metatypeId)
+						&& snapshot.propertyDefId().equals(field.propertyDefId()))
+				.anyMatch((snapshot) -> (snapshot.enumValue() == null) ? mapping == null
+						: snapshot.enumValue().equals(field.after().enumValue()) && (mapping == null
+								|| !mapping.definition().enumValues().contains(snapshot.enumValue())));
+			if (match) {
+				fields.add(field);
+			}
+		}
+		return fields;
 	}
 
 	private static TypedValue currentValue(StoredEntity entity, Map<UUID, TypedValue> values, FieldRow field) {
@@ -390,8 +472,8 @@ public class SolutionGoLive {
 		return values.get(field.propertyDefId());
 	}
 
-	/** Violations of a delta new: empty mandatory properties and values the definition rejects. */
-	private List<RawViolation> violationsOfNew(DeltaRow delta, MetatypeRules rules) {
+	/** Violations of a delta new: empty mandatory properties and values the definition rejects; snapshot values aside. */
+	private List<RawViolation> violationsOfNew(DeltaRow delta, MetatypeRules rules, List<FieldRow> onlyKept) {
 		List<RawViolation> violations = new ArrayList<>();
 		MetatypeRules.Metatype metatype = rules.metatype(delta.metatypeId());
 		if (metatype == null) {
@@ -399,7 +481,7 @@ public class SolutionGoLive {
 		}
 		Set<UUID> set = new HashSet<>();
 		for (FieldRow field : delta.fields()) {
-			if (field.propertyDefId() == null || field.after() == null) {
+			if (field.propertyDefId() == null || field.after() == null || onlyKept.contains(field)) {
 				continue;
 			}
 			set.add(field.propertyDefId());
@@ -416,14 +498,15 @@ public class SolutionGoLive {
 	}
 
 	/** Violations of a delta modified: values it writes that the definition rejects, and mandatory values it removes. */
-	private List<RawViolation> violationsOfModified(DeltaRow delta, StoredEntity entity, MetatypeRules rules) {
+	private List<RawViolation> violationsOfModified(DeltaRow delta, StoredEntity entity, MetatypeRules rules,
+			List<FieldRow> onlyKept) {
 		List<RawViolation> violations = new ArrayList<>();
 		MetatypeRules.Metatype metatype = rules.metatype(entity.metatypeId());
 		if (metatype == null) {
 			return violations;
 		}
 		for (FieldRow field : delta.fields()) {
-			if (field.propertyDefId() == null) {
+			if (field.propertyDefId() == null || onlyKept.contains(field)) {
 				continue;
 			}
 			MetatypeRules.Mapping mapping = metatype.mappings().get(field.propertyDefId());
@@ -454,7 +537,8 @@ public class SolutionGoLive {
 		Map<UUID, TypedValue> captured = new LinkedHashMap<>();
 		delta.fields()
 			.stream()
-			.filter((field) -> field.propertyDefId() != null && field.after() != null)
+			.filter((field) -> field.propertyDefId() != null && field.after() != null
+					&& !plan.snapshotOnly(delta, field))
 			.forEach((field) -> captured.put(field.propertyDefId(), field.after()));
 		Fields fields = new Fields(metatype.id(), delta.name(), Objects.requireNonNullElse(delta.description(), ""),
 				true, null);
@@ -473,6 +557,9 @@ public class SolutionGoLive {
 		String name = entity.name();
 		String description = Objects.requireNonNullElse(entity.description(), "");
 		for (FieldRow field : delta.fields()) {
+			if (plan.snapshotOnly(delta, field)) {
+				continue;
+			}
 			if ("name".equals(field.systemField())) {
 				name = field.after().asText();
 			}
@@ -535,10 +622,11 @@ public class SolutionGoLive {
 		return typed;
 	}
 
-	private List<Conflict> conflicts(Plan plan, PropertyAccess.Snapshot reader, String language) {
+	private List<Conflict> conflicts(Plan plan, List<RawConflict> raw, PropertyAccess.Snapshot reader,
+			String language) {
 		Set<UUID> properties = new HashSet<>();
 		Set<Integer> references = new HashSet<>();
-		for (RawConflict conflict : plan.conflicts()) {
+		for (RawConflict conflict : raw) {
 			if (conflict.field().propertyDefId() != null) {
 				properties.add(conflict.field().propertyDefId());
 			}
@@ -553,14 +641,16 @@ public class SolutionGoLive {
 		Map<UUID, EntityVersionStore.Definition> definitions = this.versions.definitions(properties);
 		Map<Integer, String> names = this.versions.entityNames(references);
 		List<Conflict> conflicts = new ArrayList<>();
-		for (RawConflict conflict : plan.conflicts()) {
+		for (RawConflict conflict : raw) {
 			FieldRow field = conflict.field();
-			int entityId = conflict.delta().entityId();
-			boolean redacted = field.propertyDefId() != null && !reader.readableFor(field.propertyDefId(), entityId);
+			Integer entityId = conflict.delta().entityId();
+			boolean redacted = field.propertyDefId() != null && ((entityId != null)
+					? !reader.readableFor(field.propertyDefId(), entityId) : reader.restricted(field.propertyDefId()));
+			String entityName = (entityId != null) ? plan.entities().get(entityId).name() : conflict.delta().name();
 			String dataType = (field.propertyDefId() == null) ? "system"
 					: (definitions.get(field.propertyDefId()) != null) ? definitions.get(field.propertyDefId()).dataType()
 							: "string";
-			conflicts.add(new Conflict(conflict.delta().id(), entityId, plan.entities().get(entityId).name(), field.key(),
+			conflicts.add(new Conflict(conflict.kind(), conflict.delta().id(), entityId, entityName, field.key(),
 					label(field.key(), field.propertyDefId(), propertyLabels), dataType,
 					redacted ? null : shown(field.before(), names), redacted ? null : shown(conflict.current(), names),
 					redacted ? null : shown(field.after(), names), redacted));

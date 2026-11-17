@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-137, US-140, US-154]
 ---
 
 # Metamodell bearbeiten
@@ -102,13 +102,20 @@ Ein Metamodell entwickelt sich: Eine Eigenschaft, die heute optional ist, kann a
 - Einträge werden an dem Entitätstyp gemacht, der die Eigenschaft hat, nicht an seinen Untertypen.
 - Um einen Eintrag zu korrigieren, entferne ihn und füge einen neuen hinzu. Einen von mehreren Einträgen einer Eigenschaft zu entfernen, löscht keine Werte.
 
-### Eine Eigenschaft entfernen
+### Eine Eigenschaft entfernen {#removing-a-property}
 
 Deine eigenen Einträge einer Eigenschaft kannst du jederzeit entfernen (*Eintrag entfernen*).
 
 ::: warning Werte werden gelöscht
 Hat der Entitätstyp die Eigenschaft danach nicht mehr und haben Entitäten des Typs oder seiner Untertypen Werte dafür, werden diese Werte gelöscht. Jede betroffene Entität erhält eine neue Version; der entfernte Wert bleibt in ihrer Historie sichtbar. Der Dialog warnt dich vorher. Einen Wert einer Auswahlliste zu löschen, wirkt genauso für die Entitäten, die diesen Wert haben.
 :::
+
+Nutzen aktive [Lösungen](../usage/solutions) die Werte, listet der Dialog sie nach deiner ersten Bestätigung, und du entscheidest für jede einzelne. Das gilt auch, wenn ein geänderter Basistyp Eigenschaften wegnimmt:
+
+- **Auf diese Lösung anwenden:** Die Werte werden auch aus den Änderungen der Lösung entfernt. Eine Änderung, die sonst nichts ändert, wird entfernt.
+- **Als Snapshot behalten:** Die Lösung behält die Eigenschaft oder den Wert der Auswahlliste bis zu ihrem Go-live. Ihre Änderungen behalten ihre Werte und können sie weiter setzen. Beim Go-live wird jeder solche Wert verworfen oder ein [offener Punkt](../usage/solutions#open-issues).
+
+Eine Eigenschaft, die eine Lösung als Snapshot behält, kann erst gelöscht werden, wenn diese Lösung live ist. Änderungen in der Erweiterung einer Lösung und Paketimporte fragen nicht nach.
 
 ## Labels übersetzen {#translating-labels}
 

@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: large
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-25
-last_updated: 2026-06-25
+last_updated: 2026-11-17
 primary_actor: SH-03
 secondary_actors:
   - SH-02
@@ -157,6 +157,13 @@ Lukas (SH-02) also has the Metamodel Editor role:
 - All changes are attributed to Lukas in the audit log
 - Simultaneous editing of the same EntityType: last-write-wins with a warning on collision (optimistic locking). Each EntityType, property and category carries a version; a save based on an older version is not applied, the form warns with the current state, and the architect overwrites it with the own input or discards the input
 
+**A6 – Change that removes values active solutions use** (US-154; owner decision 2026-11-17):
+When Kurt removes a property from an EntityType, deletes a value of a selection list or changes a base type so that properties are no longer inherited, and active solutions have deltas with these values or extension types based on the changed type:
+
+1. System lists the affected solutions and asks for each whether the change applies there too
+2. Kurt decides per solution: "Apply" removes the values from its deltas, "Keep as snapshot" keeps the property in the solution until its go-live
+3. System makes the change with the decisions and records them in the audit log; at the go-live, kept values the architect does not discard become open issues of the solution
+
 ## Exception Flows
 
 **E1 – Name already taken**:
@@ -260,3 +267,4 @@ UC-04 is deliberately set to `target_release: v1.0` (not walking skeleton), sinc
 |---|---|---|---|
 | 0.1.0 | 2026-06-25 | Requirements Engineer | Initial draft |
 | 0.2.0 | 2026-11-04 | Requirements Engineer | A5 refined: version per element, warning with the current state, overwrite or discard (change `scr-030-metamodel-configuration`) |
+| 0.3.0 | 2026-11-17 | Change us-153-open-issues | A6: the question per affected active solution (US-154) |

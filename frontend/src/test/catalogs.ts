@@ -172,6 +172,8 @@ export const GERMAN_LABELS: Record<string, string> = {
 /** An application row of the catalog query (US-049). */
 export interface Application {
   name: string
+  /** The entity has open issues of a solution (US-153 AC5). */
+  openIssues?: boolean
   status?: string
   vendor?: string
   description?: string
@@ -610,6 +612,7 @@ export function catalogApi(
       joins,
       rows: sorted.slice(page * pageSize, (page + 1) * pageSize).map((application) => ({
         entityId: applications.findIndex((candidate) => candidate.name === application.name) + 1,
+        openIssues: application.openIssues ?? false,
         values: Object.fromEntries(
           columns.map((column) => [column.key, (column as { readable?: boolean }).readable === false ? null : (valueOf(application, column.key) ?? null)]),
         ),

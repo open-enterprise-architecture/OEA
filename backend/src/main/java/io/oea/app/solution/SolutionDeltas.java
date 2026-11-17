@@ -1,5 +1,7 @@
 package io.oea.app.solution;
 
+import io.oea.app.entity.EntityBlocks;
+import io.oea.core.solution.SnapshotStore;
 import io.oea.app.catalog.CatalogCursors;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.EntityValidator;
@@ -81,8 +83,15 @@ public class SolutionDeltas {
 
 	private final SolutionConflicts conflicts;
 
+	private final EntityBlocks blocks;
+
+	private final SnapshotStore snapshots;
+
 	SolutionDeltas(JdbcTemplate jdbc, EntityStore store, PropertyWriteAccess writeAccess, PropertyAccess readAccess,
-			AuditWriter audit, Clock clock, CatalogCursors cursors, SolutionConflicts conflicts) {
+			AuditWriter audit, Clock clock, CatalogCursors cursors, SolutionConflicts conflicts, EntityBlocks blocks,
+			SnapshotStore snapshots) {
+		this.blocks = blocks;
+		this.snapshots = snapshots;
 		this.jdbc = jdbc;
 		this.cursors = cursors;
 		this.conflicts = conflicts;
@@ -199,17 +208,21 @@ public class SolutionDeltas {
 		if (person == null) {
 			throw new PermissionDeniedException();
 		}
+		if (input.type() != Type.NEW && input.entityId() != null) {
+			// an entity with open issues of a solution gets no new modification or retirement (US-153 AC1)
+			this.blocks.check(principal, List.of(input.entityId()));
+		}
 		Map<UUID, TypedValue> values = Map.of();
 		List<Computed> changes = List.of();
 		switch (input.type()) {
-			case NEW -> values = checkNew(principal, input);
+			case NEW -> values = checkNew(principal, solutionId, input);
 			case RETIRING -> checkRetiring(input);
 			case MODIFIED -> {
 				if (input.metatypeId() != null) {
 					throw new InvalidSolutionException(List.of(new Issue("metatypeId", "NOT_SUPPORTED",
 							"A modified delta keeps the metatype of its entity.")));
 				}
-				changes = computeChanges(principal, input.entityId(),
+				changes = computeChanges(principal, solutionId, input.entityId(),
 						new Modification(input.name(), input.description(), input.properties()), Map.of(), false);
 			}
 		}
@@ -281,7 +294,8 @@ public class SolutionDeltas {
 				hidden.add(new Computed(null, property, rs.getString(15), typed(rs, 3), typed(rs, 9)));
 			}
 		}, deltaId);
-		List<Computed> changes = new ArrayList<>(computeChanges(principal, entityId, input, recorded, !hidden.isEmpty()));
+		List<Computed> changes = new ArrayList<>(
+				computeChanges(principal, solutionId, entityId, input, recorded, !hidden.isEmpty()));
 		changes.addAll(hidden);
 		this.jdbc.update("DELETE FROM entity_delta_property_values WHERE delta_id = ?", deltaId);
 		changes.forEach((change) -> insertValue(deltaId, change.systemField(), change.propertyDefId(),
@@ -405,8 +419,16 @@ public class SolutionDeltas {
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 	}
 
+	/**
+	 * The rules of today with the snapshots of the solution (design D10 of us-153-open-issues): its
+	 * deltas may keep a property or enumeration value a metamodel change removed (US-154 AC3).
+	 */
+	private MetatypeRules rules(UUID solutionId) {
+		return MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).withSnapshots(this.snapshots.of(solutionId));
+	}
+
 	/** The checks of an entity write (design D2 of us-040-entity-deltas); the values after defaults. */
-	private Map<UUID, TypedValue> checkNew(OeaPrincipal principal, NewDelta input) {
+	private Map<UUID, TypedValue> checkNew(OeaPrincipal principal, UUID solutionId, NewDelta input) {
 		EntityInput entity = new EntityInput(input.name(), input.metatypeId(), null, input.description(), null, null,
 				null, input.properties());
 		PropertyAccess.Snapshot access = this.writeAccess.require(principal, List.of(entity));
@@ -422,8 +444,7 @@ public class SolutionDeltas {
 			named.errors().stream().filter((issue) -> !"metatypeId".equals(issue.field())).forEach(errors::add);
 			throw new InvalidSolutionException(errors);
 		}
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock))
-			.forWriter(PropertyWriteAccess.writer(access));
+		MetatypeRules rules = rules(solutionId).forWriter(PropertyWriteAccess.writer(access));
 		EntityValidator.Checked checked = EntityValidator.check(entity, rules, null, Map.of(), this.store::isActive);
 		errors.addAll(checked.errors());
 		if (!errors.isEmpty()) {
@@ -468,7 +489,7 @@ public class SolutionDeltas {
 	 * already holds it, else the current value; a field whose new value equals that before value
 	 * is no change.
 	 */
-	private List<Computed> computeChanges(OeaPrincipal principal, Integer entityId, Modification input,
+	private List<Computed> computeChanges(OeaPrincipal principal, UUID solutionId, Integer entityId, Modification input,
 			Map<String, TypedValue> recorded, boolean othersRemain) {
 		StoredEntity stored = (entityId != null) ? this.store.lockForShare(entityId)
 			.filter((entity) -> !entity.deleted() && inBaseline(entity.id()))
@@ -480,8 +501,7 @@ public class SolutionDeltas {
 		Map<UUID, TypedValue> current = this.store.values(stored.id());
 		EntityInput entity = new EntityInput((input.name() != null) ? input.name() : stored.name(), stored.metatypeId(),
 				null, input.description(), null, null, null, input.properties());
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock))
-			.forWriter(PropertyWriteAccess.writer(access));
+		MetatypeRules rules = rules(solutionId).forWriter(PropertyWriteAccess.writer(access));
 		EntityValidator.Checked checked = EntityValidator.check(entity, rules, stored, current, this.store::isActive);
 		if (!checked.valid()) {
 			throw new InvalidSolutionException(checked.errors());

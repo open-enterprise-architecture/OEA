@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import UCard from '@nuxt/ui/components/Card.vue'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { onBeforeMount, ref } from 'vue'
+import DeleteDialog from '../components/metamodel/DeleteDialog.vue'
 import MetatypeDialog from '../components/metamodel/MetatypeDialog.vue'
 import { loadMetamodel, metatypeById } from '../metamodel/store'
 import MetamodelPage from '../pages/MetamodelPage.vue'
@@ -124,5 +125,58 @@ export const Collision: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
     await expect(await canvas.findByText('Changed by someone else meanwhile')).toBeInTheDocument()
     await expect(canvas.getByTestId('collision-abbreviation')).toHaveTextContent('NET')
+  },
+}
+
+// removing a mapping that active solutions use asks per solution: apply there, or keep a
+// snapshot until the go-live (US-154 AC1; design D12 of us-153-open-issues)
+export const SolutionDecisions: Story = {
+  render: () => ({
+    components: { DeleteDialog },
+    setup: () => ({
+      run: async (_version: number | undefined, decisions: unknown[]) =>
+        decisions.length > 0
+          ? { ok: true, value: undefined }
+          : {
+              ok: false,
+              rejection: {
+                status: 409,
+                problemType: 'solution-decision-required',
+                invalidFields: [],
+                solutions: [
+                  {
+                    id: '5d000000-0000-4000-8000-000000000001',
+                    name: 'CRM Replacement',
+                    status: 'draft',
+                    deltaValues: 2,
+                    extensionMetatypes: 0,
+                    properties: [{ metatypeId: IDS.component, propertyDefId: IDS.owner, label: 'Cost Center', enumValue: null }],
+                  },
+                  {
+                    id: '5d000000-0000-4000-8000-000000000002',
+                    name: 'Cloud Migration',
+                    status: 'in-progress',
+                    deltaValues: 0,
+                    extensionMetatypes: 1,
+                    properties: [{ metatypeId: IDS.component, propertyDefId: IDS.owner, label: 'Cost Center', enumValue: null }],
+                  },
+                ],
+              },
+            },
+    }),
+    template: `
+      <DeleteDialog
+        :open="true"
+        title="Remove the mapping"
+        description="Cost Center is removed from Application Component."
+        :version="1"
+        :run="run"
+      />`,
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await body.findByRole('button', { name: 'Delete' }))
+    await expect(await body.findByText('Active solutions use these values')).toBeInTheDocument()
+    await expect(body.getByRole('button', { name: 'Delete' })).toBeDisabled()
   },
 }

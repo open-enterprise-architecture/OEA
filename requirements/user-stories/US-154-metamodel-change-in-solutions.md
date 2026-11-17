@@ -2,8 +2,9 @@
 
 **ID**: US-154
 **Story Points**: 8
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-153-open-issues` – `SolutionImpact` on removing a mapping, deleting an enumeration value and changing a base type of the instance metamodel (409 `solution-decision-required`, decisions `apply` and `keep`), snapshots in the checks of the deltas and the effective metamodel of the extension, snapshot values as conflicts `not-in-metamodel` at the go-live and as blocking open issues, the question in the dialogs of SCR-030 (V36) (AC1–AC5)
 
 ## Story
 

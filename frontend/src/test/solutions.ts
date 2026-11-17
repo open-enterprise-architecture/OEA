@@ -32,6 +32,7 @@ function me(displayName: string, permissions: string[]) {
 
 export const ME_SOLUTION_ARCHITECT = me('Michael', ['portal:read', 'entity:read', 'solution:write', 'solution-metamodel:write'])
 export const ME_SOLUTION_VIEWER = me('Anna', ['portal:read', 'entity:read'])
+export const ME_CATALOG_WRITER = me('Ines', ['portal:read', 'entity:read', 'entity:write'])
 export const ME_PORTAL_READER = me('Clara', ['portal:read'])
 
 function solution(id: string, name: string, status: Solution['status'], ownerName: string, createdAt: string, description: string | null): Solution {
@@ -53,6 +54,7 @@ function solution(id: string, name: string, status: Solution['status'], ownerNam
 /** A field conflict of a go-live: Users of ERP-Core, changed in the catalog after the capture (US-152 AC2). */
 export function goLiveConflict(deltaId: string, overrides: Partial<DeltaConflict> = {}): DeltaConflict {
   return {
+    kind: 'field',
     deltaId,
     entityId: 1,
     entityName: 'ERP-Core',
@@ -67,17 +69,43 @@ export function goLiveConflict(deltaId: string, overrides: Partial<DeltaConflict
   }
 }
 
-/** The open issues of a go-live (US-152 AC4). */
-export const OPEN_ISSUES: SolutionOpenIssue[] = [
-  {
+/** An open issue of a go-live (US-152 AC4, US-153): open unless overridden. */
+export function openIssue(overrides: Partial<SolutionOpenIssue> = {}): SolutionOpenIssue {
+  return {
     id: '0e000000-0000-4000-8000-000000000001',
     entityId: 7,
     entityName: 'Salesforce',
     field: 'fd000000-0000-4000-8000-000000000009',
     label: 'Contact',
+    dataType: 'string',
     kind: 'mandatory-missing',
     createdAt: '2026-11-16T10:00:00Z',
-  },
+    status: 'open',
+    resolution: null,
+    resolvedAt: null,
+    resolvedBy: null,
+    currentValue: null,
+    keptValue: null,
+    removable: false,
+    redacted: false,
+    ...overrides,
+  }
+}
+
+/** The open issues of a go-live: a missing contact, and 250 users where at most 100 are accepted. */
+export const OPEN_ISSUES: SolutionOpenIssue[] = [
+  openIssue(),
+  openIssue({
+    id: '0e000000-0000-4000-8000-000000000002',
+    entityId: 1,
+    entityName: 'ERP-Core',
+    field: 'fd000000-0000-4000-8000-000000000002',
+    label: 'Users',
+    dataType: 'integer',
+    kind: 'invalid-value',
+    currentValue: '250',
+    removable: true,
+  }),
 ]
 
 export const SOLUTIONS: Solution[] = [
@@ -436,6 +464,7 @@ export interface SolutionApi {
   deltaDeletes: string[]
   goLives: string[]
   resolutions: { deltaId: string; fields: { field: string; choice: string; value?: string }[] }[]
+  issueResolutions: { issueId: string; value?: string | null; remove?: boolean }[][]
 }
 
 export function solutionApi(
@@ -457,6 +486,8 @@ export function solutionApi(
     goLiveConflicts?: DeltaConflict[]
     /** the open issues the go-live leaves */
     openIssues?: SolutionOpenIssue[]
+    /** the open issues whose resolution the server rejects with 422 (US-153) */
+    rejectIssues?: string[]
   } = {},
 ): SolutionApi {
   // copies: a go-live changes the status of its solution
@@ -477,6 +508,7 @@ export function solutionApi(
   const issues = [...(options.openIssues ?? [])]
   const goLives: string[] = []
   const resolutions: { deltaId: string; fields: { field: string; choice: string; value?: string }[] }[] = []
+  const issueResolutions: { issueId: string; value?: string | null; remove?: boolean }[][] = []
   // a delta as the server returns it, with its conflicts computed on each read
   const withConflicts = (delta: SolutionDelta): SolutionDelta => ({
     ...delta,
@@ -732,6 +764,7 @@ export function solutionApi(
         modified: deltas.filter((delta) => delta.deltaType === 'modified').length,
         retired: deltas.filter((delta) => delta.deltaType === 'retiring').length,
         retiredConnections: 0,
+        notInMetamodel: goLiveConflicts.filter((conflict) => conflict.kind === 'not-in-metamodel').length,
       }
       const violations = issues.map((issue) => ({
         deltaId: deltas[0]?.id ?? 'ae000000-0000-4000-8000-000000000001',
@@ -745,11 +778,12 @@ export function solutionApi(
         return json({ solutionId: found.id, counts, conflicts: goLiveConflicts, violations })
       }
       goLives.push(found.id)
-      if (goLiveConflicts.length > 0) {
-        return json({ type: 'urn:oea:problem:merge-required', title: 'Merge required', status: 409, conflicts: goLiveConflicts }, 409)
+      const fieldConflicts = goLiveConflicts.filter((conflict) => conflict.kind !== 'not-in-metamodel')
+      if (fieldConflicts.length > 0) {
+        return json({ type: 'urn:oea:problem:merge-required', title: 'Merge required', status: 409, conflicts: fieldConflicts }, 409)
       }
       found.status = 'implemented'
-      found.openIssueCount = issues.length
+      found.openIssueCount = issues.filter((issue) => issue.status === 'open').length
       return json({ solutionId: found.id, status: 'implemented', counts, openIssues: issues })
     }
     const resolution = /^\/api\/v1\/solutions\/([^/]+)\/deltas\/([^/]+)\/resolution$/.exec(url.pathname)
@@ -764,6 +798,29 @@ export function solutionApi(
       }
       const delta = deltas.find((candidate) => candidate.id === deltaId)
       return delta ? json(withConflicts(delta)) : json(problem(404), 404)
+    }
+    const issueResolution = /^\/api\/v1\/solutions\/([^/]+)\/open-issues\/resolution$/.exec(url.pathname)
+    if (issueResolution && method === 'POST') {
+      const found = solutions.find((candidate) => candidate.id === decodeURIComponent(issueResolution[1]!))
+      if (!found) return json(problem(404), 404)
+      const body = JSON.parse(String(init?.body)) as { resolutions: { issueId: string; value?: string | null; remove?: boolean }[] }
+      issueResolutions.push(body.resolutions)
+      const refused = body.resolutions.map((entry) => entry.issueId).filter((id) => (options.rejectIssues ?? []).includes(id))
+      if (refused.length > 0) return json(problem(422, refused, 'The value is not valid for the property.'), 422)
+      for (const entry of body.resolutions) {
+        const index = issues.findIndex((issue) => issue.id === entry.issueId)
+        if (index >= 0) {
+          issues[index] = {
+            ...issues[index]!,
+            status: 'resolved',
+            resolution: entry.remove ? 'removed' : 'value',
+            resolvedAt: '2026-11-17T09:00:00Z',
+            resolvedBy: { id: 12, name: 'Michael' },
+          }
+        }
+      }
+      found.openIssueCount = issues.filter((issue) => issue.status === 'open').length
+      return json(issues)
     }
     const issuesRoute = /^\/api\/v1\/solutions\/([^/]+)\/open-issues$/.exec(url.pathname)
     if (issuesRoute && method === 'GET') {
@@ -791,5 +848,6 @@ export function solutionApi(
     deltaDeletes,
     goLives,
     resolutions,
+    issueResolutions,
   }
 }

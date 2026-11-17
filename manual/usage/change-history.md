@@ -13,6 +13,8 @@ Every change to an entity creates a new version. The page *Change history* shows
 
 In a [catalog](./catalogs) or in a catalog of the [portal](./portal), choose *History* in the row of an entity. The page opens with the versions of the entity, newest first. *Back to the catalog* returns to the catalog you came from, on the same page and with the same sort.
 
+If the entity has [open issues](./solutions#open-issues) of a solution, a notice above the entries names them with a link to the solution. Until they are resolved, the entity cannot be restored.
+
 ## Read the entries
 
 Each entry shows:

@@ -10,11 +10,13 @@ import { fieldValue } from '../history/fields'
 // changed in the catalog after the capture. Per field, the architect takes the current value, the
 // delta value or an own value; "Apply" sends one resolution per delta and is enabled once every
 // conflict has a choice. Redacted values show "Restricted" and offer only current and delta.
+// A value that only a snapshot of the solution keeps (`not-in-metamodel`, US-154 AC4) offers
+// "Discard value" or "Resolve later"; it needs no choice, and "Resolve later" sends nothing.
 const props = defineProps<{ solutionId: string; conflicts: DeltaConflict[]; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ resolved: []; cancel: [] }>()
 const { t } = useI18n()
 
-type Choice = DeltaConflictChoice['choice']
+type Choice = DeltaConflictChoice['choice'] | 'later'
 const key = (conflict: DeltaConflict) => `${conflict.deltaId}:${conflict.field}`
 const choices = reactive<Record<string, Choice | undefined>>({})
 const values = reactive<Record<string, string>>({})
@@ -22,15 +24,44 @@ const busy = ref(false)
 const failure = ref<string>()
 
 const groups = computed(() => {
-  const byEntity = new Map<number, { entityName: string; conflicts: DeltaConflict[] }>()
+  const byEntity = new Map<string, { entityName: string; conflicts: DeltaConflict[] }>()
   for (const conflict of props.conflicts) {
-    const group = byEntity.get(conflict.entityId) ?? { entityName: conflict.entityName, conflicts: [] }
+    // a delta new has no entity yet; its delta stands for it
+    const entity = conflict.entityId !== null ? String(conflict.entityId) : conflict.deltaId
+    const group = byEntity.get(entity) ?? { entityName: conflict.entityName, conflicts: [] }
     group.conflicts.push(conflict)
-    byEntity.set(conflict.entityId, group)
+    byEntity.set(entity, group)
   }
   return [...byEntity.values()]
 })
-const complete = computed(() => props.conflicts.every((conflict) => choices[key(conflict)] !== undefined))
+const isSnapshot = (conflict: DeltaConflict) => conflict.kind === 'not-in-metamodel'
+const complete = computed(() =>
+  props.conflicts.every((conflict) => isSnapshot(conflict) || choices[key(conflict)] !== undefined),
+)
+
+function itemsOf(conflict: DeltaConflict) {
+  if (isSnapshot(conflict)) {
+    return [
+      { value: 'discard', label: t('solutions.goLive.merge.discard') },
+      { value: 'later', label: t('solutions.goLive.merge.later') },
+    ]
+  }
+  return [
+    {
+      value: 'current',
+      label: conflict.redacted
+        ? t('solutions.goLive.merge.currentHidden')
+        : t('solutions.goLive.merge.current', { value: fieldValue(conflict.current, conflict.dataType, conflict.field, t) }),
+    },
+    {
+      value: 'delta',
+      label: conflict.redacted
+        ? t('solutions.goLive.merge.deltaHidden')
+        : t('solutions.goLive.merge.delta', { value: fieldValue(conflict.after, conflict.dataType, conflict.field, t) }),
+    },
+    ...(conflict.redacted ? [] : [{ value: 'value', label: t('solutions.goLive.merge.own') }]),
+  ]
+}
 
 async function apply() {
   if (!complete.value) return
@@ -39,7 +70,10 @@ async function apply() {
   try {
     const byDelta = new Map<string, DeltaConflictChoice[]>()
     for (const conflict of props.conflicts) {
-      const choice = choices[key(conflict)]!
+      const choice = choices[key(conflict)]
+      if (choice === undefined || choice === 'later') {
+        continue
+      }
       const entries = byDelta.get(conflict.deltaId) ?? []
       entries.push({ field: conflict.field, choice, ...(choice === 'value' ? { value: values[key(conflict)] ?? '' } : {}) })
       byDelta.set(conflict.deltaId, entries)
@@ -75,27 +109,12 @@ async function apply() {
         <legend class="px-1 text-sm font-medium">{{ conflict.label }}</legend>
         <p class="text-xs text-muted">
           <template v-if="conflict.redacted">{{ t('history.restricted') }}</template>
+          <template v-else-if="isSnapshot(conflict)">{{
+            t('solutions.goLive.merge.notInMetamodel', { value: fieldValue(conflict.after, conflict.dataType, conflict.field, t) })
+          }}</template>
           <template v-else>{{ t('solutions.goLive.merge.before', { value: fieldValue(conflict.before, conflict.dataType, conflict.field, t) }) }}</template>
         </p>
-        <URadioGroup
-          v-model="choices[key(conflict)]"
-          :data-testid="`merge-choice-${conflict.field}`"
-          :items="[
-            {
-              value: 'current',
-              label: conflict.redacted
-                ? t('solutions.goLive.merge.currentHidden')
-                : t('solutions.goLive.merge.current', { value: fieldValue(conflict.current, conflict.dataType, conflict.field, t) }),
-            },
-            {
-              value: 'delta',
-              label: conflict.redacted
-                ? t('solutions.goLive.merge.deltaHidden')
-                : t('solutions.goLive.merge.delta', { value: fieldValue(conflict.after, conflict.dataType, conflict.field, t) }),
-            },
-            ...(conflict.redacted ? [] : [{ value: 'value', label: t('solutions.goLive.merge.own') }]),
-          ]"
-        />
+        <URadioGroup v-model="choices[key(conflict)]" :data-testid="`merge-choice-${conflict.field}`" :items="itemsOf(conflict)" />
         <UInput
           v-if="choices[key(conflict)] === 'value'"
           v-model="values[key(conflict)]"

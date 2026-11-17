@@ -1,8 +1,8 @@
 ---
 title: Lösungen
 covers:
-  screens: [SCR-060, SCR-061, SCR-062, SCR-063]
-  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152]
+  screens: [SCR-060, SCR-061, SCR-062, SCR-063, SCR-064]
+  stories: [US-038, US-039, US-040, US-041, US-042, US-043, US-044, US-152, US-153]
 ---
 
 # Lösungen
@@ -79,6 +79,20 @@ Ist die Initiative umgesetzt, übernimmt *Live schalten* die Lösung in den Kata
 
 Werte, die nicht mehr zum Metamodell passen, zum Beispiel eine Pflichteigenschaft, die nach dem Erfassen hinzukam, halten das Live-Schalten nicht auf. Sie werden übernommen und auf der Seite der Lösung unter *Offene Punkte* geführt.
 
+Hat die Lösung nach einer [Metamodell-Änderung](../administration/metamodel-editing#removing-a-property) eine Eigenschaft als Snapshot behalten, listet der Dialog *Konflikte auflösen* auch jeden Wert davon, mit *Wert verwerfen* oder *Später als offenen Punkt lösen*. Auch diese Werte halten das Live-Schalten nicht auf.
+
+## Offene Punkte {#open-issues}
+
+Ein offener Punkt sperrt seine Entität, bis er aufgelöst ist: Niemand kann die Entität im Katalog ändern, eine frühere Version wiederherstellen oder in einer Lösung eine Änderung oder Stilllegung davon erfassen, und keine andere Lösung, die sie ändert, kann live gehen. Der Katalog markiert die Entität, und ihre [Änderungshistorie](./change-history) nennt den Punkt mit einem Link zur Lösung.
+
+Die Liste *Offene Punkte* zeigt jeden Punkt mit seinem Status. Mit `solution:write` oder mit `entity:write` und den Schreibrollen der Werte wählst du *Auflösen*:
+
+- Gib für jeden Punkt einen gültigen Wert ein. Ein fehlender Pflichtwert braucht einen Wert.
+- Bei einem ungültigen Wert einer optionalen Eigenschaft löst auch *Wert entfernen* den Punkt.
+- Bei einem Wert, der nicht mehr im Metamodell ist, löst *Behaltenen Wert verwerfen* den Punkt. Willst du ihn behalten, ordne die Eigenschaft wieder zu (oder nimm den Wert wieder in die Auswahlliste auf) und gib dann den Wert ein.
+
+*Übernehmen* schreibt die Werte als neue Version jeder Entität. Ein Punkt gilt auch als aufgelöst, wenn das Metamodell seinen Wert gültig macht, zum Beispiel wenn eine Pflichteigenschaft optional wird; die Liste zeigt dann *Durch das Metamodell aufgelöst*.
+
 ## Vergleichen
 
 *Vergleichen* im Bereich *Änderungen* öffnet den Vergleich der Lösung. Für jede Änderung zeigt er die Entität, wie sie jetzt im Katalog steht, den *Ist-Stand*, neben ihrem Zustand nach der Lösung, dem *Soll-Stand*. Entitäten ohne Änderung erscheinen nicht. Auf einem schmalen Bildschirm stehen die beiden Stände untereinander.
@@ -124,7 +138,7 @@ curl "${auth[@]}" -d '{"deltaType": "modified", "entityId": 43, "properties": [{
 curl "${auth[@]}" "$OEA/solutions/$SOLUTION/diff?pageSize=50"
 ```
 
-`GET /solutions/{id}/go-live` zeigt, was das Live-Schalten tun würde: die Zahlen, die Feldkonflikte in `conflicts` und die `violations`, die zu offenen Punkten werden. `POST /solutions/{id}/deltas/{deltaId}/resolution` mit `{"fields": [{"field": "…", "choice": "current" | "delta" | "value", "value": "…"}]}` löst Konflikte auf; ein Feld ohne Konflikt wird mit 422 und seinem Namen beantwortet. `POST /solutions/{id}/go-live` schaltet die Lösung live; solange ein Konflikt offen ist, lautet die Antwort 409 `merge-required` mit den `conflicts`, für eine umgesetzte oder archivierte Lösung 409 `solution-completed`. `GET /solutions/{id}/open-issues` listet die offenen Punkte.
+`GET /solutions/{id}/go-live` zeigt, was das Live-Schalten tun würde: die Zahlen, die Feldkonflikte in `conflicts` und die `violations`, die zu offenen Punkten werden. `POST /solutions/{id}/deltas/{deltaId}/resolution` mit `{"fields": [{"field": "…", "choice": "current" | "delta" | "value", "value": "…"}]}` löst Konflikte auf; ein Feld ohne Konflikt wird mit 422 und seinem Namen beantwortet. `POST /solutions/{id}/go-live` schaltet die Lösung live; solange ein Konflikt offen ist, lautet die Antwort 409 `merge-required` mit den `conflicts`, für eine umgesetzte oder archivierte Lösung 409 `solution-completed`. `GET /solutions/{id}/open-issues` listet die offenen Punkte mit `status` und `resolution`. `POST /solutions/{id}/open-issues/resolution` mit `{"resolutions": [{"issueId": "…", "value": "…"}, {"issueId": "…", "remove": true}]}` löst bis zu 200 Punkte auf einmal; abgelehnte Punkte nennt die Antwort 422, und dann ändert sich nichts. Ein Schreibzugriff auf eine gesperrte Entität wird mit 409 `entity-blocked` und den Entitäten samt Punkten beantwortet.
 
 `POST /solutions` antwortet mit 201 und der Lösung, mit 422 und `name` bei einem leeren oder vergebenen Namen und mit 403 ohne `solution:write`. Jedes Anlegen wird im Audit-Log als `solution.created` festgehalten.
 

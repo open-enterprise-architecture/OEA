@@ -2,7 +2,7 @@
 
 ### Requirement: Entities with open issues in the catalog
 
-Every row of a catalog query SHALL carry `openIssues`, true while its entity has an open issue of a solution. The catalog browser (SCR-020) SHALL mark such a row next to the name.
+Every row of a catalog query SHALL carry `openIssues`, true while its entity has an open issue of a solution. The catalog browser (SCR-020) SHALL mark such a row next to its action "History", which leads to the open issues.
 
 Trace: US-153 AC5
 

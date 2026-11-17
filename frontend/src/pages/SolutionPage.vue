@@ -16,6 +16,7 @@ import {
   type SolutionLandscapeEntry,
   type SolutionOpenIssue,
 } from '../api/solutions'
+import OpenIssuesDialog from '../components/solutions/OpenIssuesDialog.vue'
 import DeltaMergeDialog from '../components/solutions/DeltaMergeDialog.vue'
 import SolutionBaseline from '../components/solutions/SolutionBaseline.vue'
 import SolutionDeltas from '../components/solutions/SolutionDeltas.vue'
@@ -66,6 +67,14 @@ const openIssues = ref<SolutionOpenIssue[]>([])
 const wentLive = ref(false)
 
 const canRead = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
+// resolving open issues needs solution:write or entity:write (US-153; owner decision 2026-11-17)
+const canResolve = computed(() =>
+  (session.me?.permissions ?? []).some((entry) => entry.permission === 'solution:write' || entry.permission === 'entity:write'),
+)
+const resolving = ref(false)
+const pendingIssues = computed(() => openIssues.value.filter((issue) => issue.status === 'open'))
+// values only a snapshot keeps are shown once in the merge dialog; "Resolve later" goes live
+const snapshotsReviewed = ref(false)
 const canWrite = computed(
   () =>
     (session.me?.permissions ?? []).some((entry) => entry.permission === 'solution:write') &&
@@ -177,7 +186,9 @@ async function startGoLive() {
     }
     return
   }
-  if (preview.value.conflicts.length > 0) {
+  const fieldConflicts = preview.value.conflicts.filter((conflict) => conflict.kind !== 'not-in-metamodel')
+  const snapshotValues = preview.value.conflicts.length - fieldConflicts.length
+  if (fieldConflicts.length > 0 || (snapshotValues > 0 && !snapshotsReviewed.value)) {
     merging.value = true
   } else {
     confirming.value = true
@@ -186,6 +197,7 @@ async function startGoLive() {
 
 async function onMerged() {
   merging.value = false
+  snapshotsReviewed.value = true
   await loadDeltas()
   await startGoLive()
 }
@@ -211,11 +223,21 @@ async function confirmGoLive() {
     } else {
       goLiveFailure.value =
         rateLimitMessage(outcome.rejection) ??
-        (outcome.rejection.problemType === 'entity-deleted' ? t('solutions.goLive.entityDeleted') : t('solutions.goLive.failed'))
+        (outcome.rejection.problemType === 'entity-deleted'
+          ? t('solutions.goLive.entityDeleted')
+          : outcome.rejection.problemType === 'entity-blocked'
+            ? t('solutions.goLive.entityBlocked')
+            : t('solutions.goLive.failed'))
     }
   } finally {
     goingLive.value = false
   }
+}
+
+async function onIssuesResolved(issues: SolutionOpenIssue[]) {
+  resolving.value = false
+  openIssues.value = issues
+  solution.value = await fetchSolution(props.id, props.fetchFn)
 }
 
 function onCompleted() {
@@ -232,7 +254,7 @@ onMounted(async () => {
   try {
     solution.value = await fetchSolution(props.id, props.fetchFn)
     await loadDeltas()
-    if (solution.value.openIssueCount > 0) {
+    if (solution.value.status === 'implemented' || solution.value.openIssueCount > 0) {
       openIssues.value = await fetchSolutionOpenIssues(props.id, props.fetchFn)
     }
   } catch (error) {
@@ -302,13 +324,30 @@ const createdAt = computed(() =>
         :description="t('solutions.goLive.done')"
       />
       <section v-if="openIssues.length > 0" class="flex flex-col gap-2" data-testid="solution-open-issues">
-        <h2 class="text-lg font-semibold text-highlighted">{{ t('solutions.goLive.openIssues.title', { n: openIssues.length }) }}</h2>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-lg font-semibold text-highlighted">{{ t('solutions.goLive.openIssues.title', { n: pendingIssues.length }) }}</h2>
+          <UButton
+            v-if="canResolve && pendingIssues.length > 0"
+            data-testid="open-issues-resolve"
+            icon="i-lucide-wrench"
+            :label="t('solutions.openIssues.action')"
+            @click="resolving = true"
+          />
+        </div>
         <p class="text-sm text-muted">{{ t('solutions.goLive.openIssues.intro') }}</p>
         <ul class="flex flex-col gap-1 text-sm">
-          <li v-for="issue in openIssues" :key="issue.id" :data-testid="`open-issue-${issue.id}`" class="flex flex-wrap gap-2">
+          <li v-for="issue in openIssues" :key="issue.id" :data-testid="`open-issue-${issue.id}`" class="flex flex-wrap items-center gap-2">
             <span class="font-medium text-highlighted">{{ issue.entityName }}</span>
             <span>{{ issue.label }}</span>
             <UBadge color="warning" variant="subtle" :label="t(`solutions.goLive.openIssues.kind.${issue.kind}`)" />
+            <UBadge
+              :data-testid="`open-issue-status-${issue.id}`"
+              :color="issue.status === 'open' ? 'error' : 'success'"
+              variant="outline"
+              :label="
+                issue.status === 'open' ? t('solutions.openIssues.status.open') : t(`solutions.openIssues.resolution.${issue.resolution}`)
+              "
+            />
           </li>
         </ul>
       </section>
@@ -366,6 +405,22 @@ const createdAt = computed(() =>
         @modify="(entry: SolutionLandscapeEntry) => (modifying = { entityId: entry.id })"
       />
       <UModal
+        :open="resolving"
+        :title="t('solutions.openIssues.title')"
+        @update:open="(open: boolean) => !open && (resolving = false)"
+      >
+        <template #body>
+          <OpenIssuesDialog
+            v-if="resolving"
+            :solution-id="solution.id"
+            :issues="pendingIssues"
+            :fetch-fn="props.fetchFn"
+            @resolved="onIssuesResolved"
+            @cancel="resolving = false"
+          />
+        </template>
+      </UModal>
+      <UModal
         :open="merging"
         :title="t('solutions.goLive.merge.title')"
         @update:open="(open: boolean) => !open && (merging = false)"
@@ -394,6 +449,9 @@ const createdAt = computed(() =>
               <li>{{ t('solutions.goLive.retired', { n: preview.counts.retired }, preview.counts.retired) }}</li>
               <li v-if="preview.counts.retiredConnections > 0">
                 {{ t('solutions.goLive.retiredConnections', { n: preview.counts.retiredConnections }, preview.counts.retiredConnections) }}
+              </li>
+              <li v-if="preview.counts.notInMetamodel > 0" data-testid="go-live-not-in-metamodel">
+                {{ t('solutions.goLive.notInMetamodel', { n: preview.counts.notInMetamodel }, preview.counts.notInMetamodel) }}
               </li>
             </ul>
             <UAlert
