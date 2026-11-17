@@ -127,7 +127,8 @@ test('metamodel configuration', async ({ page }) => {
   await expect(page.getByTestId('metatype-title')).toContainText('Security Zone')
 
   // A selection list with three values
-  await page.getByTestId('metamodel-sections').getByRole('tab').nth(1).click()
+  // the route of the section, independent of the position of its tab and of the language
+  await page.goto('/metamodel/properties')
   await page.getByTestId('property-new').click()
   await page.getByTestId('property-name').fill('Trust Level')
   await page.getByTestId('property-data-type').click()
@@ -141,7 +142,8 @@ test('metamodel configuration', async ({ page }) => {
   await expect(page.getByTestId('property-table')).toContainText('Trust Level')
 
   // The property becomes mandatory for Security Zone
-  await page.getByTestId('metamodel-sections').getByRole('tab').nth(0).click()
+  // the route of the section, independent of the position of its tab and of the language
+  await page.goto('/metamodel/metatypes')
   await page.getByTestId('metatype-item').filter({ hasText: 'Security Zone' }).click()
   await page.getByTestId('mapping-new').click()
   await page.getByTestId('mapping-property').click()
@@ -153,7 +155,8 @@ test('metamodel configuration', async ({ page }) => {
   await shoot(page, 'metamodel-entity-type', [page.getByTestId('mapping-state').locator('..')])
 
   // The German name of the entity type
-  await page.getByTestId('metamodel-sections').getByRole('tab').nth(3).click()
+  // the route of the section, independent of the position of its tab and of the language
+  await page.goto('/metamodel/translations')
   await page.getByTestId('translation-input-Security Zone').fill('Sicherheitszone')
   await shoot(page, 'metamodel-translations')
   await page.getByTestId('translation-save').click()
