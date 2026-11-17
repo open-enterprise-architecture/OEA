@@ -310,4 +310,28 @@ describe('EntityHistoryPage', () => {
     })
     expect(wrapper.get('[data-testid="history-restored-from-6"]').text()).toBe('Partially restored from v4 (Description, Owner)')
   })
+
+  // spec repository/entity-history "Open issues on the history of an entity" (US-153 AC5)
+  it('names the open issues of the entity with a link to their solution', async () => {
+    const issue = {
+      id: '0e000000-0000-4000-8000-000000000001',
+      field: 'fd000000-0000-4000-8000-000000000009',
+      label: 'Contact',
+      kind: 'mandatory-missing' as const,
+      solutionId: '5d000000-0000-4000-8000-000000000001',
+      solutionName: 'CRM Replacement',
+    }
+    const wrapper = await mountPage({
+      entities: { [HISTORY_IDS.crm]: { name: 'CRM System', versions: manyVersions(2), openIssues: [issue] } },
+    })
+    const notice = wrapper.get('[data-testid="history-open-issues"]')
+    expect(notice.text()).toContain('Contact')
+    expect(notice.text()).toContain('Mandatory value missing')
+    expect(notice.get('a').attributes('href')).toBe(`/solutions/${issue.solutionId}`)
+  })
+
+  it('shows no notice without open issues', async () => {
+    const wrapper = await mountPage()
+    expect(wrapper.find('[data-testid="history-open-issues"]').exists()).toBe(false)
+  })
 })

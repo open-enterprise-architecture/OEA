@@ -27,7 +27,7 @@ const canReadHistory = computed(() => (session.me?.permissions ?? []).some((entr
 // render; a plain click navigates within the application, a modified click opens a new tab.
 function historyAction(row: CatalogRow) {
   const href = `/entities/${row.entityId}/history?from=${encodeURIComponent(route?.fullPath ?? '/catalogs')}`
-  return h(
+  const link = h(
     'a',
     {
       href,
@@ -41,6 +41,23 @@ function historyAction(row: CatalogRow) {
     },
     [h(UIcon, { name: 'i-lucide-history', class: 'size-4 shrink-0', 'aria-hidden': 'true' }), t('catalog.history')],
   )
+  if (!row.openIssues) return link
+  // an entity with open issues of a solution is blocked until they are resolved (US-153 AC5); its
+  // change history names them with the solution
+  return h('span', { class: 'inline-flex items-center gap-1' }, [
+    h(
+      'span',
+      {
+        role: 'img',
+        class: 'inline-flex',
+        'data-testid': `open-issues-${row.entityId}`,
+        'aria-label': t('catalog.openIssues'),
+        title: t('catalog.openIssues'),
+      },
+      [h(UIcon, { name: 'i-lucide-triangle-alert', class: 'size-4 shrink-0 text-warning', 'aria-hidden': 'true' })],
+    ),
+    link,
+  ])
 }
 
 const sort = computed(() => props.result.sort ?? undefined)

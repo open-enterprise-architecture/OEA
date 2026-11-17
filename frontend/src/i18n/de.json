@@ -143,7 +143,8 @@
     },
     "restrictedColumn": "Du darfst die Werte dieser Spalte nicht sehen.",
     "history": "Historie",
-    "actions": "Aktionen"
+    "actions": "Aktionen",
+    "openIssues": "Offene Punkte: auf der Seite der Lösung auflösen"
   },
   "catalogs": {
     "empty": "Noch keine Kataloge",
@@ -627,6 +628,14 @@
       "label": "Parallele Änderungen in der Ausgangslage zeigen",
       "on": "In der Ausgangslage gezeigt",
       "off": "In der Ausgangslage nicht gezeigt"
+    },
+    "solutionDecisions": {
+      "title": "Aktive Lösungen nutzen diese Werte",
+      "intro": "Entscheide für jede Lösung, ob die Änderung dort auch gilt oder ob die Lösung die Eigenschaft bis zu ihrem Go-live behält.",
+      "apply": "Auf diese Lösung anwenden",
+      "keep": "Als Snapshot behalten",
+      "label": "Entscheidung für {name}",
+      "affected": "{properties} · {values} Delta-Werte · {metatypes} Erweiterungs-Metatypen"
     }
   },
   "navigation": {
@@ -918,15 +927,45 @@
         "ownLabel": "Eigener Wert für {field}",
         "apply": "Übernehmen",
         "invalid": "Ein Wert ist für sein Feld nicht gültig.",
-        "failed": "Die Konflikte konnten nicht aufgelöst werden."
+        "failed": "Die Konflikte konnten nicht aufgelöst werden.",
+        "discard": "Wert verwerfen",
+        "later": "Später als offenen Punkt lösen",
+        "notInMetamodel": "Nicht mehr im Metamodell, von dieser Lösung behalten: {value}"
       },
       "openIssues": {
         "title": "Offene Punkte ({n})",
-        "intro": "Diese Werte sind live, obwohl sie nicht zum aktuellen Metamodell passen. Löse sie in den Entitäten auf.",
+        "intro": "Diese Werte sind live, obwohl sie nicht zum aktuellen Metamodell passen. Ihre Entitäten bleiben gesperrt, bis die Punkte aufgelöst sind.",
         "kind": {
           "mandatory-missing": "Pflichtwert fehlt",
-          "invalid-value": "Wert nicht gültig"
+          "invalid-value": "Wert nicht gültig",
+          "not-in-metamodel": "Nicht im Metamodell"
         }
+      },
+      "entityBlocked": "Eine Entität, die diese Lösung ändert, hat offene Punkte einer anderen Lösung. Löse sie zuerst.",
+      "notInMetamodel": "{n} Wert, den nur diese Lösung behält, wird ein offener Punkt | {n} Werte, die nur diese Lösung behält, werden offene Punkte"
+    },
+    "openIssues": {
+      "action": "Auflösen",
+      "title": "Offene Punkte auflösen",
+      "intro": "Gib für jeden Punkt einen gültigen Wert ein oder entferne den Wert, wo das erlaubt ist. Die Entitäten bleiben gesperrt, bis alle ihre Punkte aufgelöst sind.",
+      "current": "Aktueller Wert: {value}",
+      "kept": "Behaltener Wert: {value}",
+      "empty": "keiner",
+      "valueLabel": "Neuer Wert von {field} für {entity}",
+      "remove": "Wert entfernen",
+      "discard": "Behaltenen Wert verwerfen",
+      "apply": "Übernehmen",
+      "invalid": "Einige Werte wurden nicht angenommen. Prüfe die markierten Punkte.",
+      "rejected": "Dieser Wert ist für die Eigenschaft nicht gültig.",
+      "forbidden": "Du darfst einen dieser Werte nicht schreiben.",
+      "failed": "Die Punkte konnten nicht aufgelöst werden.",
+      "status": {
+        "open": "Offen"
+      },
+      "resolution": {
+        "value": "Aufgelöst",
+        "removed": "Wert entfernt",
+        "automatic": "Durch das Metamodell aufgelöst"
       }
     }
   },
@@ -975,6 +1014,10 @@
       "metatypeId": "Metatyp",
       "sourceId": "Quelle",
       "targetId": "Ziel"
+    },
+    "openIssues": {
+      "title": "Offene Punkte",
+      "intro": "Diese Entität kann erst geändert werden, wenn diese Punkte einer Lösung aufgelöst sind."
     }
   },
   "serviceAccounts": {
@@ -1060,7 +1103,8 @@
     "nothingToRestore": "Es kann nichts mehr wiederhergestellt werden. Die Vorschau zeigt den aktuellen Stand.",
     "done": "Version {version} stellt den Stand von Version {target} wieder her.",
     "restoredFrom": "Wiederhergestellt aus v{version}",
-    "reasonShown": "Grund: {reason}"
+    "reasonShown": "Grund: {reason}",
+    "blocked": "Die Entität hat offene Punkte einer Lösung. Löse sie zuerst auf der Seite der Lösung."
   },
   "partialRestore": {
     "action": "Teilweise wiederherstellen",

@@ -143,7 +143,8 @@
     },
     "restrictedColumn": "You may not see the values of this column.",
     "history": "History",
-    "actions": "Actions"
+    "actions": "Actions",
+    "openIssues": "Open issues: resolve them on the page of the solution"
   },
   "catalogs": {
     "empty": "No catalogs yet",
@@ -627,6 +628,14 @@
       "label": "Show parallel changes in the baseline",
       "on": "Shown in the baseline",
       "off": "Not shown in the baseline"
+    },
+    "solutionDecisions": {
+      "title": "Active solutions use these values",
+      "intro": "Decide for each solution whether the change applies there too, or whether the solution keeps the property until its go-live.",
+      "apply": "Apply to this solution",
+      "keep": "Keep as snapshot",
+      "label": "Decision for {name}",
+      "affected": "{properties} · {values} delta values · {metatypes} extension metatypes"
     }
   },
   "navigation": {
@@ -918,15 +927,45 @@
         "ownLabel": "Own value of {field}",
         "apply": "Apply",
         "invalid": "A value is not valid for its field.",
-        "failed": "The conflicts could not be resolved."
+        "failed": "The conflicts could not be resolved.",
+        "discard": "Discard the value",
+        "later": "Resolve later as an open issue",
+        "notInMetamodel": "No longer in the metamodel, kept by this solution: {value}"
       },
       "openIssues": {
         "title": "Open issues ({n})",
-        "intro": "These values went live although they do not fit the current metamodel. Resolve them in the entities.",
+        "intro": "These values went live although they do not fit the current metamodel. Their entities stay blocked until the issues are resolved.",
         "kind": {
           "mandatory-missing": "Mandatory value missing",
-          "invalid-value": "Value not valid"
+          "invalid-value": "Value not valid",
+          "not-in-metamodel": "Not in the metamodel"
         }
+      },
+      "entityBlocked": "An entity this solution changes has open issues of another solution. Resolve them first.",
+      "notInMetamodel": "{n} value only this solution keeps becomes an open issue | {n} values only this solution keeps become open issues"
+    },
+    "openIssues": {
+      "action": "Resolve",
+      "title": "Resolve open issues",
+      "intro": "Enter a valid value for each issue, or remove the value where that is allowed. The entities stay blocked until all their issues are resolved.",
+      "current": "Current value: {value}",
+      "kept": "Kept value: {value}",
+      "empty": "none",
+      "valueLabel": "New value of {field} for {entity}",
+      "remove": "Remove the value",
+      "discard": "Discard the kept value",
+      "apply": "Apply",
+      "invalid": "Some values were not accepted. Check the marked issues.",
+      "rejected": "This value is not valid for the property.",
+      "forbidden": "You may not write one of these values.",
+      "failed": "The issues could not be resolved.",
+      "status": {
+        "open": "Open"
+      },
+      "resolution": {
+        "value": "Resolved",
+        "removed": "Value removed",
+        "automatic": "Resolved by the metamodel"
       }
     }
   },
@@ -975,6 +1014,10 @@
       "metatypeId": "Metatype",
       "sourceId": "Source",
       "targetId": "Target"
+    },
+    "openIssues": {
+      "title": "Open issues",
+      "intro": "This entity cannot be changed until these issues of a solution are resolved."
     }
   },
   "serviceAccounts": {
@@ -1060,7 +1103,8 @@
     "nothingToRestore": "Nothing can be restored anymore. The preview shows the current state.",
     "done": "Version {version} restores the state of version {target}.",
     "restoredFrom": "Restored from v{version}",
-    "reasonShown": "Reason: {reason}"
+    "reasonShown": "Reason: {reason}",
+    "blocked": "The entity has open issues of a solution. Resolve them on the page of the solution first."
   },
   "partialRestore": {
     "action": "Partially restore",

@@ -275,6 +275,24 @@ function day(value: string): string {
         <h1 data-testid="history-title" class="text-2xl font-semibold text-highlighted">{{ t('history.title') }}: {{ history.entityName }}</h1>
         <p class="text-sm text-muted">{{ t('history.intro') }}</p>
       </div>
+      <UAlert
+        v-if="history.openIssues.length > 0"
+        data-testid="history-open-issues"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :title="t('history.openIssues.title')"
+      >
+        <template #description>
+          <p>{{ t('history.openIssues.intro') }}</p>
+          <ul class="mt-1 flex flex-col gap-1">
+            <li v-for="issue in history.openIssues" :key="issue.id" :data-testid="`history-open-issue-${issue.id}`">
+              {{ issue.label }} – {{ t(`solutions.goLive.openIssues.kind.${issue.kind}`) }} –
+              <RouterLink :to="`/solutions/${issue.solutionId}`" class="text-primary underline">{{ issue.solutionName }}</RouterLink>
+            </li>
+          </ul>
+        </template>
+      </UAlert>
 
       <div class="flex flex-wrap items-end gap-3" data-testid="history-filters">
         <UFormField :label="t('history.person')">

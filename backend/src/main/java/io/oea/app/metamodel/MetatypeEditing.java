@@ -36,8 +36,11 @@ public class MetatypeEditing {
 
 	private final MetamodelConfigurations configurations;
 
+	private final SolutionImpact impact;
+
 	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
-			MetamodelVersions versions, MetamodelConfigurations configurations) {
+			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact) {
+		this.impact = impact;
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
@@ -102,8 +105,19 @@ public class MetatypeEditing {
 	}
 
 	/** @param expectedVersion the version of {@code If-Match}, or {@code null} */
-	@Transactional
 	public void update(OeaPrincipal principal, UUID id, Input input, Long expectedVersion) {
+		update(principal, id, input, expectedVersion, SolutionImpact.Decisions.of(Map.of()));
+	}
+
+	/**
+	 * Changes the metatype with the decisions for the active solutions a base type change affects
+	 * (US-154).
+	 *
+	 * @throws SolutionDecisionRequiredException when an affected solution has no decision (409)
+	 */
+	@Transactional
+	public void update(OeaPrincipal principal, UUID id, Input input, Long expectedVersion,
+			SolutionImpact.Decisions decisions) {
 		this.effects.lock();
 		this.configurations.requireWritableMetatype(principal, id);
 		this.versions.check(MetamodelVersions.Element.METATYPE, id, expectedVersion);
@@ -140,6 +154,10 @@ public class MetatypeEditing {
 		details.put("changedFields", changed);
 		if (changed.contains("baseMetatypeId")) {
 			// removed and added inherited properties take effect as for a mapping (design D4)
+			// only a change of the instance metamodel asks the solutions; an extension is their own (US-154)
+			boolean instance = PackageImporter.INSTANCE_CONFIGURATION.equals(stored.configId());
+			this.impact.apply(principal, this.effects.lost(before), instance ? decisions : null, details,
+					this.effects.now());
 			MetamodelEffects.Effects effects = this.effects.apply(before, principal);
 			details.put("entitiesWithRemovedValues", effects.removed().values().stream().mapToInt(Integer::intValue).sum());
 			details.put("entitiesMarked", effects.marked().values().stream().mapToInt(Integer::intValue).sum());

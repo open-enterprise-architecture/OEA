@@ -38,6 +38,8 @@ The list *Catalogs* shows every catalog you may see, marked *Shared* or *Persona
 
 <Screenshot name="catalog-table" alt="Table of a catalog with application components" />
 
+A warning sign next to *History* marks an entity with [open issues](./solutions#open-issues) of a solution. It cannot be changed until they are resolved; its change history names them.
+
 - Names of entity types, column headers and values of enum properties appear in your language where your organization has translated them (see [Your profile](./login#your-profile)).
 - As long as no columns are configured (see [Configure columns](#configure-columns)), the table shows the columns *Name* and – if the entity type has the property *Status* – *Status*.
 - Values of an enum property, such as *Status*, are sorted in the order of the values, not alphabetically; entries without a value come last.

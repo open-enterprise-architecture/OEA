@@ -45,8 +45,12 @@ public class EntityBatch {
 
 	private final PropertyWriteAccess writeAccess;
 
+	private final EntityBlocks blocks;
+
 	public EntityBatch(JdbcTemplate jdbc, EntityStore store, EntityWriter writer, Clock clock,
-			EntityBatchProperties properties, PlatformTransactionManager transactionManager, PropertyWriteAccess writeAccess) {
+			EntityBatchProperties properties, PlatformTransactionManager transactionManager, PropertyWriteAccess writeAccess,
+			EntityBlocks blocks) {
+		this.blocks = blocks;
 		this.writeAccess = writeAccess;
 		this.jdbc = jdbc;
 		this.store = store;
@@ -300,6 +304,11 @@ public class EntityBatch {
 			if (strategy == Strategy.SKIP_EXISTING) {
 				return finished(index, new ItemResult(index, ItemStatus.SKIPPED, existing.id(), input.externalId(),
 						List.of(), List.of()));
+			}
+			if (!this.blocks.blocked(List.of(existing.id())).isEmpty()) {
+				// written only by resolving its open issues (US-153 AC1; design D3 of us-153-open-issues)
+				return finished(index, ItemResult.error(index, input.externalId(), List.of(new Issue("externalId",
+						"OPEN_ISSUES", "The entity has open issues of a solution; resolve them first.")), List.of()));
 			}
 			stored = this.store.values(existing.id());
 		}

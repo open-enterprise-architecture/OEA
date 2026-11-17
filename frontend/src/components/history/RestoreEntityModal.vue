@@ -80,6 +80,8 @@ async function confirm() {
     if (outcome.rejection.status === 412) {
       changedMeanwhile.value = true
       await load()
+    } else if (outcome.rejection.problemType === 'entity-blocked') {
+      failure.value = t('restore.blocked')
     } else if (outcome.rejection.problemType === 'nothing-to-restore') {
       failure.value = t('restore.nothingToRestore')
       await load()

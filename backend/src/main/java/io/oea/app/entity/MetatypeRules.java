@@ -1,5 +1,6 @@
 package io.oea.app.entity;
 
+import io.oea.core.solution.SnapshotStore;
 import io.oea.core.entity.MetatypeRuleStore;
 import io.oea.core.entity.TypedValue;
 import java.math.BigDecimal;
@@ -58,15 +59,55 @@ public final class MetatypeRules {
 	 */
 	private final BiPredicate<UUID, Integer> restrictedWritable;
 
+	/** All property definitions, also unmapped ones, for snapshots (design D10 of us-153-open-issues). */
+	private final Map<UUID, Definition> definitions;
+
 	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases) {
-		this(metatypes, bases, (id, entity) -> false);
+		this(metatypes, bases, (id, entity) -> false, Map.of());
 	}
 
 	private MetatypeRules(Map<UUID, Metatype> metatypes, Map<UUID, UUID> bases,
-			BiPredicate<UUID, Integer> restrictedWritable) {
+			BiPredicate<UUID, Integer> restrictedWritable, Map<UUID, Definition> definitions) {
 		this.metatypes = metatypes;
 		this.bases = bases;
 		this.restrictedWritable = restrictedWritable;
+		this.definitions = definitions;
+	}
+
+	/**
+	 * The rules with the snapshots of a solution (design D10 of us-153-open-issues, US-154 AC3): a
+	 * kept property is an optional mapping of its metatype, a kept enumeration value is a value of
+	 * the definition again. Only the checks of the deltas of that solution use them.
+	 */
+	public MetatypeRules withSnapshots(List<SnapshotStore.SnapshotRow> snapshots) {
+		if (snapshots.isEmpty()) {
+			return this;
+		}
+		Map<UUID, Metatype> changed = new HashMap<>(this.metatypes);
+		for (SnapshotStore.SnapshotRow snapshot : snapshots) {
+			Metatype metatype = changed.get(snapshot.metatypeId());
+			Definition definition = this.definitions.get(snapshot.propertyDefId());
+			if (metatype == null || definition == null) {
+				continue;
+			}
+			Map<UUID, Mapping> mappings = new LinkedHashMap<>(metatype.mappings());
+			Mapping mapping = mappings.get(definition.id());
+			if (mapping == null) {
+				mapping = new Mapping(definition, "optional", null);
+			}
+			if (snapshot.enumValue() != null && !mapping.definition().enumValues().contains(snapshot.enumValue())) {
+				Definition kept = mapping.definition();
+				Set<String> values = new java.util.LinkedHashSet<>(kept.enumValues());
+				values.add(snapshot.enumValue());
+				mapping = new Mapping(new Definition(kept.id(), kept.name(), kept.dataType(), kept.maxLength(),
+						kept.minValue(), kept.maxValue(), kept.pattern(), kept.visibilityMode(), kept.refMetatypeId(),
+						Set.copyOf(values)), mapping.necessity(), mapping.defaultValue());
+			}
+			mappings.put(definition.id(), mapping);
+			changed.put(metatype.id(), new Metatype(metatype.id(), metatype.name(), metatype.connection(), mappings,
+					metatype.allowedSources(), metatype.allowedTargets()));
+		}
+		return new MetatypeRules(changed, this.bases, this.restrictedWritable, this.definitions);
 	}
 
 	/**
@@ -74,7 +115,7 @@ public final class MetatypeRules {
 	 * {@code writable} holds (design D3 of us-126-role-restricted-enforcement).
 	 */
 	public MetatypeRules forWriter(BiPredicate<UUID, Integer> writable) {
-		return new MetatypeRules(this.metatypes, this.bases, writable);
+		return new MetatypeRules(this.metatypes, this.bases, writable, this.definitions);
 	}
 
 	/**
@@ -137,7 +178,7 @@ public final class MetatypeRules {
 			metatypes.put(id, new Metatype(id, metatype.name(), metatype.connection(), mappings,
 					Set.copyOf(sources.getOrDefault(id, Set.of())), Set.copyOf(targets.getOrDefault(id, Set.of()))));
 		});
-		return new MetatypeRules(metatypes, bases);
+		return new MetatypeRules(metatypes, bases, (id, entity) -> false, Map.copyOf(definitions));
 	}
 
 	/** The metatype and its base types, nearest first; stops at a cycle. */

@@ -2,6 +2,7 @@ package io.oea.api.metamodel;
 
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.MetamodelApi;
+import io.oea.api.generated.model.SolutionDecision;
 import io.oea.api.generated.model.AllowedConnectionResult;
 import io.oea.api.generated.model.AllowedConnectionResultOptionsInner;
 import io.oea.api.generated.model.CreateEnumValueRequest;
@@ -34,6 +35,7 @@ import io.oea.api.generated.model.PropertyDefinitionWrite;
 import io.oea.api.generated.model.PropertyEnumValue;
 import io.oea.api.generated.model.ReimportPolicy;
 import io.oea.api.generated.model.SourcePackage;
+import io.oea.app.metamodel.SolutionImpact;
 import io.oea.app.metamodel.AllowedConnections;
 import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelConfigurations;
@@ -185,7 +187,13 @@ public class MetamodelController implements MetamodelApi {
 					{"name": "Probe", "configId": "00000000-0000-0000-0000-000000000001"}""",
 			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000")
 	public ResponseEntity<MetatypeDetail> updateMetatype(UUID id, MetatypeWrite metatypeWrite, String ifMatch) {
-		this.metatypes.update(principal(), id, metatypeInput(metatypeWrite), expectedVersion(ifMatch));
+		this.metatypes.update(principal(), id, metatypeInput(metatypeWrite), expectedVersion(ifMatch),
+				SolutionImpact.Decisions.of((metatypeWrite.getSolutionDecisions() != null)
+						? metatypeWrite.getSolutionDecisions()
+							.stream()
+							.collect(java.util.stream.Collectors.toMap(SolutionDecision::getSolutionId,
+									(entry) -> entry.getDecision().getValue(), (a, b) -> b))
+						: Map.of()));
 		return versioned(metatype(this.catalog.get(id)));
 	}
 
@@ -303,8 +311,8 @@ public class MetamodelController implements MetamodelApi {
 			probeRole = "enterprise-architect", probeBody = """
 					{}""",
 			probePath = "/api/v1/metamodel/metatypes/00000000-0000-0000-0000-000000000000/property-mappings/00000000-0000-0000-0000-000000000000")
-	public ResponseEntity<Void> deletePropertyMapping(UUID id, UUID mappingId, String ifMatch) {
-		this.mappings.delete(principal(), id, mappingId, expectedVersion(ifMatch));
+	public ResponseEntity<Void> deletePropertyMapping(UUID id, UUID mappingId, String ifMatch, List<String> decision) {
+		this.mappings.delete(principal(), id, mappingId, expectedVersion(ifMatch), decisions(decision));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -361,8 +369,8 @@ public class MetamodelController implements MetamodelApi {
 	}
 
 	@Override
-	public ResponseEntity<Void> deleteEnumValue(UUID id, UUID valueId, String ifMatch) {
-		this.properties.deleteEnumValue(principal(), id, valueId, expectedVersion(ifMatch));
+	public ResponseEntity<Void> deleteEnumValue(UUID id, UUID valueId, String ifMatch, List<String> decision) {
+		this.properties.deleteEnumValue(principal(), id, valueId, expectedVersion(ifMatch), decisions(decision));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -521,7 +529,9 @@ public class MetamodelController implements MetamodelApi {
 			.scope(MetamodelScope.fromValue(mapping.scope()))
 			.state(MetatypePropertyMapping.StateEnum.fromValue(mapping.state()))
 			.inheritedFrom((owner != null) ? new MetatypeSummary(owner.id(), owner.name(),
-					(owner.abbreviation() != null) ? owner.abbreviation() : "") : null);
+					(owner.abbreviation() != null) ? owner.abbreviation() : "") : null)
+			.snapshot(mapping.snapshot() ? Boolean.TRUE : null)
+			.snapshotEnumValues(mapping.snapshotEnumValues().isEmpty() ? null : mapping.snapshotEnumValues());
 	}
 
 	private static PropertyDefinitionDetail property(MetatypeCatalog.Property property) {
@@ -571,6 +581,18 @@ public class MetamodelController implements MetamodelApi {
 
 	private static OeaPrincipal principal() {
 		return ((OeaAuthentication) SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
+	}
+
+
+	/** The decisions {@code <solutionId>:apply|keep} of a request (US-154); the contract checks their shape. */
+	private static SolutionImpact.Decisions decisions(List<String> decision) {
+		Map<UUID, String> bySolution = new java.util.LinkedHashMap<>();
+		for (String entry : (decision != null) ? decision : List.<String>of()) {
+			int colon = entry.lastIndexOf(':');
+			// the pattern of the contract guarantees the shape (400 otherwise)
+			bySolution.put(UUID.fromString(entry.substring(0, colon)), entry.substring(colon + 1));
+		}
+		return SolutionImpact.Decisions.of(bySolution);
 	}
 
 }

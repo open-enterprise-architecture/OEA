@@ -2,7 +2,7 @@
 identifier: solution
 name_de: Lösung / Solution Architecture
 name_en: Solution
-version: 0.9.0
+version: 0.10.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -140,6 +140,8 @@ Stored in `entity_deltas` and `entity_delta_property_values` (V26). A delta is r
 | BR-04 | A `MetamodelConfiguration` naming a solution (`solutionId`) has `scope=solution` | onCreate, onUpdate | – |
 | BR-05 | Entities of a solution are visible to other solutions (basis for collision detection on parallel changes to the same entity). A delta `modified` or `retiring` conflicts with every delta `modified` or `retiring` on the same entity in another active solution (status not `implemented` or `archived`); a delta `new` never conflicts. The conflicts are computed on each read and never block a write (US-044, REQ-042; owner decision 2026-11-13) | onRead | – |
 | BR-07 | The go-live of a solution in project mode needs `solution:write`, is possible from every status except `implemented` and `archived`, and is refused (409) while a field of a delta `modified` has a value in its entity other than the recorded before value; the values of the deltas are taken as captured (US-152, owner decision 2026-11-16) | onGoLive | – |
+| BR-08 | An open issue of a go-live blocks its entity while its violation holds and it is not resolved: the entity is written only by resolving its issues, no solution captures a new delta `modified` or `retiring` of it, and no other solution with such a delta goes live (409 `entity-blocked`). An issue is resolved with a valid value, by removing an optional or kept value, or automatically once its violation no longer holds (computed on read); `not-in-metamodel` is never resolved automatically (US-153, US-154 AC4; owner decision 2026-11-17) | onWrite | – |
+| BR-09 | A metamodel change that removes values an active solution uses asks per affected solution: `apply` removes the values from its deltas, `keep` stores a snapshot of the property or enumeration value, which the checks of its deltas and its extension accept until its go-live drops it (US-154; owner decision 2026-11-17) | onMetamodelChange | – |
 | BR-06 | A solution holds at most one delta per entity, at most one `new` delta per metatype and name (case-insensitive), and any number of deltas | onCreate | – |
 
 ## Lifecycle
@@ -216,3 +218,4 @@ TOGAF reference (plateau mode): "Solution Architecture" in phase E/F. The `Entit
 | 0.7.0 | 2026-11-13 | Change us-043-diff-view | BR-06 without the limit of 1000 deltas (owner decision 2026-11-13); the diff of a solution is computed and not stored |
 | 0.8.0 | 2026-11-13 | Change us-044-conflict-warning | BR-05: what conflicts between parallel solutions; the conflicts are computed and not stored (owner decision 2026-11-13) |
 | 0.9.0 | 2026-11-16 | Change us-152-solution-go-live | Go-live in project mode: BR-07, the effects on entities, open issues (V35) |
+| 0.10.0 | 2026-11-17 | Change us-153-open-issues | BR-08 open issues block their entities until resolved; BR-09 snapshots of metamodel changes in active solutions (V36) |

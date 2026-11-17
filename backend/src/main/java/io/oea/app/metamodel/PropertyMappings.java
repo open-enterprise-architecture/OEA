@@ -35,8 +35,11 @@ public class PropertyMappings {
 
 	private final MetamodelVersions versions;
 
+	private final SolutionImpact impact;
+
 	public PropertyMappings(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
-			MetamodelVersions versions, MetamodelConfigurations configurations) {
+			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact) {
+		this.impact = impact;
 		this.jdbc = jdbc;
 		this.effects = effects;
 		this.audit = audit;
@@ -132,8 +135,18 @@ public class PropertyMappings {
 	 * Removes an organization entry; when the metatype then no longer has the property, its values
 	 * are deleted (design D6, D7; us-137-mapping-effective-date D4).
 	 */
-	@Transactional
 	public void delete(OeaPrincipal principal, UUID metatypeId, UUID mappingId, Long expectedVersion) {
+		delete(principal, metatypeId, mappingId, expectedVersion, SolutionImpact.Decisions.of(Map.of()));
+	}
+
+	/**
+	 * Removes an organization entry with the decisions for the affected active solutions (US-154).
+	 *
+	 * @throws SolutionDecisionRequiredException when an affected solution has no decision (409)
+	 */
+	@Transactional
+	public void delete(OeaPrincipal principal, UUID metatypeId, UUID mappingId, Long expectedVersion,
+			SolutionImpact.Decisions decisions) {
 		this.effects.lock();
 		this.configurations.requireWritableMetatype(principal, metatypeId);
 		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
@@ -148,8 +161,12 @@ public class PropertyMappings {
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
 		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE id = ?", mappingId);
 		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
-		int removed = this.effects.apply(before, principal).removed(property);
 		Map<String, Object> details = new LinkedHashMap<>();
+		// only a change of the instance metamodel asks the solutions; an extension is their own (US-154)
+		boolean instance = PackageImporter.INSTANCE_CONFIGURATION.equals(this.configurations.configOf(metatypeId));
+		this.impact.apply(principal, this.effects.lost(before), instance ? decisions : null, details,
+				this.effects.now());
+		int removed = this.effects.apply(before, principal).removed(property);
 		details.put("mappingId", mappingId.toString());
 		details.put("propertyDefId", property.toString());
 		details.put("entitiesWithRemovedValues", removed);

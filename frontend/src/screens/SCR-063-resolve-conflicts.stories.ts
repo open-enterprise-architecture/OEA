@@ -78,3 +78,38 @@ export const FromTheGoLive: Story = {
     await expect(body.getByRole('button', { name: 'Apply' })).toBeDisabled()
   },
 }
+
+// a value only a snapshot of the solution keeps: "Discard the value" or "Resolve later" (US-154 AC4)
+const KEPT = goLiveConflict(MODIFIED_ERP.id, {
+  kind: 'not-in-metamodel',
+  field: 'fd000000-0000-4000-8000-000000000007',
+  label: 'Cost Center',
+  dataType: 'string',
+  before: null,
+  current: null,
+  after: 'CC-100',
+})
+
+export const SnapshotValue: Story = {
+  render: () => ({
+    components: { AppHeader, DeltaMergeDialog, UModal },
+    setup: () => {
+      session.me = ME_SOLUTION_ARCHITECT as unknown as Me
+      session.loaded = true
+      const api = solutionApi({ me: ME_SOLUTION_ARCHITECT, deltas: [...DELTAS, MODIFIED_ERP], goLiveConflicts: [KEPT] })
+      return { fetchFn: api.fetch, id: SOLUTIONS[0]!.id, conflicts: [KEPT] }
+    },
+    template: `
+      <AppHeader :fetch-fn="fetchFn" />
+      <UModal :open="true" title="Resolve conflicts">
+        <template #body>
+          <DeltaMergeDialog :solution-id="id" :conflicts="conflicts" :fetch-fn="fetchFn" />
+        </template>
+      </UModal>`,
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText('Resolve later as an open issue')).toBeInTheDocument()
+    await expect(body.getByRole('button', { name: 'Apply' })).toBeEnabled()
+  },
+}

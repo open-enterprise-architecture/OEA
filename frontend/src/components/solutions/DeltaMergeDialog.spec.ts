@@ -73,3 +73,40 @@ describe('DeltaMergeDialog', () => {
     expect(conflict.text()).not.toContain('15')
   })
 })
+
+// spec solution/solution-go-live "Snapshot values at the go-live" (US-154 AC4; design D12 of
+// us-153-open-issues)
+describe('DeltaMergeDialog with values only a snapshot keeps', () => {
+  const KEPT = goLiveConflict(MODIFIED_ERP.id, {
+    kind: 'not-in-metamodel',
+    field: 'fd000000-0000-4000-8000-000000000007',
+    label: 'Cost Center',
+    dataType: 'string',
+    before: null,
+    current: null,
+    after: 'CC-100',
+  })
+
+  it('offers "Discard the value" and "Resolve later" and needs no choice', async () => {
+    const { wrapper } = await mountDialog([KEPT])
+    const conflict = wrapper.get(`[data-testid="merge-conflict-${KEPT.field}"]`).text()
+    expect(conflict).toContain('kept by this solution: CC-100')
+    expect(conflict).toContain('Discard the value')
+    expect(conflict).toContain('Resolve later as an open issue')
+    expect(wrapper.get('[data-testid="merge-apply"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('sends "discard" and nothing for "Resolve later"', async () => {
+    const later = await mountDialog([KEPT])
+    await later.wrapper.get('[data-testid="merge-apply"]').trigger('click')
+    await flushPromises()
+    expect(later.api.resolutions).toEqual([])
+    expect(later.wrapper.emitted('resolved')).toHaveLength(1)
+
+    const discarded = await mountDialog([KEPT])
+    await choose(discarded.wrapper, KEPT.field, 'discard')
+    await discarded.wrapper.get('[data-testid="merge-apply"]').trigger('click')
+    await flushPromises()
+    expect(discarded.api.resolutions).toEqual([{ deltaId: MODIFIED_ERP.id, fields: [{ field: KEPT.field, choice: 'discard' }] }])
+  })
+})

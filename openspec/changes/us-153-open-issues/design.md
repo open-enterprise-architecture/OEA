@@ -159,7 +159,7 @@ Open issues and blocking:
 
 ### D6 – Catalog and history
 
-- **`CatalogQueries`** sets `openIssues` for the entity IDs of a page. To keep `app/catalog` free of `app/entity`, the controller asks `EntityBlocks.open` for the page's entity IDs and sets the flag in the mapping in `api/catalog`. The marker is an icon with the tooltip "Open issues" next to the name.
+- **`CatalogQueries`** sets `openIssues` for the entity IDs of a page. To keep `app/catalog` free of `app/entity`, the controller asks `EntityBlocks.open` for the page's entity IDs and sets the flag in the mapping in `api/catalog`. The marker is an icon with the tooltip "Open issues" next to the action "History" of the row, since the name column is configurable and may be hidden; the history names the issues.
 - **`EntityHistory`** adds the open issues of the entity from `EntityBlocks`. SCR-026 shows a `UAlert` (warning) with the issues and a link to each solution.
 
 ### D7 – Frontend (SCR-061, SCR-064)
@@ -167,7 +167,7 @@ Open issues and blocking:
 - The list "Open issues" on SCR-061 gets a status badge and, for `solution:write` or `entity:write`, a button "Resolve" while issues are open.
 - `OpenIssuesDialog.vue` (SCR-064) is modelled on `DeltaMergeDialog`:
   - it groups the issues by entity;
-  - per issue it shows the label, the kind and the current value, and an input typed by the data type of the property: text, number, date, or a select for enumerations;
+  - per issue it shows the label, the kind and the current value, and an input typed by the data type of the property: number, date or text. An enumeration takes its value as text, because the issue does not carry the allowed values; the server checks it (422);
   - it offers "Remove value" for `invalid-value` of an optional property;
   - a 422 shows the error at the named issue.
 - `api/solutions.ts` gets `resolveOpenIssues`. `api/catalogs.ts` and `api/history.ts` get the new fields.
@@ -198,12 +198,14 @@ Open issues and blocking:
 
 `PropertyDefinitions.delete` checks the snapshots for its `in-use` answer.
 
+Only a change of the instance metamodel asks: a mapping removed from, or a base type changed of, a metatype of a solution extension is the extension's own change and passes no decisions. A package import passes none either, and leaves the solutions as they are.
+
 ### D10 – Snapshots in checks and effective metamodel
 
 - **`MetatypeRules`:**
   - `MetatypeRules.load(store, date)` gains an overload with a `solutionId`. It adds the snapshot properties as optional mappings and the snapshot enumeration values to the definition.
   - `SolutionDeltas` loads the rules with the solution, so its checks accept the snapshots.
-  - Every other caller keeps the organization rules, so a delta of another solution, or a catalog write, still rejects them.
+  - Every other caller keeps the organization rules, so a delta of another solution, or a catalog write, handles them as any unmapped property (ignored) or deleted enumeration value (rejected).
 - **`MetatypeCatalog`:** it adds the snapshots, marked `snapshot`, for an extension configuration.
 
 ### D11 – Snapshot values at the go-live (`SolutionGoLive`)
@@ -232,7 +234,7 @@ Open issues and blocking:
 
 - **Computed automatic resolution:** the blocking check depends on the current metamodel and values. A metamodel change can therefore block an entity again, when an issue that counted as automatically resolved holds again. This is accepted: only stored rows are evaluated, and their number is small. The alternative, storing it, would need hooks in every metamodel write.
 - **Two permission paths:** the `solution:write` path skips write roles, as the go-live does (owner decision 2026-11-16). The `entity:write` path follows REQ-162. The tests cover both.
-- **Snapshots outside the organization rules:** a snapshot is a second source of mappings, and the rules are loaded with or without a solution. Only `SolutionDeltas` and the go-live preview pass the solution, and a test asserts that the catalog write paths reject snapshot properties.
+- **Snapshots outside the organization rules:** a snapshot is a second source of mappings, and the rules are loaded with or without a solution. Only `SolutionDeltas` passes the solution; the go-live reads the snapshots itself, and a test asserts that a delta of another solution does not take a snapshot value.
 - **Unanswered 409 as the question:** the client sends the change twice. Between the two requests, another solution may become affected, and the second request then answers 409 again with the new list. This is accepted, because the list is computed in the transaction of the change.
 - **Plateaus:** change 3 extends `SolutionImpact` to plateaus with their own metamodel or changes. The decision values stay the same.
 - **Planned entity operations:** they are not blocked until they are implemented. A comment in `EntityWriter` points to `EntityBlocks`.

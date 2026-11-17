@@ -152,6 +152,31 @@ public class MetamodelEffects {
 		return new Snapshot(effective);
 	}
 
+	/** The properties metatypes had in the snapshot and no longer have (US-154; design D9 of us-153-open-issues). */
+	public List<SolutionImpact.Lost> lost(Snapshot before) {
+		Snapshot after = snapshot();
+		List<SolutionImpact.Lost> lost = new ArrayList<>();
+		before.mappings().forEach((metatype, old) -> {
+			Map<UUID, String> current = after.mappings().getOrDefault(metatype, Map.of());
+			old.keySet()
+				.stream()
+				.filter((property) -> !current.containsKey(property))
+				.forEach((property) -> lost.add(new SolutionImpact.Lost(metatype, property, null)));
+		});
+		return lost;
+	}
+
+	/** The metatypes that have the property in effect today, with the enumeration value as lost. */
+	List<SolutionImpact.Lost> lostEnumValue(UUID propertyDefId, String value) {
+		List<SolutionImpact.Lost> lost = new ArrayList<>();
+		snapshot().mappings().forEach((metatype, mappings) -> {
+			if (mappings.containsKey(propertyDefId)) {
+				lost.add(new SolutionImpact.Lost(metatype, propertyDefId, value));
+			}
+		});
+		return lost;
+	}
+
 	/** Applies the difference between the snapshot and the current effective mappings. */
 	public Effects apply(Snapshot before, OeaPrincipal principal) {
 		Snapshot after = snapshot();

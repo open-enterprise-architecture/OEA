@@ -9,6 +9,7 @@ import {
   CONFLICT_KURT,
   CONFLICT_MARIA,
   DELTAS,
+  ME_CATALOG_WRITER,
   ME_PORTAL_READER,
   ME_SOLUTION_ARCHITECT,
   ME_SOLUTION_VIEWER,
@@ -480,7 +481,7 @@ describe('SolutionPage', () => {
     await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
     await flushPromises()
     expect(body('go-live-counts')!.textContent).toContain('1 entity is changed')
-    expect(body('go-live-violations')!.textContent).toContain('1 value does not fit the current metamodel')
+    expect(body('go-live-violations')!.textContent).toContain('2 values do not fit the current metamodel')
     ;(body('go-live-confirm-button') as HTMLButtonElement).click()
     await flushPromises()
     expect(wrapper.api.goLives).toEqual([SOLUTIONS[0]!.id])
@@ -508,5 +509,86 @@ describe('SolutionPage', () => {
     expect(body('go-live-confirm')).not.toBeNull()
     wrapper.unmount()
     document.body.innerHTML = ''
+  })
+
+  // spec solution/solution-go-live "Resolve open issues on the page \"Solution\"" and "Snapshot
+  // values at the go-live" (US-153 AC2, US-154 AC4; design D7 of us-153-open-issues)
+  describe('open issues', () => {
+    const IMPLEMENTED = { ...SOLUTIONS[0]!, status: 'implemented' as const, openIssueCount: 2 }
+
+    async function mountImplemented(me: unknown, issues = OPEN_ISSUES) {
+      const router = testRouter()
+      await router.push(`/solutions/${IMPLEMENTED.id}`)
+      const api = solutionApi({ me, solutions: [IMPLEMENTED], openIssues: issues })
+      const wrapper = mount(SolutionPage, {
+        props: { id: IMPLEMENTED.id, fetchFn: api.fetch },
+        global: { plugins: [ui, router] },
+        attachTo: document.body,
+      })
+      await flushPromises()
+      return Object.assign(wrapper, { api })
+    }
+
+    afterEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    it('shows the status of every issue', async () => {
+      const resolved = { ...OPEN_ISSUES[1]!, status: 'resolved' as const, resolution: 'automatic' as const }
+      const wrapper = await mountImplemented(ME_SOLUTION_VIEWER, [OPEN_ISSUES[0]!, resolved])
+      expect(wrapper.get(`[data-testid="open-issue-status-${OPEN_ISSUES[0]!.id}"]`).text()).toBe('Open')
+      expect(wrapper.get(`[data-testid="open-issue-status-${resolved.id}"]`).text()).toBe('Resolved by the metamodel')
+      wrapper.unmount()
+    })
+
+    it.each([
+      ['solution:write', ME_SOLUTION_ARCHITECT, true],
+      ['entity:write', ME_CATALOG_WRITER, true],
+      ['only entity:read', ME_SOLUTION_VIEWER, false],
+    ])('offers "Resolve" with %s: %s', async (_label, me, offered) => {
+      const wrapper = await mountImplemented(me)
+      expect(wrapper.find('[data-testid="open-issues-resolve"]').exists()).toBe(offered)
+      wrapper.unmount()
+    })
+
+    it('offers no "Resolve" when every issue is resolved', async () => {
+      const resolved = OPEN_ISSUES.map((issue) => ({ ...issue, status: 'resolved' as const, resolution: 'value' as const }))
+      const wrapper = await mountImplemented(ME_SOLUTION_ARCHITECT, resolved)
+      expect(wrapper.find('[data-testid="open-issues-resolve"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('resolves the issues in the dialog and shows them as resolved', async () => {
+      const wrapper = await mountImplemented(ME_SOLUTION_ARCHITECT)
+      await wrapper.get('[data-testid="open-issues-resolve"]').trigger('click')
+      await flushPromises()
+      const input = (issue: string) =>
+        document.body.querySelector<HTMLInputElement>(`input[data-testid="open-issue-value-${issue}"], [data-testid="open-issue-value-${issue}"] input`)!
+      input(OPEN_ISSUES[0]!.id).value = 'sales@example.com'
+      input(OPEN_ISSUES[0]!.id).dispatchEvent(new Event('input'))
+      input(OPEN_ISSUES[1]!.id).value = '100'
+      input(OPEN_ISSUES[1]!.id).dispatchEvent(new Event('input'))
+      await flushPromises()
+      document.body.querySelector<HTMLButtonElement>('[data-testid="open-issues-apply"]')!.click()
+      await flushPromises()
+      expect(wrapper.api.issueResolutions).toHaveLength(1)
+      expect(wrapper.get(`[data-testid="open-issue-status-${OPEN_ISSUES[0]!.id}"]`).text()).toBe('Resolved')
+      expect(wrapper.find('[data-testid="open-issues-resolve"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('shows values only a snapshot keeps once in the merge dialog, then the confirmation', async () => {
+      const kept = goLiveConflict(MODIFIED_ERP.id, { kind: 'not-in-metamodel', label: 'Cost Center', before: null, current: null, after: 'CC-100' })
+      const wrapper = await mountGoLive({ goLiveConflicts: [kept] })
+      await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
+      await flushPromises()
+      expect(body('merge-dialog')).not.toBeNull()
+      ;(body('merge-apply') as HTMLButtonElement).click()
+      await flushPromises()
+      expect(body('merge-dialog')).toBeNull()
+      expect(body('go-live-confirm')).not.toBeNull()
+      expect(body('go-live-not-in-metamodel')!.textContent).toContain('1 value only this solution keeps becomes an open issue')
+      wrapper.unmount()
+    })
   })
 })

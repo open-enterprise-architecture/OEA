@@ -1,5 +1,6 @@
 package io.oea.app.metamodel;
 
+import io.oea.core.solution.SnapshotStore;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -27,7 +28,10 @@ public class MetatypeCatalog {
 
 	private final PropertyVisibility visibility;
 
-	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock, PropertyVisibility visibility) {
+	private final SnapshotStore snapshots;
+
+	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock, PropertyVisibility visibility, SnapshotStore snapshots) {
+		this.snapshots = snapshots;
 		this.jdbc = jdbc;
 		this.clock = clock;
 		this.visibility = visibility;
@@ -53,11 +57,23 @@ public class MetatypeCatalog {
 	 * @param inheritedFrom the base type that owns the mapping, {@code null} for an own mapping
 	 */
 	public record Mapping(UUID id, Property property, String necessity, LocalDate validFrom, int sortOrder,
-			String scope, String state, MetatypeRef inheritedFrom) {
+			String scope, String state, MetatypeRef inheritedFrom, boolean snapshot, List<String> snapshotEnumValues) {
+
+		public Mapping(UUID id, Property property, String necessity, LocalDate validFrom, int sortOrder, String scope,
+				String state, MetatypeRef inheritedFrom) {
+			this(id, property, necessity, validFrom, sortOrder, scope, state, inheritedFrom, false, List.of());
+		}
 
 		Mapping inheritedFrom(MetatypeRef owner) {
 			return new Mapping(this.id, this.property, this.necessity, this.validFrom, this.sortOrder, this.scope,
-					this.state, owner);
+					this.state, owner, this.snapshot, this.snapshotEnumValues);
+		}
+
+		Mapping withSnapshotEnumValue(String value) {
+			List<String> values = new ArrayList<>(this.snapshotEnumValues);
+			values.add(value);
+			return new Mapping(this.id, this.property, this.necessity, this.validFrom, this.sortOrder, this.scope,
+					this.state, this.inheritedFrom, this.snapshot, List.copyOf(values));
 		}
 
 	}
@@ -99,7 +115,56 @@ public class MetatypeCatalog {
 		if (exists == null || exists == 0) {
 			throw new NoSuchElementException("no metamodel configuration " + configId);
 		}
-		return query(null, false, configId);
+		List<Metatype> metatypes = query(null, false, configId);
+		UUID solution = this.snapshots.solutionOfConfiguration(configId);
+		return (solution != null) ? withSnapshots(metatypes, this.snapshots.of(solution)) : metatypes;
+	}
+
+	/**
+	 * The metatypes with the snapshots of the solution of an extension (design D10 of
+	 * us-153-open-issues, US-154 AC3): a kept property is an optional mapping marked as snapshot, a
+	 * kept enumeration value is listed with its mapping.
+	 */
+	private List<Metatype> withSnapshots(List<Metatype> metatypes, List<SnapshotStore.SnapshotRow> kept) {
+		if (kept.isEmpty()) {
+			return metatypes;
+		}
+		Map<UUID, Property> properties = propertyMap();
+		List<Metatype> result = new ArrayList<>();
+		for (Metatype metatype : metatypes) {
+			List<Mapping> mappings = new ArrayList<>(metatype.mappings());
+			for (SnapshotStore.SnapshotRow snapshot : kept) {
+				if (!snapshot.metatypeId().equals(metatype.id())) {
+					continue;
+				}
+				int index = -1;
+				for (int i = 0; i < mappings.size(); i++) {
+					if (mappings.get(i).property() != null
+							&& mappings.get(i).property().id().equals(snapshot.propertyDefId())) {
+						index = i;
+					}
+				}
+				if (index < 0) {
+					Property property = properties.get(snapshot.propertyDefId());
+					if (property == null) {
+						continue;
+					}
+					mappings.add(new Mapping(snapshot.id(), property, "optional",
+							LocalDate.ofInstant(snapshot.createdAt(), java.time.ZoneOffset.UTC), Integer.MAX_VALUE,
+							"organization", "active", null, true, List.of()));
+					index = mappings.size() - 1;
+				}
+				if (snapshot.enumValue() != null) {
+					mappings.set(index, mappings.get(index).withSnapshotEnumValue(snapshot.enumValue()));
+				}
+			}
+			result.add(new Metatype(metatype.id(), metatype.name(), metatype.abbreviation(), metatype.connection(),
+					metatype.sortOrder(), metatype.scope(), metatype.sourcePackageId(), metatype.sourcePackageVersion(),
+					metatype.baseMetatypeId(), metatype.reimportPolicy(), metatype.effectiveReimportPolicy(),
+					metatype.architectureLayerId(), List.copyOf(mappings), metatype.version(), metatype.constraints(),
+					metatype.configId(), metatype.showParallelChanges()));
+		}
+		return result;
 	}
 
 	/** The metatype with the mappings in effect today. */

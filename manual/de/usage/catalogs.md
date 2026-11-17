@@ -38,6 +38,8 @@ Die Liste *Kataloge* zeigt jeden Katalog, den du sehen darfst, markiert mit *Get
 
 <Screenshot name="catalog-table" alt="Tabelle eines Katalogs mit Anwendungskomponenten" />
 
+Ein Warnzeichen neben *Historie* markiert eine Entität mit [offenen Punkten](./solutions#open-issues) einer Lösung. Sie kann erst geändert werden, wenn sie aufgelöst sind; ihre Änderungshistorie nennt sie.
+
 - Namen von Entitätstypen, Spaltenköpfe und Werte von Enum-Eigenschaften erscheinen in deiner Sprache, wo deine Organisation sie übersetzt hat (siehe [Dein Profil](./login#your-profile)).
 - Solange keine Spalten konfiguriert sind (siehe [Spalten konfigurieren](#configure-columns)), zeigt die Tabelle die Spalten *Name* und – wenn der Entitätstyp die Eigenschaft *Status* hat – *Status*.
 - Werte einer Aufzählungs-Eigenschaft wie *Status* werden in der Reihenfolge der Werte sortiert, nicht alphabetisch; Einträge ohne Wert kommen zuletzt.

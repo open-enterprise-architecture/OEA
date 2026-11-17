@@ -7,12 +7,15 @@ import {
   deleteEnumValue,
   updatePropertyDefinition,
   type PropertyDefinitionDetail,
+  type SolutionDecision,
   type PropertyDefinitionWrite,
   type WriteOutcome,
 } from '../../api/metamodel'
 import { label, labelKeys } from '../../i18n/labels'
 import { metamodel, propertyById, reloadMetamodel } from '../../metamodel/store'
+import type { AffectedSolution } from '../../api/problem'
 import CollisionWarning from './CollisionWarning.vue'
+import SolutionDecisions from './SolutionDecisions.vue'
 import VisibilitySummary from './VisibilitySummary.vue'
 import { rejectionMessage } from './messages'
 
@@ -41,6 +44,10 @@ const form = reactive({
 const newValues = ref<string[]>([])
 const valueInput = ref('')
 const pendingDelete = ref<string>()
+// a deleted value that active solutions use asks per solution first (US-154)
+const deciding = ref<{ valueId: string; solutions: AffectedSolution[] }>()
+const decisions = ref<Record<string, SolutionDecision['decision'] | undefined>>({})
+const decided = computed(() => deciding.value?.solutions.every((solution) => decisions.value[solution.id] !== undefined) ?? false)
 const errors = ref<Partial<Record<Field, string>>>({})
 const failure = ref<string>()
 const notice = ref<string>()
@@ -181,9 +188,29 @@ async function addValue() {
   await changeValue(() => createEnumValue(props.property!.id, value, current.value?.version, props.fetchFn))
 }
 
-async function removeValue(valueId: string) {
+async function removeValue(valueId: string, chosen: SolutionDecision[] = []) {
   pendingDelete.value = undefined
-  await changeValue(() => deleteEnumValue(props.property!.id, valueId, current.value?.version, props.fetchFn))
+  deciding.value = undefined
+  await changeValue(async () => {
+    const outcome = await deleteEnumValue(props.property!.id, valueId, current.value?.version, props.fetchFn, chosen)
+    if (!outcome.ok && outcome.rejection.problemType === 'solution-decision-required') {
+      decisions.value = {}
+      deciding.value = { valueId, solutions: outcome.rejection.solutions ?? [] }
+      return { ok: true, value: undefined }
+    }
+    return outcome
+  })
+}
+
+async function confirmDecisions() {
+  const pending = deciding.value
+  if (!pending || !decided.value) {
+    return
+  }
+  await removeValue(
+    pending.valueId,
+    pending.solutions.map((solution) => ({ solutionId: solution.id, decision: decisions.value[solution.id]! })),
+  )
 }
 </script>
 
@@ -275,6 +302,19 @@ async function removeValue(valueId: string) {
           { label: t('common.cancel'), color: 'neutral', variant: 'ghost', onClick: () => (pendingDelete = undefined) },
         ]"
       />
+      <div v-if="deciding" class="flex flex-col gap-2" data-testid="value-delete-decisions">
+        <SolutionDecisions v-model="decisions" :solutions="deciding.solutions" />
+        <div class="flex justify-end gap-2">
+          <UButton color="neutral" variant="ghost" :label="t('common.cancel')" @click="deciding = undefined" />
+          <UButton
+            data-testid="value-delete-confirm"
+            color="error"
+            :disabled="!decided"
+            :label="t('metamodel.delete')"
+            @click="confirmDecisions"
+          />
+        </div>
+      </div>
       <div class="flex gap-2">
         <UInput
           v-model="valueInput"

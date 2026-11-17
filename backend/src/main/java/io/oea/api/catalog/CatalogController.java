@@ -29,6 +29,7 @@ import io.oea.api.generated.model.JoinMode;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.app.catalog.CatalogQueries;
+import io.oea.app.entity.EntityBlocks;
 import io.oea.app.catalog.Catalogs;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.ConditionsEnforcedByHandler;
@@ -73,7 +74,10 @@ public class CatalogController implements CatalogsApi {
 
 	private final CatalogQueries queries;
 
-	public CatalogController(Catalogs catalogs, CatalogQueries queries) {
+	private final EntityBlocks blocks;
+
+	public CatalogController(Catalogs catalogs, CatalogQueries queries, EntityBlocks blocks) {
+		this.blocks = blocks;
 		this.catalogs = catalogs;
 		this.queries = queries;
 	}
@@ -209,7 +213,7 @@ public class CatalogController implements CatalogsApi {
 		return ResponseEntity.ok(CatalogQueryMapping.result(this.queries.query(principal(), id,
 				new CatalogQueries.Request(page, pageSize, sort, joinModes(joinMode),
 						(filter != null) ? filter : List.of(), filterMode, view, cursor),
-				CatalogQueries.Channel.CATALOG)));
+				CatalogQueries.Channel.CATALOG), this.blocks));
 	}
 
 	/**

@@ -946,7 +946,9 @@ class SolutionDeltasTests {
 		assertThat(added.get("type")).isEqualTo("new");
 		assertThat(added.get("name")).isEqualTo("Salesforce");
 		assertThat(added.get("metatype")).isEqualTo(this.application.toString());
-		assertThat((String) added.get("details")).doesNotContain("250").doesNotContain("\"Sales\"");
+		// a random delta ID may contain 250, so only a value 250 counts
+		assertThat((String) added.get("details")).doesNotContainPattern("[:\\[,]\\s*\"?250\"?\\s*[,}\\]]")
+			.doesNotContain("\"Sales\"");
 		int crm = entity(this.application, "CRM-Legacy");
 		String delta = created(create(this.michael, this.solution, retiring(crm))).path("id").asString();
 		assertThat(delete(this.michael, this.solution, delta)).hasStatus(HttpStatus.NO_CONTENT);

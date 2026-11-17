@@ -1091,20 +1091,50 @@ package "Architecture Planning" #E3F2FD {
     + entity_id       : INTEGER     {NN} {FK→entities.id}
     + field           : TEXT        {NN}
     .. name, description or the ID of a property definition ..
-    + property_def_id : UUID        {FK→property_definitions.id}
+    + property_def_id : UUID
+    .. no FK since V36: a definition no snapshot keeps may be deleted ..
     + kind            : TEXT        {NN}
-    .. enum: mandatory-missing | invalid-value ..
+    .. enum: mandatory-missing | invalid-value | not-in-metamodel ..
+    + kept_value      : TEXT
+    .. set exactly for not-in-metamodel: the value the go-live could not write ..
+    + resolution      : TEXT
+    .. enum: value | removed; automatic is computed on read, never stored ..
+    + resolved_at     : TIMESTAMPTZ
+    + resolved_by     : BIGINT      {FK→persons.id}
+    .. CHECK: resolution, resolved_at, resolved_by all null or all set ..
     + created_at      : TIMESTAMPTZ {NN} DEFAULT NOW()
-    .. UNIQUE (solution_id, entity_id, field) ..
+    .. UNIQUE (solution_id, entity_id, field); partial index on unresolved entity_id ..
   }
 
   note right of solution_open_issues
     Metamodel violations a go-live took live
-    (us-152-solution-go-live, V35); blocking
-    and resolution follow with US-153.
+    (us-152-solution-go-live, V35). An unresolved
+    issue whose violation still holds blocks its
+    entity (us-153-open-issues, V36).
+  end note
+
+  class solution_metamodel_snapshots <<Table>> #BBDEFB {
+    + id              : UUID        {PK}
+    --
+    + solution_id     : UUID        {NN} {FK→solutions.id}
+    + metatype_id     : UUID        {NN} {FK→metatypes.id}
+    + property_def_id : UUID        {NN} {FK→property_definitions.id, RESTRICT}
+    + enum_value      : TEXT
+    .. null keeps the whole property; a value keeps one deleted enumeration value ..
+    + created_at      : TIMESTAMPTZ {NN} DEFAULT NOW()
+    + created_by      : BIGINT      {NN} {FK→persons.id}
+    .. UNIQUE (solution_id, metatype_id, property_def_id, coalesce(enum_value, '')) ..
+  }
+
+  note right of solution_metamodel_snapshots
+    A property or enumeration value an active solution
+    keeps after a metamodel change removed it (decision
+    keep, US-154; us-153-open-issues, V36). Dropped
+    with the go-live of the solution.
   end note
 
   solutions "1" --o{ "0..*" solution_open_issues : left by its go-live
+  solutions "1" --o{ "0..*" solution_metamodel_snapshots : keeps until its go-live
 
   class entity_deltas <<Table>> #BBDEFB {
     + id          : UUID                  {PK}

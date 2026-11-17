@@ -2,8 +2,9 @@
 
 **ID**: US-153
 **Story Points**: 5
-**Status**: backlog
+**Status**: done
 **Sprint**: S14
+**Implementation**: OpenSpec change `us-153-open-issues` – `listSolutionOpenIssues` with status and resolution, `resolveSolutionOpenIssues` (`solution:write` or `entity:write`), the blocking check `EntityBlocks` in the batch, restore, deltas and go-live (409 `entity-blocked`, item error `OPEN_ISSUES`), the automatic resolution computed on read, the marker in the catalog and the notice in the change history, the dialog SCR-064 (V36) (AC1–AC5)
 
 ## Story
 

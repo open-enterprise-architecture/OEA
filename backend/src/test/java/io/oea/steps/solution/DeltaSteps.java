@@ -1154,6 +1154,28 @@ public class DeltaSteps {
 		catalogValue(entity, property, value);
 	}
 
+	// Shared with OpenIssueSteps (us-153-open-issues)
+
+	void registerProperty(String name, UUID id) {
+		this.properties.put(name, id);
+	}
+
+	String newSolution(String prefix) throws Exception {
+		return createSolution(prefix);
+	}
+
+	HttpResponse<String> capture(String solutionId, ObjectNode body) throws Exception {
+		return create(solutionId, body, instance().architect());
+	}
+
+	ObjectNode newApplication(String name, Map<String, String> values) {
+		return newEntity(this.applications, named(name), null, values);
+	}
+
+	ObjectNode modificationOf(String entity, Map<String, String> values) {
+		return modified(this.entities.get(entity), null, null, values);
+	}
+
 	private String named(String name) {
 		return (name + " " + this.suffix).replace("'", "''");
 	}

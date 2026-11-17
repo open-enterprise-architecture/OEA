@@ -310,7 +310,7 @@ function stateColor(state: PropertyMapping['state']): 'success' | 'info' | 'neut
       :description="removing ? t('metamodel.mapping.removeHint', { property: propertyName(removing), date: removing.validFrom }) : ''"
       :warning="t('metamodel.mapping.removeWarning')"
       :version="metatype.version"
-      :run="(version) => deleteMapping(metatype.id, removing!.id, version, fetchFn)"
+      :run="(version, decisions) => deleteMapping(metatype.id, removing!.id, version, fetchFn, decisions)"
       @update:open="(open: boolean) => !open && (removing = undefined)"
       @stale="changed"
       @done="changed"

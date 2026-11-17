@@ -42,8 +42,15 @@ public class PropertyDefinitions {
 
 	private final MetamodelVersions versions;
 
+	private final SolutionImpact impact;
+
+	private final io.oea.core.solution.SnapshotStore snapshots;
+
 	public PropertyDefinitions(JdbcTemplate jdbc, PropertyValueStore values, MetamodelEffects effects,
-			MetamodelAudit audit, MetamodelVersions versions, MetamodelConfigurations configurations) {
+			MetamodelAudit audit, MetamodelVersions versions, MetamodelConfigurations configurations,
+			SolutionImpact impact, io.oea.core.solution.SnapshotStore snapshots) {
+		this.impact = impact;
+		this.snapshots = snapshots;
 		this.jdbc = jdbc;
 		this.values = values;
 		this.effects = effects;
@@ -127,6 +134,9 @@ public class PropertyDefinitions {
 		if (exists("SELECT EXISTS (SELECT 1 FROM metatype_property_mappings WHERE property_def_id = ?)", id)) {
 			throw MetamodelChangeException.inUse("The property definition is mapped to metatypes.", null);
 		}
+		if (this.snapshots.keeps(id)) {
+			throw MetamodelChangeException.inUse("A solution keeps the property definition as a snapshot.", null);
+		}
 		boolean retired = this.values.hasValues(id, true);
 		if (retired) {
 			this.jdbc.update("UPDATE property_definitions SET retired_at = ? WHERE id = ?",
@@ -176,8 +186,18 @@ public class PropertyDefinitions {
 	}
 
 	/** Deletes the value; entities holding it lose it with a new version (design D5, D6). */
-	@Transactional
 	public void deleteEnumValue(OeaPrincipal principal, UUID propertyDefId, UUID valueId, Long expectedVersion) {
+		deleteEnumValue(principal, propertyDefId, valueId, expectedVersion, SolutionImpact.Decisions.of(Map.of()));
+	}
+
+	/**
+	 * Deletes the value with the decisions for the affected active solutions (US-154).
+	 *
+	 * @throws SolutionDecisionRequiredException when an affected solution has no decision (409)
+	 */
+	@Transactional
+	public void deleteEnumValue(OeaPrincipal principal, UUID propertyDefId, UUID valueId, Long expectedVersion,
+			SolutionImpact.Decisions decisions) {
 		this.effects.lock();
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
@@ -189,6 +209,9 @@ public class PropertyDefinitions {
 			.stream()
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("no enum value " + valueId));
+		Map<String, Object> details = new LinkedHashMap<>();
+		this.impact.apply(principal, this.effects.lostEnumValue(propertyDefId, value), decisions, details,
+				this.effects.now());
 		List<UUID> metatypes = this.jdbc.queryForList("SELECT id FROM metatypes", UUID.class);
 		int removed = this.values.removeValues(propertyDefId, metatypes, value, MetamodelEffects.author(principal),
 				this.effects.now());
@@ -196,7 +219,6 @@ public class PropertyDefinitions {
 		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId);
 		this.effects.removeOrphanLabels();
 		int marked = (removed > 0) ? this.effects.markWhereMandatory(propertyDefId) : 0;
-		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("valueId", valueId.toString());
 		details.put("value", value);
 		details.put("entitiesWithRemovedValues", removed);
