@@ -10,7 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 39 |
+| MIT | 38 |
 | Apache-2.0 | 95 |
 | BSD-3-Clause | 10 |
 | BSD-2-Clause | 2 |
@@ -137,7 +137,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (35)
+## Frontend Bundle (34)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -173,7 +173,6 @@ License texts and notices: the backend jar contains the license and notice files
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
-| vue (`vue`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | vue-i18n (`vue-i18n`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | vue-router (`vue-router`) | 5.4.0 | MIT | – | <https://github.com/vuejs/router> |
 
