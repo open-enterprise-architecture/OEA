@@ -17,6 +17,7 @@ import {
   type SolutionLandscapeEntry,
   type SolutionOpenIssue,
 } from '../api/solutions'
+import PlaceInNavigation from '../components/PlaceInNavigation.vue'
 import OpenIssuesDialog from '../components/solutions/OpenIssuesDialog.vue'
 import DeltaMergeDialog from '../components/solutions/DeltaMergeDialog.vue'
 import SolutionBaseline from '../components/solutions/SolutionBaseline.vue'
@@ -77,6 +78,11 @@ const openIssues = ref<SolutionOpenIssue[]>([])
 const wentLive = ref(false)
 
 const canRead = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read'))
+// placing the solution in the navigation tree needs viewpoint:manage and entity:read (US-097; design D7 of us-095)
+const canPlace = computed(() => {
+  const granted = (session.me?.permissions ?? []).map((entry) => entry.permission)
+  return granted.includes('viewpoint:manage') && granted.includes('entity:read')
+})
 // resolving open issues needs solution:write or entity:write (US-153; owner decision 2026-11-17)
 const canResolve = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'solution:write' || entry.permission === 'entity:write'),
@@ -319,10 +325,15 @@ const createdAt = computed(() =>
           variant="subtle"
           :label="t(`solutions.status.${solution.status}`)"
         />
+        <div class="ms-auto flex flex-wrap items-center gap-2">
+        <PlaceInNavigation
+          v-if="canPlace"
+          :placement="{ itemType: 'solution', referenceId: solution.id, name: solution.name }"
+          :fetch-fn="fetchFn"
+        />
         <UButton
           v-if="canWrite && !solution.toPlateauId"
           data-testid="solution-go-live"
-          class="ms-auto"
           icon="i-lucide-rocket"
           :label="t('solutions.goLive.action')"
           @click="startGoLive"
@@ -331,13 +342,13 @@ const createdAt = computed(() =>
         <UButton
           v-if="solution.toPlateauId && solution.status !== 'implemented' && solution.status !== 'archived'"
           data-testid="solution-goes-live-with-plateau"
-          class="ms-auto"
           to="/plateaus"
           color="neutral"
           variant="link"
           icon="i-lucide-layers"
           :label="toPlateau ? t('solutions.plateaus.goesLiveWith', { name: toPlateau.name }) : t('solutions.plateaus.goesLiveWithPlateau')"
         />
+        </div>
       </div>
       <UAlert v-if="goLiveFailure" data-testid="go-live-failure" color="error" variant="subtle" :description="goLiveFailure" />
       <UAlert

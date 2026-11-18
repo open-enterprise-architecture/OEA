@@ -5,9 +5,9 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: medium
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-27
-last_updated: 2026-06-27
+last_updated: 2026-11-17
 primary_actor: SH-03
 secondary_actors:
   - SH-04
@@ -16,10 +16,15 @@ references:
     - tree-node
     - catalog
     - entity
+    - solution
     - person
     - role
   user_stories:
     - requirements/user-stories/US-054-catalog-navigation-tree.md
+    - requirements/user-stories/US-094-navigation-tree-folder-crud.md
+    - requirements/user-stories/US-095-navigation-tree-item-soft-reference.md
+    - requirements/user-stories/US-096-navigation-tree-drag-drop.md
+    - requirements/user-stories/US-097-navigation-tree-multiple-placement.md
   concept:
     - concept/20-entities/06-core-entity-types.md
   related_use_cases:
@@ -239,3 +244,8 @@ Important: The navigation tree is pure navigation. It stores no content; it refe
 - **Permissions per folder**: access control via TreeNodes is not planned (v1.0); permissions are assigned role-based and instance-wide
 - **Multiple trees per instance**: In v1.0 there is exactly one navigation tree per instance; multiple named trees are deferred
 - **Tree export/import**: not a v1.0 feature; the tree is instance-specific navigation, not a portable artifact
+
+## Realignment
+
+- 2026-11-07, OpenSpec change `us-054-catalog-navigation-tree`: the tree of S9 holds folders and catalogs; the root is "Repository", folder names are unique among siblings regardless of case, and changing the tree needs `viewpoint:manage`. The sidebar is SCR-055.
+- 2026-11-17, OpenSpec change `us-095-navigation-tree-items` (owner decisions 2026-11-17): entries are element entities, catalogs and solutions; diagrams follow with the diagrams. Steps 7–10 and A5 place one object at a time with the action "Place in navigation" on the catalog browser (SCR-020, entities), the solution page (SCR-061) and the catalog page (catalogs), instead of a search dialog with multi-select; an entity entry opens the change history of the entity (SCR-026). Folders and entries keep a manual order (`sortOrder`), new ones go to the end. Steps 11–12 and A2 move folders and entries by drag and drop in the sidebar, or by "Move up", "Move down" and "Move to…" for keyboard and touch; a folder moved under itself or a descendant, a name taken among the new siblings and a subtree deeper than 10 levels are rejected with 422. E4: an entry of a deleted entity stays, marked "Deleted", and loses the marker when the entity is restored; an entry of a catalog that no longer exists is left out. Changing the tree needs `viewpoint:manage` and `entity:read` (Preconditions, E5); moves are audited as `tree-node.moved` and `tree-node.item-moved`.

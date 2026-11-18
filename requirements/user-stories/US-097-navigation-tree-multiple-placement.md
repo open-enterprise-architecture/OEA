@@ -2,8 +2,9 @@
 
 **ID**: US-097
 **Story Points**: 3
-**Status**: backlog
+**Status**: done
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-095-navigation-tree-items` – the same entity, catalog or solution in several folders as independent entries, once per folder (AC1); removing one entry leaves the others (AC2)
 
 ## Story
 

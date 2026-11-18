@@ -2,7 +2,7 @@
   "formatVersion": "1.0",
   "exportedAt": "2026-11-04T00:00:00Z",
   "packageId": "oea-starter-togaf-classic",
-  "packageVersion": "1.1.0",
+  "packageVersion": "1.2.0",
   "publisher": "OEA",
   "name": "TOGAF classic starter configuration",
   "description": "Starter metamodel after the classic TOGAF/ArchiMate reading (platform as technology, ADR-005): application components, services and data objects, technology components, services, system software and network nodes, each with a lifecycle status.",
@@ -186,6 +186,65 @@
           "necessity": "optional",
           "validFrom": "2026-01-01",
           "sortOrder": 0
+        }
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "b1770ff3-4c92-5764-8123-1ab6eabe8c55",
+      "name": "Application Landscape",
+      "description": "Application components, application services and data objects of the landscape.",
+      "notation": "archimate3",
+      "metatypeIds": [
+        "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
+        "97fa836b-4017-55c9-a218-741b21320780",
+        "92b26412-8c2c-563f-b359-d2160b49b0ab"
+      ],
+      "connectionTypeIds": [],
+      "mappings": [
+        {
+          "metatypeId": "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
+          "notationElement": "archimate:ApplicationComponent"
+        },
+        {
+          "metatypeId": "97fa836b-4017-55c9-a218-741b21320780",
+          "notationElement": "archimate:ApplicationService"
+        },
+        {
+          "metatypeId": "92b26412-8c2c-563f-b359-d2160b49b0ab",
+          "notationElement": "archimate:DataObject"
+        }
+      ]
+    },
+    {
+      "id": "d600d18e-8d60-53d7-9d23-f8b2e8eaf6e1",
+      "name": "Technology Landscape",
+      "description": "Technology components, technology services, system software and network nodes of the landscape.",
+      "notation": "archimate3",
+      "metatypeIds": [
+        "91bfa93c-abe3-541d-80c7-7492688df9d8",
+        "663dad99-85af-517e-9e3d-933b58a6c973",
+        "9c9f11b2-9d1d-51ee-80b5-93972619537d",
+        "79b00502-7688-59ce-a70f-7608f6426a59"
+      ],
+      "connectionTypeIds": [],
+      "mappings": [
+        {
+          "metatypeId": "91bfa93c-abe3-541d-80c7-7492688df9d8",
+          "notationElement": "archimate:Node"
+        },
+        {
+          "metatypeId": "663dad99-85af-517e-9e3d-933b58a6c973",
+          "notationElement": "archimate:TechnologyService"
+        },
+        {
+          "metatypeId": "9c9f11b2-9d1d-51ee-80b5-93972619537d",
+          "notationElement": "archimate:SystemSoftware"
+        },
+        {
+          "metatypeId": "79b00502-7688-59ce-a70f-7608f6426a59",
+          "notationElement": "archimate:Device"
         }
       ]
     }

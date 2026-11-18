@@ -14,7 +14,8 @@ const { t } = useI18n()
 
 const permissions = computed(() => new Set((session.me?.permissions ?? []).map((entry) => entry.permission)))
 const visible = computed(() => permissions.value.has('entity:read'))
-const canManage = computed(() => permissions.value.has('viewpoint:manage'))
+// every change of the tree answers with the names of its entries, so it needs entity:read too (design D7 of us-095)
+const canManage = computed(() => permissions.value.has('viewpoint:manage') && permissions.value.has('entity:read'))
 </script>
 
 <template>

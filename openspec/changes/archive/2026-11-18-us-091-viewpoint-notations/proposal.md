@@ -28,6 +28,7 @@ This is S15 change 3.
 
 - **Notations:** viewpoints support ArchiMate 3, UML and BPMN 2.0, plus the neutral elements `generic:Box` and `generic:Arrow`. OEA ships the element catalog as data: ArchiMate 3.2 in full, the UML component and class elements, and the BPMN 2.0 core elements.
 - **System-defined viewpoints come from metamodel packages.** A package that carries viewpoints installs them as system-defined, read-only viewpoints, which no other package or person overwrites (US-092). The import of the package section `viewpoints` becomes supported. The starter package gets two viewpoints.
+- **Who installs system-defined viewpoints:** the package import with `metamodel:write` alone, as for metatypes (answer to Q-1 of the security review).
 - **Existing viewpoints:** viewpoints without a notation get the notation `generic`, which stays selectable.
 - **Notation mapping is optional:** per allowed entity type it names a notation element, a default size and a visual hint. An entity type without a mapping is rendered as `generic:Box` with the default size.
 
@@ -41,16 +42,18 @@ This is S15 change 3.
 - **Mapping validation (US-091 AC2):**
   - an element of another notation, an unknown element, or a mapping of a type the viewpoint does not allow gives 422 naming `mappings`;
   - a width or height outside 1 to 2000 gives 400;
-  - the visual hint is an optional color `#rrggbb` (422 otherwise).
+  - the visual hint is an optional color `#rrggbb` (400 otherwise, a contract check);
+  - at most 1000 mappings, one per allowed type (design D5).
 - **Changing the notation:** a request with a new notation must not keep elements of the old one (422). The dialog clears them, as US-091 AC3 asks.
 - **System-defined viewpoints:**
   - they carry `viewpointType = system-defined` and their package;
-  - update and delete give 422 "System-defined viewpoints are read-only" (US-092 AC1);
+  - update and delete give 422 `read-only-viewpoint` "System-defined viewpoints are read-only" (US-092 AC1);
   - SCR-031 shows them in their own group without "Edit" and "Delete" (AC2);
   - a re-import of the same package updates them;
   - another package or an organization viewpoint with the same name gives 409, as for metatypes (AC3; package-import "Content of others is never overwritten").
-- **Package viewpoints** reference entity types by the IDs of the package's metatypes. A viewpoint whose type is not in the package, nor in the instance, makes the import fail with 422 (BO BR-08).
+- **Package viewpoints** carry a stable ID, like the other package elements, and reference entity types by the IDs of the package's metatypes. A viewpoint whose type is not in the package, nor in the instance, makes the import fail with 422 (BO BR-08).
 - **Starter package:** "Application Landscape" (ArchiMate: Application Component, Application Service, Data Object) and "Technology Landscape" (ArchiMate: Technology Component, Technology Service, System Software, Network Node).
+- **Order:** this change follows change 2 (`us-095-navigation-tree-items`), which takes V40, so it takes V41.
 - **Shape assignments** (the package section `shapeAssignments`) stay unsupported.
 - **Audit:** the existing `viewpoint.*` events name `notation`, and the package import counts the imported viewpoints in its `metamodel.package-imported`.
 

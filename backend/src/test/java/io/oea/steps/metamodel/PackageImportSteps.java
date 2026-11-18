@@ -60,10 +60,14 @@ public class PackageImportSteps {
 		this.response = shared.post(IMPORT, pkg.toString(), shared.metamodelAdmin());
 	}
 
-	@When("the metamodel administrator imports the package {string} with viewpoints")
-	public void withViewpoints(String packageId) throws Exception {
+	@When("the metamodel administrator imports the package {string} with shape assignments")
+	public void withShapeAssignments(String packageId) throws Exception {
 		ObjectNode pkg = TestPackages.pkg(packageId, 1);
-		pkg.putArray("viewpoints").addObject().put("id", "landscape").put("name", "Landscape");
+		pkg.putArray("shapeAssignments")
+			.addObject()
+			.put("viewpointKey", "landscape")
+			.put("metatypeId", java.util.UUID.randomUUID().toString())
+			.put("shapeKey", "box");
 		this.response = shared.post(IMPORT, pkg.toString(), shared.metamodelAdmin());
 	}
 
@@ -180,6 +184,65 @@ public class PackageImportSteps {
 		JsonNode conflict = body().path("conflictList").get(0);
 		assertThat(conflict.path("element").asString()).isEqualTo(element);
 		assertThat(conflict.path("reason").asString()).isEqualTo("other-package");
+	}
+
+	// us-091-viewpoint-notations
+
+	@Given("the metamodel administrator has imported the package {string} with a viewpoint {string}")
+	@When("the metamodel administrator imports the package {string} with a viewpoint {string}")
+	public void withViewpoint(String packageId, String name) throws Exception {
+		this.response = shared.post(IMPORT, viewpointPackage(packageId, name,
+				TestPackages.pkg(packageId, 1).withArray("metatypes").get(0).path("id").asString()).toString(),
+				shared.metamodelAdmin());
+	}
+
+	@When("the metamodel administrator imports the package {string} with a viewpoint that allows an unknown metatype")
+	public void withUnknownType(String packageId) throws Exception {
+		this.response = shared.post(IMPORT, viewpointPackage(packageId, "Unknown Type View",
+				java.util.UUID.randomUUID().toString()).toString(), shared.metamodelAdmin());
+	}
+
+	@When("the metamodel administrator imports the package {string} with a viewpoint named with {int} characters")
+	public void withLongName(String packageId, int length) throws Exception {
+		this.response = shared.post(IMPORT, viewpointPackage(packageId, "n".repeat(length),
+				TestPackages.pkg(packageId, 1).withArray("metatypes").get(0).path("id").asString()).toString(),
+				shared.metamodelAdmin());
+	}
+
+	@Then("the import answer is {int}")
+	public void answer(int status) {
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(status);
+	}
+
+	@Then("the package {string} has the system-defined viewpoint {string} with the notation {string}")
+	public void systemDefined(String packageId, String name, String notation) throws Exception {
+		assertThat(shared.oidc().single("SELECT viewpoint_type || ':' || notation FROM viewpoints WHERE name = '" + name
+				+ "' AND source_package_id = '" + packageId + "'")).isEqualTo("system-defined:" + notation);
+	}
+
+	@Then("the package {string} still has the system-defined viewpoint {string}")
+	public void stillHas(String packageId, String name) throws Exception {
+		systemDefined(packageId, name, "archimate3");
+	}
+
+	@Then("the result reports {int} created viewpoints")
+	public void viewpointCounts(int created) {
+		assertThat(this.response.statusCode()).isEqualTo(200);
+		assertThat(body().path("viewpointsCreated").asInt()).isEqualTo(created);
+	}
+
+	private static ObjectNode viewpointPackage(String packageId, String name, String metatypeId) {
+		ObjectNode pkg = TestPackages.pkg(packageId, 1);
+		ObjectNode viewpoint = pkg.putArray("viewpoints").addObject();
+		viewpoint.put("id", java.util.UUID.nameUUIDFromBytes((packageId + "/" + name).getBytes()).toString())
+			.put("name", name)
+			.put("notation", "archimate3");
+		viewpoint.putArray("metatypeIds").add(metatypeId);
+		viewpoint.putArray("mappings")
+			.addObject()
+			.put("metatypeId", metatypeId)
+			.put("notationElement", "archimate:ApplicationComponent");
+		return pkg;
 	}
 
 	private JsonNode body() {

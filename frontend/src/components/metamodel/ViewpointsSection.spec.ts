@@ -35,7 +35,7 @@ describe('ViewpointsSection', () => {
 
   it('lists the viewpoints with their allowed types', async () => {
     const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: false }, { me: ME_READER })
-    const row = wrapper.find('[data-testid="viewpoint-row"]')
+    const row = wrapper.find('[data-testid="viewpoint-list"] [data-testid="viewpoint-row"]')
     expect(row.text()).toContain('Application Landscape')
     expect(row.text()).toContain('Application Component')
     expect(row.text()).toContain('Data Flow')
@@ -58,7 +58,7 @@ describe('ViewpointsSection', () => {
     await flushPromises()
     const post = api.requests.find((request) => request.method === 'POST' && request.path === '/api/v1/admin/viewpoints')
     expect(post?.body).toMatchObject({ name: 'Integration View', metatypeIds: [IDS.component], connectionTypeIds: [IDS.dataFlow] })
-    expect(wrapper.findAll('[data-testid="viewpoint-row"]').map((row) => row.text())).toEqual([
+    expect(wrapper.findAll('[data-testid="viewpoint-list"] [data-testid="viewpoint-row"]').map((row) => row.text())).toEqual([
       expect.stringContaining('Application Landscape'),
       expect.stringContaining('Integration View'),
     ])
@@ -97,6 +97,8 @@ describe('ViewpointsSection', () => {
     el<HTMLButtonElement>('delete-confirm')!.click()
     await flushPromises()
     expect(api.requests.find((request) => request.method === 'DELETE')?.ifMatch).toBe('"1"')
-    expect(wrapper.findAll('[data-testid="viewpoint-row"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-testid="viewpoint-list"] [data-testid="viewpoint-row"]')).toHaveLength(0)
+    // the system-defined viewpoint stays
+    expect(wrapper.findAll('[data-testid="viewpoint-list-system"] [data-testid="viewpoint-row"]')).toHaveLength(1)
   })
 })

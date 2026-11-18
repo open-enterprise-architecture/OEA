@@ -15,8 +15,10 @@ import { session } from '../session/store'
 // readOnly: the join headers show the name without the mode switch (portal, s9-portal-catalogs D7)
 // Every entity row has the action "History" to its change history (SCR-026; design D5 of
 // us-098-entity-history), with this catalog as the page to return to; it needs entity:read.
-const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string; readOnly?: boolean }>()
-const emit = defineEmits<{ sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
+// With `placeable` every row of elements has "Place in navigation" (US-095; design D5 of
+// us-095-navigation-tree-items), which the page opens the dialog for.
+const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string; readOnly?: boolean; placeable?: boolean }>()
+const emit = defineEmits<{ place: [entityId: number, name: string]; sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +60,21 @@ function historyAction(row: CatalogRow) {
     ),
     link,
   ])
+}
+
+function placeAction(row: CatalogRow) {
+  const name = row.values.name ?? ''
+  return h(
+    'button',
+    {
+      type: 'button',
+      'data-testid': `place-${row.entityId}`,
+      'aria-label': `${t('navigation.place')}: ${name || `#${row.entityId}`}`,
+      class: 'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-default hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary',
+      onClick: () => emit('place', row.entityId, name || `#${row.entityId}`),
+    },
+    [h(UIcon, { name: 'i-lucide-folder-tree', class: 'size-4 shrink-0', 'aria-hidden': 'true' }), t('navigation.place')],
+  )
 }
 
 const sort = computed(() => props.result.sort ?? undefined)
@@ -140,7 +157,8 @@ const columns = computed<TableColumn<CatalogRow>[]>(() => {
       id: 'actions',
       enableSorting: false,
       header: () => h('span', { class: 'sr-only' }, t('catalog.actions')),
-      cell: ({ row }: { row: { original: CatalogRow } }) => historyAction(row.original),
+      cell: ({ row }: { row: { original: CatalogRow } }) =>
+        props.placeable ? h('span', { class: 'inline-flex items-center gap-1' }, [historyAction(row.original), placeAction(row.original)]) : historyAction(row.original),
     })
   }
   const joins = props.result.joins ?? []

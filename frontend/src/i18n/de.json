@@ -642,7 +642,7 @@
     },
     "viewpoint": {
       "list": "Viewpoints ({count})",
-      "intro": "Ein Viewpoint nennt die Entitätstypen und Verbindungstypen einer organisationsspezifischen Sicht. Notationen folgen mit den Diagrammen.",
+      "intro": "Ein Viewpoint nennt die Entitätstypen und Verbindungstypen einer organisationsspezifischen Sicht, ihre Notation und das Element, mit dem jeder Typ gezeichnet wird.",
       "new": "Neuer Viewpoint",
       "edit": "Viewpoint bearbeiten",
       "delete": "Viewpoint löschen",
@@ -656,7 +656,33 @@
       "connections": "Verbindungstypen",
       "noConnections": "Die Instanz hat keine Verbindungstypen.",
       "invalid": "Der Viewpoint ist ungültig.",
-      "loadFailed": "Die Viewpoints konnten nicht geladen werden."
+      "loadFailed": "Die Viewpoints konnten nicht geladen werden.",
+      "groupSystem": "Systemdefiniert",
+      "groupOrganization": "Organisation",
+      "systemHint": "Von einem Metamodell-Paket installiert und schreibgeschützt.",
+      "systemLock": "Systemdefiniert, schreibgeschützt",
+      "fromPackage": "Paket {id} {version}",
+      "notation": "Notation",
+      "notations": {
+        "generic": "Generisch",
+        "archimate3": "ArchiMate 3",
+        "uml": "UML",
+        "bpmn2": "BPMN 2.0"
+      },
+      "mapping": "Notationszuordnung",
+      "mappingHint": "Optional. Ein Typ ohne Element wird als generisches Rechteck oder generischer Pfeil gezeichnet.",
+      "genericElement": "{label} (generisch)",
+      "mappingType": "Typ",
+      "element": "Element",
+      "noElement": "Keines (generisch)",
+      "width": "Breite",
+      "height": "Höhe",
+      "color": "Farbe",
+      "clearColor": "Farbe von {name} entfernen",
+      "elementOf": "Element von {name}",
+      "sizeInvalid": "{min} bis {max} Pixel.",
+      "catalogFailed": "Die Notationselemente konnten nicht geladen werden.",
+      "readOnly": "Systemdefinierte Viewpoints sind schreibgeschützt."
     }
   },
   "navigation": {
@@ -664,7 +690,7 @@
     "open": "Navigation öffnen",
     "loadFailed": "Der Navigationsbaum konnte nicht geladen werden.",
     "retry": "Erneut versuchen",
-    "empty": "Noch keine Ordner oder Kataloge.",
+    "empty": "Noch keine Ordner oder Einträge.",
     "expand": "{name} aufklappen",
     "collapse": "{name} zuklappen",
     "folderActions": "Aktionen für {name}",
@@ -691,10 +717,24 @@
     "placeTitle": "{name} in der Navigation einordnen",
     "folder": "Ordner",
     "displayLabel": "Anzeigename",
-    "displayLabelHint": "Wird im Baum statt des Katalognamens gezeigt. Leer lassen, um den Namen zu zeigen.",
+    "displayLabelHint": "Wird im Baum statt des Namens gezeigt. Leer lassen, um den Namen zu zeigen.",
     "placeSubmit": "Einordnen",
-    "alreadyPlaced": "Der Katalog ist bereits in diesem Ordner.",
-    "placed": "Eingeordnet in {path}."
+    "alreadyPlaced": {
+      "catalog": "Der Katalog ist bereits in diesem Ordner, oder der Ordner ist voll.",
+      "entity": "Die Entität ist bereits in diesem Ordner, kann nicht eingeordnet werden, oder der Ordner ist voll.",
+      "solution": "Die Lösung ist bereits in diesem Ordner, oder der Ordner ist voll."
+    },
+    "placed": "Eingeordnet in {path}.",
+    "deleted": "Gelöscht",
+    "itemActions": "Aktionen für {name}",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "moveTo": "Verschieben nach…",
+    "moveTitle": "{name} verschieben",
+    "moveSubmit": "Verschieben",
+    "moveNoTarget": "Es gibt keinen Ordner, in den das verschoben werden kann.",
+    "moveRejected": "Das kann nicht dorthin verschoben werden. Der Baum hat sich eventuell inzwischen geändert.",
+    "dropInvalid": "Kann hier nicht abgelegt werden"
   },
   "portal": {
     "title": "Portal",

@@ -73,7 +73,7 @@ Trace: US-091 AC1, REQ-091, owner decision 2026-11-17
 
 ### Requirement: System-defined viewpoints are read-only
 
-A viewpoint installed from a metamodel package SHALL be system-defined with its package. Updating or deleting it SHALL be rejected with 422 and the detail "System-defined viewpoints are read-only"; nothing SHALL change.
+A viewpoint installed from a metamodel package SHALL be system-defined with its package. Updating or deleting it SHALL be rejected with 422, the problem type `read-only-viewpoint` and the detail "System-defined viewpoints are read-only"; nothing SHALL change.
 
 Trace: US-092 AC1, REQ-092, viewpoint BO BR-02
 
@@ -82,6 +82,55 @@ Trace: US-092 AC1, REQ-092, viewpoint BO BR-02
 - **GIVEN** the starter package installed "Application Landscape"
 - **WHEN** Kurt deletes it
 - **THEN** the response is 422, and the viewpoint stays
+
+### Requirement: Limits of the notation mapping
+
+A write SHALL carry at most 1000 mappings (500 entity and 500 connection types), at most one per metatype, and element keys of at most 100 characters; more mappings, a longer key, a size outside 1–2000 or a hint not of the form `#rrggbb` SHALL be rejected with 400, a second mapping of the same metatype with 422 naming `mappings`. Nothing SHALL change.
+
+Trace: US-091 AC2, REQ-091, security review us-091-viewpoint-notations
+
+#### Scenario: Number of mappings
+
+- **WHEN** Kurt saves a viewpoint that allows 500 entity and 500 connection types with 1000 mappings, then with 1001
+- **THEN** the first is accepted, and the second answers 400
+
+#### Scenario: Visual hint
+
+- **WHEN** Kurt saves the visual hint `#1a2B3c`, then `red`
+- **THEN** the first is accepted, and the second answers 400
+
+#### Scenario: Same metatype mapped twice
+
+- **WHEN** an API call maps "Application Component" twice in one request
+- **THEN** the response is 422 naming `mappings`, and nothing changes
+
+### Requirement: Origin of a viewpoint set only by the import
+
+Only the package import SHALL make a viewpoint system-defined and set its package. A viewpoint created or updated through the API SHALL be user-defined without a package, whatever the request carries; an update or delete of a system-defined viewpoint SHALL be rejected with 422 even with its current version.
+
+Trace: US-092 AC1, REQ-092, viewpoint BO BR-02, security review us-091-viewpoint-notations
+
+#### Scenario: Forged origin
+
+- **WHEN** an API call creates a viewpoint with `viewpointType` `system-defined` and the package of the starter package in the body
+- **THEN** the viewpoint is user-defined without a package, and its holder can edit and delete it
+
+#### Scenario: Update with the current version
+
+- **GIVEN** the starter package installed "Application Landscape" with version 1
+- **WHEN** Kurt updates it with `If-Match` 1
+- **THEN** the response is 422 with the detail "System-defined viewpoints are read-only", and the viewpoint is unchanged
+
+### Requirement: Audit of notation and mappings
+
+`viewpoint.created`, `viewpoint.updated` and `viewpoint.deleted` SHALL name the notation; `viewpoint.updated` SHALL list `notation` and `mappings` among the changed fields when they change. A rejected write, the read-only rejection included, SHALL NOT be audited.
+
+Trace: ADR-033, security review us-091-viewpoint-notations
+
+#### Scenario: Mapping changed
+
+- **WHEN** Kurt changes the mapping of "Application Component" in "Cloud Security View"
+- **THEN** `viewpoint.updated` is audited naming `mappings` and the notation `archimate3`
 
 ### Requirement: Notation and system viewpoints on SCR-031
 

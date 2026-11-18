@@ -2,7 +2,7 @@
 identifier: viewpoint
 name_de: Viewpoint / Architektursicht
 name_en: Viewpoint
-version: 0.3.0
+version: 0.4.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -30,16 +30,18 @@ Every entity type and connection type has a **stable, unique ID** (kebab-case; e
 A viewpoint answers three questions:
 
 1. **What may appear in this view?** – Selection from the EntityTypes and connection types defined in the metamodel (referenced via ID)
-2. **How is it displayed?** – Choice of a notation: ArchiMate 3, UML, or BPMN 2.0; per EntityType a concrete notation element (e.g. `archimate:ApplicationComponent`, `bpmn:UserTask`)
+2. **How is it displayed?** – Choice of a notation: generic, ArchiMate 3, UML, or BPMN 2.0; per EntityType a concrete notation element (e.g. `archimate:ApplicationComponent`, `bpmn:UserTask`), else the generic fallback
 3. **In which default size?** – per EntityType a default width and height in pixels, which the canvas editor uses when inserting new elements
 
-Every instance of an OEA [MetamodelConfiguration](./metamodel-configuration.md) contains a set of viewpoints, analogous to the EntityTypes and stereotypes. Some viewpoints are **system-defined** (built-in, not deletable); others are added by the architecture team as **user-defined**.
+Every instance of an OEA [MetamodelConfiguration](./metamodel-configuration.md) contains a set of viewpoints, analogous to the EntityTypes and stereotypes. Some viewpoints are **system-defined** (installed by a metamodel package, read-only); others are added by the architecture team as **user-defined**.
 
 ---
 
-### Built-in Viewpoints (system-defined)
+### System-defined Viewpoints
 
-OEA ships a set of predefined viewpoints from the three supported notations by default:
+A viewpoint becomes system-defined only through the import of a metamodel package (REQ-059, REQ-092). It records its source package (ID and version), cannot be updated or deleted through the API (422, problem type `read-only-viewpoint`), and is replaced or removed only by a re-import of the same package. A package viewpoint carries a stable UUID as its ID, so a rename in a new package version keeps its identity. The starter package `oea-starter-togaf-classic` (version 1.2.0) installs "Application Landscape" and "Technology Landscape" (`archimate3`).
+
+The following tables show typical viewpoints that packages can ship for the three standard notations:
 
 **ArchiMate 3 (selection)**:
 
@@ -74,6 +76,7 @@ A viewpoint is assigned to exactly one notation. The notation controls how the e
 
 | Notation | Characteristic | Typical Use |
 |---|---|---|
+| `generic` | Notation-neutral boxes and arrows (`generic:Box`, `generic:Arrow`); default of a new viewpoint | Viewpoints without a standard notation, existing viewpoints of us-090 |
 | `archimate3` | Box-based, color-coded TOGAF layers, standardized symbols | Landscape overviews, plateaus, business-IT alignment |
 | `uml` | Structure diagrams (component, class, deployment), behavior diagrams (sequence, activity) | Software architecture, interface contracts |
 | `bpmn2` | Flow-based, events/tasks/gateways, pool-lane structure | Business processes, workflows, organizational handovers |
@@ -120,9 +123,13 @@ For each EntityType there is a **default mapping table** (system-defined) that m
 
 User-defined viewpoints can optionally store their own notation mappings for their custom EntityTypes to override the default rendering (e.g. specific ArchiMate symbols for custom types, deviating default sizes).
 
+As implemented (us-091-viewpoint-notations), a viewpoint stores at most one mapping per allowed metatype. An allowed metatype without a mapping is rendered with the **generic fallback**: `generic:Box` for an element metatype, `generic:Arrow` for a connection metatype, with the default size of the catalog element. Reading a viewpoint returns the **effective element** per allowed metatype (the mapping or the fallback, marked as such) together with its size.
+
 ## Notation Element Catalog
 
-Valid values for `NotationMapping.notationElement`, organized by notation standard. The prefix determines the standard (`archimate:`, `uml:`, `bpmn:`). The viewpoint may only use elements of its own notation.
+Valid values for `NotationMapping.notationElement`, organized by notation standard. The prefix determines the standard (`archimate:`, `uml:`, `bpmn:`, `generic:`). The viewpoint may only use elements of its own notation or generic elements.
+
+The binding catalog is shipped with the software as the resource `notations/catalog.json` and read through `listNotationElements`; each entry has a key (at most 100 characters), the notation, a label, the kind (`element` or `relationship`) and a default width and height. It contains all elements and the eleven relationships of ArchiMate 3.2, the component and class elements of UML, the core elements of BPMN 2.0, and the generic elements. The lists below are the business overview; where they differ, the shipped catalog applies.
 
 ### ArchiMate 3 – Elements (prefix `archimate:`)
 
@@ -160,6 +167,8 @@ Valid values for `NotationMapping.notationElement`, organized by notation standa
 
 `generic:Box` (entity without a specific notation element) · `generic:Arrow` (connection without a specific notation element)
 
+The generic elements fit every notation and are the only elements of the notation `generic`.
+
 ---
 
 ### Recommended Default Sizes by Notation Element
@@ -187,26 +196,42 @@ The values are recommendations; every user-defined viewpoint can store deviating
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | kebab-case, unique within the MetamodelConfiguration | Stable identifier (e.g. `application-architecture-view`) |
-| name | string | required | | max. 255 characters, unique within the MetamodelConfiguration | Display name |
+| id | string | required | | UUID; a package viewpoint keeps the stable UUID of its package across renames | Stable identifier |
+| name | string | required | | trimmed, 1–255 characters, unique within the instance regardless of case | Display name |
 | description | string | optional | | max. 1000 characters | Business description of what this viewpoint is used for |
-| notation | enum | required | | `[archimate3, uml, bpmn2]` | Notation for the presentation; a viewpoint belongs to exactly one notation |
-| viewpointType | enum | required | `user-defined` | `[system-defined, user-defined]` | `system-defined` = built-in (read-only); `user-defined` = created by the architecture team |
-| allowedEntityTypes | string[] | required | [] | Values are `EntityTypeDefinition.id` (kebab-case); all IDs must exist in the associated MetamodelConfiguration | EntityTypes that may be used in diagrams of this viewpoint |
-| allowedConnectionTypes | string[] | required | [] | Values are `EntityTypeDefinition.id`; all IDs must point to types for which `isConnection=true` holds | Connection types allowed as edges in diagrams of this viewpoint |
-| notationMappings | NotationMapping[] | optional | [] | Overrides default mapping per EntityType; recommended for all custom EntityTypes | Notation element, presentation type, and default size per EntityType |
-| createdBy | reference | optional | null | target: person; only for `viewpointType=user-defined` | Creating person |
-| createdAt | datetime | optional | null | ISO 8601, UTC; only for `viewpointType=user-defined` | Time of creation |
+| notation | enum | required | `generic` | `[generic, archimate3, uml, bpmn2]`; an unknown value is rejected | Notation for the presentation; a viewpoint belongs to exactly one notation |
+| viewpointType | enum | required | `user-defined` | `[system-defined, user-defined]`; set only by the package import, never by an API write (BR-10) | `system-defined` = installed by a metamodel package (read-only); `user-defined` = created by the architecture team |
+| sourcePackage | PackageRef | optional | null | `{id, version}` of the metamodel package; set exactly when `viewpointType = system-defined` | Origin package of a system-defined viewpoint |
+| allowedEntityTypes | reference[] | required | [] | element metatypes of the instance configuration, at most 500 | EntityTypes that may be used in diagrams of this viewpoint |
+| allowedConnectionTypes | reference[] | required | [] | connection metatypes (`isConnection=true`) of the instance configuration, at most 500 | Connection types allowed as edges in diagrams of this viewpoint |
+| notationMappings | NotationMapping[] | optional | [] | at most one per allowed metatype, at most 1000 (BR-09) | Notation element, default size and visual hint per allowed metatype |
+| effectiveMappings | EffectiveMapping[] | derived | | read only; one entry per allowed metatype | The mapping, or the generic fallback with the catalog size |
+| version | integer | required | 1 | >= 1; optimistic locking (`If-Match`) | Change counter |
+| createdBy | reference | required | | target: person; for a package viewpoint the importing person | Creating person |
+| createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
+| updatedBy | reference | optional | null | target: person; for a package viewpoint the person of the re-import | Last changing person |
+| updatedAt | datetime | optional | null | ISO 8601, UTC | Time of the last change |
 
 ### NotationMapping (value object)
 
 | Attribute | Type | Optional | Description |
 |---|---|---|---|
-| entityTypeId | string | required | `EntityTypeDefinition.id` (kebab-case) of the OEA type to which the mapping applies |
-| notationElement | string | required | Notation-specific element from the catalog (e.g. `archimate:ApplicationFunction`, `uml:Interface`, `bpmn:SubProcess`); prefix must match the viewpoint's `notation` |
-| defaultWidth | integer | optional | Default width in pixels that the canvas editor uses on insertion (must be > 0) |
-| defaultHeight | integer | optional | Default height in pixels that the canvas editor uses on insertion (must be > 0) |
-| visualHint | string | optional | Optional style override (e.g. fill color `#ffcccc`, icon override); format TBD |
+| entityTypeId | reference | required | ID of the allowed metatype (element or connection) to which the mapping applies (`metatypeId` in the API) |
+| notationElement | string | required | Key of an element of the catalog (e.g. `archimate:ApplicationFunction`, `uml:Interface`, `bpmn:SubProcess`), at most 100 characters; prefix must match the viewpoint's `notation` or be `generic:`; an element shape for an element metatype, a relationship shape for a connection metatype |
+| defaultWidth | integer | optional | Default width in pixels that the canvas editor uses on insertion, 1–2000; empty = size of the catalog element |
+| defaultHeight | integer | optional | Default height in pixels that the canvas editor uses on insertion, 1–2000; empty = size of the catalog element |
+| visualHint | string | optional | Fill color in the form `#rrggbb` (pattern `^#[0-9a-fA-F]{6}$`); other style overrides are not supported |
+
+### EffectiveMapping (derived value object)
+
+| Attribute | Type | Optional | Description |
+|---|---|---|---|
+| metatypeId | reference | required | Allowed metatype |
+| notationElement | string | required | Mapped element, or `generic:Box` / `generic:Arrow` |
+| defaultWidth | integer | required | Size of the mapping, else of the catalog element |
+| defaultHeight | integer | required | Size of the mapping, else of the catalog element |
+| visualHint | string | optional | Visual hint of the mapping |
+| fallback | boolean | required | true when no mapping exists and the generic fallback applies |
 
 ## Relationships
 
@@ -215,6 +240,8 @@ The values are recommendations; every user-defined viewpoint can store deviating
 | definedIn | [metamodel-configuration](./metamodel-configuration.md) | n:1 | no | Each viewpoint belongs to a MetamodelConfiguration |
 | allowsEntityTypes | EntityTypeDefinition (via id) | n:n | no | Which types may appear in this viewpoint |
 | allowsConnectionTypes | EntityTypeDefinition (isConnection=true, via id) | n:n | no | Which connection types may appear as edges |
+| mapsMetatypes | EntityTypeDefinition (via id) | 1:0..1000 | yes | Notation mappings per allowed metatype; removed with the viewpoint or the metatype |
+| installedBy | metamodel package (via id and version) | n:0..1 | yes | Origin package of a system-defined viewpoint |
 | usedBy | Diagram[] | 1:n | yes | Diagrams that use this viewpoint |
 
 ## Business Rules
@@ -222,17 +249,21 @@ The values are recommendations; every user-defined viewpoint can store deviating
 | Rule ID | Statement | Trigger | Compliance Reference |
 |---|---|---|---|
 | BR-01 | `ViewpointDefinition.name` MUST be unique within a MetamodelConfiguration | onCreate, onUpdate | – |
-| BR-02 | A viewpoint with `viewpointType=system-defined` MUST NOT be deleted or changed in `allowedEntityTypes`, `allowedConnectionTypes`, and `notation` | onDelete, onUpdate | – |
+| BR-02 | A viewpoint with `viewpointType=system-defined` MUST NOT be updated or deleted through the API (422, `read-only-viewpoint`), even with its current version; only a re-import of its package replaces or removes it | onDelete, onUpdate | – |
 | BR-03 | All entries in `allowedEntityTypes` MUST point to valid `EntityTypeDefinition.id` values of the associated MetamodelConfiguration (built-in + custom) | onCreate, onUpdate | – |
 | BR-04 | All entries in `allowedConnectionTypes` MUST point to `EntityTypeDefinition.id` values for which `isConnection=true` holds | onCreate, onUpdate | – |
 | BR-05 | A diagram MUST only contain entities and connections of the type listed in the linked viewpoint's `allowedEntityTypes`/`allowedConnectionTypes` | onDiagramEdit | – |
-| BR-06 | A `NotationMapping.entityTypeId` MUST be contained in `allowedEntityTypes` of this viewpoint | onCreate, onUpdate | – |
-| BR-07 | `NotationMapping.notationElement` MUST match the prefix of the viewpoint's `notation` (archimate3 → `archimate:*`, uml → `uml:*`, bpmn2 → `bpmn:*`) or have the value `generic:Box` / `generic:Arrow` | onCreate, onUpdate | – |
-| BR-08 | When importing a viewpoint, all IDs in `allowedEntityTypes` and `allowedConnectionTypes` MUST exist in the target MetamodelConfiguration; missing IDs are reported as validation errors (no partial import at type level) | onImport | – |
+| BR-06 | A `NotationMapping.entityTypeId` MUST be contained in `allowedEntityTypes` or `allowedConnectionTypes` of this viewpoint | onCreate, onUpdate | – |
+| BR-07 | `NotationMapping.notationElement` MUST be an element of the catalog and match the prefix of the viewpoint's `notation` (archimate3 → `archimate:*`, uml → `uml:*`, bpmn2 → `bpmn:*`, generic → none) or be generic (`generic:Box` / `generic:Arrow`); an element metatype MUST map to an element shape, a connection metatype to a relationship shape | onCreate, onUpdate | – |
+| BR-08 | When importing a viewpoint, all IDs in `allowedEntityTypes` and `allowedConnectionTypes` MUST be metatypes of the package or of the instance configuration; unknown IDs are reported as validation errors (no partial import) | onImport | – |
+| BR-09 | A viewpoint MUST hold at most one mapping per metatype and at most 1000 mappings; sizes MUST be 1–2000 and a visual hint of the form `#rrggbb` | onCreate, onUpdate, onImport | – |
+| BR-10 | Only the package import MUST make a viewpoint `system-defined` and set its `sourcePackage`; a viewpoint created or updated through the API is always `user-defined` without a package | onCreate, onUpdate | – |
+| BR-11 | An allowed metatype without a mapping MUST be rendered as `generic:Box` (element) or `generic:Arrow` (connection) with the default size of the catalog | onRead | – |
+| BR-12 | A package viewpoint whose ID or name (regardless of case) belongs to an organization viewpoint or to a viewpoint of another package MUST be rejected as a conflict (409); a re-import MUST only replace or remove viewpoints of the same package | onImport | – |
 
 ## Lifecycle
 
-Viewpoints have no standalone status lifecycle. They exist as a configuration element within the MetamodelConfiguration and follow its change tracking (audit log, schemaVersion).
+Viewpoints have no standalone status lifecycle. They exist as a configuration element within the MetamodelConfiguration and follow its change tracking (audit log, schemaVersion). A system-defined viewpoint lives with its package: the import creates it, a re-import replaces it, and a re-import without it deletes it. Existing viewpoints created before us-091-viewpoint-notations are `generic` and `user-defined`.
 
 ## Examples
 
@@ -259,7 +290,7 @@ viewpoint:
       notationElement: archimate:TechnologyComponent
       defaultWidth: 140
       defaultHeight: 70
-      visualHint: "color=#ffcccc"
+      visualHint: "#ffcccc"
     - entityTypeId: application-component
       notationElement: archimate:ApplicationComponent
       defaultWidth: 120
@@ -365,10 +396,15 @@ viewpoint:
 - How are viewpoints used differently in a client app vs. web portal? Client app: full editing scope incl. drag & drop (ADR-008 accepted: client app = Electron, ADR-009 accepted); web portal: read-only rendering.
 - Do BPMN viewpoints need explicit pool/lane configuration, or is the EntityType `pool`/`lane` sufficient? → Open; probably representable via `allowedEntityTypes`.
 
+## Notes
+
+- Change `us-091-viewpoint-notations` (V41): the notation, the viewpoint type and the source package become columns of `viewpoints`, and the notation mappings the table `viewpoint_mappings`, so that system-defined viewpoints can be installed by metamodel packages and protected against changes, and so that a viewpoint states how its types are rendered. The notation `generic` was added as the default, so existing viewpoints keep a valid notation. The migration file did not exist when this description was written; columns and constraints follow design D1 of the change.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.4.0 | 2026-11-17 | Change us-091-viewpoint-notations | Notation `generic` added as the default; `viewpointType` and `sourcePackage` set only by the package import; notation mappings with sizes 1–2000, visual hint `#rrggbb`, at most one per metatype and 1000 per viewpoint; generic fallback and effective mappings; element catalog shipped as a resource; BR-02, BR-06 to BR-08 revised, BR-09 to BR-12 added (V41) |
 | 0.3.0 | 2026-11-17 | Change us-090-viewpoints | Generic viewpoints implemented as the table `viewpoints` with link tables to the allowed element and connection metatypes of the instance (V39), UUID IDs, `version` for optimistic locking, name unique case-insensitively, at least one metatype; `notation`, `viewpointType`, `notationMappings` and the diagram references follow with the diagrams (owner decision 2026-11-17) |
 | 0.2.0 | 2026-06-26 | Business Engineer | ID-based references (entityTypeId instead of name); defaultWidth/defaultHeight in NotationMapping; notation element catalog (ArchiMate 3, UML, BPMN 2.0); BR-07/BR-08 (prefix consistency, import validation); import/export basis through REQ-058–060 |
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft; ArchiMate 3, UML, BPMN 2.0 as notations; system-defined + user-defined viewpoints; NotationMapping as optional value object |

@@ -11,10 +11,23 @@ import java.util.UUID;
  *
  * @param unsupportedSections non-empty package sections this version cannot import yet
  * @param labels locale → label key → text of the package's own elements (us-140-dynamic-labels D5)
+ * @param viewpoints the viewpoints the package installs as system-defined ones
  */
 public record PackageDefinition(String packageId, String version, String publisher, String strategy,
 		List<String> unsupportedSections, List<Category> categories, List<Property> properties,
-		List<Metatype> metatypes, Map<String, Map<String, String>> labels) {
+		List<Metatype> metatypes, Map<String, Map<String, String>> labels, List<Viewpoint> viewpoints) {
+
+	/**
+	 * A viewpoint of the package, installed as a system-defined one (US-092; design D4 of
+	 * us-091-viewpoint-notations); {@code id} is its stable identity within the package.
+	 */
+	public record Viewpoint(UUID id, String name, String description, String notation, List<UUID> metatypeIds,
+			List<UUID> connectionTypeIds, List<ViewpointMapping> mappings) {
+	}
+
+	public record ViewpointMapping(UUID metatypeId, String notationElement, Integer defaultWidth,
+			Integer defaultHeight, String visualHint) {
+	}
 
 	public record Category(UUID id, String name, String description, int sortOrder) {
 	}

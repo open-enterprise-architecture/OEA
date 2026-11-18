@@ -1,10 +1,16 @@
 package io.oea.api.metamodel;
 
 import io.oea.api.generated.ViewpointsApi;
+import io.oea.api.generated.model.EffectiveViewpointMapping;
 import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.MetatypeSummary;
+import io.oea.api.generated.model.NotationElement;
+import io.oea.api.generated.model.ViewpointNotation;
+import io.oea.api.generated.model.SourcePackage;
 import io.oea.api.generated.model.ViewpointConfig;
+import io.oea.api.generated.model.ViewpointMapping;
 import io.oea.api.generated.model.ViewpointWrite;
+import io.oea.app.metamodel.NotationCatalog;
 import io.oea.app.metamodel.Viewpoints;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
@@ -25,13 +31,29 @@ public class ViewpointController implements ViewpointsApi {
 
 	private final Viewpoints viewpoints;
 
-	public ViewpointController(Viewpoints viewpoints) {
+	private final NotationCatalog catalog;
+
+	public ViewpointController(Viewpoints viewpoints, NotationCatalog catalog) {
 		this.viewpoints = viewpoints;
+		this.catalog = catalog;
 	}
 
 	@Override
 	public ResponseEntity<List<ViewpointConfig>> listViewpoints() {
 		return ResponseEntity.ok(this.viewpoints.list().stream().map(ViewpointController::viewpoint).toList());
+	}
+
+	@Override
+	public ResponseEntity<List<NotationElement>> listNotationElements() {
+		return ResponseEntity.ok(this.catalog.list()
+			.stream()
+			.map((element) -> new NotationElement().key(element.key())
+				.notation(ViewpointNotation.fromValue(element.notation()))
+				.label(element.label())
+				.kind(element.relationship() ? NotationElement.KindEnum.RELATIONSHIP : NotationElement.KindEnum.ELEMENT)
+				.defaultWidth(element.defaultWidth())
+				.defaultHeight(element.defaultHeight()))
+			.toList());
 	}
 
 	@Override
@@ -62,14 +84,36 @@ public class ViewpointController implements ViewpointsApi {
 	}
 
 	private static Viewpoints.ViewpointInput input(ViewpointWrite request) {
-		return new Viewpoints.ViewpointInput(request.getName(), request.getDescription(), request.getMetatypeIds(),
-				request.getConnectionTypeIds());
+		return new Viewpoints.ViewpointInput(request.getName(), request.getDescription(),
+				request.getNotation().getValue(), request.getMetatypeIds(), request.getConnectionTypeIds(),
+				request.getMappings()
+					.stream()
+					.map((mapping) -> new Viewpoints.Mapping(mapping.getMetatypeId(), mapping.getNotationElement(),
+							mapping.getDefaultWidth(), mapping.getDefaultHeight(), mapping.getVisualHint()))
+					.toList());
 	}
 
 	private static ViewpointConfig viewpoint(Viewpoints.Viewpoint row) {
 		return new ViewpointConfig().id(row.id())
 			.name(row.name())
 			.description(row.description())
+			.notation(ViewpointNotation.fromValue(row.notation()))
+			.viewpointType(row.systemDefined() ? ViewpointConfig.ViewpointTypeEnum.SYSTEM_DEFINED
+					: ViewpointConfig.ViewpointTypeEnum.USER_DEFINED)
+			.sourcePackage((row.sourcePackage() != null)
+					? new SourcePackage(row.sourcePackage().packageId(), row.sourcePackage().version()) : null)
+			.mappings(row.mappings()
+				.stream()
+				.map((mapping) -> new ViewpointMapping(mapping.metatypeId(), mapping.notationElement())
+					.defaultWidth(mapping.defaultWidth())
+					.defaultHeight(mapping.defaultHeight())
+					.visualHint(mapping.visualHint()))
+				.toList())
+			.effectiveMappings(row.effectiveMappings()
+				.stream()
+				.map((mapping) -> new EffectiveViewpointMapping(mapping.metatypeId(), mapping.notationElement(),
+						mapping.defaultWidth(), mapping.defaultHeight(), mapping.visualHint(), mapping.fallback()))
+				.toList())
 			.allowedMetatypes(row.metatypes().stream().map(ViewpointController::summary).toList())
 			.allowedRelations(row.connectionTypes().stream().map(ViewpointController::summary).toList())
 			.version(row.version())

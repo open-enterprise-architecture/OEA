@@ -4,6 +4,13 @@ import { currentCsrfToken, type Outcome } from './session'
 
 export type TreeNode = components['schemas']['TreeNode']
 export type TreeNodeItem = components['schemas']['TreeNodeItem']
+export type TreeItemType = TreeNodeItem['itemType']
+
+/** What "Place in navigation" places (US-054, US-095): a catalog, an element entity or a solution. */
+export type Placement =
+  | { itemType: 'catalog'; referenceId: string; name: string }
+  | { itemType: 'solution'; referenceId: string; name: string }
+  | { itemType: 'entity'; entityId: number; name: string }
 
 /** A folder with its path from the root, e.g. "Repository / IT Landscape". */
 export interface FolderPath {
@@ -24,7 +31,7 @@ export async function fetchTree(fetchFn: typeof fetch = fetch): Promise<TreeNode
 }
 
 /** A write of the tree with the CSRF token; every write answers with the whole tree. */
-async function write(method: 'POST' | 'PATCH' | 'DELETE', path: string, body: unknown, fetchFn: typeof fetch): Promise<Outcome<TreeNode>> {
+async function write(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, body: unknown, fetchFn: typeof fetch): Promise<Outcome<TreeNode>> {
   const csrfToken = currentCsrfToken()
   const response = await fetchFn(path, {
     method,
@@ -58,16 +65,47 @@ export function deleteFolder(nodeId: string, fetchFn: typeof fetch = fetch): Pro
 }
 
 /**
- * POST /tree-nodes/{nodeId}/items: places the catalog in the folder (US-054). A second entry in
- * the folder is 422 naming `referenceId`.
+ * POST /tree-nodes/{nodeId}/items: places the catalog, entity or solution at the end of the folder
+ * (US-054, US-095, US-097). A second entry of the same target in the folder, an unknown, deleted or
+ * connection entity and a full folder are 422 naming `referenceId` or `entityId`.
  */
-export function placeCatalog(
+export function placeInTree(
   nodeId: string,
-  catalogId: string,
+  placement: Placement,
   displayLabel: string | null,
   fetchFn: typeof fetch = fetch,
 ): Promise<Outcome<TreeNode>> {
-  return write('POST', `/api/v1/tree-nodes/${encodeURIComponent(nodeId)}/items`, { itemType: 'catalog', referenceId: catalogId, displayLabel }, fetchFn)
+  const target = placement.itemType === 'entity' ? { entityId: placement.entityId } : { referenceId: placement.referenceId }
+  return write('POST', `/api/v1/tree-nodes/${encodeURIComponent(nodeId)}/items`, { itemType: placement.itemType, ...target, displayLabel }, fetchFn)
+}
+
+/**
+ * PUT /tree-nodes/{nodeId}/position: moves the folder under `parentId` at the 0-based position
+ * among the new siblings (US-096). A cycle, a taken name or a depth above the limit is 422 naming
+ * `parentId`.
+ */
+export function moveTreeNode(nodeId: string, parentId: string, position: number, fetchFn: typeof fetch = fetch): Promise<Outcome<TreeNode>> {
+  return write('PUT', `/api/v1/tree-nodes/${encodeURIComponent(nodeId)}/position`, { parentId, position }, fetchFn)
+}
+
+/**
+ * PUT /tree-nodes/{nodeId}/items/{itemId}/position: moves the entry to the folder `targetNodeId` at
+ * the 0-based position among the entries the caller sees (US-096). A target folder that holds the
+ * entry's target already, or is full, is 422 naming `nodeId`.
+ */
+export function moveTreeNodeItem(
+  nodeId: string,
+  itemId: string,
+  targetNodeId: string,
+  position: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<TreeNode>> {
+  return write(
+    'PUT',
+    `/api/v1/tree-nodes/${encodeURIComponent(nodeId)}/items/${encodeURIComponent(itemId)}/position`,
+    { nodeId: targetNodeId, position },
+    fetchFn,
+  )
 }
 
 /** DELETE /tree-nodes/{nodeId}/items/{itemId}: removes only this entry (US-054 AC4). */
@@ -75,9 +113,28 @@ export function removeTreeItem(nodeId: string, itemId: string, fetchFn: typeof f
   return write('DELETE', `/api/v1/tree-nodes/${encodeURIComponent(nodeId)}/items/${encodeURIComponent(itemId)}`, undefined, fetchFn)
 }
 
-/** The text the tree shows for an entry: its display label, else the catalog's name. */
+/** The text the tree shows for an entry: its display label, else the current name of its target. */
 export function itemLabel(item: TreeNodeItem): string {
   return item.displayLabel ?? item.name
+}
+
+/** The route of an entry, built only from its item type and target ID (design D7 of us-095). */
+export function itemRoute(item: TreeNodeItem): string | undefined {
+  if (item.itemType === 'entity') {
+    return item.entityId === null ? undefined : `/entities/${item.entityId}/history`
+  }
+  if (!item.referenceId) {
+    return undefined
+  }
+  return item.itemType === 'solution' ? `/solutions/${encodeURIComponent(item.referenceId)}` : `/catalogs/${encodeURIComponent(item.referenceId)}`
+}
+
+/** Whether two entries point to the same target, which a folder holds at most once (tree-node BR-06). */
+export function sameTarget(a: Pick<TreeNodeItem, 'itemType' | 'referenceId' | 'entityId'>, b: Pick<TreeNodeItem, 'itemType' | 'referenceId' | 'entityId'>): boolean {
+  if (a.itemType !== b.itemType) {
+    return false
+  }
+  return a.itemType === 'entity' ? a.entityId === b.entityId : a.referenceId === b.referenceId
 }
 
 /** Every folder of the tree with its path, in the order of the tree. */

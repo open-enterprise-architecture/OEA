@@ -296,3 +296,37 @@ export const PlaceInNavigation: Story = {
     await expect(await canvas.findByText('Placed in Repository.')).toBeVisible()
   },
 }
+
+/** "Place in navigation" on a row (US-095): the entity goes to the folder chosen as a path. */
+export const PlaceEntityInNavigation: Story = {
+  render: () => ({
+    components: { CatalogPage },
+    setup: () => {
+      clearTree()
+      return { fetchFn: navigationApi({ fallback: catalogApi(APPLICATIONS) }), id: CATALOG.id }
+    },
+    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Place in navigation: CRM System' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByText('Place CRM System in the navigation')).toBeInTheDocument()
+    await userEvent.click(dialog.getByTestId('place-submit'))
+    await expect(await canvas.findByText('Placed in Repository.')).toBeVisible()
+  },
+}
+
+/** A reader sees no "Place in navigation" on the rows (design D7 of us-095). */
+export const NoPlaceActionForReader: Story = {
+  render: () => ({
+    components: { CatalogPage },
+    setup: () => ({ fetchFn: navigationApi({ fallback: catalogApi(APPLICATIONS, { me: ME_VIEWER }) }), id: CATALOG.id }),
+    template: '<CatalogPage :id="id" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('CRM System')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /^Place in navigation/ })).toBeNull()
+  },
+}

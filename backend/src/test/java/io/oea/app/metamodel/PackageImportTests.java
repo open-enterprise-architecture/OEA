@@ -197,11 +197,15 @@ class PackageImportTests {
 		assertThat(strategy).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(body(strategy).path("type").asString()).isEqualTo("urn:oea:problem:unsupported-package-content");
 
-		ObjectNode viewpoints = TestPackages.pkg("unsupported", 1);
-		viewpoints.putArray("viewpoints").addObject().put("id", "landscape").put("name", "Landscape");
-		MvcTestResult sections = post(viewpoints.toString(), this.metamodelAdmin);
+		ObjectNode shapes = TestPackages.pkg("unsupported", 1);
+		shapes.putArray("shapeAssignments")
+			.addObject()
+			.put("viewpointKey", "landscape")
+			.put("metatypeId", UUID.randomUUID().toString())
+			.put("shapeKey", "box");
+		MvcTestResult sections = post(shapes.toString(), this.metamodelAdmin);
 		assertThat(sections).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
-		assertThat(body(sections).path("pointer").asString()).isEqualTo("/viewpoints");
+		assertThat(body(sections).path("pointer").asString()).isEqualTo("/shapeAssignments");
 
 		// translation bundles are supported since us-140-dynamic-labels; a malformed key is still rejected
 		ObjectNode translations = TestPackages.pkg("unsupported", 1);

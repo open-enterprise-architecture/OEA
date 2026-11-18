@@ -2,8 +2,9 @@
 
 **ID**: US-096
 **Story Points**: 5
-**Status**: backlog
+**Status**: done
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-095-navigation-tree-items` – `moveTreeNode` and `moveTreeNodeItem` with a position, cycle protection (422 naming `parentId`, AC1), a dense manual `sortOrder` (AC2) and moves between folders (AC3), audited as `tree-node.moved` and `tree-node.item-moved`; drag and drop in the sidebar SCR-055 with invalid drop targets marked, and "Move up", "Move down" and "Move to…" for keyboard and touch
 
 ## Story
 

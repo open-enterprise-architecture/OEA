@@ -4,9 +4,9 @@ title: Navigation tree multiple placement of objects
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
-last_updated: 2026-11-07
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -15,6 +15,7 @@ references:
     - tree-node
     - catalog
     - entity
+    - solution
   stakeholders:
     - SH-03
   adrs: []
@@ -55,6 +56,7 @@ An application cluster can belong to the domain "Finance" and to the initiative 
 - TreeNodeItem has its own ID (`referenceId`) independent of the referenced object
 - No database model duplicate of the object; only the link entry is created multiple times
 - Implemented for catalogs by the OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197)
+- Implemented for entities and solutions by the OpenSpec change `us-095-navigation-tree-items` (owner decisions 2026-11-17): an entity entry references its entity by `entityId` (entity IDs are integers, so not `referenceId`), with the unique index `(tree_node_id, entity_id)` (V40); the same entity or solution a second time in one folder is rejected with 422 naming `entityId` or `referenceId`, and moving an entry into a folder that already holds its target with 422 naming `nodeId`
 
 ## Change History
 
@@ -62,3 +64,4 @@ An application cluster can belong to the domain "Finance" and to the initiative 
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-11-07 | Solution Architect | Once per folder; implementation note for catalogs (us-054-catalog-navigation-tree) |
+| 0.3.0 | 2026-11-17 | Solution Architect | Implementation note for entities and solutions (us-095-navigation-tree-items) |

@@ -2,8 +2,9 @@
 
 **ID**: US-094
 **Story Points**: 5
-**Status**: backlog
+**Status**: done
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-054-catalog-navigation-tree`, commit e44b736 (#197) – `createTreeNode`, `renameTreeNode` and `deleteTreeNode` with names unique among siblings regardless of case, recursive deletion and the protected root "Repository"; the folder actions of the sidebar SCR-055 (AC1–AC4). Set to done with the OpenSpec change `us-095-navigation-tree-items`, which adds `entity:read` to every tree write and places new folders at the end
 
 ## Story
 

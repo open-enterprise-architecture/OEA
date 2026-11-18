@@ -32,9 +32,9 @@ Feature: Import of metamodel packages
     And no metatype of the package "too-large" exists
 
   Scenario: Unsupported package sections
-    When the metamodel administrator imports the package "with-viewpoints" with viewpoints
+    When the metamodel administrator imports the package "with-shapes" with shape assignments
     Then the import is rejected with 422 as unsupported content
-    And no metatype of the package "with-viewpoints" exists
+    And no metatype of the package "with-shapes" exists
 
   @US-140
   Scenario: Label of a foreign element
@@ -67,3 +67,34 @@ Feature: Import of metamodel packages
     When the metamodel administrator imports the package "second-owner" whose second metatype is named "first-owner Type 2"
     Then the import is rejected with 409 listing "metatype first-owner Type 2" as conflict with another package
     And no metatype of the package "second-owner" exists
+
+  # us-091-viewpoint-notations
+
+  @US-092 @AC3 @REQ-059
+  Scenario: Viewpoint of the package
+    When the metamodel administrator imports the package "vp-package" with a viewpoint "Package Landscape"
+    Then the package "vp-package" has the system-defined viewpoint "Package Landscape" with the notation "archimate3"
+    And the result reports 1 created viewpoints
+
+  @US-092 @AC3 @REQ-059
+  Scenario: Unknown type
+    When the metamodel administrator imports the package "vp-unknown" with a viewpoint that allows an unknown metatype
+    Then the import is rejected with 422 pointing to "/viewpoints/0/metatypeIds"
+    And no metatype of the package "vp-unknown" exists
+
+  @US-092 @AC3 @REQ-114
+  Scenario: Not overwritten by another package
+    Given the metamodel administrator has imported the package "vp-owner" with a viewpoint "Shared Package Landscape"
+    When the metamodel administrator imports the package "vp-other" with a viewpoint "Shared Package Landscape"
+    Then the import is rejected with 409
+    And the package "vp-owner" still has the system-defined viewpoint "Shared Package Landscape"
+
+  @REQ-184
+  Scenario Outline: Name length of a package viewpoint
+    When the metamodel administrator imports the package "<package>" with a viewpoint named with <length> characters
+    Then the import answer is <status>
+
+    Examples:
+      | package    | length | status |
+      | vp-name-ok | 255    | 200    |
+      | vp-name-no | 256    | 422    |

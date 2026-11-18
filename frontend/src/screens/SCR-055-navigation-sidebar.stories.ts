@@ -1,6 +1,6 @@
 import USlideover from '@nuxt/ui/components/Slideover.vue'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test'
 import AppHeader from '../components/AppHeader.vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import NavigationTree from '../components/NavigationTree.vue'
@@ -9,14 +9,16 @@ import { clearTree } from '../navigation/store'
 import CatalogPage from '../pages/CatalogPage.vue'
 import { session } from '../session/store'
 import { APPLICATIONS, CATALOG, catalogApi } from '../test/catalogs'
-import { LANDSCAPE_ID, ME_TREE_MANAGER, ME_TREE_READER, navigationApi, ROOT_ID } from '../test/navigation'
+import { APPLICATIONS_ID, COMPLIANCE_ID, LANDSCAPE_ID, ME_TREE_MANAGER, ME_TREE_READER, navigationApi, ROOT_ID, TREE_WITH_ENTITIES } from '../test/navigation'
 
 // SCR-055 Navigation sidebar (UC-06, UC-13, US-054): the navigation tree beside every page of the
 // web portal, here beside the catalog "Application Inventory" (docs/screens/SCREENS.md). The first
-// story is the screen image.
+// story is the screen image. Entities and solutions are entries too, a deleted entity is marked, and
+// folders and entries move by drag and drop and by "Move up", "Move down" and "Move to…"
+// (US-095, US-096; design D5 of us-095-navigation-tree-items).
 
 /** The shell with header, sidebar and the catalog page, for the person `me`. */
-function shell(me: unknown, expanded: string[] = [ROOT_ID, LANDSCAPE_ID]): Story {
+function shell(me: unknown, expanded: string[] = [ROOT_ID, LANDSCAPE_ID], tree = undefined as typeof TREE_WITH_ENTITIES | undefined): Story {
   return {
     render: () => ({
       components: { AppHeader, AppSidebar, CatalogPage },
@@ -25,7 +27,7 @@ function shell(me: unknown, expanded: string[] = [ROOT_ID, LANDSCAPE_ID]): Story
         session.loaded = true
         clearTree()
         sessionStorage.setItem('oea.navigation.expanded', JSON.stringify(expanded))
-        return { fetchFn: navigationApi({ fallback: catalogApi(APPLICATIONS, { me }) }), id: CATALOG.id }
+        return { fetchFn: navigationApi({ tree, fallback: catalogApi(APPLICATIONS, { me }) }), id: CATALOG.id }
       },
       template: `
         <AppHeader :fetch-fn="fetchFn" />
@@ -45,7 +47,17 @@ const meta: Meta<typeof AppSidebar> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Manager: Story = shell(ME_TREE_MANAGER)
+export const Manager: Story = {
+  ...shell(ME_TREE_MANAGER, [ROOT_ID, LANDSCAPE_ID], TREE_WITH_ENTITIES),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('link', { name: 'SAP ERP' })).toHaveAttribute('href', '/entities/9101/history')
+    await expect(canvas.getByRole('link', { name: 'Cloud Migration' })).toHaveAttribute('href', expect.stringMatching(/^\/solutions\//))
+    // the deleted entity keeps its entry, marked
+    await expect(canvas.getByRole('link', { name: /Legacy CRM/ })).toHaveAttribute('href', '/entities/9103/history')
+    await expect(canvas.getByText('Deleted', { selector: '[data-testid="tree-item-deleted"] *, [data-testid="tree-item-deleted"]' })).toBeVisible()
+  },
+}
 
 export const Reader: Story = {
   ...shell(ME_TREE_READER),
@@ -137,5 +149,94 @@ export const NarrowScreen: Story = {
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body)
     await expect(await body.findByRole('link', { name: 'Application Inventory' })).toBeVisible()
+  },
+}
+
+const withEntities = (me: unknown = ME_TREE_MANAGER) => shell(me, [ROOT_ID, LANDSCAPE_ID, COMPLIANCE_ID], TREE_WITH_ENTITIES)
+
+const entry = (canvas: ReturnType<typeof within>, name: RegExp | string) => canvas.getByRole('link', { name }).closest('[data-testid="tree-item-row"]') as HTMLElement
+const folderRowOf = (canvas: ReturnType<typeof within>, name: string) =>
+  canvas.getByRole('button', { name, exact: true }).closest('[data-testid="tree-folder-row"]') as HTMLElement
+
+/** Drag and drop: an entry dropped on another entry goes before it. */
+export const DragAndDrop: Story = {
+  ...withEntities(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const names = () => canvas.getAllByTestId('tree-item-link').map((link) => link.textContent?.trim().replace(/\s*\(.*\)$/, ''))
+    await canvas.findByRole('link', { name: 'SAP ERP' })
+    const before = names()
+    await fireEvent.dragStart(entry(canvas, 'Cloud Migration'))
+    await fireEvent.dragOver(entry(canvas, 'SAP ERP'))
+    await fireEvent.drop(entry(canvas, 'SAP ERP'))
+    await waitFor(() => expect(names()).not.toEqual(before))
+    await waitFor(() => expect(names().indexOf('Cloud Migration')).toBeLessThan(names().indexOf('SAP ERP')))
+  },
+}
+
+/** A folder cannot be dropped onto itself or a descendant: the target is marked as invalid. */
+export const InvalidDropTarget: Story = {
+  ...shell(ME_TREE_MANAGER, [ROOT_ID, LANDSCAPE_ID, APPLICATIONS_ID], TREE_WITH_ENTITIES),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canvas.findByRole('link', { name: 'SAP ERP' })
+    const landscape = folderRowOf(canvas, 'IT Landscape')
+    const applications = folderRowOf(canvas, 'Applications')
+    await fireEvent.dragStart(landscape)
+    await fireEvent.dragOver(applications)
+    await expect(applications).toHaveAttribute('data-drop', 'invalid')
+    await expect(within(applications).getByText('Cannot be dropped here')).toBeInTheDocument()
+    await fireEvent.drop(applications)
+    // nothing moved
+    await expect(canvas.getByRole('link', { name: 'SAP ERP' })).toBeVisible()
+  },
+}
+
+/** "Move up" and "Move down" are offered only where they lead somewhere. */
+export const MoveWithTheKeyboard: Story = {
+  ...withEntities(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canvas.findByRole('link', { name: 'SAP ERP' })
+    const body = within(canvasElement.ownerDocument.body)
+    // the first entry of the folder: no "Move up"
+    await userEvent.click(canvas.getByRole('button', { name: 'Actions for Application Inventory' }))
+    await expect(await body.findByRole('menuitem', { name: 'Move down' })).toBeInTheDocument()
+    await expect(body.queryByRole('menuitem', { name: 'Move up' })).toBeNull()
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(canvas.getByRole('button', { name: 'Actions for SAP ERP' }))
+    await userEvent.click(await body.findByRole('menuitem', { name: 'Move up' }))
+    await waitFor(() => {
+      const links = canvas.getAllByTestId('tree-item-link').map((link) => link.textContent?.trim())
+      expect(links.indexOf('SAP ERP')).toBeLessThan(links.indexOf('Application Inventory'))
+    })
+  },
+}
+
+/** "Move to…" offers the folders the element can go to. */
+export const MoveTo: Story = {
+  ...withEntities(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canvas.findByRole('link', { name: 'SAP ERP' })
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole('button', { name: 'Actions for SAP ERP' }))
+    await userEvent.click(await body.findByRole('menuitem', { name: 'Move to…' }))
+    await expect(await body.findByTestId('tree-move-form')).toBeInTheDocument()
+    await expect(body.getByText('Move SAP ERP')).toBeInTheDocument()
+    await userEvent.click(body.getByTestId('tree-move-submit'))
+    await waitFor(() => expect(body.queryByTestId('tree-move-form')).toBeNull())
+    await expect(canvas.getByRole('link', { name: 'SAP ERP' })).toBeVisible()
+  },
+}
+
+/** A reader can neither drag nor move entries. */
+export const ReaderCannotMove: Story = {
+  ...withEntities(ME_TREE_READER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canvas.findByRole('link', { name: 'SAP ERP' })
+    await expect(canvas.queryByRole('button', { name: /^Actions for/ })).toBeNull()
+    await expect(entry(canvas, 'SAP ERP')).not.toHaveAttribute('draggable')
   },
 }

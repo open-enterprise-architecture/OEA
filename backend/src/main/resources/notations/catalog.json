@@ -1,0 +1,786 @@
+[
+ {
+  "key": "archimate:BusinessActor",
+  "notation": "archimate3",
+  "label": "Business Actor",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessRole",
+  "notation": "archimate3",
+  "label": "Business Role",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessCollaboration",
+  "notation": "archimate3",
+  "label": "Business Collaboration",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessInterface",
+  "notation": "archimate3",
+  "label": "Business Interface",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessProcess",
+  "notation": "archimate3",
+  "label": "Business Process",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessFunction",
+  "notation": "archimate3",
+  "label": "Business Function",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessInteraction",
+  "notation": "archimate3",
+  "label": "Business Interaction",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessEvent",
+  "notation": "archimate3",
+  "label": "Business Event",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessService",
+  "notation": "archimate3",
+  "label": "Business Service",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:BusinessObject",
+  "notation": "archimate3",
+  "label": "Business Object",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Contract",
+  "notation": "archimate3",
+  "label": "Contract",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Representation",
+  "notation": "archimate3",
+  "label": "Representation",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Product",
+  "notation": "archimate3",
+  "label": "Product",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationComponent",
+  "notation": "archimate3",
+  "label": "Application Component",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationCollaboration",
+  "notation": "archimate3",
+  "label": "Application Collaboration",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationInterface",
+  "notation": "archimate3",
+  "label": "Application Interface",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationFunction",
+  "notation": "archimate3",
+  "label": "Application Function",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationInteraction",
+  "notation": "archimate3",
+  "label": "Application Interaction",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationProcess",
+  "notation": "archimate3",
+  "label": "Application Process",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationEvent",
+  "notation": "archimate3",
+  "label": "Application Event",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ApplicationService",
+  "notation": "archimate3",
+  "label": "Application Service",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:DataObject",
+  "notation": "archimate3",
+  "label": "Data Object",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Node",
+  "notation": "archimate3",
+  "label": "Node",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Device",
+  "notation": "archimate3",
+  "label": "Device",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:SystemSoftware",
+  "notation": "archimate3",
+  "label": "System Software",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyCollaboration",
+  "notation": "archimate3",
+  "label": "Technology Collaboration",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyInterface",
+  "notation": "archimate3",
+  "label": "Technology Interface",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Path",
+  "notation": "archimate3",
+  "label": "Path",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:CommunicationNetwork",
+  "notation": "archimate3",
+  "label": "Communication Network",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyFunction",
+  "notation": "archimate3",
+  "label": "Technology Function",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyProcess",
+  "notation": "archimate3",
+  "label": "Technology Process",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyInteraction",
+  "notation": "archimate3",
+  "label": "Technology Interaction",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyEvent",
+  "notation": "archimate3",
+  "label": "Technology Event",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:TechnologyService",
+  "notation": "archimate3",
+  "label": "Technology Service",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Artifact",
+  "notation": "archimate3",
+  "label": "Artifact",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Equipment",
+  "notation": "archimate3",
+  "label": "Equipment",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Facility",
+  "notation": "archimate3",
+  "label": "Facility",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:DistributionNetwork",
+  "notation": "archimate3",
+  "label": "Distribution Network",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Material",
+  "notation": "archimate3",
+  "label": "Material",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Stakeholder",
+  "notation": "archimate3",
+  "label": "Stakeholder",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Driver",
+  "notation": "archimate3",
+  "label": "Driver",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Assessment",
+  "notation": "archimate3",
+  "label": "Assessment",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Goal",
+  "notation": "archimate3",
+  "label": "Goal",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Outcome",
+  "notation": "archimate3",
+  "label": "Outcome",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Principle",
+  "notation": "archimate3",
+  "label": "Principle",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Requirement",
+  "notation": "archimate3",
+  "label": "Requirement",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Constraint",
+  "notation": "archimate3",
+  "label": "Constraint",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Meaning",
+  "notation": "archimate3",
+  "label": "Meaning",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Value",
+  "notation": "archimate3",
+  "label": "Value",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Resource",
+  "notation": "archimate3",
+  "label": "Resource",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Capability",
+  "notation": "archimate3",
+  "label": "Capability",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ValueStream",
+  "notation": "archimate3",
+  "label": "Value Stream",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:CourseOfAction",
+  "notation": "archimate3",
+  "label": "Course Of Action",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:WorkPackage",
+  "notation": "archimate3",
+  "label": "Work Package",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Deliverable",
+  "notation": "archimate3",
+  "label": "Deliverable",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:ImplementationEvent",
+  "notation": "archimate3",
+  "label": "Implementation Event",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Plateau",
+  "notation": "archimate3",
+  "label": "Plateau",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Gap",
+  "notation": "archimate3",
+  "label": "Gap",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Location",
+  "notation": "archimate3",
+  "label": "Location",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Grouping",
+  "notation": "archimate3",
+  "label": "Grouping",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "archimate:Composition",
+  "notation": "archimate3",
+  "label": "Composition",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Aggregation",
+  "notation": "archimate3",
+  "label": "Aggregation",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Assignment",
+  "notation": "archimate3",
+  "label": "Assignment",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Realization",
+  "notation": "archimate3",
+  "label": "Realization",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Serving",
+  "notation": "archimate3",
+  "label": "Serving",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Access",
+  "notation": "archimate3",
+  "label": "Access",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Influence",
+  "notation": "archimate3",
+  "label": "Influence",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Triggering",
+  "notation": "archimate3",
+  "label": "Triggering",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Flow",
+  "notation": "archimate3",
+  "label": "Flow",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Specialization",
+  "notation": "archimate3",
+  "label": "Specialization",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "archimate:Association",
+  "notation": "archimate3",
+  "label": "Association",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "uml:Component",
+  "notation": "uml",
+  "label": "Component",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Interface",
+  "notation": "uml",
+  "label": "Interface",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Class",
+  "notation": "uml",
+  "label": "Class",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Package",
+  "notation": "uml",
+  "label": "Package",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Node",
+  "notation": "uml",
+  "label": "Node",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Artifact",
+  "notation": "uml",
+  "label": "Artifact",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Actor",
+  "notation": "uml",
+  "label": "Actor",
+  "kind": "element",
+  "defaultWidth": 40,
+  "defaultHeight": 80
+ },
+ {
+  "key": "uml:UseCase",
+  "notation": "uml",
+  "label": "Use Case",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 60
+ },
+ {
+  "key": "uml:Association",
+  "notation": "uml",
+  "label": "Association",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "uml:Dependency",
+  "notation": "uml",
+  "label": "Dependency",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "uml:Realization",
+  "notation": "uml",
+  "label": "Realization",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "uml:Generalization",
+  "notation": "uml",
+  "label": "Generalization",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "bpmn:Task",
+  "notation": "bpmn2",
+  "label": "Task",
+  "kind": "element",
+  "defaultWidth": 100,
+  "defaultHeight": 80
+ },
+ {
+  "key": "bpmn:SubProcess",
+  "notation": "bpmn2",
+  "label": "Sub Process",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 100
+ },
+ {
+  "key": "bpmn:StartEvent",
+  "notation": "bpmn2",
+  "label": "Start Event",
+  "kind": "element",
+  "defaultWidth": 36,
+  "defaultHeight": 36
+ },
+ {
+  "key": "bpmn:EndEvent",
+  "notation": "bpmn2",
+  "label": "End Event",
+  "kind": "element",
+  "defaultWidth": 36,
+  "defaultHeight": 36
+ },
+ {
+  "key": "bpmn:IntermediateEvent",
+  "notation": "bpmn2",
+  "label": "Intermediate Event",
+  "kind": "element",
+  "defaultWidth": 36,
+  "defaultHeight": 36
+ },
+ {
+  "key": "bpmn:Gateway",
+  "notation": "bpmn2",
+  "label": "Gateway",
+  "kind": "element",
+  "defaultWidth": 50,
+  "defaultHeight": 50
+ },
+ {
+  "key": "bpmn:DataObject",
+  "notation": "bpmn2",
+  "label": "Data Object",
+  "kind": "element",
+  "defaultWidth": 36,
+  "defaultHeight": 50
+ },
+ {
+  "key": "bpmn:DataStore",
+  "notation": "bpmn2",
+  "label": "Data Store",
+  "kind": "element",
+  "defaultWidth": 50,
+  "defaultHeight": 50
+ },
+ {
+  "key": "bpmn:Pool",
+  "notation": "bpmn2",
+  "label": "Pool",
+  "kind": "element",
+  "defaultWidth": 600,
+  "defaultHeight": 200
+ },
+ {
+  "key": "bpmn:Lane",
+  "notation": "bpmn2",
+  "label": "Lane",
+  "kind": "element",
+  "defaultWidth": 570,
+  "defaultHeight": 100
+ },
+ {
+  "key": "bpmn:SequenceFlow",
+  "notation": "bpmn2",
+  "label": "Sequence Flow",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "bpmn:MessageFlow",
+  "notation": "bpmn2",
+  "label": "Message Flow",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "bpmn:Association",
+  "notation": "bpmn2",
+  "label": "Association",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ },
+ {
+  "key": "generic:Box",
+  "notation": "generic",
+  "label": "Box",
+  "kind": "element",
+  "defaultWidth": 120,
+  "defaultHeight": 55
+ },
+ {
+  "key": "generic:Arrow",
+  "notation": "generic",
+  "label": "Arrow",
+  "kind": "relationship",
+  "defaultWidth": 100,
+  "defaultHeight": 40
+ }
+]

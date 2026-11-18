@@ -1047,6 +1047,9 @@ describe('CatalogPage navigation', () => {
     return { wrapper, recorded }
   }
 
+  // the row action of each entity: `place-<entityId>`, not the dialog's `place-folder` and the like
+  const rowPlaces = (wrapper: VueWrapper) => wrapper.findAll('button').filter((button) => /^place-\d+$/.test(button.attributes('data-testid') ?? ''))
+
   function folderSelect(wrapper: VueWrapper) {
     const found = wrapper.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === 'place-folder')
     if (!found) {
@@ -1087,7 +1090,7 @@ describe('CatalogPage navigation', () => {
       method: 'POST',
       body: { itemType: 'catalog', referenceId: CATALOG.id, displayLabel: null },
     })
-    expect(document.body.querySelector('[data-testid="place-error"]')?.textContent).toBe('The catalog is already in this folder.')
+    expect(document.body.querySelector('[data-testid="place-error"]')?.textContent).toBe('The catalog is already in this folder, or the folder is full.')
     wrapper.unmount()
   })
 
@@ -1111,6 +1114,58 @@ describe('CatalogPage navigation', () => {
   it('offers no placing without viewpoint:manage', async () => {
     const { wrapper } = await placing(ME_VIEWER)
     expect(wrapper.find('[data-testid="place-in-navigation"]').exists()).toBe(false)
+    expect(rowPlaces(wrapper)).toHaveLength(0)
     wrapper.unmount()
+  })
+
+  // design D7 of us-095: every tree write answers with the names of the tree, so entity:read is needed too
+  it('offers no placing with viewpoint:manage but without entity:read', async () => {
+    const withoutRead = { ...ME_ARCHITECT, permissions: ME_ARCHITECT.permissions.filter((entry) => entry.permission !== 'entity:read') }
+    const { wrapper } = await placing(withoutRead)
+    expect(wrapper.find('[data-testid="place-in-navigation"]').exists()).toBe(false)
+    expect(rowPlaces(wrapper)).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  // "Place an entity from the catalog"
+  it('places the entity of a row, and the request carries entityId', async () => {
+    const { wrapper, recorded } = await placing()
+    const row = rowPlaces(wrapper)[0]!
+    const entityId = Number(row.attributes('data-testid')!.slice('place-'.length))
+    await row.trigger('click')
+    await flushPromises()
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Place CRM System in the navigation')
+    folderSelect(wrapper).vm.$emit('update:modelValue', LANDSCAPE_ID)
+    await flushPromises()
+    await press('place-submit')
+    expect(recorded.at(-1)).toEqual({
+      path: `/api/v1/tree-nodes/${LANDSCAPE_ID}/items`,
+      method: 'POST',
+      body: { itemType: 'entity', entityId, displayLabel: null },
+    })
+    expect(wrapper.get('[data-testid="place-done"]').text()).toBe('Placed in Repository / IT Landscape.')
+    // the same entity twice in one folder is refused
+    await row.trigger('click')
+    await flushPromises()
+    folderSelect(wrapper).vm.$emit('update:modelValue', LANDSCAPE_ID)
+    await flushPromises()
+    await press('place-submit')
+    expect(document.body.querySelector('[data-testid="place-error"]')?.textContent).toBe(
+      'The entity is already in this folder, cannot be placed, or the folder is full.',
+    )
+    wrapper.unmount()
+  })
+
+  it('offers an action on every element row, and none on the rows of a connection catalog', async () => {
+    const { wrapper } = await placing()
+    const rows = wrapper.findAll('[data-testid="catalog-table"] tbody tr')
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rowPlaces(wrapper)).toHaveLength(rows.length)
+    wrapper.unmount()
+    const flows = await open(`/catalogs/${FLOW_CATALOG.id}`, FLOWS, undefined, { catalog: FLOW_CATALOG, metatypes: METATYPES_WITH_FLOWS })
+    expect(flows.wrapper.findAll('[data-testid="catalog-table"] tbody tr').length).toBeGreaterThan(0)
+    expect(rowPlaces(flows.wrapper)).toHaveLength(0)
+    expect(flows.wrapper.find('[data-testid="place-in-navigation"]').exists()).toBe(true)
+    flows.wrapper.unmount()
   })
 })

@@ -4,9 +4,9 @@ title: Import and export viewpoints
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-10-13
+last_updated: 2026-11-17
 author: requirements-engineer
 references:
   use_cases:
@@ -161,10 +161,10 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 
 ## Implementation
 
-- ADR(s): –
-- Implemented by: –
-- Tests: –
-- Verification status: not-verified
+- ADR(s): [ADR-002](../../adrs/ADR-002-continuum-repository.md) (package content is read-only)
+- Implemented by: partially, the OpenSpec change `us-091-viewpoint-notations` (owner decisions 2026-11-17) – the import of viewpoints as the package section `viewpoints` of the metamodel package import (`metamodel:write`, REQ-033, REQ-184). A package viewpoint carries a stable ID, its metatype IDs are checked against the package and the instance configuration (AC3 as 422 naming `/viewpoints/<i>`, no partial import), it is installed as a system-defined viewpoint of the package, and an ID or name of an organization viewpoint or of another package is a conflict (409, without a proposed alternative ID). Unlike AC5, package viewpoints are system-defined. Audited in `metamodel.package-imported` (`viewpointsCreated`, `viewpointsUpdated`, `viewpointsDeleted`), not as `viewpoint.imported`. Not implemented: the export (AC1, AC6), the roundtrip (AC2) and the import of viewpoint files outside packages (AC4, AC5)
+- Tests: the scenarios of the package import in the change `us-091-viewpoint-notations`
+- Verification status: partially verified (import in packages)
 
 ## Change History
 
@@ -172,3 +172,4 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-21: size limit harmonized with REQ-184 (was 256 KB); safe parsing referenced |
+| 0.3.0 | 2026-11-17 | Change us-091-viewpoint-notations | Import of viewpoints in metamodel packages implemented; export and standalone import not |

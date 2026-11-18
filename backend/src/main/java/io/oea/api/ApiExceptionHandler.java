@@ -724,6 +724,8 @@ public class ApiExceptionHandler {
 			case LOCKED -> problem(HttpStatus.FORBIDDEN, "metamodel-locked", "Metamodel locked", ex.getMessage());
 			case PRECONDITION_REQUIRED -> problem(HttpStatus.PRECONDITION_REQUIRED, "precondition-required",
 					"If-Match required", ex.getMessage());
+			case READ_ONLY_VIEWPOINT -> problem(HttpStatus.UNPROCESSABLE_CONTENT, "read-only-viewpoint",
+					"Read-only viewpoint", ex.getMessage());
 		};
 		if (ex.getCurrentVersion() != null) {
 			problem.setProperty("currentVersion", ex.getCurrentVersion());

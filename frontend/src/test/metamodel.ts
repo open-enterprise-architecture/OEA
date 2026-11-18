@@ -46,6 +46,31 @@ export const IDS = {
 }
 
 const STARTER = { packageId: 'oea-starter-togaf-classic', version: '1.1.0' }
+const STARTER_WITH_VIEWPOINTS = { packageId: 'oea-starter-togaf-classic', version: '1.2.0' }
+
+type NotationElement = components['schemas']['NotationElement']
+
+function catalogEntry(key: string, label: string, kind: NotationElement['kind'], width = 120, height = 55): NotationElement {
+  const prefix = key.split(':')[0]!
+  const notation = ({ archimate: 'archimate3', uml: 'uml', bpmn: 'bpmn2', generic: 'generic' } as const)[prefix as 'archimate']
+  return { key, notation, label, kind, defaultWidth: width, defaultHeight: height }
+}
+
+/** An excerpt of the shipped element catalog (design D2 of us-091-viewpoint-notations). */
+export const NOTATION_ELEMENTS: NotationElement[] = [
+  catalogEntry('archimate:ApplicationComponent', 'Application Component', 'element'),
+  catalogEntry('archimate:ApplicationService', 'Application Service', 'element'),
+  catalogEntry('archimate:BusinessActor', 'Business Actor', 'element'),
+  catalogEntry('archimate:DataObject', 'Data Object', 'element'),
+  catalogEntry('archimate:Flow', 'Flow', 'relationship', 80, 20),
+  catalogEntry('archimate:Serving', 'Serving', 'relationship', 80, 20),
+  catalogEntry('bpmn:SequenceFlow', 'Sequence Flow', 'relationship', 80, 20),
+  catalogEntry('bpmn:Task', 'Task', 'element', 100, 80),
+  catalogEntry('generic:Arrow', 'Arrow', 'relationship', 80, 20),
+  catalogEntry('generic:Box', 'Box', 'element'),
+  catalogEntry('uml:Association', 'Association', 'relationship', 80, 20),
+  catalogEntry('uml:Component', 'Component', 'element'),
+]
 
 interface Entry {
   id: string
@@ -81,6 +106,10 @@ export interface MetamodelApiOptions {
   locked?: boolean
   /** The property Owner is role-restricted (us-124-property-visibility). */
   restrictedOwner?: boolean
+  /** Every viewpoint write with a mapping is rejected with 422 naming `mappings` (us-091-viewpoint-notations). */
+  rejectMappings?: boolean
+  /** The instance has no system-defined viewpoints (no package with viewpoints installed). */
+  noSystemViewpoints?: boolean
 }
 
 /** A request the fake received, with the headers that matter for the metamodel writes. */
@@ -113,11 +142,35 @@ function seed(): Stored {
         id: 'b0000000-0000-4000-8000-000000000001',
         name: 'Application Landscape',
         description: 'Applications and the data flows between them.',
+        notation: 'archimate3',
+        viewpointType: 'user-defined',
+        sourcePackage: null,
+        mappings: [{ metatypeId: IDS.component, notationElement: 'archimate:ApplicationComponent', defaultWidth: 140, defaultHeight: 60, visualHint: '#1a2b3c' }],
+        effectiveMappings: [
+          { metatypeId: IDS.component, notationElement: 'archimate:ApplicationComponent', defaultWidth: 140, defaultHeight: 60, visualHint: '#1a2b3c', fallback: false },
+          { metatypeId: IDS.service, notationElement: 'generic:Box', defaultWidth: 120, defaultHeight: 55, visualHint: null, fallback: true },
+          { metatypeId: IDS.dataFlow, notationElement: 'generic:Arrow', defaultWidth: 80, defaultHeight: 20, visualHint: null, fallback: true },
+        ],
         allowedMetatypes: [
           { id: IDS.component, name: 'Application Component', abbreviation: 'AC' },
           { id: IDS.service, name: 'Application Service', abbreviation: 'AS' },
         ],
         allowedRelations: [{ id: IDS.dataFlow, name: 'Data Flow', abbreviation: 'DF' }],
+        version: 1,
+        createdAt: '2026-11-17T09:00:00Z',
+        createdBy: { id: 1, name: 'Kurt' },
+      },
+      {
+        id: 'b0000000-0000-4000-8000-000000000002',
+        name: 'Technology Landscape',
+        description: 'Technology components and services.',
+        notation: 'archimate3',
+        viewpointType: 'system-defined',
+        sourcePackage: STARTER_WITH_VIEWPOINTS,
+        mappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', defaultWidth: null, defaultHeight: null, visualHint: null }],
+        effectiveMappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', defaultWidth: 120, defaultHeight: 55, visualHint: null, fallback: false }],
+        allowedMetatypes: [{ id: IDS.zone, name: 'Network Zone', abbreviation: 'NZ' }],
+        allowedRelations: [],
         version: 1,
         createdAt: '2026-11-17T09:00:00Z',
         createdBy: { id: 1, name: 'Kurt' },
@@ -252,6 +305,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   if (options.locked) {
     state.configuration.editMode = 'import-only'
   }
+  if (options.noSystemViewpoints) {
+    state.viewpoints = state.viewpoints.filter((viewpoint) => viewpoint.viewpointType !== 'system-defined')
+  }
   const requests: MetamodelRequest[] = []
   const today = new Date().toISOString().slice(0, 10)
 
@@ -365,6 +421,25 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         const found = state.metatypes.find((metatype) => metatype.id === id)!
         return { id, name: found.name, abbreviation: found.abbreviation ?? '' }
       }
+      // the notation mapping of a write (US-091 AC2): allowed types only, one element per type, of the notation or generic, of the shape of the type
+      const checkMappings = () => {
+        if (options.rejectMappings && ((body?.mappings ?? []) as unknown[]).length > 0) {
+          return problem(422, 'validation-failed', { invalidFields: ['mappings'], detail: 'The mapping does not fit the notation.' })
+        }
+        const notation = String(body?.notation ?? 'generic')
+        const allowed = [...((body?.metatypeIds ?? []) as string[]), ...((body?.connectionTypeIds ?? []) as string[])]
+        const seen = new Set<string>()
+        for (const mapping of (body?.mappings ?? []) as { metatypeId: string; notationElement: string }[]) {
+          const element = NOTATION_ELEMENTS.find((candidate) => candidate.key === mapping.notationElement)
+          const connection = state.metatypes.find((metatype) => metatype.id === mapping.metatypeId)?.isConnection
+          const fits = element && (element.notation === 'generic' || element.notation === notation) && (element.kind === 'relationship') === Boolean(connection)
+          if (!allowed.includes(mapping.metatypeId) || seen.has(mapping.metatypeId) || !fits) {
+            return problem(422, 'validation-failed', { invalidFields: ['mappings'], detail: `The mapping of ${mapping.notationElement} does not fit.` })
+          }
+          seen.add(mapping.metatypeId)
+        }
+        return undefined
+      }
       const validate = (except?: string) => {
         const name = String(body?.name ?? '').trim()
         if (!name) return problem(422, 'validation-failed', { invalidFields: ['name'], detail: 'The name must not be blank.' })
@@ -374,19 +449,43 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         if (((body?.metatypeIds ?? []) as string[]).length === 0) {
           return problem(422, 'validation-failed', { invalidFields: ['metatypeIds'], detail: 'A viewpoint needs at least one metatype.' })
         }
-        return undefined
+        return checkMappings()
       }
-      const fields = () => ({
-        name: String(body?.name).trim(),
-        description: (body?.description as string | null | undefined) ?? null,
-        allowedMetatypes: ((body?.metatypeIds ?? []) as string[]).map(summary),
-        allowedRelations: ((body?.connectionTypeIds ?? []) as string[]).map(summary),
-      })
+      const fields = () => {
+        const mappings = ((body?.mappings ?? []) as { metatypeId: string; notationElement: string; defaultWidth?: number | null; defaultHeight?: number | null; visualHint?: string | null }[]).map(
+          (mapping) => ({ defaultWidth: null, defaultHeight: null, visualHint: null, ...mapping }),
+        )
+        const allowed = [...((body?.metatypeIds ?? []) as string[]), ...((body?.connectionTypeIds ?? []) as string[])]
+        return {
+          name: String(body?.name).trim(),
+          description: (body?.description as string | null | undefined) ?? null,
+          notation: (body?.notation ?? 'generic') as Viewpoint['notation'],
+          mappings,
+          effectiveMappings: allowed.map((id) => {
+            const mapped = mappings.find((mapping) => mapping.metatypeId === id)
+            const connection = state.metatypes.find((metatype) => metatype.id === id)?.isConnection
+            const element = NOTATION_ELEMENTS.find((candidate) => candidate.key === (mapped?.notationElement ?? (connection ? 'generic:Arrow' : 'generic:Box')))!
+            return {
+              metatypeId: id,
+              notationElement: element.key,
+              defaultWidth: mapped?.defaultWidth ?? element.defaultWidth,
+              defaultHeight: mapped?.defaultHeight ?? element.defaultHeight,
+              visualHint: mapped?.visualHint ?? null,
+              fallback: !mapped,
+            }
+          }),
+          allowedMetatypes: ((body?.metatypeIds ?? []) as string[]).map(summary),
+          allowedRelations: ((body?.connectionTypeIds ?? []) as string[]).map(summary),
+        }
+      }
+      if (viewpointId === 'notations') {
+        return json([...NOTATION_ELEMENTS])
+      }
       if (!viewpointId) {
         if (method === 'GET') return json([...state.viewpoints].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())))
         const rejected = validate()
         if (rejected) return rejected
-        const created = { id: newId(), ...fields(), version: 1, createdAt: '2026-11-17T10:00:00Z', createdBy: { id: 1, name: 'Kurt' } }
+        const created = { id: newId(), viewpointType: 'user-defined' as const, sourcePackage: null, ...fields(), version: 1, createdAt: '2026-11-17T10:00:00Z', createdBy: { id: 1, name: 'Kurt' } }
         state.viewpoints.push(created)
         return json(created, 201, 1)
       }
@@ -394,6 +493,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       if (!stored) return problem(404, 'not-found')
       if (method === 'GET') return json(stored, 200, stored.version)
       if (ifMatch !== `"${stored.version}"`) return problem(412, 'stale-version', { currentVersion: stored.version })
+      if (stored.viewpointType === 'system-defined') {
+        return problem(422, 'read-only-viewpoint', { detail: 'System-defined viewpoints are read-only' })
+      }
       if (method === 'DELETE') {
         state.viewpoints.splice(state.viewpoints.indexOf(stored), 1)
         return json(null, 204)

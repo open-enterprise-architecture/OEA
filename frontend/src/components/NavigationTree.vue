@@ -1,19 +1,35 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, provide, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { contentsOf, createFolder, deleteFolder, removeTreeItem, renameFolder, type TreeNode } from '../api/navigation'
+import {
+  contentsOf,
+  createFolder,
+  deleteFolder,
+  itemLabel,
+  moveTreeNode,
+  moveTreeNodeItem,
+  removeTreeItem,
+  renameFolder,
+  type TreeNode,
+} from '../api/navigation'
 import type { Outcome } from '../api/session'
-import { rateLimitMessage } from '../api/problem'
+import { rateLimitMessage, type Rejection } from '../api/problem'
+import { DRAG_STATE, moveTargets, planMoveTo, type DragState, type Move, type Subject } from '../navigation/moves'
 import { loadTree, navigation, showTree } from '../navigation/store'
 import NavigationFolder, { type FolderAction } from './NavigationFolder.vue'
 
-// The navigation tree of SCR-055 (US-054; design D4 of us-054-catalog-navigation-tree): folders
-// to expand, catalog entries as links, and for viewpoint:manage the folder actions and "Remove
-// from tree". The expand state is kept per session.
+// The navigation tree of SCR-055 (US-054, US-095, US-096; design D4 of
+// us-054-catalog-navigation-tree, D5 of us-095-navigation-tree-items): folders to expand, catalog,
+// entity and solution entries as links, and for viewpoint:manage with entity:read the folder
+// actions, "Remove from tree" and the moves by drag and drop, "Move up", "Move down" and "Move
+// to…". The expand state is kept per session.
 
 const props = defineProps<{ canManage: boolean; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ navigate: [] }>()
 const { t } = useI18n()
+
+// the element being dragged, shared by the folders of this tree only
+provide(DRAG_STATE, reactive<DragState>({}))
 
 const STORAGE_KEY = 'oea.navigation.expanded'
 
@@ -136,7 +152,83 @@ async function confirmDelete() {
   }
 }
 
+/** The message of a rejected move: a target the element cannot go to, else the generic failure. */
+function moveFailure(rejection: Rejection): string {
+  const limited = rateLimitMessage(rejection)
+  if (limited) return limited
+  if (rejection.status === 422) return t('navigation.moveRejected')
+  return t('navigation.changeFailed')
+}
+
+/** Sends the move; a 404 means the tree changed meanwhile, so it is read again. */
+async function move(request: Move): Promise<Rejection | undefined> {
+  const rejection = await change(() =>
+    request.kind === 'folder'
+      ? moveTreeNode(request.nodeId, request.parentId, request.position, props.fetchFn)
+      : moveTreeNodeItem(request.nodeId, request.itemId, request.targetNodeId, request.position, props.fetchFn),
+  )
+  if (rejection?.status === 404) {
+    void loadTree(props.fetchFn, true)
+  }
+  return rejection
+}
+
+// the dialog of "Move to…"
+const moveDialog = reactive<{ open: boolean; subject?: Subject; targetId?: string; error?: string; busy: boolean }>({ open: false, busy: false })
+const moveName = computed(() => {
+  const subject = moveDialog.subject
+  if (!subject) return ''
+  return subject.kind === 'folder' ? subject.node.name : itemLabel(subject.item)
+})
+const moveOptions = computed(() =>
+  navigation.tree && moveDialog.subject
+    ? moveTargets(navigation.tree, moveDialog.subject).map((folder) => ({ label: folder.path, value: folder.id }))
+    : [],
+)
+
+async function submitMoveTo() {
+  const subject = moveDialog.subject
+  const root = navigation.tree
+  if (!subject || !root || !moveDialog.targetId) {
+    return
+  }
+  const request = planMoveTo(root, subject, moveDialog.targetId)
+  if (!request) {
+    moveDialog.error = t('navigation.moveRejected')
+    return
+  }
+  moveDialog.busy = true
+  moveDialog.error = undefined
+  const rejection = await move(request)
+  moveDialog.busy = false
+  if (!rejection) {
+    moveDialog.open = false
+    if (!expanded.has(moveDialog.targetId)) {
+      toggle(moveDialog.targetId)
+    }
+  } else {
+    moveDialog.error = moveFailure(rejection)
+  }
+}
+
 async function act(action: FolderAction) {
+  if (action.kind === 'move') {
+    const rejection = await move(action.move)
+    if (rejection) {
+      changeError.value = moveFailure(rejection)
+    } else if (action.move.kind === 'item' && !expanded.has(action.move.targetNodeId)) {
+      toggle(action.move.targetNodeId)
+    } else if (action.move.kind === 'folder' && !expanded.has(action.move.parentId)) {
+      toggle(action.move.parentId)
+    }
+    return
+  }
+  if (action.kind === 'move-to') {
+    // the first folder is chosen, as in "Place in navigation"
+    const first = navigation.tree ? moveTargets(navigation.tree, action.subject)[0] : undefined
+    Object.assign(moveDialog, { open: true, subject: action.subject, targetId: first?.id, error: undefined })
+    return
+  }
   if (action.kind === 'new-folder' || action.kind === 'rename') {
     Object.assign(nameDialog, { open: true, mode: action.kind, node: action.node, name: action.kind === 'rename' ? action.node.name : '', error: undefined })
   } else if (action.kind === 'delete') {
@@ -160,6 +252,7 @@ async function act(action: FolderAction) {
     <ul v-else-if="navigation.tree" role="tree" :aria-label="t('navigation.title')">
       <NavigationFolder
         :node="navigation.tree"
+        :root="navigation.tree"
         :expanded="expanded"
         :can-manage="canManage"
         :depth="0"
@@ -191,6 +284,34 @@ async function act(action: FolderAction) {
               type="submit"
               :loading="nameDialog.busy"
               :label="nameDialog.mode === 'new-folder' ? t('navigation.create') : t('navigation.save')"
+            />
+          </div>
+        </form>
+      </template>
+    </UModal>
+
+    <UModal v-model:open="moveDialog.open" :title="t('navigation.moveTitle', { name: moveName })">
+      <template #body>
+        <form data-testid="tree-move-form" class="flex flex-col gap-4" @submit.prevent="submitMoveTo">
+          <p v-if="moveOptions.length === 0" data-testid="tree-move-none" class="text-sm text-muted">{{ t('navigation.moveNoTarget') }}</p>
+          <UFormField v-else :label="t('navigation.folder')" required>
+            <USelect
+              v-model="moveDialog.targetId"
+              data-testid="tree-move-folder"
+              :items="moveOptions"
+              :aria-label="t('navigation.folder')"
+              class="w-full"
+            />
+          </UFormField>
+          <p v-if="moveDialog.error" data-testid="tree-move-error" class="text-sm text-error">{{ moveDialog.error }}</p>
+          <div class="flex justify-end gap-2">
+            <UButton color="neutral" variant="ghost" :label="t('common.cancel')" @click="moveDialog.open = false" />
+            <UButton
+              data-testid="tree-move-submit"
+              type="submit"
+              :loading="moveDialog.busy"
+              :disabled="!moveDialog.targetId"
+              :label="t('navigation.moveSubmit')"
             />
           </div>
         </form>

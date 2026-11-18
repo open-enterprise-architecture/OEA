@@ -642,7 +642,7 @@
     },
     "viewpoint": {
       "list": "Viewpoints ({count})",
-      "intro": "A viewpoint names the entity types and connection types of an organization-specific view. Notations follow with the diagrams.",
+      "intro": "A viewpoint names the entity types and connection types of an organization-specific view, its notation and the element each type is drawn with.",
       "new": "New viewpoint",
       "edit": "Edit viewpoint",
       "delete": "Delete viewpoint",
@@ -656,7 +656,33 @@
       "connections": "Connection types",
       "noConnections": "The instance has no connection types.",
       "invalid": "The viewpoint is invalid.",
-      "loadFailed": "The viewpoints could not be loaded."
+      "loadFailed": "The viewpoints could not be loaded.",
+      "groupSystem": "System-defined",
+      "groupOrganization": "Organization",
+      "systemHint": "Installed by a metamodel package and read-only.",
+      "systemLock": "System-defined, read-only",
+      "fromPackage": "Package {id} {version}",
+      "notation": "Notation",
+      "notations": {
+        "generic": "Generic",
+        "archimate3": "ArchiMate 3",
+        "uml": "UML",
+        "bpmn2": "BPMN 2.0"
+      },
+      "mapping": "Notation mapping",
+      "mappingHint": "Optional. A type without an element is drawn as a generic box or arrow.",
+      "genericElement": "{label} (generic)",
+      "mappingType": "Type",
+      "element": "Element",
+      "noElement": "None (generic)",
+      "width": "Width",
+      "height": "Height",
+      "color": "Color",
+      "clearColor": "Clear the color of {name}",
+      "elementOf": "Element of {name}",
+      "sizeInvalid": "{min} to {max} pixels.",
+      "catalogFailed": "The notation elements could not be loaded.",
+      "readOnly": "System-defined viewpoints are read-only."
     }
   },
   "navigation": {
@@ -664,7 +690,7 @@
     "open": "Open navigation",
     "loadFailed": "The navigation tree could not be loaded.",
     "retry": "Try again",
-    "empty": "No folders or catalogs yet.",
+    "empty": "No folders or entries yet.",
     "expand": "Expand {name}",
     "collapse": "Collapse {name}",
     "folderActions": "Actions for {name}",
@@ -691,10 +717,24 @@
     "placeTitle": "Place {name} in the navigation",
     "folder": "Folder",
     "displayLabel": "Display label",
-    "displayLabelHint": "Shown in the tree instead of the catalog name. Leave empty to show the name.",
+    "displayLabelHint": "Shown in the tree instead of the name. Leave empty to show the name.",
     "placeSubmit": "Place",
-    "alreadyPlaced": "The catalog is already in this folder.",
-    "placed": "Placed in {path}."
+    "alreadyPlaced": {
+      "catalog": "The catalog is already in this folder, or the folder is full.",
+      "entity": "The entity is already in this folder, cannot be placed, or the folder is full.",
+      "solution": "The solution is already in this folder, or the folder is full."
+    },
+    "placed": "Placed in {path}.",
+    "deleted": "Deleted",
+    "itemActions": "Actions for {name}",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "moveTo": "Move to…",
+    "moveTitle": "Move {name}",
+    "moveSubmit": "Move",
+    "moveNoTarget": "There is no folder this can move to.",
+    "moveRejected": "It cannot be moved there. The tree may have changed meanwhile.",
+    "dropInvalid": "Cannot be dropped here"
   },
   "portal": {
     "title": "Portal",

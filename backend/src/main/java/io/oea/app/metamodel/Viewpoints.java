@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,14 +36,21 @@ public class Viewpoints {
 
 	private static final String CONNECTIONS = "connectionTypeIds";
 
+	private static final String MAPPINGS = "mappings";
+
+	private static final String NOTATION = "notation";
+
 	private final ViewpointStore store;
+
+	private final NotationCatalog catalog;
 
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	Viewpoints(ViewpointStore store, AuditWriter audit, Clock clock) {
+	Viewpoints(ViewpointStore store, NotationCatalog catalog, AuditWriter audit, Clock clock) {
 		this.store = store;
+		this.catalog = catalog;
 		this.audit = audit;
 		this.clock = clock;
 	}
@@ -51,13 +59,66 @@ public class Viewpoints {
 	public record Type(UUID id, String name, String abbreviation) {
 	}
 
-	/** A viewpoint with its allowed element and connection metatypes, each ordered by name. */
-	public record Viewpoint(UUID id, String name, String description, int version, java.time.Instant createdAt,
-			long createdById, String createdByName, List<Type> metatypes, List<Type> connectionTypes) {
+	/** The notation element of an allowed metatype; size and hint may be {@code null}. */
+	public record Mapping(UUID metatypeId, String notationElement, Integer defaultWidth, Integer defaultHeight,
+			String visualHint) {
 
-		static Viewpoint of(ViewpointRow row) {
-			return new Viewpoint(row.id(), row.name(), row.description(), row.version(), row.createdAt(),
-					row.createdById(), row.createdByName(), types(row.metatypes()), types(row.connectionTypes()));
+		static Mapping of(ViewpointStore.MappingRow row) {
+			return new Mapping(row.metatypeId(), row.notationElement(), row.defaultWidth(), row.defaultHeight(),
+					row.visualHint());
+		}
+
+		ViewpointStore.MappingRow row() {
+			return new ViewpointStore.MappingRow(this.metatypeId, this.notationElement, this.defaultWidth,
+					this.defaultHeight, this.visualHint);
+		}
+
+	}
+
+	/** The element an allowed metatype is rendered as: its mapping, or the generic fallback. */
+	public record EffectiveMapping(UUID metatypeId, String notationElement, int defaultWidth, int defaultHeight,
+			String visualHint, boolean fallback) {
+	}
+
+	/** The package a system-defined viewpoint comes from. */
+	public record SourcePackage(String packageId, String version) {
+	}
+
+	/**
+	 * A viewpoint with its allowed element and connection metatypes, each ordered by name, its
+	 * notation, origin and mappings. {@code sourcePackage} is {@code null} for a user-defined one.
+	 */
+	public record Viewpoint(UUID id, String name, String description, String notation, boolean systemDefined,
+			SourcePackage sourcePackage, int version, java.time.Instant createdAt, long createdById,
+			String createdByName, List<Type> metatypes, List<Type> connectionTypes, List<Mapping> mappings,
+			List<EffectiveMapping> effectiveMappings) {
+
+		static Viewpoint of(ViewpointRow row, NotationCatalog catalog) {
+			List<Mapping> mappings = row.mappings().stream().map(Mapping::of).toList();
+			List<Type> metatypes = types(row.metatypes());
+			List<Type> connections = types(row.connectionTypes());
+			List<EffectiveMapping> effective = new ArrayList<>();
+			metatypes.forEach((type) -> effective.add(effective(type, mappings, catalog, false)));
+			connections.forEach((type) -> effective.add(effective(type, mappings, catalog, true)));
+			return new Viewpoint(row.id(), row.name(), row.description(), row.notation(),
+					"system-defined".equals(row.viewpointType()),
+					(row.sourcePackageId() != null) ? new SourcePackage(row.sourcePackageId(), row.sourcePackageVersion())
+							: null,
+					row.version(), row.createdAt(), row.createdById(), row.createdByName(), metatypes, connections,
+					mappings, List.copyOf(effective));
+		}
+
+		private static EffectiveMapping effective(Type type, List<Mapping> mappings, NotationCatalog catalog,
+				boolean connection) {
+			Mapping mapping = mappings.stream().filter((m) -> m.metatypeId().equals(type.id())).findFirst().orElse(null);
+			String key = (mapping != null) ? mapping.notationElement()
+					: connection ? NotationCatalog.GENERIC_ARROW : NotationCatalog.GENERIC_BOX;
+			NotationCatalog.Element element = catalog.element(key).orElseThrow();
+			return new EffectiveMapping(type.id(), key,
+					(mapping != null && mapping.defaultWidth() != null) ? mapping.defaultWidth() : element.defaultWidth(),
+					(mapping != null && mapping.defaultHeight() != null) ? mapping.defaultHeight()
+							: element.defaultHeight(),
+					(mapping != null) ? mapping.visualHint() : null, mapping == null);
 		}
 
 		private static List<Type> types(List<ViewpointStore.TypeRow> rows) {
@@ -66,15 +127,15 @@ public class Viewpoints {
 
 	}
 
-	/** The input of a write; the contract checks the lengths. */
-	public record ViewpointInput(String name, String description, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds) {
+	/** The input of a write; the contract checks the lengths and the origin is never taken from it. */
+	public record ViewpointInput(String name, String description, String notation, List<UUID> metatypeIds,
+			List<UUID> connectionTypeIds, List<Mapping> mappings) {
 	}
 
 	/** All viewpoints, ordered by name. */
 	@Transactional(readOnly = true)
 	public List<Viewpoint> list() {
-		return this.store.list().stream().map(Viewpoint::of).toList();
+		return this.store.list().stream().map((row) -> Viewpoint.of(row, this.catalog)).toList();
 	}
 
 	/**
@@ -84,7 +145,7 @@ public class Viewpoints {
 	 */
 	@Transactional(readOnly = true)
 	public Viewpoint get(UUID id) {
-		return Viewpoint.of(row(id));
+		return Viewpoint.of(row(id), this.catalog);
 	}
 
 	/**
@@ -100,7 +161,7 @@ public class Viewpoints {
 		if (!this.store.insert(id, fields, person, this.clock.instant())) {
 			throw MetamodelChangeException.invalid(NAME, "Name '" + fields.name() + "' is already taken");
 		}
-		audit(principal, "viewpoint.created", id, Map.of(NAME, fields.name()));
+		audit(principal, "viewpoint.created", id, Map.of(NAME, fields.name(), NOTATION, fields.notation()));
 		return get(id);
 	}
 
@@ -130,8 +191,15 @@ public class Viewpoints {
 			.equals(new LinkedHashSet<>(fields.connectionTypeIds()))) {
 			changed.add(CONNECTIONS);
 		}
+		if (!current.notation().equals(fields.notation())) {
+			changed.add(NOTATION);
+		}
+		if (!new LinkedHashSet<>(current.mappings()).equals(new LinkedHashSet<>(fields.mappings()))) {
+			changed.add(MAPPINGS);
+		}
 		this.store.update(id, fields, person, this.clock.instant());
-		audit(principal, "viewpoint.updated", id, Map.of(NAME, fields.name(), "fields", changed));
+		audit(principal, "viewpoint.updated", id,
+				Map.of(NAME, fields.name(), NOTATION, fields.notation(), "fields", changed));
 		return get(id);
 	}
 
@@ -147,11 +215,16 @@ public class Viewpoints {
 		person(principal);
 		ViewpointRow current = locked(id, expectedVersion);
 		this.store.delete(id);
-		audit(principal, "viewpoint.deleted", id, Map.of(NAME, current.name()));
+		audit(principal, "viewpoint.deleted", id, Map.of(NAME, current.name(), NOTATION, current.notation()));
 	}
 
 	private ViewpointRow locked(UUID id, Long expectedVersion) {
 		int version = this.store.lockVersion(id).orElseThrow(() -> new NoSuchElementException("viewpoint " + id));
+		// the origin is checked after the row lock and whatever the version, so that a system-defined
+		// viewpoint is never changed through the API (US-092 AC1)
+		if ("system-defined".equals(this.store.viewpointType(id).orElse(null))) {
+			throw MetamodelChangeException.readOnlyViewpoint();
+		}
 		if (expectedVersion == null) {
 			throw MetamodelChangeException.preconditionRequired("viewpoint");
 		}
@@ -192,9 +265,16 @@ public class Viewpoints {
 						"The metatype " + id + " is not a connection metatype of the instance.");
 			}
 		}
+		String notation = (input.notation() != null) ? input.notation() : NotationCatalog.GENERIC;
+		List<ViewpointStore.MappingRow> mappings = (input.mappings() == null) ? List.of()
+				: input.mappings().stream().map(Mapping::row).toList();
+		ViewpointMappings.problem(this.catalog, notation, Set.copyOf(metatypes), Set.copyOf(connections), mappings)
+			.ifPresent((problem) -> {
+				throw MetamodelChangeException.invalid(MAPPINGS, problem);
+			});
 		String description = (input.description() != null && !input.description().isBlank()) ? input.description()
 				: null;
-		return new ViewpointStore.Fields(name, description, metatypes, connections);
+		return new ViewpointStore.Fields(name, description, notation, metatypes, connections, mappings);
 	}
 
 	private ViewpointRow row(UUID id) {

@@ -116,7 +116,7 @@ describe('NavigationTree', () => {
     await choose(ROOT_ID, 'New folder')
     await enterName('Business Architecture')
     expect(recorded.at(-1)).toEqual({ path: '/api/v1/tree-nodes', method: 'POST', body: { name: 'Business Architecture', parentId: ROOT_ID } })
-    expect(names()).toEqual(['Repository', 'Business Architecture', 'Compliance', 'IT Landscape'])
+    expect(names()).toEqual(['Repository', 'Compliance', 'IT Landscape', 'Business Architecture'])
     expect(document.querySelector('[data-testid="tree-name-form"]')).toBeNull()
   })
 
@@ -135,7 +135,7 @@ describe('NavigationTree', () => {
     await choose(LANDSCAPE_ID, 'Rename')
     expect(document.querySelector<HTMLInputElement>('[data-testid="tree-name-input"]')!.value).toBe('IT Landscape')
     await enterName('Application Landscape')
-    expect(names()).toEqual(['Repository', 'Application Landscape', 'Compliance'])
+    expect(names()).toEqual(['Repository', 'Compliance', 'Application Landscape'])
     await expand(LANDSCAPE_ID)
     expect(labels()).toContain('Application Inventory')
   })

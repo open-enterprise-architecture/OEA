@@ -3,6 +3,8 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Solution, SolutionDelta, SolutionDeltaConflict, SolutionLandscapeEntry } from '../api/solutions'
 import { session } from '../session/store'
+import { clearTree } from '../navigation/store'
+import { navigationApi, ROOT_ID, type TreeRequest } from '../test/navigation'
 import { testRouter } from '../test/router'
 import {
   APPLICATION,
@@ -588,6 +590,56 @@ describe('SolutionPage', () => {
       expect(body('merge-dialog')).toBeNull()
       expect(body('go-live-confirm')).not.toBeNull()
       expect(body('go-live-not-in-metamodel')!.textContent).toContain('1 value only this solution keeps becomes an open issue')
+      wrapper.unmount()
+    })
+  })
+
+  // navigation/navigation-tree "Place a solution" (US-097; design D5 of us-095-navigation-tree-items)
+  describe('Place in navigation', () => {
+    const ID = '5d000000-0000-4000-8000-000000000002'
+    const withPermissions = (...permissions: string[]) => ({
+      ...ME_SOLUTION_VIEWER,
+      permissions: permissions.map((permission) => ({ permission, grantedBy: [] })),
+    })
+
+    async function placeable(me: unknown) {
+      clearTree()
+      const recorded: TreeRequest[] = []
+      const router = testRouter()
+      await router.push(`/solutions/${ID}`)
+      const api = solutionApi({ me })
+      const wrapper = mount(SolutionPage, {
+        props: { id: ID, fetchFn: navigationApi({ recorded, fallback: api.fetch }) },
+        global: { plugins: [ui, router] },
+        attachTo: document.body,
+      })
+      await flushPromises()
+      return { wrapper, recorded }
+    }
+
+    it('places the solution, and the request carries referenceId', async () => {
+      const { wrapper, recorded } = await placeable(withPermissions('portal:read', 'entity:read', 'viewpoint:manage'))
+      await wrapper.get('[data-testid="place-in-navigation"]').trigger('click')
+      await flushPromises()
+      expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Place ERP Extension Logistics in the navigation')
+      document.body.querySelector<HTMLElement>('[data-testid="place-submit"]')!.click()
+      await flushPromises()
+      expect(recorded.at(-1)).toEqual({
+        path: `/api/v1/tree-nodes/${ROOT_ID}/items`,
+        method: 'POST',
+        body: { itemType: 'solution', referenceId: ID, displayLabel: null },
+      })
+      expect(document.body.querySelector('[data-testid="place-error"]')?.textContent ?? null).toBeNull()
+      expect(wrapper.get('[data-testid="place-done"]').text()).toBe('Placed in Repository.')
+      wrapper.unmount()
+    })
+
+    it.each([
+      ['a reader', ['portal:read', 'entity:read']],
+      ['viewpoint:manage without entity:read', ['portal:read', 'viewpoint:manage']],
+    ])('offers no placing to %s', async (_name, permissions) => {
+      const { wrapper } = await placeable(withPermissions(...permissions))
+      expect(wrapper.find('[data-testid="place-in-navigation"]').exists()).toBe(false)
       wrapper.unmount()
     })
   })

@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Metamodell bearbeiten
@@ -121,15 +121,22 @@ Eine Eigenschaft, die eine Lösung als Snapshot behält, kann erst gelöscht wer
 
 ## Viewpoints {#viewpoints}
 
-Ein Viewpoint nennt die Entitätstypen und Verbindungstypen, die zu einer organisationsspezifischen Sicht gehören, zum Beispiel „Application Landscape“ mit Anwendungen, Datenobjekten und ihren Datenflüssen. Der Abschnitt *Viewpoints* der Metamodell-Seite listet sie; alle, die das Metamodell lesen dürfen, sehen sie. Notationen wie ArchiMate folgen mit den Diagrammen.
+Ein Viewpoint nennt die Entitätstypen und Verbindungstypen, die zu einer Sicht gehören, zum Beispiel „Application Landscape“ mit Anwendungen, Datenobjekten und ihren Datenflüssen, zusammen mit seiner Notation und dem Element, mit dem jeder Typ gezeichnet wird. Der Abschnitt *Viewpoints* der Metamodell-Seite listet sie in zwei Gruppen; alle, die das Metamodell lesen dürfen, sehen sie:
+
+- **Systemdefiniert:** Viewpoints, die ein [Metamodell-Paket](./metamodel-packages#viewpoints-in-packages) installiert hat, markiert mit einem Schloss und ihrem Paket. Sie sind schreibgeschützt; nur eine neue Version ihres Pakets ändert sie.
+- **Organisation:** die Viewpoints deiner Organisation.
 
 Zum Ändern von Viewpoints brauchst du die Berechtigung `viewpoint:manage` (zum Beispiel die Rolle `enterprise-architect`); der [Sperrmodus](#lock-mode) des Metamodells gilt für sie nicht.
 
 - *Neuer Viewpoint* fragt nach einem Namen (bis 255 Zeichen, eindeutig unabhängig von Gross- und Kleinschreibung), einer optionalen Beschreibung (bis 1000 Zeichen), mindestens einem Entitätstyp und beliebig vielen Verbindungstypen der Instanz.
+- *Notation* ist *Generisch*, *ArchiMate 3*, *UML* oder *BPMN 2.0*. Viewpoints, die vor den Notationen angelegt wurden, haben *Generisch*.
+- *Notationszuordnung* ist optional: Für jeden gewählten Typ wählst du ein *Element* der Notation, zum Beispiel *Application Component* von ArchiMate, und bei Bedarf *Breite* und *Höhe* (1 bis 2000 Pixel) und eine *Farbe*. Die Liste bietet nur die Elemente der gewählten Notation, die zum Typ passen (Formen für Entitätstypen, Beziehungen für Verbindungstypen), und die generische Box oder den generischen Pfeil. Ein Typ ohne Element wird als generische Box gezeichnet, ein Verbindungstyp als generischer Pfeil. Wechselst du die Notation, werden die Elemente geleert, die nicht mehr passen.
 - *Bearbeiten* ändert sie. Hat jemand anderes den Viewpoint inzwischen geändert, zeigt der Dialog den [aktuellen Stand](#concurrent-changes).
 - *Löschen* entfernt den Viewpoint nach einer Bestätigung.
 
-Wird ein Entitätstyp gelöscht, verschwindet er aus den Viewpoints, die ihn nannten.
+Wird ein Entitätstyp gelöscht, verschwindet er mit seiner Zuordnung aus den Viewpoints, die ihn nannten.
+
+Über die API listet `GET /admin/viewpoints/notations` die Elemente aller Notationen mit Schlüssel (zum Beispiel `archimate:ApplicationComponent`), Notation, Bezeichnung, Art und Standardgrösse. Ein Viewpoint trägt `notation`, `mappings` und pro erlaubtem Typ die `effectiveMappings` mit dem tatsächlich verwendeten Element. Ein Element einer anderen Notation oder der falschen Art wird mit 422 abgelehnt und nennt `mappings`; das Ändern oder Löschen eines systemdefinierten Viewpoints wird mit 422 und dem Problemtyp `urn:oea:problem:read-only-viewpoint` abgelehnt.
 
 ## Labels übersetzen {#translating-labels}
 
