@@ -10,7 +10,7 @@ describe('metamodel writes', () => {
     await refreshSession(api.fetch)
     const outcome = await updateMetatype(
       IDS.zone,
-      { name: 'Network Zone', abbreviation: 'NW', sortOrder: 10, isConnection: false, configId: INSTANCE_CONFIGURATION },
+      { name: 'Network Zone', abbreviation: 'NW', sortOrder: 10, isConnection: false, isComposition: false, configId: INSTANCE_CONFIGURATION },
       3,
       api.fetch,
     )

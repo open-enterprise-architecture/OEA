@@ -53,6 +53,8 @@ class BrowserTests {
 
 	private static final String ITEMS = "/api/v1/views/browser/items";
 
+	private static final UUID STRUCTURING_AID = UUID.fromString("c3f523b8-f07f-5475-9ab0-6f2ea39b537e");
+
 	@DynamicPropertySource
 	static void database(DynamicPropertyRegistry registry) {
 		registry.add("spring.datasource.url", postgres::getJdbcUrl);
@@ -409,6 +411,177 @@ class BrowserTests {
 		assertThat(beyond.path("items").size()).isZero();
 	}
 
+	// Hierarchy (us-135-component-hierarchy)
+
+	@Test
+	void theRootLevelHoldsElementsWithoutAParentOrWithADeletedParent() {
+		String suffix = suffix();
+		int system = entity("SAP S/4HANA " + suffix, this.element);
+		int module = entity("Finance module " + suffix, this.element);
+		int orphan = entity("Orphan " + suffix, this.element);
+		int ofDeleted = entity("Payroll " + suffix, this.element);
+		int deleted = entity("Deleted parent " + suffix, this.element);
+		parent(module, system);
+		parent(ofDeleted, deleted);
+		deleteEntity(deleted);
+		int connection = entity("Flow " + suffix, this.connection);
+
+		List<String> root = names(ok(items("current-state", null, "components", 0, 200, this.kurt)).path("items"));
+
+		assertThat(root).contains("SAP S/4HANA " + suffix, "Orphan " + suffix, "Payroll " + suffix)
+			.doesNotContain("Finance module " + suffix, "Deleted parent " + suffix, "Flow " + suffix);
+		assertThat(orphan).isPositive();
+		assertThat(connection).isPositive();
+	}
+
+	@Test
+	void parentEntityIdListsTheChildrenByName() {
+		String suffix = suffix();
+		int system = entity("SAP S/4HANA " + suffix, this.element);
+		int zulu = entity("zulu " + suffix, this.element);
+		int alpha = entity("Alpha " + suffix, this.element);
+		int gone = entity("Gone " + suffix, this.element);
+		parent(zulu, system);
+		parent(alpha, system);
+		parent(gone, system);
+		deleteEntity(gone);
+
+		JsonNode result = ok(children(system, 0, 50, this.kurt));
+
+		assertThat(names(result.path("items"))).containsExactly("Alpha " + suffix, "zulu " + suffix);
+		assertThat(result.path("page").path("totalElements").asInt()).isEqualTo(2);
+		assertThat(result.path("items").get(0).path("kind").asString()).isEqualTo("entity");
+	}
+
+	@Test
+	void childrenComeInPages() {
+		int system = entity("SAP S/4HANA " + suffix(), this.element);
+		for (int i = 0; i < 51; i++) {
+			parent(entity("Module " + String.format("%02d", i) + " " + suffix(), this.element), system);
+		}
+
+		JsonNode first = ok(children(system, 0, 50, this.kurt));
+		JsonNode second = ok(children(system, 1, 50, this.kurt));
+
+		assertThat(first.path("items").size()).isEqualTo(50);
+		assertThat(second.path("items").size()).isOne();
+		assertThat(first.path("page").path("totalElements").asInt()).isEqualTo(51);
+		assertThat(first.path("page").path("totalPages").asInt()).isEqualTo(2);
+	}
+
+	@Test
+	void childCountCountsTheChildrenThatAreNotDeleted() {
+		String suffix = suffix();
+		int system = entity("SAP S/4HANA " + suffix, this.element);
+		int leaf = entity("Leaf " + suffix, this.element);
+		int one = entity("One " + suffix, this.element);
+		int two = entity("Two " + suffix, this.element);
+		int gone = entity("Gone " + suffix, this.element);
+		parent(one, system);
+		parent(two, system);
+		parent(gone, system);
+		deleteEntity(gone);
+
+		JsonNode root = ok(items("current-state", null, "components", 0, 200, this.kurt)).path("items");
+
+		assertThat(byName(root, "SAP S/4HANA " + suffix).path("childCount").asInt()).isEqualTo(2);
+		assertThat(byName(root, "Leaf " + suffix).path("childCount").asInt()).isZero();
+		assertThat(leaf).isPositive();
+	}
+
+	@Test
+	void structuringAidAndVersionAreSet() {
+		String suffix = suffix();
+		int aid = entity("Landscape " + suffix, STRUCTURING_AID);
+		this.jdbc.update("UPDATE entities SET is_structural_grouper = true, version = 3 WHERE id = ?", aid);
+		int plain = entity("Plain " + suffix, this.element);
+
+		JsonNode root = ok(items("current-state", null, "components", 0, 200, this.kurt)).path("items");
+
+		JsonNode shownAid = byName(root, "Landscape " + suffix);
+		assertThat(shownAid.path("structuringAid").asBoolean()).isTrue();
+		assertThat(shownAid.path("version").asInt()).isEqualTo(3);
+		assertThat(shownAid.path("metatypeAbbreviation").isNull()).isTrue();
+		JsonNode shownPlain = byName(root, "Plain " + suffix);
+		assertThat(shownPlain.path("structuringAid").asBoolean()).isFalse();
+		assertThat(shownPlain.path("version").asInt()).isOne();
+		assertThat(plain).isPositive();
+	}
+
+	@Test
+	void catalogsAndDeltasHaveNoChildrenAndNoVersion() {
+		String catalogName = "Catalog " + suffix();
+		catalog(catalogName, "instance", this.kurtId);
+		JsonNode catalog = byName(ok(items("current-state", null, "catalogs", 0, 200, this.kurt)).path("items"),
+				catalogName);
+		assertThat(catalog.path("childCount").asInt()).isZero();
+		assertThat(catalog.path("structuringAid").asBoolean()).isFalse();
+		assertThat(catalog.path("version").asInt()).isZero();
+		UUID solution = solution("Deltas " + suffix(), "draft", null);
+		newDelta(solution, "CRM Cloud", this.element);
+		JsonNode delta = ok(items("solution", solution, "components", 0, 50, this.kurt)).path("items").get(0);
+		assertThat(delta.path("childCount").asInt()).isZero();
+		assertThat(delta.path("version").asInt()).isZero();
+	}
+
+	@Test
+	void theCountOfTheComponentsStaysTheNumberOfAllElements() {
+		int before = ok(get(BROWSER, this.kurt)).path("currentState").path("components").asInt();
+		int system = entity("SAP S/4HANA " + suffix(), this.element);
+		parent(entity("Finance module " + suffix(), this.element), system);
+
+		JsonNode top = ok(get(BROWSER, this.kurt)).path("currentState");
+
+		assertThat(top.path("components").asInt()).isEqualTo(before + 2);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "components, solution", "connections, current-state", "catalogs, current-state" })
+	void parentEntityIdOnlyWithTheComponentsOfTheCurrentState(String category, String scope) {
+		int system = entity("SAP S/4HANA " + suffix(), this.element);
+		UUID solution = solution("Parent " + suffix(), "draft", null);
+
+		MvcTestResult result = get(ITEMS + "?scope=" + scope + "&category=" + category + "&parentEntityId=" + system
+				+ (scope.equals("solution") ? "&solutionId=" + solution : ""), this.kurt);
+
+		assertInvalid(result, "parentEntityId");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "unknown", "deleted", "connection" })
+	void anUnknownOrDeletedParentIsNotFound(String kind) {
+		String suffix = suffix();
+		int deleted = entity("Deleted " + suffix, this.element);
+		deleteEntity(deleted);
+		int connection = entity("Flow " + suffix, this.connection);
+		int parent = switch (kind) {
+			case "deleted" -> deleted;
+			case "connection" -> connection;
+			default -> 987_654_321;
+		};
+
+		assertThat(children(parent, 0, 50, this.kurt)).hasStatus(HttpStatus.NOT_FOUND);
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { 0, -1 })
+	void parentEntityIdBelowOneGives400(int parent) {
+		assertThat(children(parent, 0, 50, this.kurt)).hasStatus(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	void parentEntityIdOfOneIsAValidValue() {
+		// the entity 1 may or may not exist in this database: the answer is a page or 404, never 400
+		assertThat(children(1, 0, 50, this.kurt).getResponse().getStatus()).isIn(200, 404);
+	}
+
+	@Test
+	void aReaderWithoutEntityReadGetsNoChildren() {
+		int system = entity("SAP S/4HANA " + suffix(), this.element);
+
+		assertThat(children(system, 0, 50, this.principals.personWithoutRole())).hasStatus(HttpStatus.FORBIDDEN);
+	}
+
 	// Authorization
 
 	@Test
@@ -426,6 +599,15 @@ class BrowserTests {
 	}
 
 	// helpers
+
+	private MvcTestResult children(int parent, int page, int pageSize, TestSession session) {
+		return get(ITEMS + "?scope=current-state&category=components&parentEntityId=" + parent + "&page=" + page
+				+ "&pageSize=" + pageSize, session);
+	}
+
+	private void parent(int child, int parent) {
+		this.jdbc.update("UPDATE entities SET parent_entity_id = ? WHERE id = ?", parent, child);
+	}
 
 	private UUID metatype(String name, boolean connection, String abbreviation) {
 		return this.jdbc.queryForObject("""

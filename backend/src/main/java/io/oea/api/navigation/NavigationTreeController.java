@@ -68,13 +68,14 @@ public class NavigationTreeController implements ViewsNavigationApi {
 
 	@Override
 	public ResponseEntity<BrowserItemPage> listBrowserItems(String scope, String category,
-			UUID solutionId, Integer page, Integer pageSize) {
-		Browser.ItemPage result = this.browser.items(principal(), scope, solutionId, category,
+			UUID solutionId, Integer parentEntityId, Integer page, Integer pageSize) {
+		Browser.ItemPage result = this.browser.items(principal(), scope, solutionId, category, parentEntityId,
 				page, pageSize);
 		return ResponseEntity.ok(new BrowserItemPage(result.items().stream().map((item) -> new BrowserItem(
 				BrowserItem.KindEnum.fromValue(item.kind()), item.id(), item.name(), item.metatypeAbbreviation(),
 				item.entityId(), item.solutionId(),
-				(item.deltaType() != null) ? SolutionDeltaType.fromValue(item.deltaType()) : null)).toList(),
+				(item.deltaType() != null) ? SolutionDeltaType.fromValue(item.deltaType()) : null, item.childCount(),
+				item.structuringAid(), item.version())).toList(),
 				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
 						result.totalPages())));
 	}

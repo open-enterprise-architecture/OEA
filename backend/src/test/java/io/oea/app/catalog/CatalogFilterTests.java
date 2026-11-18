@@ -125,7 +125,7 @@ class CatalogFilterTests {
 		this.viewer = this.principals.personWithIdpRole("viewer");
 		this.architectId = this.jdbc.queryForObject("SELECT person_id FROM sessions WHERE id = ?", Long.class,
 				this.architect.sessionId());
-		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes", Integer.class) == 0) {
+		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE name = 'Application Component'", Integer.class) == 0) {
 			TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
 			assertThat(call(HttpMethod.POST, "/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import",
 					null, metamodelAdmin)).hasStatus(HttpStatus.OK);

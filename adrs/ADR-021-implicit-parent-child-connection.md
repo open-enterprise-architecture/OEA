@@ -91,6 +91,10 @@ When placing an instantiated entity (`isStructuralGrouper=false`) as a child of 
 - §6 Core Entity Types
 - §10 N-Connection / Data Lineage (ADR-010)
 
+## Implementation note
+
+Implemented by OpenSpec change `us-135-component-hierarchy` (owner decisions 2026-11-18): the implicit connection is a connection entity of the connection metatype marked as composition (`metatypes.is_composition`, at most one per instance; starter package 1.3.0) instead of an entity of a fixed type `composition`; without a marked metatype or for a pair it does not allow, only the hierarchy is stored. The parent is a versioned system field of the child; structuring aids are entities of the built-in metatype "Structuring aid".
+
 ## Change History
 
 | Version | Date | Author | Change |

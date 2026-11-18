@@ -37,6 +37,9 @@ public class EntityVersionStore {
 
 	public static final String TARGET = "target_entity_id";
 
+	/** The parent of an element entity (US-135); {@code null} at the root level. */
+	public static final String PARENT = "parent_entity_id";
+
 	private final JdbcTemplate jdbc;
 
 	public EntityVersionStore(JdbcTemplate jdbc) {
@@ -157,7 +160,8 @@ public class EntityVersionStore {
 	private Map<String, String> currentSystemFields(int entityId) {
 		Map<String, String> fields = new LinkedHashMap<>();
 		this.jdbc.query("""
-				SELECT e.name, e.description, e.is_logical, e.metatype_id, c.source_entity_id, c.target_entity_id
+				SELECT e.name, e.description, e.is_logical, e.metatype_id, c.source_entity_id, c.target_entity_id,
+				       e.parent_entity_id
 				FROM entities e LEFT JOIN entity_connections c ON c.entity_id = e.id
 				WHERE e.id = ?""", (rs) -> {
 			fields.put(NAME, rs.getString(1));
@@ -167,6 +171,10 @@ public class EntityVersionStore {
 			if (rs.getObject(5) != null) {
 				fields.put(SOURCE, Integer.toString(rs.getInt(5)));
 				fields.put(TARGET, Integer.toString(rs.getInt(6)));
+			}
+			else {
+				// an element has a parent field, also at the root level
+				fields.put(PARENT, (rs.getObject(7) != null) ? Integer.toString(rs.getInt(7)) : null);
 			}
 		}, entityId);
 		return fields;

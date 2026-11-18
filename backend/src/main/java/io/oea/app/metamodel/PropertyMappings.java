@@ -1,6 +1,7 @@
 package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.core.metamodel.BuiltInMetatypes;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -65,6 +66,7 @@ public class PropertyMappings {
 		this.configurations.requireWritableMetatype(principal, metatypeId);
 		// a mapping is part of the metatype's version (scr-030-metamodel-configuration D1)
 		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
+		requireMappable(metatypeId);
 		List<String[]> definition = this.jdbc.query(
 				"SELECT scope, data_type FROM property_definitions WHERE id = ? AND retired_at IS NULL",
 				(rs, n) -> new String[] { rs.getString(1), rs.getString(2) }, input.propertyDefId());
@@ -150,6 +152,7 @@ public class PropertyMappings {
 		this.effects.lock();
 		this.configurations.requireWritableMetatype(principal, metatypeId);
 		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
+		requireMappable(metatypeId);
 		List<Object[]> mapping = this.jdbc.query("""
 				SELECT property_def_id, scope FROM metatype_property_mappings WHERE id = ? AND metatype_id = ?""",
 				(rs, n) -> new Object[] { rs.getObject(1, UUID.class), rs.getString(2) }, mappingId, metatypeId);
@@ -171,6 +174,13 @@ public class PropertyMappings {
 		details.put("propertyDefId", property.toString());
 		details.put("entitiesWithRemovedValues", removed);
 		this.audit.changed("metamodel.mapping-deleted", principal, "metatype", metatypeId, details);
+	}
+
+	/** The structuring aid has no properties (US-136). */
+	private static void requireMappable(UUID metatypeId) {
+		if (BuiltInMetatypes.STRUCTURING_AID.equals(metatypeId)) {
+			throw MetamodelChangeException.readOnly("metatype", "has no properties.");
+		}
 	}
 
 	/**

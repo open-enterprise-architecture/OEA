@@ -14,6 +14,10 @@ function me(displayName: string, permissions: string[]) {
 
 export const ME_TREE_MANAGER = me('Kurt', ['portal:read', 'entity:read', 'entity:write', 'catalog:manage', 'viewpoint:manage'])
 export const ME_TREE_READER = me('Franz', ['portal:read', 'entity:read'])
+/** Holds `entity:write` but not `entity:delete` (US-135, US-136). */
+export const ME_HIERARCHY_WRITER = me('Michael', ['portal:read', 'entity:read', 'entity:write'])
+/** Holds `entity:write` and `entity:delete`. */
+export const ME_HIERARCHY_MANAGER = me('Kurt', ['portal:read', 'entity:read', 'entity:write', 'entity:delete'])
 
 export const ROOT_ID = 'f0000000-0000-4000-8000-000000000000'
 export const LANDSCAPE_ID = 'f0000000-0000-4000-8000-000000000001'
@@ -107,11 +111,22 @@ export const BROWSER_WITHOUT_PLATEAUS: Browser = {
 }
 
 function entityRow(entity: (typeof ENTITIES)[number], abbreviation: string | null = 'APP'): BrowserItem {
-  return { kind: 'entity', id: String(entity.id), name: entity.name, metatypeAbbreviation: abbreviation, entityId: null, solutionId: null, deltaType: null }
+  return {
+    kind: 'entity',
+    id: String(entity.id),
+    name: entity.name,
+    metatypeAbbreviation: abbreviation,
+    entityId: null,
+    solutionId: null,
+    deltaType: null,
+    childCount: 0,
+    structuringAid: false,
+    version: 1,
+  }
 }
 
 function deltaRow(id: string, name: string, deltaType: 'new' | 'modified' | 'retiring', entityId: number | null): BrowserItem {
-  return { kind: 'delta', id, name, metatypeAbbreviation: 'APP', entityId, solutionId: BROWSER_SOLUTION_ID, deltaType }
+  return { kind: 'delta', id, name, metatypeAbbreviation: 'APP', entityId, solutionId: BROWSER_SOLUTION_ID, deltaType, childCount: 0, structuringAid: false, version: 0 }
 }
 
 /** The objects of the categories of BROWSER, by category key (`current-state:components`, `solution:<id>:components`), in the order of the backend. */
@@ -126,6 +141,9 @@ export const BROWSER_ITEMS: Record<string, BrowserItem[]> = {
     entityId: null,
     solutionId: null,
     deltaType: null,
+    childCount: 0,
+    structuringAid: false,
+    version: 0,
   })),
   [`solution:${BROWSER_SOLUTION_ID}:components`]: [
     deltaRow('c1000000-0000-4000-8000-000000000001', 'CRM Cloud', 'new', null),
@@ -138,7 +156,31 @@ export interface TreeRequest {
   path: string
   method: string
   body?: Record<string, unknown>
+  /** the `If-Match` header of a write of the hierarchy */
+  ifMatch?: string
 }
+
+/** A component of the hierarchy fake: an element entity of "Current state", or a structuring aid. */
+export interface HierarchyComponent {
+  id: number
+  name: string
+  abbreviation: string | null
+  parentId: number | null
+  version: number
+  structuringAid?: boolean
+}
+
+/**
+ * Components for the hierarchy (US-135, US-136): "Finance landscape" is a structuring aid holding "Payroll", and
+ * "Finance module" stays at the root level next to "SAP S/4HANA", "Workday" and the aid.
+ */
+export const HIERARCHY: HierarchyComponent[] = [
+  { id: 9201, name: 'SAP S/4HANA', abbreviation: 'APP', parentId: null, version: 1 },
+  { id: 9202, name: 'Finance module', abbreviation: 'APP', parentId: null, version: 1 },
+  { id: 9203, name: 'Finance landscape', abbreviation: null, parentId: null, version: 1, structuringAid: true },
+  { id: 9204, name: 'Payroll', abbreviation: 'APP', parentId: 9203, version: 1 },
+  { id: 9205, name: 'Workday', abbreviation: 'APP', parentId: null, version: 1 },
+]
 
 /**
  * A fake of the tree operations with the tree as state, as the backend answers them: names are
@@ -159,6 +201,10 @@ export function navigationApi(
     browserItems?: Record<string, BrowserItem[]>
     /** the browser answers 500 */
     failingBrowser?: boolean
+    /** the components of "Current state" with their parents: the fake then keeps them and answers the writes of the hierarchy */
+    components?: HierarchyComponent[]
+    /** the write of a parent or of a structuring aid is refused with this status (a 422 names `parentEntityId`) */
+    rejectHierarchy?: 409 | 412 | 422 | 429 | 500
   } = {},
 ): typeof fetch {
   const tree = structuredClone(options.tree ?? TREE)
@@ -179,11 +225,142 @@ export function navigationApi(
   const notFound = () => json({ type: 'urn:oea:problem:not-found', title: 'Not found', status: 404 }, 404)
   const taken = (parent: TreeNode, name: string, except?: string) =>
     parent.children.some((child) => child.id !== except && child.name.toLowerCase() === name.trim().toLowerCase())
+  const components = options.components ? structuredClone(options.components) : undefined
+  let nextComponent = 9300
+  const isActive = (id: number | null) => id !== null && components?.some((component) => component.id === id)
+  const childrenOf = (id: number) => components?.filter((component) => component.parentId === id) ?? []
+  const row = (component: HierarchyComponent): BrowserItem => ({
+    kind: 'entity',
+    id: String(component.id),
+    name: component.name,
+    metatypeAbbreviation: component.abbreviation,
+    entityId: null,
+    solutionId: null,
+    deltaType: null,
+    childCount: childrenOf(component.id).length,
+    structuringAid: component.structuringAid ?? false,
+    version: component.version,
+  })
+  const problem = (status: number, type: string, extra: Record<string, unknown> = {}) => json({ type: `urn:oea:problem:${type}`, title: type, status, ...extra }, status)
+  const refusal = () => {
+    switch (options.rejectHierarchy) {
+      case 409:
+        return problem(409, 'entity-blocked', { entities: [] })
+      case 412:
+        return problem(412, 'stale-version', { currentVersion: 7 })
+      case 422:
+        return problem(422, 'validation-failed', { invalidFields: ['parentEntityId'] })
+      case 429:
+        return json({ type: 'urn:oea:problem:too-many-requests', status: 429 }, 429)
+      default:
+        return problem(500, 'internal')
+    }
+  }
+  /** The hierarchy of the fake: lists, the parent change and the structuring aids. */
+  const hierarchy = (path: string, method: string, search: URLSearchParams, body: Record<string, unknown> | undefined, ifMatch: string | null): Response | undefined => {
+    if (!components) {
+      return undefined
+    }
+    if (path === '/api/v1/views/browser') {
+      return json({ ...(options.browser ?? BROWSER), currentState: { ...(options.browser ?? BROWSER).currentState, components: components.length } })
+    }
+    if (path === '/api/v1/views/browser/items' && search.get('scope') === 'current-state' && search.get('category') === 'components') {
+      const parent = search.get('parentEntityId')
+      if (parent !== null && !isActive(Number(parent))) {
+        return notFound()
+      }
+      const all = components
+        .filter((component) => (parent === null ? component.parentId === null || !isActive(component.parentId) : component.parentId === Number(parent)))
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
+      const page = Number(search.get('page') ?? 0)
+      const pageSize = Number(search.get('pageSize') ?? 50)
+      return json({
+        items: all.slice(page * pageSize, (page + 1) * pageSize).map(row),
+        page: { page, pageSize, totalElements: all.length, totalPages: Math.ceil(all.length / pageSize) },
+      })
+    }
+    const parentPath = /^\/api\/v1\/entities\/(\d+)\/parent$/.exec(path)
+    if (parentPath && method === 'PUT') {
+      if (options.rejectHierarchy) {
+        return refusal()
+      }
+      const component = components.find((candidate) => candidate.id === Number(parentPath[1]))
+      if (!component) {
+        return notFound()
+      }
+      if (ifMatch !== `"${component.version}"`) {
+        return problem(412, 'stale-version', { currentVersion: component.version })
+      }
+      const parentId = (body?.parentEntityId ?? null) as number | null
+      let cursor: HierarchyComponent | undefined = parentId === null ? undefined : components.find((candidate) => candidate.id === parentId)
+      if (parentId !== null && !cursor) {
+        return problem(422, 'validation-failed', { invalidFields: ['parentEntityId'] })
+      }
+      for (let level = 0; cursor && level < 20; level += 1) {
+        if (cursor.id === component.id) {
+          return problem(422, 'validation-failed', { invalidFields: ['parentEntityId'] })
+        }
+        cursor = components.find((candidate) => candidate.id === cursor!.parentId)
+      }
+      if (component.parentId !== parentId) {
+        component.parentId = parentId
+        component.version += 1
+      }
+      return json({ entityId: component.id, version: component.version, parentEntityId: parentId, composition: { created: false, connectionId: null, reason: parentId === null ? 'cleared' : 'no-composition-metatype' }, removedConnectionId: null })
+    }
+    if (path === '/api/v1/structuring-aids' && method === 'POST') {
+      if (options.rejectHierarchy) {
+        return refusal()
+      }
+      const name = String(body?.name ?? '').trim()
+      if (!name || name.length > 255) {
+        return problem(422, 'validation-failed', { invalidFields: ['name'] })
+      }
+      const parentId = (body?.parentEntityId ?? null) as number | null
+      if (parentId !== null && !isActive(parentId)) {
+        return problem(422, 'validation-failed', { invalidFields: ['parentEntityId'] })
+      }
+      const aid = { id: ++nextComponent, name, abbreviation: null, parentId, version: 1, structuringAid: true }
+      components.push(aid)
+      return json({ id: aid.id, name, description: String(body?.description ?? ''), parentEntityId: parentId, version: 1 }, 201)
+    }
+    const aidPath = /^\/api\/v1\/structuring-aids\/(\d+)$/.exec(path)
+    if (aidPath && method === 'DELETE') {
+      if (options.rejectHierarchy) {
+        return refusal()
+      }
+      const aid = components.find((candidate) => candidate.id === Number(aidPath[1]))
+      if (!aid) {
+        return notFound()
+      }
+      if (ifMatch !== `"${aid.version}"`) {
+        return problem(412, 'stale-version', { currentVersion: aid.version })
+      }
+      if (!aid.structuringAid) {
+        return problem(422, 'validation-failed', { invalidFields: ['entityId'] })
+      }
+      childrenOf(aid.id).forEach((child) => {
+        child.parentId = null
+        child.version += 1
+      })
+      components.splice(components.indexOf(aid), 1)
+      return new Response(null, { status: 204 })
+    }
+    return undefined
+  }
   return async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://oea.test')
     const method = init?.method ?? 'GET'
     const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as Record<string, unknown>) : undefined
     const path = url.pathname
+    const ifMatch = new Headers(init?.headers).get('If-Match')
+    if (components && (path.startsWith('/api/v1/views/browser') || path.startsWith('/api/v1/entities/') || path.startsWith('/api/v1/structuring-aids'))) {
+      const answered = hierarchy(path, method, url.searchParams, body, ifMatch)
+      if (answered) {
+        options.recorded?.push({ path: `${path}${url.search}`, method, body, ...(ifMatch ? { ifMatch } : {}) })
+        return answered
+      }
+    }
     if (path === '/api/v1/views/browser' && method === 'GET') {
       options.recorded?.push({ path, method, body })
       return options.failingBrowser ? json({ type: 'urn:oea:problem:internal', status: 500 }, 500) : json(options.browser ?? BROWSER)

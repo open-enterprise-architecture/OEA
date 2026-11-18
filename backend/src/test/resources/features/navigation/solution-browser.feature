@@ -113,3 +113,44 @@ Feature: Solution browser
   Scenario: Unknown solution
     When the viewer reads the components of an unknown solution
     Then the browser answer is 404
+
+  @US-135 @REQ-141
+  Scenario: Nested components
+    Given the browser component "Browser S4" with the child "Browser Finance module" and the structuring aid "Browser Finance landscape" holding "Browser Payroll"
+    When the viewer reads the root level of the components
+    Then the root level lists "Browser S4" with 1 child and "Browser Finance landscape" as a structuring aid but not "Browser Finance module"
+    And the children of "Browser S4" are "Browser Finance module"
+    And the children of "Browser Finance landscape" are "Browser Payroll"
+
+  @US-135 @REQ-141
+  Scenario: Child of a deleted parent
+    Given the browser component "Browser Orphan Parent" with the child "Browser Orphan" whose parent was deleted
+    When the viewer reads the root level of the components
+    Then the root level lists "Browser Orphan"
+
+  @REQ-141
+  Scenario Outline: A parent only for the components of the current state
+    When the viewer reads the category "<category>" of the current state with a parent
+    Then the browser answer is 422 naming "parentEntityId"
+
+    Examples:
+      | category    |
+      | connections |
+      | catalogs    |
+
+  @REQ-141
+  Scenario Outline: Boundaries of the parent
+    When the viewer reads the children of the entity <parent>
+    Then the browser answer is <status>
+
+    Examples:
+      | parent     | status |
+      | 0          | 400    |
+      | 2000000000 | 404    |
+
+  @US-135 @REQ-141
+  Scenario: Arrange components needs entity:write
+    Given the browser component "Browser Fixed" without a parent
+    When the viewer tries to place "Browser Fixed" under itself
+    Then the browser answer is 403
+

@@ -17,7 +17,7 @@ Jede Operation von OEA verlangt eine Berechtigung, und Berechtigungen kommen nur
 | `viewer` | `portal:read`, `entity:read` | das Repository lesen |
 | `analyst` | `viewer` + `analytics:query` | Analytics-Abfragen |
 | `enterprise-architect` | `viewer` + `entity:write`, `entity:delete`, `entity:restore`, `catalog:manage`, `dashboard:manage`, `viewpoint:manage`, `plateau:write`, `plateau:go-live`, `webhook:manage`, `solution-metamodel:write`, `solution:write` | die Architektur pflegen |
-| `solution-architect` | `viewer` + `solution:write`, `solution-metamodel:write` | Veränderungsvorhaben als [Lösungen](../usage/solutions) führen |
+| `solution-architect` | `viewer` + `entity:write`, `solution:write`, `solution-metamodel:write` | Komponenten anordnen und Veränderungsvorhaben als [Lösungen](../usage/solutions) führen |
 | `integration-writer` | `entity:read`, `entity:write` | Integrationen, die Entitäten schreiben |
 | `auditor` | `audit:read` | das Audit-Log lesen und prüfen |
 | `metamodel-admin` | `metamodel:write`, `solution-metamodel:write` | das Metamodell ändern und importieren |

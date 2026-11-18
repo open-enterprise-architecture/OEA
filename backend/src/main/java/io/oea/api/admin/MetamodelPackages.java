@@ -97,7 +97,8 @@ final class MetamodelPackages {
 				Boolean.TRUE.equals(metatype.getIsConnection()), Objects.requireNonNullElse(metatype.getSortOrder(), 0),
 				metatype.getBaseMetatypeId(),
 				list(metatype.getPropertyMappings()).stream().map(MetamodelPackages::mapping).toList(),
-				allowed(metatype, "source"), allowed(metatype, "target"));
+				allowed(metatype, "source"), allowed(metatype, "target"),
+				Boolean.TRUE.equals(metatype.getIsComposition()));
 	}
 
 	/** The allowed metatypes of a connection metatype in one direction (us-036-connection-metatypes D2). */

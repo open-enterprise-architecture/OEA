@@ -115,6 +115,7 @@ public final class PackageValidator {
 			propertyIds.add(property.id());
 		}
 		Set<String> metatypeNames = new HashSet<>();
+		int compositions = 0;
 		for (int i = 0; i < definition.metatypes().size(); i++) {
 			PackageDefinition.Metatype metatype = definition.metatypes().get(i);
 			String pointer = "/metatypes/" + i;
@@ -127,6 +128,12 @@ public final class PackageValidator {
 					"A metatype cannot be its own base type.");
 			require(metatype.connection() || (metatype.allowedSources().isEmpty() && metatype.allowedTargets().isEmpty()),
 					pointer + "/connectionConstraints", "Only connection metatypes have allowed sources and targets.");
+			require(!metatype.composition() || metatype.connection(), pointer + "/isComposition",
+					"Only a connection metatype can be the composition.");
+			if (metatype.composition()) {
+				compositions++;
+				require(compositions == 1, pointer + "/isComposition", "A package has at most one composition metatype.");
+			}
 			require(!metatype.allowedSources().contains(null) && !metatype.allowedTargets().contains(null),
 					pointer + "/connectionConstraints", "A constraint needs a direction and an allowed metatype.");
 			limit(metatype.mappings(), pointer + "/propertyMappings");

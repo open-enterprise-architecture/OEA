@@ -23,7 +23,7 @@ Feature: Values of an entity's versions
     And "lifecycleStatus" and "owner" are mapped to the metatype of "CRM System" from "2026-01-01"
     And the values of "lifecycleStatus" of "CRM System" by version are "planned, planned, planned, active, active"
     When the enterprise architect reads the state of version 4 of "CRM System"
-    Then the state lists the fields "name, description, isLogical, metatypeId, lifecycleStatus, owner"
+    Then the state lists the fields "name, description, isLogical, metatypeId, parentEntityId, lifecycleStatus, owner"
     And the state lists "lifecycleStatus" as "active" and "owner" without value
 
   @US-100 @AC1 @REQ-100

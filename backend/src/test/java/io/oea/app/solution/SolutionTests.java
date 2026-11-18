@@ -193,8 +193,8 @@ class SolutionTests {
 		assertThat(architect.path("isBuiltin").asBoolean()).isTrue();
 		assertThat(architect.path("privileged").asBoolean()).isFalse();
 		assertThat(architect.path("assignableToServiceAccounts").asBoolean()).isFalse();
-		assertThat(permissions(architect)).containsExactlyInAnyOrder("portal:read", "entity:read", "solution:write",
-				"solution-metamodel:write");
+		assertThat(permissions(architect)).containsExactlyInAnyOrder("portal:read", "entity:read", "entity:write",
+				"solution:write", "solution-metamodel:write");
 		assertThat(permissions(role(roles, "enterprise-architect"))).contains("solution:write");
 	}
 

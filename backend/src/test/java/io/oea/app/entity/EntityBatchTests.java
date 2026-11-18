@@ -91,7 +91,7 @@ class EntityBatchTests {
 	void instance() {
 		TestPrincipals principals = new TestPrincipals(this.sessions, this.accounts, this.jdbc);
 		this.architect = principals.personWithIdpRole("enterprise-architect");
-		if (count("SELECT count(*) FROM metatypes") == 0) {
+		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
 			TestSession metamodelAdmin = principals.personWithIdpRole("metamodel-admin");
 			assertThat(this.mvc.post()
 				.uri("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import")

@@ -621,7 +621,9 @@
       "sources": "Erlaubte Quellen",
       "targets": "Erlaubte Ziele",
       "endpointsHelp": "Untertypen sind eingeschlossen. Leer lassen, um jeden Entitätstyp zu erlauben.",
-      "any": "Jeder Entitätstyp"
+      "any": "Jeder Entitätstyp",
+      "composition": "Komposition",
+      "compositionHelp": "Kennzeichnet den Verbindungstyp, den das Einordnen einer Komponente unter eine andere automatisch anlegt. Höchstens einer je Instanz."
     },
     "parallelChanges": {
       "title": "Parallele Änderungen",
@@ -753,7 +755,34 @@
       "new": "Neu",
       "modified": "Geändert",
       "retiring": "Auslaufend"
-    }
+    },
+    "moveTo": "Verschieben nach…",
+    "newAid": "Neue Ordnungshilfe",
+    "newAidUnder": "Neue Ordnungshilfe in {name}",
+    "newAidSubmit": "Anlegen",
+    "aidName": "Name",
+    "aidDescription": "Beschreibung",
+    "aidNameRequired": "Gib einen Namen ein.",
+    "aidNameInvalid": "Der Name muss 1 bis 255 Zeichen haben.",
+    "aidDescriptionInvalid": "Die Beschreibung darf höchstens 2000 Zeichen haben.",
+    "aidParentInvalid": "Die Ordnungshilfe kann dort nicht angelegt werden.",
+    "deleteAid": "Löschen",
+    "deleteAidTitle": "{name} löschen",
+    "deleteAidWarning": "{count} Kind wird auf die oberste Ebene verschoben und nicht gelöscht. | {count} Kinder werden auf die oberste Ebene verschoben und nicht gelöscht.",
+    "deleteAidBlocked": "Die Ordnungshilfe oder eines ihrer Kinder hat offene Probleme und kann nicht gelöscht werden.",
+    "moveToTitle": "{name} verschieben nach…",
+    "moveToPath": "Ebene",
+    "moveToFilter": "Nach Namen filtern",
+    "moveToChoose": "Hierher",
+    "moveToChooseName": "Hierher: {name}",
+    "moveToOpen": "Kinder von {name} anzeigen",
+    "rootLevel": "Oberste Ebene",
+    "itemActions": "Aktionen für {name}",
+    "moveInvalid": "Die Komponente kann dort nicht eingeordnet werden.",
+    "moveBlocked": "Die Komponente hat offene Probleme einer Lösung und kann nicht geändert werden.",
+    "stale": "Die Komponente wurde zwischenzeitlich geändert. Die Liste ist jetzt aktuell; versuche es erneut.",
+    "changeFailed": "Die Änderung konnte nicht gespeichert werden.",
+    "dismiss": "Schließen"
   },
   "portal": {
     "title": "Portal",

@@ -90,7 +90,7 @@ class RequestSizeLimitTests {
 	void instance() {
 		this.principals = new TestPrincipals(this.sessions, this.accounts, this.jdbc);
 		this.architect = this.principals.personWithIdpRole("enterprise-architect");
-		if (count("SELECT count(*) FROM metatypes") == 0) {
+		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
 			TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
 			assertThat(post("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", new byte[0],
 					metamodelAdmin)).hasStatus(HttpStatus.OK);

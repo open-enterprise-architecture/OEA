@@ -13,7 +13,7 @@ Importing packages requires the permission `metamodel:write`, which only the rol
 
 ## Import the starter configuration
 
-OEA ships the starter package `oea-starter-togaf-classic` with the entity types Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software and Network Node, each with the property *Status*. Version 1.2.0 adds the two system-defined viewpoints *Application Landscape* and *Technology Landscape* in ArchiMate (see [Viewpoints in packages](#viewpoints-in-packages)). Version 1.1.0 brought German labels for its entity types, *Status* and its values, and English labels for the values (see [Translating labels](./metamodel-editing#translating-labels)). An instance that imported an earlier version receives the labels and viewpoints by importing the package again.
+OEA ships the starter package `oea-starter-togaf-classic` with the entity types Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software and Network Node, each with the property *Status*. Version 1.3.0 adds the connection type *Composition*, marked as the [composition](./metamodel-editing#composition) of the hierarchy of components. Version 1.2.0 adds the two system-defined viewpoints *Application Landscape* and *Technology Landscape* in ArchiMate (see [Viewpoints in packages](#viewpoints-in-packages)). Version 1.1.0 brought German labels for its entity types, *Status* and its values, and English labels for the values (see [Translating labels](./metamodel-editing#translating-labels)). An instance that imported an earlier version receives the labels and viewpoints by importing the package again.
 
 While the instance has no entity type, the start page shows *Import starter configuration* to a person with `metamodel:write`. Choose *Import* next to the package; the page confirms how many entity types are now available.
 
@@ -39,6 +39,10 @@ Packages of your own use the same JSON format (`MetamodelPackage`, with `package
 - The strategy `replace` and shape assignments are not supported yet (`422`).
 
 Every import writes the audit events `metamodel.package-imported` and `metamodel.metatype-imported` with one batch ID.
+
+## Composition in packages {#composition-in-packages}
+
+A connection type of a package may carry `isComposition: true`; a package has at most one. The import is refused when the instance already has another marked connection type. A re-import of the same package moves or removes the mark with the package.
 
 ## Viewpoints in packages {#viewpoints-in-packages}
 

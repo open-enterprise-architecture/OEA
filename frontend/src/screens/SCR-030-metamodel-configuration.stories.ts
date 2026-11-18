@@ -128,6 +128,37 @@ export const Collision: Story = {
   },
 }
 
+/** The switch "Composition" of a connection metatype: the type of the automatic connection of the hierarchy (US-135). */
+export const CompositionSwitch: Story = {
+  render: () => ({
+    components: { MetatypeDialog, UCard },
+    setup: () => {
+      const api = metamodelApi()
+      const ready = ref(false)
+      onBeforeMount(async () => {
+        await refreshSession(api.fetch)
+        await loadMetamodel(api.fetch)
+        ready.value = true
+      })
+      return { fetchFn: api.fetch, ready, metatype: () => metatypeById(IDS.dataFlow) }
+    },
+    template: `
+      <div class="flex min-h-screen items-start justify-center bg-elevated/50 p-8">
+        <UCard class="w-full max-w-lg">
+          <template #header><h2 class="text-lg font-semibold text-highlighted">Edit connection type</h2></template>
+          <MetatypeDialog v-if="ready" :metatype="metatype()" :fetch-fn="fetchFn" />
+        </UCard>
+      </div>`,
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const composition = await canvas.findByRole('switch', { name: 'Composition' })
+    await expect(composition).toHaveAttribute('aria-checked', 'false')
+    await userEvent.click(composition)
+    await expect(composition).toHaveAttribute('aria-checked', 'true')
+  },
+}
+
 // removing a mapping that active solutions use asks per solution: apply there, or keep a
 // snapshot until the go-live (US-154 AC1; design D12 of us-153-open-issues)
 export const SolutionDecisions: Story = {

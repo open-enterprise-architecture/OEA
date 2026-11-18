@@ -46,3 +46,24 @@ Feature: Connection metatypes
     Given the connection metatype "DataFlow" with "Application Component" and "DataFlow" as allowed sources and targets
     When a client asks for the allowed connections from "Application Component" to "Application Component"
     Then the answer allows "DataFlow" with the direction "bidirectional"
+
+  @US-135 @REQ-142 @composition
+  Scenario: Mark a composition metatype
+    Given no connection metatype is marked as composition
+    When the metamodel administrator creates the connection metatype "Composed of" without a mark and marks it as composition
+    Then the metatype "Composed of" is marked as composition and the change is audited
+
+  @US-135 @REQ-142 @composition
+  Scenario: Second composition metatype
+    Given the starter package has marked its connection metatype "Composition" as composition
+    When the metamodel administrator creates the connection metatype "Contains parts" and marks it as composition
+    Then the composition mark is rejected with 422 naming "isComposition"
+
+  @US-135 @REQ-142 @composition
+  Scenario: Element metatype
+    When the metamodel administrator creates the element metatype "Business Unit" and marks it as composition
+    Then the composition mark is rejected with 422 naming "isComposition"
+
+  @US-135 @REQ-142 @composition
+  Scenario: Starter package
+    Then the connection metatype "Composition" is marked as composition and allows every element metatype except "Structuring aid"

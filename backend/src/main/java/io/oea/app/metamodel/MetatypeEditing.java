@@ -1,6 +1,8 @@
 package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.core.metamodel.BuiltInMetatypes;
+import io.oea.core.metamodel.CompositionStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -10,6 +12,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +41,8 @@ public class MetatypeEditing {
 
 	private final SolutionImpact impact;
 
+	private CompositionStore composition;
+
 	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
 			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact) {
 		this.impact = impact;
@@ -48,6 +53,12 @@ public class MetatypeEditing {
 		this.configurations = configurations;
 	}
 
+	/** The store of the composition mark; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
+	@Autowired
+	void setComposition(CompositionStore composition) {
+		this.composition = composition;
+	}
+
 	/**
 	 * The writable fields of a metatype.
 	 *
@@ -56,11 +67,18 @@ public class MetatypeEditing {
 	 * @param allowedTargets the same for the target
 	 */
 	public record Input(String name, String abbreviation, boolean connection, String architectureLayerId,
-			int sortOrder, UUID configId, UUID baseMetatypeId, List<UUID> allowedSources, List<UUID> allowedTargets) {
+			int sortOrder, UUID configId, UUID baseMetatypeId, List<UUID> allowedSources, List<UUID> allowedTargets,
+			boolean composition) {
 
 		public Input {
 			allowedSources = (allowedSources != null) ? List.copyOf(new LinkedHashSet<>(allowedSources)) : List.of();
 			allowedTargets = (allowedTargets != null) ? List.copyOf(new LinkedHashSet<>(allowedTargets)) : List.of();
+		}
+
+		public Input(String name, String abbreviation, boolean connection, String architectureLayerId, int sortOrder,
+				UUID configId, UUID baseMetatypeId, List<UUID> allowedSources, List<UUID> allowedTargets) {
+			this(name, abbreviation, connection, architectureLayerId, sortOrder, configId, baseMetatypeId,
+					allowedSources, allowedTargets, false);
 		}
 
 	}
@@ -83,9 +101,10 @@ public class MetatypeEditing {
 		UUID id = UUID.randomUUID();
 		this.jdbc.update("""
 				INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, architecture_layer_id, sort_order,
-				    scope, created_by, base_metatype_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'organization', ?, ?)""", id,
-				config, name, abbreviation(input), input.connection(),
-				input.architectureLayerId(), input.sortOrder(), principal.personId(), input.baseMetatypeId());
+				    scope, created_by, base_metatype_id, is_composition) VALUES (?, ?, ?, ?, ?, ?, ?, 'organization', ?, ?, ?)""",
+				id, config, name, abbreviation(input), input.connection(),
+				input.architectureLayerId(), input.sortOrder(), principal.personId(), input.baseMetatypeId(),
+				input.composition());
 		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
@@ -94,6 +113,9 @@ public class MetatypeEditing {
 		}
 		if (input.baseMetatypeId() != null) {
 			details.put("baseMetatypeId", input.baseMetatypeId().toString());
+		}
+		if (input.composition()) {
+			details.put("isComposition", true);
 		}
 		if (input.connection()) {
 			details.put("isConnection", true);
@@ -134,10 +156,11 @@ public class MetatypeEditing {
 		}
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
 		Map<String, List<UUID>> constraintsBefore = ConnectionConstraints.of(this.jdbc, id);
+		boolean wasComposition = this.composition.marked().filter(id::equals).isPresent();
 		this.jdbc.update("""
 				UPDATE metatypes SET name = ?, abbreviation = ?, architecture_layer_id = ?, sort_order = ?,
-				       base_metatype_id = ? WHERE id = ?""", name, abbreviation(input), input.architectureLayerId(),
-				input.sortOrder(), input.baseMetatypeId(), id);
+				       base_metatype_id = ?, is_composition = ? WHERE id = ?""", name, abbreviation(input),
+				input.architectureLayerId(), input.sortOrder(), input.baseMetatypeId(), input.composition(), id);
 		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
 		this.versions.increment(MetamodelVersions.Element.METATYPE, id);
 		List<String> changed = new ArrayList<>();
@@ -150,6 +173,7 @@ public class MetatypeEditing {
 		compare(changed, "architectureLayerId", stored.architectureLayerId(), input.architectureLayerId());
 		compare(changed, "sortOrder", stored.sortOrder(), input.sortOrder());
 		compare(changed, "baseMetatypeId", stored.baseMetatypeId(), input.baseMetatypeId());
+		compare(changed, "isComposition", wasComposition, input.composition());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("changedFields", changed);
 		if (changed.contains("baseMetatypeId")) {
@@ -228,12 +252,18 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		UUID base = input.baseMetatypeId();
+		if (input.composition()) {
+			checkComposition(input, id, instance);
+		}
 		if (!input.connection() && (!input.allowedSources().isEmpty() || !input.allowedTargets().isEmpty())) {
 			throw MetamodelChangeException.invalid(List.of("allowedSourceMetatypeIds", "allowedTargetMetatypeIds"),
 					"Only connection metatypes have allowed sources and targets.");
 		}
 		checkExisting("allowedSourceMetatypeIds", input.allowedSources(), id, config);
 		checkExisting("allowedTargetMetatypeIds", input.allowedTargets(), id, config);
+		if (BuiltInMetatypes.STRUCTURING_AID.equals(base)) {
+			throw MetamodelChangeException.invalid("baseMetatypeId", "The structuring aid cannot be a base type.");
+		}
 		if (base != null) {
 			// base types have the same kind (us-036-connection-metatypes D2)
 			if (count("SELECT count(*) FROM metatypes WHERE id = ? AND is_connection = ? AND config_id IN (?, ?)", base,
@@ -253,11 +283,32 @@ public class MetatypeEditing {
 	}
 
 	/**
+	 * The composition mark (design D4 of us-135-component-hierarchy): a connection metatype of the
+	 * instance configuration, and the only one marked.
+	 */
+	private void checkComposition(Input input, UUID id, boolean instance) {
+		if (!input.connection()) {
+			throw MetamodelChangeException.invalid("isComposition", "Only a connection metatype can be the composition.");
+		}
+		if (!instance) {
+			throw MetamodelChangeException.invalid("isComposition",
+					"The composition is a metatype of the instance metamodel, not of a solution extension.");
+		}
+		UUID marked = this.composition.marked().orElse(null);
+		if (marked != null && !marked.equals(id)) {
+			throw MetamodelChangeException.invalid("isComposition", "Another connection metatype is the composition.");
+		}
+	}
+
+	/**
 	 * Each listed metatype exists in the instance or the configuration; the metatype itself may be
 	 * listed once it exists.
 	 */
 	private void checkExisting(String field, List<UUID> metatypes, UUID id, UUID config) {
 		for (UUID metatype : metatypes) {
+			if (BuiltInMetatypes.STRUCTURING_AID.equals(metatype)) {
+				throw MetamodelChangeException.invalid(field, "A structuring aid has no connections.");
+			}
 			if (!metatype.equals(id) && count("SELECT count(*) FROM metatypes WHERE id = ? AND config_id IN (?, ?)",
 					metatype, PackageImporter.INSTANCE_CONFIGURATION, config) == 0) {
 				throw MetamodelChangeException.invalid(field,

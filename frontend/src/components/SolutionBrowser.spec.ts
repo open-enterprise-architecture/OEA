@@ -64,6 +64,9 @@ function manyEntities(count: number): BrowserItem[] {
     entityId: null,
     solutionId: null,
     deltaType: null,
+    childCount: 0,
+    structuringAid: false,
+    version: 1,
   }))
 }
 

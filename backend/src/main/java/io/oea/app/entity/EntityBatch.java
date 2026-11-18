@@ -6,6 +6,7 @@ import io.oea.audit.AuditEvent;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
 import io.oea.core.entity.TypedValue;
+import io.oea.core.metamodel.BuiltInMetatypes;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -289,6 +290,11 @@ public class EntityBatch {
 	}
 
 	private Prepared prepare(int index, EntityInput input, Strategy strategy, MetatypeRules rules) {
+		if (BuiltInMetatypes.STRUCTURING_AID.equals(input.metatypeId())) {
+			// structuring aids are written by their own operation only (US-136)
+			return finished(index, ItemResult.error(index, input.externalId(), List.of(new Issue("metatypeId",
+					"METATYPE_NOT_ALLOWED", "Structuring aids are created with their own operation.")), List.of()));
+		}
 		StoredEntity existing = (input.externalId() != null)
 				? this.store.lockByExternalId(input.externalId()).orElse(null) : null;
 		Map<UUID, TypedValue> stored = Map.of();

@@ -621,7 +621,9 @@
       "sources": "Allowed sources",
       "targets": "Allowed targets",
       "endpointsHelp": "Subtypes are included. Leave empty to allow every entity type.",
-      "any": "Any entity type"
+      "any": "Any entity type",
+      "composition": "Composition",
+      "compositionHelp": "Marks the connection type that placing a component under another one creates automatically. At most one per instance."
     },
     "parallelChanges": {
       "title": "Parallel changes",
@@ -753,7 +755,34 @@
       "new": "New",
       "modified": "Modified",
       "retiring": "Retiring"
-    }
+    },
+    "moveTo": "Move to…",
+    "newAid": "New structuring aid",
+    "newAidUnder": "New structuring aid in {name}",
+    "newAidSubmit": "Create",
+    "aidName": "Name",
+    "aidDescription": "Description",
+    "aidNameRequired": "Enter a name.",
+    "aidNameInvalid": "The name must have 1 to 255 characters.",
+    "aidDescriptionInvalid": "The description must have at most 2000 characters.",
+    "aidParentInvalid": "The structuring aid cannot be placed there.",
+    "deleteAid": "Delete",
+    "deleteAidTitle": "Delete {name}",
+    "deleteAidWarning": "{count} child moves to the root level and is not deleted. | {count} children move to the root level and are not deleted.",
+    "deleteAidBlocked": "The structuring aid or one of its children has open issues and cannot be deleted.",
+    "moveToTitle": "Move {name} to…",
+    "moveToPath": "Level",
+    "moveToFilter": "Filter by name",
+    "moveToChoose": "Move here",
+    "moveToChooseName": "Move here: {name}",
+    "moveToOpen": "Show the children of {name}",
+    "rootLevel": "Root level",
+    "itemActions": "Actions for {name}",
+    "moveInvalid": "The component cannot be placed there.",
+    "moveBlocked": "The component has open issues of a solution and cannot be changed.",
+    "stale": "The component was changed meanwhile. The list is up to date now; try again.",
+    "changeFailed": "The change could not be saved.",
+    "dismiss": "Dismiss"
   },
   "portal": {
     "title": "Portal",

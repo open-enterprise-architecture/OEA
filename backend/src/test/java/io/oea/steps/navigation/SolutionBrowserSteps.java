@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -42,6 +43,11 @@ public class SolutionBrowserSteps {
 	private JsonNode counts;
 
 	private int added;
+
+	/** The size of the root level of the components before the entities were added. */
+	private int rootBefore;
+
+	private JsonNode rootItems;
 
 	// Given
 
@@ -123,6 +129,10 @@ public class SolutionBrowserSteps {
 	public void addElements(int count) throws Exception {
 		this.added = count;
 		noteCounts();
+		// the root level holds only the components without a parent, which other features may nest
+		this.rootBefore = ok(items("current-state", null, "components", 0, 1, instance().viewer())).path("page")
+			.path("totalElements")
+			.asInt();
 		String prefix = "Browser Page " + UUID.randomUUID() + " ";
 		for (int i = 0; i < count; i++) {
 			entity(prefix + i, "Browser Element", false, false);
@@ -144,7 +154,67 @@ public class SolutionBrowserSteps {
 		}
 	}
 
+	@Given("the browser component {string} with the child {string} and the structuring aid {string} holding {string}")
+	public void nested(String parent, String child, String aid, String held) throws Exception {
+		int parentId = entity(parent, "Browser Element", false, false);
+		int childId = entity(child, "Browser Element", false, false);
+		int aidId = entity(aid, "Browser Element", false, false);
+		int heldId = entity(held, "Browser Element", false, false);
+		instance().oidc().update("UPDATE entities SET parent_entity_id = " + parentId + " WHERE id = " + childId);
+		instance().oidc().update("UPDATE entities SET parent_entity_id = " + aidId + " WHERE id = " + heldId);
+		instance().oidc()
+			.update("UPDATE entities SET is_structural_grouper = true, metatype_id = 'c3f523b8-f07f-5475-9ab0-6f2ea39b537e' WHERE id = "
+					+ aidId);
+	}
+
+	@Given("the browser component {string} with the child {string} whose parent was deleted")
+	public void orphan(String parent, String child) throws Exception {
+		int parentId = entity(parent, "Browser Element", false, true);
+		int childId = entity(child, "Browser Element", false, false);
+		instance().oidc().update("UPDATE entities SET parent_entity_id = " + parentId + " WHERE id = " + childId);
+	}
+
+	@Given("the browser component {string} without a parent")
+	public void plain(String name) throws Exception {
+		entity(name, "Browser Element", false, false);
+	}
+
 	// When
+
+	@When("the viewer reads the root level of the components")
+	public void readRoot() throws Exception {
+		// the instance is shared, so the root level may have more than one page
+		ArrayNode all = JsonMapper.shared().createArrayNode();
+		for (int page = 0;; page++) {
+			JsonNode read = ok(items("current-state", null, "components", page, 200, instance().viewer()));
+			all.addAll((ArrayNode) read.path("items"));
+			if (page + 1 >= read.path("page").path("totalPages").asInt()) {
+				break;
+			}
+		}
+		this.rootItems = all;
+	}
+
+	@When("the viewer reads the category {string} of the current state with a parent")
+	public void readWithParent(String category) throws Exception {
+		this.response = instance().oidc()
+			.get(ITEMS + "?scope=current-state&category=" + category + "&parentEntityId=" + any(),
+					instance().viewer().token());
+	}
+
+	@When("the viewer reads the children of the entity {int}")
+	public void readChildren(int parent) throws Exception {
+		this.response = instance().oidc()
+			.get(ITEMS + "?scope=current-state&category=components&parentEntityId=" + parent,
+					instance().viewer().token());
+	}
+
+	@When("the viewer tries to place {string} under itself")
+	public void viewerPlaces(String name) throws Exception {
+		int id = ENTITIES.get(name);
+		this.response = instance().send("PUT", "/api/v1/entities/" + id + "/parent", "{\"parentEntityId\": " + id + "}",
+				instance().viewer(), Map.of("If-Match", "\"1\""));
+	}
 
 	@When("the viewer reads the browser")
 	public void read() throws Exception {
@@ -182,7 +252,7 @@ public class SolutionBrowserSteps {
 		JsonNode first = ok(this.response);
 		assertThat(first.path("items").size()).isEqualTo(size);
 		int total = first.path("page").path("totalElements").asInt();
-		assertThat(total - this.counts.path("components").asInt()).isEqualTo(this.added);
+		assertThat(total - this.rootBefore).isEqualTo(this.added);
 		int lastPage = (total - 1) / size;
 		this.response = items("current-state", null, "components", lastPage, size, instance().viewer());
 		assertThat(ok(this.response).path("items").size()).isEqualTo(total - size * lastPage);
@@ -258,6 +328,27 @@ public class SolutionBrowserSteps {
 		assertThat(this.response.statusCode()).isEqualTo(200);
 	}
 
+	@Then("the root level lists {string} with {int} child and {string} as a structuring aid but not {string}")
+	public void rootLevel(String parent, int children, String aid, String nested) throws Exception {
+		JsonNode items = this.rootItems;
+		assertThat(find(items, parent).path("childCount").asInt()).isEqualTo(children);
+		assertThat(find(items, aid).path("structuringAid").asBoolean()).isTrue();
+		assertThat(names(items)).doesNotContain(nested);
+	}
+
+	@Then("the root level lists {string}")
+	public void rootLists(String name) throws Exception {
+		assertThat(names(this.rootItems)).contains(name);
+	}
+
+	@Then("the children of {string} are {string}")
+	public void children(String parent, String child) throws Exception {
+		HttpResponse<String> read = instance().oidc()
+			.get(ITEMS + "?scope=current-state&category=components&parentEntityId=" + ENTITIES.get(parent),
+					instance().viewer().token());
+		assertThat(names(ok(read).path("items"))).containsExactly(child);
+	}
+
 	@Then("the browser answer is {int}")
 	public void answer(int status) {
 		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(status);
@@ -281,6 +372,10 @@ public class SolutionBrowserSteps {
 				INSERT INTO plateaus (id, name, status, succeeds, basis, valid_from, created_by)
 				SELECT gen_random_uuid(), '%s', '%s', '%s', 'catalog', DATE '%s', min(id) FROM persons
 				RETURNING id::text""".formatted(name, status, PLATEAUS.get("baseline"), validFrom)));
+	}
+
+	private static int any() throws Exception {
+		return Integer.parseInt(instance().oidc().single("SELECT min(id)::text FROM entities"));
 	}
 
 	private static String metatype(String name, boolean connection) throws Exception {

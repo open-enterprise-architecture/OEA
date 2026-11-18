@@ -4,9 +4,9 @@ title: Implicit Composition Connection When Nesting Instantiated Components
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -89,8 +89,13 @@ The hierarchy of components has semantic meaning in ArchiMate: a parent-child re
 
 - **Prerequisites**: ADR-021; REQ-141; `entity` BO with `parentEntityId`, `isStructuralGrouper`, `autoCreated`
 
+## Implementation
+
+- Realized by OpenSpec change `us-135-component-hierarchy` (owner decision 2026-11-18): the connection is a connection entity of the connection metatype marked as composition (`isComposition`, at most one per instance; the starter package 1.3.0 brings "Composition"), not an entity of a type `composition`. Without a marked metatype, or for a pair it does not allow, only the hierarchy is stored and the response names the reason. Changing the connection by hand (step 5) waits for connection editing.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; derived from ADR-021 |
+| 0.2.0 | 2026-11-18 | fullstack-engineer | Implementation note and realignment (change `us-135-component-hierarchy`) |

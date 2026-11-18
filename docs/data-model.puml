@@ -834,6 +834,9 @@ package "Metamodel" #E8F5E9 {
     + abbreviation          : TEXT
     .. max. 10 characters; e.g. 'AC', 'TC' ..
     + is_connection         : BOOLEAN     {NN} DEFAULT false
+    + is_composition        : BOOLEAN     {NN} DEFAULT false
+    .. V42, US-135: CHECK NOT is_composition OR is_connection; UNIQUE INDEX metatypes_one_composition ((true)) WHERE is_composition ..
+    .. the built-in metatype "Structuring aid" (scope built-in, id c3f523b8-f07f-5475-9ab0-6f2ea39b537e) is inserted by V42 ..
     + architecture_layer_id : TEXT
     .. soft ref in config.architectureLayers ..
     + sort_order            : INTEGER     {NN} DEFAULT 0
@@ -1225,9 +1228,11 @@ package "Repository" #FCE4EC {
     + version          : INTEGER          {NN} DEFAULT 1
     .. optimistic lock counter (ADR-016) ..
     + parent_entity_id : INTEGER          {FK→entities.id}
-    .. only for is_connection=false; ADR-021 ..
+    .. only for is_connection=false; ADR-021; set by setEntityParent (a version, history field parent_entity_id, V42); index entities_parent ..
     + is_structural_grouper : BOOLEAN     {NN} DEFAULT false
+    .. true exactly for the built-in metatype "Structuring aid" (V42, US-136) ..
     + auto_created     : BOOLEAN          {NN} DEFAULT false
+    .. the composition connection created with the parent (US-135, REQ-142) ..
     + created_at       : TIMESTAMPTZ      {NN} DEFAULT NOW()
     + created_by       : BIGINT           {NN} {FK→persons.id}
     + updated_at       : TIMESTAMPTZ
@@ -1337,6 +1342,7 @@ package "Repository" #FCE4EC {
     + field_name     : TEXT               {NN}
     .. enum: name | description | is_logical | metatype_id ..
     .. | source_entity_id | target_entity_id ..
+    .. | parent_entity_id (V42, US-135; ID as text, a restore does not restore it) ..
     + old_value      : TEXT
     .. serialized as text; null for newly created fields ..
     + new_value      : TEXT

@@ -10,13 +10,19 @@ import io.oea.api.generated.model.BatchWriteResponseSummary;
 import io.oea.api.generated.model.ConnectionDetail;
 import io.oea.api.generated.model.ConnectionEndpoint;
 import io.oea.api.generated.model.ConnectionWrite;
+import io.oea.api.generated.model.EntityParentResult;
+import io.oea.api.generated.model.EntityParentResultComposition;
+import io.oea.api.generated.model.EntityParentUpdate;
 import io.oea.api.generated.model.EntityWrite;
+import io.oea.api.generated.model.StructuringAid;
+import io.oea.api.generated.model.StructuringAidCreate;
 import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.app.entity.ConnectionInput;
 import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.entity.EntityBatch;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.Issue;
+import io.oea.app.hierarchy.EntityHierarchy;
 import io.oea.app.metamodel.PropertyVisibility;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.audit.AuditEvent;
@@ -43,9 +49,41 @@ public class EntityBatchController implements EntitiesWriteApi {
 
 	private final PropertyVisibility visibility;
 
-	public EntityBatchController(EntityBatch batch, PropertyVisibility visibility) {
+	private final EntityHierarchy hierarchy;
+
+	public EntityBatchController(EntityBatch batch, PropertyVisibility visibility, EntityHierarchy hierarchy) {
 		this.batch = batch;
 		this.visibility = visibility;
+		this.hierarchy = hierarchy;
+	}
+
+	/** The parent of an element entity (US-135, design D2 and D3 of us-135-component-hierarchy). */
+	@Override
+	public ResponseEntity<EntityParentResult> setEntityParent(Integer id, String ifMatch,
+			EntityParentUpdate request) {
+		EntityHierarchy.ParentResult result = this.hierarchy.setParent(principal(), id, request.getParentEntityId(),
+				EntityHistoryController.expectedVersion(ifMatch));
+		EntityHierarchy.Composition composition = result.composition();
+		return ResponseEntity.ok(new EntityParentResult(result.entityId(), result.version(), result.parentEntityId(),
+				new EntityParentResultComposition(composition.created(), composition.connectionId(),
+						EntityParentResultComposition.ReasonEnum.fromValue(composition.reason())),
+				result.removedConnectionId()));
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid structuring aid",
+			detail = "Some fields do not meet the contract.")
+	public ResponseEntity<StructuringAid> createStructuringAid(StructuringAidCreate request) {
+		EntityHierarchy.StructuringAid aid = this.hierarchy.createStructuringAid(principal(), request.getName(),
+				request.getDescription(), request.getParentEntityId());
+		return ResponseEntity.created(java.net.URI.create("/api/v1/structuring-aids/" + aid.id()))
+			.body(new StructuringAid(aid.id(), aid.name(), aid.description(), aid.parentEntityId(), aid.version()));
+	}
+
+	@Override
+	public ResponseEntity<Void> deleteStructuringAid(Integer id, String ifMatch) {
+		this.hierarchy.deleteStructuringAid(principal(), id, EntityHistoryController.expectedVersion(ifMatch));
+		return ResponseEntity.noContent().build();
 	}
 
 	@Override

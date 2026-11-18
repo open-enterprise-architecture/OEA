@@ -15,15 +15,15 @@ Feature: Starter packages and the metatype catalog
   @REQ-112 @AC1
   Scenario: Package list of a new instance
     When the metamodel administrator lists the starter packages
-    Then "oea-starter-togaf-classic" is listed with 7 metatypes, among them "Application Component", "Data Object" and "Technology Component"
+    Then "oea-starter-togaf-classic" is listed with 8 metatypes, among them "Application Component", "Data Object" and "Technology Component"
     And "oea-starter-togaf-classic" is listed as not imported
 
   @US-033 @AC1 @ADR-005
   Scenario: Starter configuration imported
     When the metamodel administrator imports the starter package "oea-starter-togaf-classic"
-    Then 7 metatypes exist with scope "imported", each with the property "Status" and the values "planned, active, phasing-out, retired"
+    Then 8 metatypes exist with scope "imported", the 7 element metatypes each with the property "Status" and the values "planned, active, phasing-out, retired"
     And "oea-starter-togaf-classic" is listed as imported
-    And the audit trail contains the starter import with 7 metatype imports under one batch ID
+    And the audit trail contains the starter import with 8 metatype imports under one batch ID
 
   Scenario: Unknown starter package
     When the metamodel administrator imports the starter package "does-not-exist"
@@ -33,7 +33,7 @@ Feature: Starter packages and the metatype catalog
   Scenario: Metatypes after the starter import
     Given the starter package "oea-starter-togaf-classic" has been imported
     When the viewer lists the metatypes
-    Then 7 metatypes are returned with scope "imported" and origin "oea-starter-togaf-classic"
+    Then 8 metatypes are returned with scope "imported" and origin "oea-starter-togaf-classic"
     And "Application Component" maps the property "Status" with 4 values
 
   @ADR-032

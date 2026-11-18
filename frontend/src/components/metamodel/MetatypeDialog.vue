@@ -17,7 +17,7 @@ const props = defineProps<{ metatype?: MetatypeDetail; fetchFn?: typeof fetch }>
 const emit = defineEmits<{ saved: [id: string]; cancel: [] }>()
 const { t } = useI18n()
 
-type Field = 'name' | 'abbreviation' | 'sortOrder' | 'baseMetatypeId' | 'allowedSourceMetatypeIds' | 'allowedTargetMetatypeIds'
+type Field = 'name' | 'isComposition' | 'abbreviation' | 'sortOrder' | 'baseMetatypeId' | 'allowedSourceMetatypeIds' | 'allowedTargetMetatypeIds'
 
 const NONE = '-'
 
@@ -27,6 +27,7 @@ const form = reactive({
   sortOrder: props.metatype?.sortOrder ?? 0,
   baseMetatypeId: props.metatype?.baseMetatypeId ?? NONE,
   connection: props.metatype?.isConnection ?? false,
+  composition: props.metatype?.isComposition ?? false,
   allowedSources: allowed('source'),
   allowedTargets: allowed('target'),
 })
@@ -91,6 +92,8 @@ async function submit(version = props.metatype?.version) {
     abbreviation: form.abbreviation.trim(),
     sortOrder: Number(form.sortOrder) || 0,
     isConnection: form.connection,
+    // the connection metatype of the automatic connection of the hierarchy (US-135, REQ-142)
+    isComposition: form.connection && form.composition,
     allowedSourceMetatypeIds: form.connection ? form.allowedSources : [],
     allowedTargetMetatypeIds: form.connection ? form.allowedTargets : [],
     configId: INSTANCE_CONFIGURATION,
@@ -177,6 +180,9 @@ async function submit(version = props.metatype?.version) {
         :label="t('metamodel.connection.toggle')"
         @update:model-value="form.baseMetatypeId = NONE"
       />
+    </UFormField>
+    <UFormField v-if="form.connection" name="isComposition" :error="errors.isComposition" :help="t('metamodel.connection.compositionHelp')">
+      <USwitch v-model="form.composition" data-testid="metatype-composition" :label="t('metamodel.connection.composition')" />
     </UFormField>
     <template v-if="form.connection">
       <UFormField

@@ -436,7 +436,8 @@ public class MetamodelController implements MetamodelApi {
 		return new MetatypeEditing.Input(write.getName(), write.getAbbreviation(),
 				Boolean.TRUE.equals(write.getIsConnection()), write.getArchitectureLayerId(),
 				Objects.requireNonNullElse(write.getSortOrder(), 0), write.getConfigId(), write.getBaseMetatypeId(),
-				write.getAllowedSourceMetatypeIds(), write.getAllowedTargetMetatypeIds());
+				write.getAllowedSourceMetatypeIds(), write.getAllowedTargetMetatypeIds(),
+				Boolean.TRUE.equals(write.getIsComposition()));
 	}
 
 	private static PropertyDefinitions.Input propertyInput(PropertyDefinitionWrite write) {
@@ -464,6 +465,7 @@ public class MetamodelController implements MetamodelApi {
 		return new MetatypeDetail(metatype.id(), metatype.name(),
 				(metatype.abbreviation() != null) ? metatype.abbreviation() : "")
 			.isConnection(metatype.connection())
+			.isComposition(metatype.composition())
 			.architectureLayer(metatype.architectureLayerId())
 			.sortOrder(metatype.sortOrder())
 			.scope(MetamodelScope.fromValue(metatype.scope()))

@@ -2,7 +2,7 @@
 title: Navigation tree
 covers:
   screens: [SCR-055]
-  stories: [US-054, US-094, US-095, US-096, US-097, US-132, US-133]
+  stories: [US-054, US-094, US-095, US-096, US-097, US-132, US-133, US-135, US-136]
 ---
 
 # Navigation tree
@@ -35,7 +35,26 @@ Each solution has the category *Components*: its changes to the repository, mark
 - **Open an object:** an entity opens its change history, a catalog its page, and a change of a solution (and the link symbol next to a solution) the solution page.
 - **Metatype:** a small label next to an entity shows the abbreviation of its metatype, if it has one.
 
-The browser only shows; arrange the tree in the tab *Navigation tree*. Functional and solution building blocks and diagrams follow with their content.
+*Components* of *Current state* lists the root level: the entities without a parent. An entity with children shows an arrow and expands to them, by name, 50 at a time. See [Arrange components](#arrange-components) to place a component under another one. Components of a solution stay a flat list.
+
+Arrange the folders of the tree in the tab *Navigation tree*. Functional and solution building blocks and diagrams follow with their content.
+
+## Arrange components {#arrange-components}
+
+Real architectures are hierarchical: the module *Finance module* belongs to the system *SAP S/4HANA*. In *Current state > Components* you place a component under another one. This changes the entity itself in the catalog, not only the sidebar: it writes a new version of the child with the field *Parent* in its [change history](./change-history), and it needs the permission `entity:write` (roles `enterprise-architect`, `solution-architect`). Everybody else sees the hierarchy but cannot change it.
+
+- **Drag and drop:** drag a component onto another component, or onto *Components* to place it at the root level. A target that cannot take it (the component itself, one of its children shown in the sidebar) shows *Cannot be dropped here*, and nothing is sent.
+- **Without a mouse:** the button *…* next to a component offers *Move to…*. The dialog lists the components level by level; use the arrow to see the children of a component, the filter to narrow the loaded names, *Root level* for the root level, and *Move here* to choose the target.
+- **Rules:** the parent is another component that is not deleted. A cycle (a component under its own child) and more than 10 levels are refused with *The component cannot be placed there.* A component with an open issue of a solution cannot be changed. If someone else changed the component meanwhile, the sidebar says so and reads the list again; try again then.
+
+If the metamodel marks a [composition connection type](../administration/metamodel-editing#composition), placing a component under another one also creates a connection of this type from the parent to the child, when the type allows both entity types. Moving or detaching the component deletes the connection created this way; connections you wrote yourself stay. *Connections* counts one more connection.
+
+### Structuring aids {#structuring-aids}
+
+A structuring aid is a folder in the hierarchy without meaning: it groups components for navigation, for example *Finance landscape*, without adding a connection to the model. It has a folder symbol, no properties and no connections, and it is no part of a solution.
+
+- **New structuring aid:** the button next to *Components* creates one at the root level; the entry *New structuring aid* of a component creates one below it. Enter a name of 1 to 255 characters and, optionally, a description of up to 2000 characters. This needs `entity:write`.
+- **Delete:** the entry *Delete* of a structuring aid needs `entity:write` and `entity:delete` (role `enterprise-architect`). The dialog first says how many children move to the root level; they are not deleted. A structuring aid with a child that has an open issue cannot be deleted.
 
 ## Folders
 
