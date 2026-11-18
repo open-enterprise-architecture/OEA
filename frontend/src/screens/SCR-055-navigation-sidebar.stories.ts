@@ -5,20 +5,40 @@ import AppHeader from '../components/AppHeader.vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import NavigationTree from '../components/NavigationTree.vue'
 import type { Me } from '../api/session'
-import { clearTree } from '../navigation/store'
+import { clearTree, sidebarTab, type SidebarTab } from '../navigation/store'
 import CatalogPage from '../pages/CatalogPage.vue'
 import { session } from '../session/store'
 import { APPLICATIONS, CATALOG, catalogApi } from '../test/catalogs'
-import { APPLICATIONS_ID, COMPLIANCE_ID, LANDSCAPE_ID, ME_TREE_MANAGER, ME_TREE_READER, navigationApi, ROOT_ID, TREE_WITH_ENTITIES } from '../test/navigation'
+import {
+  APPLICATIONS_ID,
+  BROWSER,
+  BROWSER_ITEMS,
+  BROWSER_WITHOUT_PLATEAUS,
+  COMPLIANCE_ID,
+  LANDSCAPE_ID,
+  ME_TREE_MANAGER,
+  ME_TREE_READER,
+  navigationApi,
+  ROOT_ID,
+  SOLUTIONS,
+  TREE_WITH_ENTITIES,
+} from '../test/navigation'
 
 // SCR-055 Navigation sidebar (UC-06, UC-13, US-054): the navigation tree beside every page of the
 // web portal, here beside the catalog "Application Inventory" (docs/screens/SCREENS.md). The first
 // story is the screen image. Entities and solutions are entries too, a deleted entity is marked, and
 // folders and entries move by drag and drop and by "Move up", "Move down" and "Move to…"
-// (US-095, US-096; design D5 of us-095-navigation-tree-items).
+// (US-095, US-096; design D5 of us-095-navigation-tree-items). The sidebar has two tabs (US-132): "Browser" is
+// active when it opens and shows "Current state", the plateaus and the projects with their solutions; the
+// stories of the tree choose the tab "Navigation tree" first. The first story is the screen image.
 
 /** The shell with header, sidebar and the catalog page, for the person `me`. */
-function shell(me: unknown, expanded: string[] = [ROOT_ID, LANDSCAPE_ID], tree = undefined as typeof TREE_WITH_ENTITIES | undefined): Story {
+function shell(
+  me: unknown,
+  expanded: string[] = [ROOT_ID, LANDSCAPE_ID],
+  tree = undefined as typeof TREE_WITH_ENTITIES | undefined,
+  extra: { tab?: SidebarTab; browser?: typeof BROWSER; browserItems?: typeof BROWSER_ITEMS } = {},
+): Story {
   return {
     render: () => ({
       components: { AppHeader, AppSidebar, CatalogPage },
@@ -26,8 +46,12 @@ function shell(me: unknown, expanded: string[] = [ROOT_ID, LANDSCAPE_ID], tree =
         session.me = me as Me
         session.loaded = true
         clearTree()
+        sidebarTab.value = extra.tab ?? 'tree'
         sessionStorage.setItem('oea.navigation.expanded', JSON.stringify(expanded))
-        return { fetchFn: navigationApi({ tree, fallback: catalogApi(APPLICATIONS, { me }) }), id: CATALOG.id }
+        return {
+          fetchFn: navigationApi({ tree, browser: extra.browser, browserItems: extra.browserItems, fallback: catalogApi(APPLICATIONS, { me }) }),
+          id: CATALOG.id,
+        }
       },
       template: `
         <AppHeader :fetch-fn="fetchFn" />
@@ -46,6 +70,72 @@ const meta: Meta<typeof AppSidebar> = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+export const BrowserTab: Story = {
+  ...shell(ME_TREE_MANAGER, undefined, undefined, { tab: 'browser' }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('tab', { name: 'Browser' })).toHaveAttribute('aria-selected', 'true')
+    const top = (await canvas.findAllByTestId('browser-label')).map((label) => label.textContent?.replace(/\s+/g, ' ').trim())
+    await expect(top).toEqual(['Current state', '2027 (1)', 'TO-BE 2030 (0)', 'Projects (1)'])
+    await userEvent.click(canvas.getByRole('button', { name: 'Expand Current state' }))
+    await userEvent.click(await canvas.findByRole('button', { name: 'Expand Components' }))
+    await expect(await canvas.findByRole('link', { name: 'SAP ERP' })).toHaveAttribute('href', '/entities/9101/history')
+    await userEvent.click(canvas.getByRole('button', { name: 'Expand 2027' }))
+    await userEvent.click(await canvas.findByRole('button', { name: 'Expand Cloud Migration' }))
+    // the Components of the current state are expanded, so this is the one of the solution
+    await userEvent.click(canvas.getByRole('button', { name: 'Expand Components' }))
+    await expect(await canvas.findByText('CRM Cloud')).toBeVisible()
+    await expect(canvas.getByText('Retiring')).toBeVisible()
+  },
+}
+
+export const BrowserWithoutPlateaus: Story = {
+  ...shell(ME_TREE_READER, undefined, undefined, { tab: 'browser', browser: BROWSER_WITHOUT_PLATEAUS }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const top = (await canvas.findAllByTestId('browser-label')).map((label) => label.textContent?.replace(/\s+/g, ' ').trim())
+    await expect(top).toEqual(['Current state', 'Projects (0)'])
+    await expect(canvas.getByRole('button', { name: /^Projects/ })).toHaveAttribute('data-empty', 'true')
+  },
+}
+
+export const BrowserEmptyCategory: Story = {
+  ...shell(ME_TREE_READER, undefined, undefined, { tab: 'browser', browser: { ...BROWSER, currentState: { components: 3, connections: 0, catalogs: 2 } } }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Expand Current state' }))
+    const connections = await canvas.findByRole('button', { name: 'Connections (0)' })
+    await expect(connections).toHaveAttribute('data-empty', 'true')
+    await expect(canvas.getByRole('button', { name: 'Components (3)' })).not.toHaveAttribute('data-empty')
+  },
+}
+
+const MARKUP = '<img src=x onerror=alert(1)>'
+
+export const BrowserNameWithMarkup: Story = {
+  ...shell(ME_TREE_READER, undefined, undefined, {
+    tab: 'browser',
+    browser: { ...BROWSER, projects: [{ id: SOLUTIONS[1]!.id, name: MARKUP, status: 'draft', components: 0 }] },
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Expand Projects' }))
+    await expect(await canvas.findByRole('button', { name: MARKUP })).toBeVisible()
+    await expect(canvasElement.querySelector('img')).toBeNull()
+  },
+}
+
+export const SwitchToNavigationTree: Story = {
+  ...shell(ME_TREE_MANAGER, undefined, undefined, { tab: 'browser' }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('tab', { name: 'Navigation tree' }))
+    await expect(await canvas.findByText('IT Landscape')).toBeVisible()
+    await expect(canvas.getByRole('tab', { name: 'Navigation tree' })).toHaveAttribute('aria-selected', 'true')
+    await expect(canvas.queryByTestId('solution-browser')).toBeNull()
+  },
+}
 
 export const Manager: Story = {
   ...shell(ME_TREE_MANAGER, [ROOT_ID, LANDSCAPE_ID], TREE_WITH_ENTITIES),

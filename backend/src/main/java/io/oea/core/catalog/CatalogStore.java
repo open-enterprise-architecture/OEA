@@ -68,6 +68,22 @@ public class CatalogStore {
 				personId);
 	}
 
+	/** A catalog of the solution browser. */
+	public record BrowseRow(UUID id, String name) {
+	}
+
+	/** The number of catalogs the person sees (design D2 of us-132-solution-browser). */
+	public int countVisible(long personId) {
+		return this.jdbc.queryForObject("SELECT count(*) FROM catalogs c WHERE " + VISIBLE, Integer.class, personId);
+	}
+
+	/** One page of the catalogs the person sees, by name regardless of case, then by ID. */
+	public List<BrowseRow> pageVisible(long personId, int limit, long offset) {
+		return this.jdbc.query("SELECT c.id, c.name FROM catalogs c WHERE " + VISIBLE
+				+ " ORDER BY lower(c.name), c.id LIMIT ? OFFSET ?",
+				(rs, row) -> new BrowseRow(rs.getObject(1, UUID.class), rs.getString(2)), personId, limit, offset);
+	}
+
 	/** The catalogs with scope {@code instance}, ordered by name (portal, s9-portal-catalogs D1). */
 	public List<StoredCatalog> shared() {
 		return this.jdbc.query(SELECT + " WHERE c.scope = 'instance' ORDER BY lower(c.name), c.id",

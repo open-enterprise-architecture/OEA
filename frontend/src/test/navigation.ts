@@ -1,5 +1,5 @@
 /** Test and story data for the navigation tree (US-054, SCR-055, SCR-020). */
-import type { TreeNode, TreeNodeItem } from '../api/navigation'
+import type { Browser, BrowserItem, TreeNode, TreeNodeItem } from '../api/navigation'
 import { CATALOGS } from './catalogs'
 
 function me(displayName: string, permissions: string[]) {
@@ -82,6 +82,58 @@ export const TREE_WITH_ENTITIES: TreeNode = folder(ROOT_ID, 'Repository', null, 
 
 export const EMPTY_TREE: TreeNode = folder(ROOT_ID, 'Repository', null)
 
+export const PLATEAU_2027_ID = 'b0000000-0000-4000-8000-000000000001'
+export const PLATEAU_2030_ID = 'b0000000-0000-4000-8000-000000000002'
+export const BROWSER_SOLUTION_ID = SOLUTIONS[0]!.id
+
+/**
+ * The top level of the solution browser (US-132): the transition plateau "2027" with the solution "Cloud Migration"
+ * (three deltas), the empty target plateau "TO-BE 2030", and the project solution "ERP Consolidation" without deltas.
+ */
+export const BROWSER: Browser = {
+  currentState: { components: 3, connections: 1, catalogs: 2 },
+  plateaus: [
+    { id: PLATEAU_2027_ID, name: '2027', status: 'transition', solutions: [{ id: SOLUTIONS[0]!.id, name: 'Cloud Migration', status: 'draft', components: 3 }] },
+    { id: PLATEAU_2030_ID, name: 'TO-BE 2030', status: 'target', solutions: [] },
+  ],
+  projects: [{ id: SOLUTIONS[1]!.id, name: 'ERP Consolidation', status: 'proposed', components: 0 }],
+}
+
+/** The top level without plateau mode: no plateaus, an empty "Projects" and nothing in the repository yet. */
+export const BROWSER_WITHOUT_PLATEAUS: Browser = {
+  currentState: { components: 3, connections: 0, catalogs: 2 },
+  plateaus: [],
+  projects: [],
+}
+
+function entityRow(entity: (typeof ENTITIES)[number], abbreviation: string | null = 'APP'): BrowserItem {
+  return { kind: 'entity', id: String(entity.id), name: entity.name, metatypeAbbreviation: abbreviation, entityId: null, solutionId: null, deltaType: null }
+}
+
+function deltaRow(id: string, name: string, deltaType: 'new' | 'modified' | 'retiring', entityId: number | null): BrowserItem {
+  return { kind: 'delta', id, name, metatypeAbbreviation: 'APP', entityId, solutionId: BROWSER_SOLUTION_ID, deltaType }
+}
+
+/** The objects of the categories of BROWSER, by category key (`current-state:components`, `solution:<id>:components`), in the order of the backend. */
+export const BROWSER_ITEMS: Record<string, BrowserItem[]> = {
+  'current-state:components': [entityRow(ENTITIES[0]!), entityRow(ENTITIES[1]!), { ...entityRow(ENTITIES[1]!), id: '9105', name: 'Zendesk', metatypeAbbreviation: null }],
+  'current-state:connections': [entityRow(ENTITIES[3]!, null)],
+  'current-state:catalogs': CATALOGS.slice(0, 2).map((catalog) => ({
+    kind: 'catalog' as const,
+    id: catalog.id,
+    name: catalog.name,
+    metatypeAbbreviation: null,
+    entityId: null,
+    solutionId: null,
+    deltaType: null,
+  })),
+  [`solution:${BROWSER_SOLUTION_ID}:components`]: [
+    deltaRow('c1000000-0000-4000-8000-000000000001', 'CRM Cloud', 'new', null),
+    deltaRow('c1000000-0000-4000-8000-000000000002', 'Legacy CRM', 'retiring', 9103),
+    deltaRow('c1000000-0000-4000-8000-000000000003', 'SAP ERP', 'modified', 9101),
+  ],
+}
+
 export interface TreeRequest {
   path: string
   method: string
@@ -95,7 +147,19 @@ export interface TreeRequest {
  * Other paths go to `fallback`.
  */
 export function navigationApi(
-  options: { tree?: TreeNode; recorded?: TreeRequest[]; fallback?: typeof fetch; failing?: boolean; rejectMoves?: 404 | 422 } = {},
+  options: {
+    tree?: TreeNode
+    recorded?: TreeRequest[]
+    fallback?: typeof fetch
+    failing?: boolean
+    rejectMoves?: 404 | 422
+    /** the top level of the browser, default BROWSER */
+    browser?: Browser
+    /** the objects of the categories, default BROWSER_ITEMS */
+    browserItems?: Record<string, BrowserItem[]>
+    /** the browser answers 500 */
+    failingBrowser?: boolean
+  } = {},
 ): typeof fetch {
   const tree = structuredClone(options.tree ?? TREE)
   let count = 0
@@ -120,6 +184,26 @@ export function navigationApi(
     const method = init?.method ?? 'GET'
     const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as Record<string, unknown>) : undefined
     const path = url.pathname
+    if (path === '/api/v1/views/browser' && method === 'GET') {
+      options.recorded?.push({ path, method, body })
+      return options.failingBrowser ? json({ type: 'urn:oea:problem:internal', status: 500 }, 500) : json(options.browser ?? BROWSER)
+    }
+    if (path === '/api/v1/views/browser/items' && method === 'GET') {
+      options.recorded?.push({ path: `${path}${url.search}`, method, body })
+      const scope = url.searchParams.get('scope')
+      const category = url.searchParams.get('category')
+      const page = Number(url.searchParams.get('page') ?? 0)
+      const pageSize = Number(url.searchParams.get('pageSize') ?? 50)
+      if (options.failingBrowser || !scope || !category || !(pageSize >= 1 && pageSize <= 200) || !(page >= 0)) {
+        return options.failingBrowser ? json({ type: 'urn:oea:problem:internal', status: 500 }, 500) : json({ type: 'urn:oea:problem:validation-failed', status: 400 }, 400)
+      }
+      const key = scope === 'solution' ? `solution:${url.searchParams.get('solutionId')}:${category}` : `current-state:${category}`
+      const all = (options.browserItems ?? BROWSER_ITEMS)[key] ?? []
+      return json({
+        items: all.slice(page * pageSize, (page + 1) * pageSize),
+        page: { page, pageSize, totalElements: all.length, totalPages: Math.ceil(all.length / pageSize) },
+      })
+    }
     if (path === '/api/v1/views/explorer' || path.startsWith('/api/v1/tree-nodes')) {
       options.recorded?.push({ path, method, body })
     }

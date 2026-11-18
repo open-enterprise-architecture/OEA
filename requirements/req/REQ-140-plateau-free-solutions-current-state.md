@@ -4,9 +4,9 @@ title: Plateau-Free Solutions Visible Only in the Current State Node
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -76,8 +76,13 @@ The "Current State" is the aggregated overall state of the architecture — rega
 
 - **Prerequisites**: REQ-138; ADR-020; Solution BO (BR-01: both IDs either set or null)
 
+## Implementation
+
+- Realigned by OpenSpec change `us-132-solution-browser` (owner decision 2026-11-18): active project solutions (status neither `implemented` nor `archived`) appear in their own group "Projects" after the plateaus, instead of being invisible until implemented; no solution is a top-level node of its own. A solution that went live (`implemented`) leaves the browser and its entities count under "Current state" (AC1, AC2). The status `in-progress` is listed, so AC3 (not visible) no longer applies.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-18 | fullstack-engineer | Implementation note and realignment (change `us-132-solution-browser`) |

@@ -2,8 +2,9 @@
 
 **ID**: US-133
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-132-solution-browser` – AC1 and AC2 for the categories that exist: "Current state" has Components, Connections and Catalogs, a solution has Components (its deltas), each with its count and greyed out when empty. AC3 and the categories Functional Building Blocks, Solution Building Blocks and Diagrams follow with the continuum (S20) and the diagrams (owner decision 2026-11-18)
 
 ## Story
 

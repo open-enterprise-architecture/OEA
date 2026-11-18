@@ -1442,6 +1442,81 @@ components:
           items: { $ref: '#/components/schemas/TreeNode' }
           description: Recursive child nodes
 
+    Browser:
+      type: object
+      description: |
+        The top level of the solution browser (US-132, REQ-138, REQ-140): the counts of the
+        current state, the plateaus of the transition and target stage with their active
+        solutions, and the active project solutions.
+      required: [currentState, plateaus, projects]
+      properties:
+        currentState:
+          $ref: '#/components/schemas/BrowserCurrentState'
+        plateaus:
+          type: array
+          items: { $ref: '#/components/schemas/BrowserPlateau' }
+          description: Plateaus with status `transition` or `target` by `validFrom`, then by name
+        projects:
+          type: array
+          items: { $ref: '#/components/schemas/BrowserSolution' }
+          description: Active project solutions by name, case-insensitively
+
+    BrowserCurrentState:
+      type: object
+      required: [components, connections, catalogs]
+      properties:
+        components:  { type: integer, minimum: 0, description: Element entities that are not deleted }
+        connections: { type: integer, minimum: 0, description: Connection entities that are not deleted }
+        catalogs:    { type: integer, minimum: 0, description: Instance catalogs and the caller's own personal catalogs }
+
+    BrowserPlateau:
+      type: object
+      required: [id, name, status, solutions]
+      properties:
+        id:        { type: string, format: uuid }
+        name:      { type: string }
+        status:    { $ref: '#/components/schemas/PlateauStatus' }
+        solutions:
+          type: array
+          items: { $ref: '#/components/schemas/BrowserSolution' }
+          description: Active solutions with this plateau as target, by name, case-insensitively
+
+    BrowserSolution:
+      type: object
+      required: [id, name, status, components]
+      properties:
+        id:         { type: string, format: uuid }
+        name:       { type: string }
+        status:     { $ref: '#/components/schemas/SolutionStatus' }
+        components: { type: integer, minimum: 0, description: Number of the deltas of the solution }
+
+    BrowserItemPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/BrowserItem' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    BrowserItem:
+      type: object
+      description: An element entity, a connection entity, a catalog or a delta of a solution
+      required: [kind, id, name, metatypeAbbreviation, entityId, solutionId, deltaType]
+      properties:
+        kind:
+          type: string
+          enum: [entity, catalog, delta]
+        id:   { type: string, description: "Entity ID, catalog UUID or delta UUID" }
+        name: { type: string }
+        metatypeAbbreviation: { type: [string, 'null'], description: "Entities and deltas; null where the metatype has no abbreviation" }
+        entityId:   { type: [integer, 'null'], description: "Deltas with an entity (`modified`, `retiring`, and `new` after the go-live)" }
+        solutionId: { type: [string, 'null'], format: uuid, description: Deltas only }
+        deltaType:
+          oneOf:
+            - { $ref: '#/components/schemas/SolutionDeltaType' }
+            - { type: 'null' }
+
     TreeNodeCreate:
       type: object
       description: A new folder under an existing folder (REQ-094, tree-node BR-01)
@@ -6811,6 +6886,89 @@ paths:
               schema: { $ref: '#/components/schemas/TreeNode' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /views/browser:
+    get:
+      operationId: getBrowserView
+      summary: Solution browser, top level (US-132, US-133, SCR-055)
+      description: |
+        The top level of the solution browser (REQ-138, REQ-140): the counts of the current state,
+        the plateaus with status `transition` or `target` in the order of the plateau overview
+        (`validFrom`, then name; the baseline and realized plateaus have no node), each with its
+        active solutions, and the active project solutions. Active means a status other than
+        `implemented` and `archived`. Solutions come sorted by name, case-insensitively. The
+        counts of the current state are the element entities and connection entities that are not
+        deleted and the catalogs the caller sees (instance catalogs and the caller's own personal
+        ones); the count of a solution is the number of its deltas. The categories themselves are
+        read with `listBrowserItems`. Read only, not audited.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      responses:
+        '200':
+          description: The top level of the browser
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Browser' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /views/browser/items:
+    get:
+      operationId: listBrowserItems
+      summary: Contents of a category of the solution browser (US-132, US-133, SCR-055)
+      description: |
+        One page of one category of the browser, ordered by name (case-insensitive), then by ID.
+        `scope` `current-state` takes `solutionId` never and the categories `components` (element
+        entities that are not deleted), `connections` (connection entities that are not deleted)
+        and `catalogs` (the catalogs the caller sees); `scope` `solution` needs `solutionId` and
+        has the category `components` only, which lists the deltas of the solution (`new`,
+        `modified`, `retiring`), also for an `implemented` or `archived` solution. A delta
+        `modified` or `retiring` shows name and metatype of its entity, a delta `new` those of the
+        delta. A `pageSize` outside 1–200, a `page` below 0, a missing or unknown `scope` or
+        `category` and a `solutionId` that is no UUID answer 400. Answers 422 (problem type
+        `urn:oea:problem:validation-failed`) with `invalidFields` `solutionId` when it is missing
+        for `solution` or given for `current-state`, and `category` for `connections` or
+        `catalogs` with `solution`; 404 for an unknown solution. Read only, not audited.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: scope
+          in: query
+          required: true
+          schema: { type: string, enum: [current-state, solution] }
+          description: "`current-state`: the entities and catalogs of the repository; `solution`: the deltas of one solution"
+        - name: solutionId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+          description: The solution; required exactly when `scope` is `solution`
+        - name: category
+          in: query
+          required: true
+          schema: { type: string, enum: [components, connections, catalogs] }
+          description: Fixed base structure of the browser (REQ-139); building blocks and diagrams follow with their content
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: One page of the category
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BrowserItemPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: |
+            Problem type `urn:oea:problem:validation-failed` with `invalidFields` `solutionId` or
+            `category`
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /tree-nodes:

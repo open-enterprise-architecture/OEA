@@ -34,6 +34,7 @@ import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.PackageConflictException;
 import io.oea.app.metamodel.SolutionDecisionRequiredException;
 import io.oea.app.metamodel.PackageImporter;
+import io.oea.app.navigation.InvalidBrowserQueryException;
 import io.oea.app.navigation.InvalidTreeException;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDenials;
@@ -678,6 +679,13 @@ public class ApiExceptionHandler {
 	ResponseEntity<ProblemDetail> invalidTree(InvalidTreeException ex) {
 		return catalogProblem("validation-failed", "Invalid navigation tree change", ex.getMessage(),
 				ex.getInvalidFields());
+	}
+
+	@ExceptionHandler(InvalidBrowserQueryException.class)
+	ResponseEntity<ProblemDetail> invalidBrowserQuery(InvalidBrowserQueryException ex) {
+		return ex.getInvalidFields().isEmpty() ? invalidRequest()
+				: catalogProblem("validation-failed", "Invalid browser query", ex.getMessage(),
+						ex.getInvalidFields());
 	}
 
 	/** A permission required by a contract condition is missing: the filter's generic 403 (REQ-158). */

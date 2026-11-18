@@ -734,7 +734,26 @@
     "moveSubmit": "Move",
     "moveNoTarget": "There is no folder this can move to.",
     "moveRejected": "It cannot be moved there. The tree may have changed meanwhile.",
-    "dropInvalid": "Cannot be dropped here"
+    "dropInvalid": "Cannot be dropped here",
+    "tabTree": "Navigation tree"
+  },
+  "browser": {
+    "title": "Solution browser",
+    "tab": "Browser",
+    "currentState": "Current state",
+    "projects": "Projects",
+    "components": "Components",
+    "connections": "Connections",
+    "catalogs": "Catalogs",
+    "loading": "Loading…",
+    "loadMore": "Load more",
+    "loadFailed": "The browser could not be loaded.",
+    "openSolution": "Open {name}",
+    "delta": {
+      "new": "New",
+      "modified": "Modified",
+      "retiring": "Retiring"
+    }
   },
   "portal": {
     "title": "Portal",

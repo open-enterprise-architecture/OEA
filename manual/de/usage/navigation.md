@@ -2,7 +2,7 @@
 title: Navigationsbaum
 covers:
   screens: [SCR-055]
-  stories: [US-054, US-094, US-095, US-096, US-097]
+  stories: [US-054, US-094, US-095, US-096, US-097, US-132, US-133]
 ---
 
 # Navigationsbaum
@@ -11,13 +11,31 @@ Der Navigationsbaum ordnet Kataloge, Entitäten und Lösungen in Ordnern, zum Be
 
 ## Die Seitenleiste
 
-Nach der Anmeldung zeigt die Seitenleiste links auf jeder Seite den Baum. Er beginnt beim Ordner *Repository*.
+Nach der Anmeldung hat die Seitenleiste links auf jeder Seite zwei Tabs: *Browser* und *Navigationsbaum*. *Browser* ist beim Anmelden aktiv; der gewählte Tab bleibt aktiv, während du zwischen den Seiten wechselst (siehe [Browser](#browser)). *Navigationsbaum* zeigt den folgenden Baum. Er beginnt beim Ordner *Repository*.
 
 - **Ordner auf- und zuklappen:** Wähle den Pfeil oder den Namen des Ordners. Die Seitenleiste merkt sich die offenen Ordner, bis du den Browser-Tab schliesst.
 - **Eintrag öffnen:** Wähle ihn. Ein Katalog öffnet sich mit seiner Standardansicht, falls er eine hat (siehe [Ansichten](./catalogs#views)); eine Entität öffnet ihre Seite, eine Lösung ihre Lösungsseite.
 - **Schmale Bildschirme:** Die Seitenleiste ist ausgeblendet; die Menü-Schaltfläche links in der Kopfzeile öffnet sie. Wählst du einen Eintrag, schliesst sie sich wieder.
 
 Ordner und Einträge behalten die Reihenfolge, in der du sie anordnest (siehe [Baum umorganisieren](#reorganize-the-tree)); neue Ordner und Einträge kommen ans Ende. Ein Eintrag zeigt seinen Anzeigenamen, falls er einen hat, sonst den Namen des Katalogs, der Entität oder der Lösung. Ein Symbol zeigt die Art des Eintrags, ein Personen-Symbol kennzeichnet einen persönlichen Katalog.
+
+## Browser {#browser}
+
+Der Tab *Browser* braucht keine Handarbeit: Er listet auf, was das Repository enthält, geordnet nach Lösungen. Alle mit der Berechtigung `entity:read` sehen ihn. Von oben nach unten zeigt er:
+
+1. **Ist-Zustand:** die Objekte des Repositorys, wie sie jetzt sind, in den Kategorien *Komponenten* (Entitäten, die keine Verbindungen und nicht gelöscht sind), *Verbindungen* und *Kataloge* (die Kataloge, die du siehst: gemeinsame und deine eigenen persönlichen).
+2. **Plateaus:** ein Knoten für jedes Plateau im Status *transition* oder *target*, geordnet nach dem Datum, ab dem es gilt, dann nach Name. Das Baseline-Plateau und realisierte Plateaus haben keinen Knoten. Unter einem Plateau stehen die Lösungen, die es als Ziel haben, nach Name sortiert.
+3. **Projekte:** die Lösungen ohne Plateaus, nach Name sortiert.
+
+Es erscheinen nur aktive Lösungen: Eine Lösung im Status *implemented* oder *archived* wird nicht aufgeführt. Die Entitäten einer umgesetzten Lösung zählen unter *Ist-Zustand*. Ein Plateau oder *Projekte* ohne Lösungen bleibt sichtbar und erscheint als *(0)*.
+
+Jede Lösung hat die Kategorie *Komponenten*: ihre Änderungen am Repository, gekennzeichnet als *Neu*, *Geändert* oder *Auslaufend*. Jede Kategorie zeigt, wie viele Objekte sie enthält. Eine leere Kategorie ist ausgegraut, nicht ausgeblendet.
+
+- **Knoten aufklappen:** Wähle den Pfeil oder den Namen. Eine Kategorie lädt ihre Objekte, wenn du sie zum ersten Mal aufklappst; sie listet sie nach Name, je 50. Mit *Mehr laden* folgen die nächsten 50.
+- **Objekt öffnen:** Eine Entität öffnet ihre Änderungshistorie, ein Katalog seine Seite, eine Änderung einer Lösung (und das Link-Symbol neben einer Lösung) die Lösungsseite.
+- **Metatyp:** Ein kleines Label neben einer Entität zeigt die Abkürzung ihres Metatyps, falls er eine hat.
+
+Der Browser zeigt nur an; den Baum ordnest du im Tab *Navigationsbaum*. Funktionale und Lösungs-Bausteine sowie Diagramme folgen mit ihren Inhalten.
 
 ## Ordner
 
@@ -67,6 +85,8 @@ Jede Änderung des Baums, auch jede Verschiebung, wird im Audit-Trail festgehalt
 
 ## Über die API
 
+- `GET /views/browser` liefert die oberste Ebene des Browsers: `currentState` mit den Zahlen `components`, `connections` und `catalogs`, `plateaus` (jedes mit seinen `solutions`) und `projects`; eine Lösung hat `id`, `name`, `status` und die Zahl ihrer Änderungen in `components`.
+- `GET /views/browser/items` liefert eine Seite einer Kategorie, nach Name geordnet: `scope` (`current-state` oder `solution`), `category` (`components`, `connections` oder `catalogs`; eine Lösung hat nur `components`), `solutionId` für eine Lösung sowie `page` und `pageSize` (1 bis 200, Standard 50). Eine `pageSize` ausserhalb von 1 bis 200 wird mit 400 abgewiesen; eine Kategorie, die der Bereich nicht hat, oder eine `solutionId`, die nicht zum Bereich passt, mit 422 und dem Namen `category` oder `solutionId`; eine unbekannte Lösung mit 404.
 - `GET /views/explorer` liefert den Baum ab der Wurzel so, wie du ihn siehst, in seiner manuellen Reihenfolge: jeden Ordner mit `id`, `name`, `parentId`, `sortOrder`, `items` und `children`; jeden Eintrag mit `itemType` (`catalog`, `entity` oder `solution`), `referenceId` (Katalog- oder Lösungs-ID) oder `entityId`, `displayLabel`, `name`, `scope` und `deleted`.
 - `POST /tree-nodes` mit `name` und `parentId` legt einen Ordner an; `PATCH /tree-nodes/{nodeId}` mit `name` benennt ihn um; `DELETE /tree-nodes/{nodeId}` löscht ihn.
 - `POST /tree-nodes/{nodeId}/items` mit `itemType`, `referenceId` oder `entityId` und einem optionalen `displayLabel` ordnet einen Eintrag ein; `DELETE /tree-nodes/{nodeId}/items/{itemId}` entfernt ihn.

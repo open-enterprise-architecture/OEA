@@ -1,14 +1,15 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { clearTree } from '../navigation/store'
+import { clearTree, sidebarTab } from '../navigation/store'
 import { session } from '../session/store'
 import type { Me } from '../api/session'
 import { ME_TREE_MANAGER, ME_TREE_READER, navigationApi } from '../test/navigation'
 import { testRouter } from '../test/router'
 import AppSidebar from './AppSidebar.vue'
 
-async function sidebar(me: unknown) {
+async function sidebar(me: unknown, tab: 'browser' | 'tree' = 'tree') {
+  sidebarTab.value = tab
   session.me = me as Me | undefined
   session.loaded = true
   const router = testRouter()
@@ -28,6 +29,55 @@ describe('AppSidebar', () => {
   afterEach(() => {
     session.me = undefined
     session.loaded = false
+  })
+
+  it('opens on the tab "Browser" and shows "Current state" first', async () => {
+    const wrapper = await sidebar(ME_TREE_READER, 'browser')
+    expect(wrapper.find('[data-testid="solution-browser"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="navigation-tree"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browser-label"]').text()).toBe('Current state')
+    expect(wrapper.findAll('[role="tab"]').map((tab) => [tab.text(), tab.attributes('aria-selected')])).toEqual([
+      ['Browser', 'true'],
+      ['Navigation tree', 'false'],
+    ])
+    wrapper.unmount()
+  })
+
+  it('starts on the browser after the session was cleared', async () => {
+    sidebarTab.value = 'tree'
+    clearTree()
+    expect(sidebarTab.value).toBe('browser')
+  })
+
+  it('shows the navigation tree from "Repository" in the second tab', async () => {
+    const wrapper = await sidebar(ME_TREE_READER, 'browser')
+    await wrapper.findAll('[role="tab"]')[1]!.trigger('mousedown', { button: 0 })
+    await flushPromises()
+    expect(sidebarTab.value).toBe('tree')
+    expect(wrapper.find('[data-testid="solution-browser"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="navigation-tree"]').text()).toContain('Repository')
+    wrapper.unmount()
+  })
+
+  it('keeps the chosen tab while the person moves between pages', async () => {
+    const wrapper = await sidebar(ME_TREE_READER, 'browser')
+    await wrapper.findAll('[role="tab"]')[1]!.trigger('mousedown', { button: 0 })
+    await flushPromises()
+    await wrapper.vm.$router.push('/catalogs')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="navigation-tree"]').exists()).toBe(true)
+    wrapper.unmount()
+    // a sidebar mounted later, as on another page, shows the chosen tab
+    const again = await sidebar(ME_TREE_READER, sidebarTab.value)
+    expect(again.find('[data-testid="navigation-tree"]').exists()).toBe(true)
+    again.unmount()
+  })
+
+  it('shows neither tab without entity:read', async () => {
+    const wrapper = await sidebar({ ...ME_TREE_READER, permissions: [{ permission: 'portal:read', grantedBy: [] }] }, 'browser')
+    expect(wrapper.find('[role="tab"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="solution-browser"]').exists()).toBe(false)
+    wrapper.unmount()
   })
 
   it('shows the tree to a reader with entity:read', async () => {

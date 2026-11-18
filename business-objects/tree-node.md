@@ -101,6 +101,12 @@ Folders and entries are shown in their manual order (`sortOrder`, REQ-096), with
 
 ---
 
+### The Browser Is Computed, Not Stored
+
+The tab "Browser" of the sidebar (US-132, US-133) is no TreeNode: "Current state", the plateau nodes, the group "Projects", the solutions and their categories are computed on every read from entities, catalogs, plateaus, solutions and deltas (`GET /views/browser`). Nothing of it is stored in `tree_nodes` or `tree_node_items`, and it has no manual order; the data model does not change.
+
+---
+
 ### Relationship to Other Presentation Forms
 
 | Presentation Form | Purpose | Primary Object |
