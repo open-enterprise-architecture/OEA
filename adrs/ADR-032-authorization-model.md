@@ -184,7 +184,7 @@ Permissions are stable identifiers of the form `<resource>:<action>`. The catalo
 | `person:manage` | Invite persons, change their lifecycle status, reset local credentials, set the account link to a Person entity | **yes** |
 | `service-account:manage` | Create and deactivate service accounts, issue and rotate client secrets | **yes** |
 | `auth-config:manage` | Configure authentication providers, 2FA policy, remote system admin mapping | **yes** |
-| `settings:manage` | Change instance settings (limits, retention within its floor, feature flags) | **yes** |
+| `settings:manage` | Change instance settings (limits, retention within its floor, feature flags); read the personal dashboards of other persons, read-only (amendment 2026-11-18) | **yes** |
 
 Notes:
 
@@ -455,6 +455,17 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 - New built-in role `solution-architect` with `portal:read`, `entity:read`, `solution:write` and `solution-metamodel:write`; not privileged, not assignable to service accounts (§4).
 - Reading solutions needs `entity:read`, like other EA content.
 - No SoD rule changes; the permission is not admin-class.
+
+## Amendment 2026-11-18: administrators read personal dashboards
+
+**Reason.** REQ-056 BR-01 makes personal dashboards visible to their creator "and admins". The owner decided on 2026-11-18 that administrators may read the personal dashboards of other persons, read-only (change us-055-dashboards). The catalog had no permission for this.
+
+**Change.**
+
+- `settings:manage` includes listing and reading the personal dashboards of other persons, read-only, together with `entity:read`, which every dashboard operation requires. It never allows changing or deleting them.
+- The table data of such a dashboard is computed with the administrator's own visibility (L3, L4), so the permission discloses no repository content beyond what the administrator may read.
+- For every other principal, another person's personal dashboard stays an identical 404 (L3).
+- No role changes; the permission stays admin-class.
 
 ## Notes
 

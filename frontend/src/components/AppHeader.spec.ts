@@ -65,9 +65,20 @@ describe('AppHeader', () => {
     expect((await header(ME_READER)).find('[data-testid="header-solutions"]').exists()).toBe(true)
   })
 
+  // spec dashboard/dashboards "Dashboard pages" (us-055-dashboards D4)
+  it('links the dashboards next to the catalogs for entity:read', async () => {
+    const wrapper = await header(ME_READER)
+    expect(wrapper.get('[data-testid="header-dashboards"]').text()).toBe('Dashboards')
+    expect(wrapper.get('[data-testid="header-dashboards"]').attributes('href')).toBe('/dashboards')
+    session.me = undefined
+    session.loaded = false
+    expect((await header(ME_NO_ACCESS)).find('[data-testid="header-dashboards"]').exists()).toBe(false)
+  })
+
   it('shows the portal as the only entry to a portal reader', async () => {
     const wrapper = await header(ME_PORTAL_READER)
     expect(wrapper.find('[data-testid="header-portal"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="header-dashboards"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="header-catalogs"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="header-solutions"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="header-metamodel"]').exists()).toBe(false)

@@ -10,10 +10,10 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 38 |
-| Apache-2.0 | 95 |
+| MIT | 43 |
+| Apache-2.0 | 97 |
 | BSD-3-Clause | 10 |
-| BSD-2-Clause | 2 |
+| BSD-2-Clause | 3 |
 | EPL-2.0 | 5 |
 
 ## Backend Runtime Libraries (116)
@@ -137,7 +137,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (34)
+## Frontend Bundle (42)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -146,6 +146,7 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/utils (`@floating-ui/utils`) | 0.2.12 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @floating-ui/vue (`@floating-ui/vue`) | 2.0.1 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
+| @internationalized/number (`@internationalized/number`) | 3.6.9 | Apache-2.0 | – | <https://github.com/adobe/react-spectrum> |
 | @intlify/core-base (`@intlify/core-base`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | @intlify/message-compiler (`@intlify/message-compiler`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | @intlify/shared (`@intlify/shared`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
@@ -164,12 +165,19 @@ License texts and notices: the backend jar contains the license and notice files
 | @vueuse/shared (`@vueuse/shared`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
 | aria-hidden (`aria-hidden`) | 1.2.6 | MIT | – | <https://github.com/theKashey/aria-hidden> |
 | defu (`defu`) | 6.1.7 | MIT | – | unjs/defu |
+| dompurify (`dompurify`) | 3.4.18 | Apache-2.0 | MPL-2.0 | git://github.com/cure53/DOMPurify |
+| entities (`entities`) | 8.1.0 | BSD-2-Clause | – | <https://github.com/fb55/entities> |
 | hookable (`hookable`) | 6.1.2 | MIT | – | unjs/hookable |
+| linkify-it (`linkify-it`) | 6.1.0 | MIT | – | <https://github.com/markdown-it/linkify-it> |
+| markdown-it (`markdown-it`) | 15.0.3 | MIT | – | markdown-it/markdown-it |
+| mdurl (`mdurl`) | 2.1.0 | MIT | – | <https://github.com/markdown-it/mdurl> |
 | ohash (`ohash`) | 2.0.12 | MIT | – | unjs/ohash |
+| punycode.js (`punycode.js`) | 2.3.1 | MIT | – | <https://github.com/mathiasbynens/punycode.js> |
 | reka-ui (`reka-ui`) | 2.11.0 | MIT | – | <https://github.com/unovue/reka-ui> |
 | scule (`scule`) | 1.3.0 | MIT | – | unjs/scule |
 | tailwind-variants (`tailwind-variants`) | 3.3.1 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
 | tailwindcss (`tailwindcss`) | 4.3.5 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
+| uc.micro (`uc.micro`) | 3.0.0 | MIT | – | markdown-it/uc.micro |
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |

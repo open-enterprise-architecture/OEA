@@ -5,9 +5,9 @@ status: draft
 priority: should
 target_release: v1.0
 complexity: large
-version: 0.1.1
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-10-13
+last_updated: 2026-11-18
 primary_actor: SH-03
 secondary_actors:
   - SH-01
@@ -112,7 +112,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 - [ ] Actor is logged in (UC-01) and has read permission on the repository
 - [ ] For PropertyAggregation-based widgets: The MetamodelConfiguration contains EntityTypes with [PropertyDefinitions](../../business-objects/metamodel-configuration.md) (defined via UC-04); the relevant entity instances have the property values filled
 - [ ] For CatalogQuery-based widgets: At least one [catalog](../../business-objects/catalog.md) exists (UC-06)
-- [ ] **Additionally for Dashboard Manager actions**: Actor has the role "Enterprise Architect" or a role with dashboard write permission
+- [ ] **Additionally for Dashboard Manager actions**: Actor has the role "Enterprise Architect" or a role with the permission `dashboard:manage`; every holder of `dashboard:manage` maintains every shared dashboard (owner decision 2026-11-18)
 
 ## Postconditions
 
@@ -120,7 +120,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 - A [Dashboard](../../business-objects/dashboard.md) object exists with all configured widgets and DataSources
 - With `scope=instance`: dashboard appears in the web portal for all users of the instance under the dashboard menu item
-- With `scope=personal`: dashboard is visible only to the creator
+- With `scope=personal`: dashboard is visible to the creator, and read-only to holders of `settings:manage` (owner decision 2026-11-18); for everybody else its ID answers 404
 
 ### On Success (show dashboard)
 
@@ -221,7 +221,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 **E2 – Referenced catalog no longer exists**:
 
 - Condition: A table widget references a catalog that has been deleted in the meantime
-- Expected reaction: The widget shows "Catalog ‹Application Inventory› not found." Hint to UC-06
+- Expected reaction: The widget shows "Catalog not found" (error status `catalog-not-found`; the same for a catalog that is not visible to the reader; a saved view that is gone shows "Saved view not found"). Hint to UC-06
 - Resumption: Dashboard Manager selects another catalog or recreates the catalog
 
 **E3 – Missing permission for instance dashboard**:
@@ -278,8 +278,8 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 ### Permissions and visibility
 
 - [ ] Dashboards with `scope=instance` are visible to all logged-in users in the web portal
-- [ ] Dashboards with `scope=personal` are visible exclusively to the creator; no data leaks
-- [ ] Creating and editing `scope=instance` dashboards requires dashboard write permission; direct API call without permission: 403
+- [ ] Dashboards with `scope=personal` are visible to the creator and, read-only, to holders of `settings:manage`; no data leaks (404 for everybody else)
+- [ ] Creating and editing `scope=instance` dashboards requires `dashboard:manage`; direct API call without permission: 403
 
 ### Error handling
 
@@ -289,7 +289,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 
 ## Out of Scope
 
-- **Delete / archive dashboard**: admin function; separate UC or admin panel
+- **Archive dashboard**: separate UC or admin panel (deleting a dashboard with its widgets is part of the first implementation, change us-055-dashboards)
 - **Drilldown / detail view from widget**: clicking a chart element opens a filtered catalog or entity detail (extension candidate v1.x)
 - **PDF/PNG export of dashboards**: reporting export is a separate UC; the dashboard itself is live
 - **Permissions per dashboard** (excluding certain users): currently instance=everyone / personal=creator; fine-grained permissions TBD
@@ -337,3 +337,4 @@ The connection to the [PropertyDefinitions](../../business-objects/metamodel-con
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; basic flow investment cost dashboard, A1–A5, acceptance criteria, out of scope |
 | 0.1.1 | 2026-10-13 | requirements-engineer | Security review SEC-05 / owner decision Q1: login required for the web portal (A1 step 1, open question closed) |
+| 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards, owner decisions 2026-11-18: every holder of `dashboard:manage` maintains shared dashboards; administrators read personal dashboards of others, read-only; error widgets named by their code |

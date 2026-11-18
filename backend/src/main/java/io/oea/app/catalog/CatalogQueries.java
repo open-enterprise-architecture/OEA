@@ -90,7 +90,7 @@ public class CatalogQueries {
 	/** The channel of a query, a tag of the metric and part of the cursor's fingerprint. */
 	public enum Channel {
 
-		CATALOG, PORTAL;
+		CATALOG, PORTAL, DASHBOARD;
 
 		String tag() {
 			return name().toLowerCase(Locale.ROOT);

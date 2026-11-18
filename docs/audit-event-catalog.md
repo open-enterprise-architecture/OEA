@@ -732,7 +732,18 @@ A catalog or portal query took longer than its time limit `oea.catalog.query-tim
 | Category / severity / outcome | `security` / `warning` / `failure` |
 | Actor | the querying person |
 | Target | `catalog`, ID of the catalog |
-| Details | `channel` (`catalog` or `portal`), `limitMillis` (the applied limit) |
+| Details | `channel` (`catalog`, `portal` or `dashboard`), `limitMillis` (the applied limit) |
+
+### `dashboard.created`, `dashboard.updated`, `dashboard.deleted`
+
+A dashboard was created, changed or deleted ([US-055](../requirements/user-stories/US-055-create-dashboard.md), [US-062](../requirements/user-stories/US-062-personal-dashboard.md), [REQ-051](../requirements/req/REQ-051-create-dashboard.md), [REQ-052](../requirements/req/REQ-052-configure-widget.md); change us-055-dashboards). Every change of the dashboard, of one of its widgets or of its layout is one `dashboard.updated`. Rejected requests (missing permission, a taken name, invalid input, a stale version) are not audited. The details carry IDs and field names only: no names, no Markdown content and no configuration of widgets.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the creating person; for a change or deletion the person with `dashboard:manage` (shared dashboard) or the owner (personal dashboard) |
+| Target | `dashboard`, ID of the dashboard |
+| Details | `dashboardId`, `scope` (`instance` or `personal`, after the change). `dashboard.updated` also has `changed`, the list of changed fields (`name`, `description`, `scope` or `layout`), and for a widget change `widgets`, a list of `{widgetId, action}` with the action `added`, `changed` or `removed` |
 
 ### `visibility.changed`
 
@@ -776,7 +787,7 @@ A catalog or portal query, or a read of a version's state or diff, returned valu
 | Category / severity / outcome | `security` / `warning` / `success` |
 | Actor | the reader |
 | Target | `catalog`, ID of the catalog; `entity`, ID of the entity for the channel `history` |
-| Details | `channel` (`catalog`, `portal` or `history`), `page` (`0` for `history`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
+| Details | `channel` (`catalog`, `portal`, `dashboard` or `history`), `page` (`0` for `history`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
 
 ### `visibility.person-metatype-changed`
 

@@ -101,6 +101,17 @@ class HandlerEnforcedConditionsTests {
 		this.jdbc.update("""
 				INSERT INTO role_permissions (role_id, permission_id) VALUES (?, 'service-account:manage')
 				ON CONFLICT DO NOTHING""", AdminController.PROBE_ACCOUNT_MANAGER);
+		// the shared dashboard that the probes of the dashboard writes address (us-055-dashboards)
+		if (this.jdbc.queryForObject("SELECT count(*) FROM dashboards WHERE id = ?::uuid", Integer.class,
+				"00000000-0000-4000-8000-0000000d0001") == 0) {
+			Long owner = this.jdbc.queryForObject("""
+					INSERT INTO persons (name, email, status) VALUES ('Probe dashboard owner', 'probe-dashboards@example.org',
+					'active') RETURNING id""", Long.class);
+			this.jdbc.update("""
+					INSERT INTO dashboards (id, name, scope, owner_id, created_by, updated_by)
+					VALUES (?::uuid, 'Probe dashboard', 'instance', ?, ?, ?)""", "00000000-0000-4000-8000-0000000d0001",
+					owner, owner, owner);
+		}
 		if (this.jdbc.queryForObject("SELECT count(*) FROM machine_credentials WHERE client_id = ?::uuid", Integer.class,
 				AdminController.PROBE_SERVICE_ACCOUNT) == 0) {
 			Long person = this.jdbc.queryForObject("""
@@ -129,6 +140,8 @@ class HandlerEnforcedConditionsTests {
 				.uri(operation.conditions().probePath().isEmpty() ? operation.path() : operation.conditions().probePath())
 				.cookie(new Cookie(SessionCookie.NAME, probe.token()))
 				.header(CsrfOriginFilter.HEADER, probe.csrfToken())
+				// the writes of versioned elements need the header before the handler runs
+				.header("If-Match", "\"1\"")
 				.contentType(operation.contentType())
 				.content(operation.conditions().probeBody())
 				.exchange();

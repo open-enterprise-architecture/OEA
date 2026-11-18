@@ -4,9 +4,9 @@ title: Calculate and retrieve dashboard data live
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -49,7 +49,7 @@ Live calculation ensures that C-level dashboards always show the current reposit
 
 ### API Endpoint
 
-`GET /api/v1/dashboards/{id}/data`
+`GET /api/v1/views/dashboards/{id}/data` (the first implementation, change us-055-dashboards: widgets `{widgetId, type, status, error?: {code, message}, table?}` with `status` `ok`, `static` or `error`; `error.code` is `catalog-not-found` or `view-not-found`; the page of a table widget is the catalog query result, further pages through `GET /views/dashboards/{id}/widgets/{widgetId}/data?page=`; KPI and chart data follow in S17)
 
 **Response structure (HTTP 200)**:
 
@@ -162,3 +162,4 @@ Live calculation ensures that C-level dashboards always show the current reposit
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; widget error isolation, globalFilters, live calculation, response schema |
+| 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: path and response of the first implementation |

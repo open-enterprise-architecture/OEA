@@ -2,8 +2,9 @@
 
 **ID**: US-062
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-055-dashboards` – personal dashboards visible to their owner; owner decisions 2026-11-18: administrators (`settings:manage`) read the personal dashboards of others, read-only; the ID of another person's personal dashboard answers 404 (AC3 realigned from 403)
 
 ## Story
 
@@ -32,8 +33,8 @@ As a Solution Architect, I want to create a personal dashboard for my own analys
 **AC3** (direct access via ID blocked):
 
 - Given: Third parties know Michael's dashboard ID (e.g. by guessing)
-- When: Direct GET /api/v1/dashboards/{id} or /data without permission
-- Then: HTTP 403
+- When: Direct GET /api/v1/views/dashboards/{id} or /data without permission
+- Then: HTTP 404, as for an ID that does not exist (realigned 2026-11-18; formerly 403)
 
 **AC4** (scope upgrade with permission):
 
@@ -51,12 +52,12 @@ As a Solution Architect, I want to create a personal dashboard for my own analys
 
 - No separate permission for scope=personal; every logged-in user may create personal dashboards
 - `scope=personal` dashboards do not appear in `GET /api/v1/dashboards` of other users (server-side filtering by `createdBy = currentUser`)
-- Admins can see all personal dashboards (for support/moderation)
+- Holders of `settings:manage` (administrators) see the personal dashboards of other persons in the list and can read them, never change them (owner decision 2026-11-18, ADR-032 amendment)
 
 ## Definition of Done
 
 - [ ] AC1–AC5 met
-- [ ] Tests: create without permission, not in others' list, 403 direct access, upgrade with/without permission
+- [ ] Tests: create without permission, not in others' list, 404 direct access, upgrade with/without permission
 - [ ] Code review
 - [ ] Linter and type checks green
 - [ ] Entered in trace matrix
