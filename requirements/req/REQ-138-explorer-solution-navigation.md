@@ -4,9 +4,9 @@ title: Browser Panel Shows Solutions as the Primary Navigation Level
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -83,8 +83,13 @@ Solution architects work primarily in the context of a solution. The navigation 
 - **Prerequisites**: ADR-020 (explorer navigation model)
 - **Consequences**: REQ-139 (base structure), REQ-140 (plateau-free solutions)
 
+## Implementation
+
+- Realized by OpenSpec change `us-132-solution-browser` (owner decisions 2026-11-18): the sidebar SCR-055 of the web portal has the tab "Browser" with "Current state" first, then the plateaus with status `transition` or `target` by `validFrom`, then the group "Projects"; a plateau or "Projects" without solutions stays visible with 0. Plateau solutions sit under their target plateau, sorted by name; solutions with status `implemented` and `archived` are not listed (AC3). The virtual node is named "Current state" and holds the counts of the repository, not an aggregate of solutions.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; derived from ADR-020 and mockup feedback |
+| 0.2.0 | 2026-11-18 | fullstack-engineer | Implementation note and realignment (change `us-132-solution-browser`) |

@@ -159,6 +159,26 @@ public class EntityStore {
 				Boolean.class, id, metatypeId));
 	}
 
+	/** An entity of the solution browser with the abbreviation of its metatype ({@code null} when it has none). */
+	public record BrowseRow(int id, String name, String abbreviation) {
+	}
+
+	/** The entities that are not deleted: elements, or connections with {@code connection} (design D2 of us-132-solution-browser). */
+	public int countActive(boolean connection) {
+		return this.jdbc.queryForObject("""
+				SELECT count(*) FROM entities e JOIN metatypes m ON m.id = e.metatype_id
+				WHERE e.deleted_at IS NULL AND m.is_connection = ?""", Integer.class, connection);
+	}
+
+	/** One page of the entities that are not deleted, by name regardless of case, then by ID. */
+	public List<BrowseRow> pageActive(boolean connection, int limit, long offset) {
+		return this.jdbc.query("""
+				SELECT e.id, e.name, m.abbreviation FROM entities e JOIN metatypes m ON m.id = e.metatype_id
+				WHERE e.deleted_at IS NULL AND m.is_connection = ?
+				ORDER BY lower(e.name), e.id LIMIT ? OFFSET ?""",
+				(rs, row) -> new BrowseRow(rs.getInt(1), rs.getString(2), rs.getString(3)), connection, limit, offset);
+	}
+
 	/** The current property values of an entity by property definition. */
 	public Map<UUID, TypedValue> values(int entityId) {
 		Map<UUID, TypedValue> values = new HashMap<>();

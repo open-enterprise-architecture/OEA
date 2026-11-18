@@ -734,7 +734,26 @@
     "moveSubmit": "Verschieben",
     "moveNoTarget": "Es gibt keinen Ordner, in den das verschoben werden kann.",
     "moveRejected": "Das kann nicht dorthin verschoben werden. Der Baum hat sich eventuell inzwischen geändert.",
-    "dropInvalid": "Kann hier nicht abgelegt werden"
+    "dropInvalid": "Kann hier nicht abgelegt werden",
+    "tabTree": "Navigationsbaum"
+  },
+  "browser": {
+    "title": "Lösungs-Browser",
+    "tab": "Browser",
+    "currentState": "Ist-Zustand",
+    "projects": "Projekte",
+    "components": "Komponenten",
+    "connections": "Verbindungen",
+    "catalogs": "Kataloge",
+    "loading": "Lädt…",
+    "loadMore": "Mehr laden",
+    "loadFailed": "Der Browser konnte nicht geladen werden.",
+    "openSolution": "{name} öffnen",
+    "delta": {
+      "new": "Neu",
+      "modified": "Geändert",
+      "retiring": "Auslaufend"
+    }
   },
   "portal": {
     "title": "Portal",

@@ -2,8 +2,9 @@
 
 **ID**: US-132
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-132-solution-browser` – the sidebar SCR-055 has the tabs "Browser" (default) and "Navigation tree"; the browser shows "Current state", the plateaus of the transition and target stage and the group "Projects" with their active solutions (`GET /views/browser`, `GET /views/browser/items`). Owner decisions 2026-11-18: project solutions appear under "Projects" instead of only flowing into "Current state" (AC2); the web portal is the client for now
 
 ## Story
 

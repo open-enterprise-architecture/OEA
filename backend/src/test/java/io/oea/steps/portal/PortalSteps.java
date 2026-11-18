@@ -42,6 +42,19 @@ public class PortalSteps {
 
 	@Given("the portal reader and a person without role are logged in through the IdP")
 	public void logIn() throws Exception {
+		logInOnce();
+	}
+
+	/**
+	 * The person without role on the shared catalog instance; other features use it instead of
+	 * logging the same IdP user in again, which would create the person twice.
+	 */
+	public static Session personWithoutRole() throws Exception {
+		logInOnce();
+		return withoutRole;
+	}
+
+	private static void logInOnce() throws Exception {
 		synchronized (PortalSteps.class) {
 			// the instance is shared by the catalog features and restarted per run
 			if (loggedIn != instance()) {

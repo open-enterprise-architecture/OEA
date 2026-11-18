@@ -4,9 +4,9 @@ title: Every Solution Has an Auto-Generated Base Structure in the Explorer
 type: functional
 priority: must
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -91,8 +91,13 @@ Every solution needs the same base structure. Manual creation via TreeNode CRUD 
 - **Prerequisites**: REQ-138 (solution as primary navigation level); ADR-020
 - **Consequences**: REQ-141 (component hierarchy under "Components")
 
+## Implementation
+
+- Realized in part by OpenSpec change `us-132-solution-browser` (owner decisions 2026-11-18): only categories whose content exists are shown. "Current state" has Components, Connections and Catalogs (the catalogs the reader sees); a solution has Components, its deltas `new`, `modified` and `retiring`. Each category shows its count and is greyed out with (0) when empty (AC2, AC3); its objects load page by page when it is expanded. Functional Building Blocks and Solution Building Blocks follow with the continuum (S20), Diagrams with the diagrams, so AC1 (six categories) is not met yet.
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft; equating FBB with ABB documented |
+| 0.2.0 | 2026-11-18 | fullstack-engineer | Implementation note and realignment (change `us-132-solution-browser`) |

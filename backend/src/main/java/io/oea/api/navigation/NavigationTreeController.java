@@ -2,7 +2,16 @@ package io.oea.api.navigation;
 
 import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.ViewsNavigationApi;
+import io.oea.api.generated.model.BrowserCurrentState;
+import io.oea.api.generated.model.BrowserItem;
+import io.oea.api.generated.model.BrowserItemPage;
+import io.oea.api.generated.model.BrowserPlateau;
+import io.oea.api.generated.model.BrowserSolution;
 import io.oea.api.generated.model.CatalogScope;
+import io.oea.api.generated.model.PageMeta;
+import io.oea.api.generated.model.PlateauStatus;
+import io.oea.api.generated.model.SolutionDeltaType;
+import io.oea.api.generated.model.SolutionStatus;
 import io.oea.api.generated.model.TreeNode;
 import io.oea.api.generated.model.TreeNodeCreate;
 import io.oea.api.generated.model.TreeNodeItem;
@@ -10,6 +19,7 @@ import io.oea.api.generated.model.TreeNodeItemCreate;
 import io.oea.api.generated.model.TreeNodeItemMove;
 import io.oea.api.generated.model.TreeNodeMove;
 import io.oea.api.generated.model.TreeNodeRename;
+import io.oea.app.navigation.Browser;
 import io.oea.app.navigation.NavigationTree;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
@@ -29,8 +39,49 @@ public class NavigationTreeController implements ViewsNavigationApi {
 
 	private final NavigationTree tree;
 
-	public NavigationTreeController(NavigationTree tree) {
+	private final Browser browser;
+
+	public NavigationTreeController(NavigationTree tree, Browser browser) {
 		this.tree = tree;
+		this.browser = browser;
+	}
+
+	/**
+	 * The solution browser (US-132, US-133, REQ-138 to REQ-140; design D3 of
+	 * us-132-solution-browser). It sits in this controller because the generated interface of the
+	 * tag "Views – Navigation" may have one implementation only.
+	 */
+	@Override
+	public ResponseEntity<io.oea.api.generated.model.Browser> getBrowserView() {
+		Browser.Top top = this.browser.top(principal());
+		return ResponseEntity.ok(new io.oea.api.generated.model.Browser(
+				new BrowserCurrentState(top.currentState().components(), top.currentState().connections(),
+						top.currentState().catalogs()),
+				top.plateaus()
+					.stream()
+					.map((plateau) -> new BrowserPlateau(plateau.id(), plateau.name(),
+							PlateauStatus.fromValue(plateau.status()),
+							plateau.solutions().stream().map(NavigationTreeController::solution).toList()))
+					.toList(),
+				top.projects().stream().map(NavigationTreeController::solution).toList()));
+	}
+
+	@Override
+	public ResponseEntity<BrowserItemPage> listBrowserItems(String scope, String category,
+			UUID solutionId, Integer page, Integer pageSize) {
+		Browser.ItemPage result = this.browser.items(principal(), scope, solutionId, category,
+				page, pageSize);
+		return ResponseEntity.ok(new BrowserItemPage(result.items().stream().map((item) -> new BrowserItem(
+				BrowserItem.KindEnum.fromValue(item.kind()), item.id(), item.name(), item.metatypeAbbreviation(),
+				item.entityId(), item.solutionId(),
+				(item.deltaType() != null) ? SolutionDeltaType.fromValue(item.deltaType()) : null)).toList(),
+				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
+						result.totalPages())));
+	}
+
+	private static BrowserSolution solution(Browser.SolutionNode node) {
+		return new BrowserSolution(node.id(), node.name(), SolutionStatus.fromValue(node.status()),
+				node.components());
 	}
 
 	@Override

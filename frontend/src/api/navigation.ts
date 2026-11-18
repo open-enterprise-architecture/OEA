@@ -5,6 +5,12 @@ import { currentCsrfToken, type Outcome } from './session'
 export type TreeNode = components['schemas']['TreeNode']
 export type TreeNodeItem = components['schemas']['TreeNodeItem']
 export type TreeItemType = TreeNodeItem['itemType']
+export type Browser = components['schemas']['Browser']
+export type BrowserPlateau = components['schemas']['BrowserPlateau']
+export type BrowserSolution = components['schemas']['BrowserSolution']
+export type BrowserItem = components['schemas']['BrowserItem']
+export type BrowserItemPage = components['schemas']['BrowserItemPage']
+export type BrowserCategory = 'components' | 'connections' | 'catalogs'
 
 /** What "Place in navigation" places (US-054, US-095): a catalog, an element entity or a solution. */
 export type Placement =
@@ -28,6 +34,48 @@ export async function fetchTree(fetchFn: typeof fetch = fetch): Promise<TreeNode
     throw new RequestRejected(await readRejection(response))
   }
   return (await response.json()) as TreeNode
+}
+
+/** GET /views/browser: the top level of the solution browser with all counts (US-132, REQ-138). */
+export async function fetchBrowser(fetchFn: typeof fetch = fetch): Promise<Browser> {
+  const response = await fetchFn('/api/v1/views/browser', { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as Browser
+}
+
+/** What a category of the browser lists: the current state or one solution, and a page of it. */
+export interface BrowserItemsQuery {
+  scope: 'current-state' | 'solution'
+  solutionId?: string
+  category: BrowserCategory
+  page?: number
+  pageSize?: number
+}
+
+/** GET /views/browser/items: one page of one category of the current state or of a solution (US-133). */
+export async function fetchBrowserItems(query: BrowserItemsQuery, fetchFn: typeof fetch = fetch): Promise<BrowserItemPage> {
+  const params = new URLSearchParams({ scope: query.scope, category: query.category, page: String(query.page ?? 0), pageSize: String(query.pageSize ?? 50) })
+  if (query.solutionId) {
+    params.set('solutionId', query.solutionId)
+  }
+  const response = await fetchFn(`/api/v1/views/browser/items?${params}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as BrowserItemPage
+}
+
+/** The route of a browser object, built only from its kind and IDs: entity history, catalog page or the solution of a delta. */
+export function browserItemRoute(item: BrowserItem): string | undefined {
+  if (item.kind === 'entity') {
+    return `/entities/${encodeURIComponent(item.id)}/history`
+  }
+  if (item.kind === 'catalog') {
+    return `/catalogs/${encodeURIComponent(item.id)}`
+  }
+  return item.solutionId ? `/solutions/${encodeURIComponent(item.solutionId)}` : undefined
 }
 
 /** A write of the tree with the CSRF token; every write answers with the whole tree. */
