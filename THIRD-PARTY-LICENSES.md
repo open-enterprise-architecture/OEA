@@ -175,7 +175,7 @@ License texts and notices: the backend jar contains the license and notice files
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
 | vue (`vue`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | vue-i18n (`vue-i18n`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
-| vue-router (`vue-router`) | 5.4.0 | MIT | – | <https://github.com/vuejs/router> |
+| vue-router (`vue-router`) | 5.5.1 | MIT | – | <https://github.com/vuejs/router> |
 
 ## Runtime Environment (Container Base Images)
 
