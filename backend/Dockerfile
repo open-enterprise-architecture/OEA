@@ -5,7 +5,7 @@
 # from /app/portal (change s9-portal-catalogs, design D5).
 
 # Same Node image as the frontend service of compose.dev.yaml
-FROM docker.io/library/node:26-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS portal
+FROM docker.io/library/node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS portal
 WORKDIR /workspace
 COPY api/openapi.yaml api/openapi.yaml
 COPY frontend/package.json frontend/package-lock.json frontend/
