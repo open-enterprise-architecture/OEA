@@ -46,19 +46,20 @@ Implementation happens in OpenSpec changes (`openspec/README.md`), cut from the 
 
 ### Change Workflow
 
-Every OpenSpec change runs through the following steps, decided by the repository owner on 2026-11-17. The orchestrating session (the main OpenCode or Claude Code session) invokes the agents in this order and passes each the change name and the results of the previous step:
+Every OpenSpec change runs through the following steps, decided by the repository owner on 2026-11-18 (replacing the workflow of 2026-11-17, whose token consumption was too high). The orchestrating session (the main OpenCode or Claude Code session) runs them and passes each agent the change name and the results of the previous step:
 
-1. **Spec:** the `solution-architect` writes the change (proposal, delta specs, design, tasks) and keeps to the sprint plan (`docs/sprint-plan.md`).
-2. **Security:** the `security-engineer` adds the security aspects to the change: threats, authorization, audit, input limits, and the matching scenarios and tasks.
-3. **Consistency:** the `solution-architect` checks the additions of the security engineer and makes proposal, specs, design, tasks and sprint plan consistent.
-4. **Implementation:** the `backend-engineer` and the `frontend-engineer` implement the tasks and tick them off in `tasks.md`.
-5. **Local checks:** all tests and quality gates pass locally (see [Before Pushing](#before-pushing)).
-6. **Archive and pull request:** only then does the orchestrating session archive the change and open **one** pull request with spec, implementation and archive.
+1. **Cut and spec:** the orchestrating session cuts the change from the sprint plan (`docs/sprint-plan.md`) and writes it (proposal, delta specs, design, tasks), security aspects included: authorization, audit, input limits with their boundary values.
+2. **Check of the cut:** the `solution-architect` checks the cut and the change against the sprint plan, the existing specs, the ADRs and the code, and corrects inconsistencies.
+3. **Implementation:** the `fullstack-engineer` implements all tasks – contract, backend, frontend and documentation – and ticks them off in `tasks.md`.
+4. **Local checks:** all tests and quality gates pass locally (see [Before Pushing](#before-pushing)).
+5. **Archive and pull request:** only then does the orchestrating session archive the change and open **one** pull request with spec, code and archive.
+
+The `security-engineer` is not part of the regular workflow; the owner can ask for a review.
 
 Decisions:
 
 - **Business questions** (domain behavior, priorities, scope seen by the user) go to the repository owner only.
-- **Technical and scope decisions** within the sprint plan are taken by the `solution-architect`, recorded in the design of the change as decisions or assumptions, and reviewed in the pull request.
+- **Technical and scope decisions** within the sprint plan are taken by the orchestrating session and the `solution-architect`, recorded in the design of the change as decisions or assumptions, and reviewed in the pull request.
 
 **Completed approach of the requirements phase** (domain-model-first, still applies to new business functionality):
 
@@ -220,7 +221,7 @@ These files and the matching skills in `.opencode/skills/` and `.claude/skills/`
 
 ## Agents (in `.opencode/agents/`)
 
-Seven agent roles for vibe coding. In OpenCode, all can be used as a primary agent (agent switch in the TUI) and as a subagent (`@<agent-name>`); in Claude Code they are available as subagents (generated into `.claude/agents/`). Write access is restricted per role to its own directory scope – enforced in OpenCode, binding as instruction in Claude Code. The `model:` of an agent file sets its model in both tools: Opus for the solution architect and the security engineer, Sonnet for the backend and frontend engineer; the other roles use the model of the session. Their part in a change is described in [Change Workflow](#change-workflow):
+Eight agent roles for vibe coding. In OpenCode, all can be used as a primary agent (agent switch in the TUI) and as a subagent (`@<agent-name>`); in Claude Code they are available as subagents (generated into `.claude/agents/`). Write access is restricted per role to its own directory scope – enforced in OpenCode, binding as instruction in Claude Code. The `model:` of an agent file sets its model in both tools: Opus for the solution architect and the security engineer, Sonnet for the fullstack, backend and frontend engineer; the other roles use the model of the session. Their part in a change is described in [Change Workflow](#change-workflow):
 
 - `business-engineer.md` – domain model first (before UC)
 - `solution-architect.md` – clarification, scope, specs, tickets
@@ -228,7 +229,8 @@ Seven agent roles for vibe coding. In OpenCode, all can be used as a primary age
 - `ui-designer.md` – clickable Vue prototypes (Storybook stories), design system
 - `backend-engineer.md` – backend (type safety mandatory)
 - `frontend-engineer.md` – frontend (TypeScript mandatory)
-- `security-engineer.md` – cross-cutting security reviews
+- `fullstack-engineer.md` – contract, backend, frontend and documentation of a change (the implementing role of the change workflow)
+- `security-engineer.md` – cross-cutting security reviews on request
 
 Workflow see `docs/workflow-example.md`.
 

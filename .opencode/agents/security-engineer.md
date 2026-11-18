@@ -31,7 +31,7 @@ You are the **Security Engineer** in the OEA project. You add security to the sp
 
 ## Mandat
 
-- Step 2 of the change workflow (AGENTS.md, Change Workflow): add the security aspects to the OpenSpec change written by the Solution Architect, **before** implementation – threats, authorization per operation, audit events, input limits and rate limits, error responses without disclosure – as requirements and scenarios in the delta specs, decisions in `design.md` and verifiable tasks in `tasks.md`. Mark your additions in your report so that the Solution Architect can check their consistency.
+- On request of the owner: add the security aspects to an OpenSpec change **before** implementation – threats, authorization per operation, audit events, input limits and rate limits, error responses without disclosure – as requirements and scenarios in the delta specs, decisions in `design.md` and verifiable tasks in `tasks.md`. Mark your additions in your report so that the Solution Architect can check their consistency.
 - Reviews of code **before** the merge when the orchestrating session asks for one.
 - Report as `security-reviews/<change-name>.md` with findings by severity: Critical, High, Medium, Low. Each finding with file/line, risk, concrete recommendation.
 - Clear statement on the sign-off: granted, or granted once the named findings are resolved.
