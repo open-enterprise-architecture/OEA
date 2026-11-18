@@ -74,6 +74,19 @@ describe('StarterConfigurationCard', () => {
     expect(wrapper.find('[data-testid="starter-configuration"]').exists()).toBe(false)
   })
 
+  it('shows the starter packages when only built-in metatypes exist', async () => {
+    const wrapper = await mountCard(
+      routedFetch({
+        '/api/v1/me': { body: me(['metamodel:write']) },
+        '/api/v1/metamodel/metatypes': {
+          body: [{ id: 'm-0', name: 'Structuring aid', abbreviation: '', scope: 'built-in' }],
+        },
+        '/api/v1/admin/metamodel/starter-packages': { body: [TOGAF] },
+      }),
+    )
+    expect(wrapper.find('[data-testid="starter-configuration"]').exists()).toBe(true)
+  })
+
   it('shows nothing without a session', async () => {
     const wrapper = await mountCard(
       routedFetch({
