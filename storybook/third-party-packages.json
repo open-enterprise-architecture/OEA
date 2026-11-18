@@ -288,7 +288,7 @@
   },
   {
     "name": "vue-router",
-    "version": "5.4.0",
+    "version": "5.5.1",
     "license": "MIT",
     "repository": "https://github.com/vuejs/router",
     "licenseFile": true

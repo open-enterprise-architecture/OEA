@@ -1345,7 +1345,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ------------------------------------------------------------------------
 
-vue-router 5.4.0 (MIT)
+vue-router 5.5.1 (MIT)
 https://github.com/vuejs/router
 
 The MIT License (MIT)
