@@ -1,5 +1,6 @@
 package io.oea.api.admin;
 
+import io.oea.app.metamodel.NotationCatalog;
 import io.oea.app.metamodel.PackageValidator;
 import io.oea.app.metamodel.StarterPackages;
 import org.springframework.beans.factory.InitializingBean;
@@ -14,15 +15,19 @@ class StarterPackageCheck implements InitializingBean {
 
 	private final StarterPackages starterPackages;
 
-	StarterPackageCheck(StarterPackages starterPackages) {
+	private final NotationCatalog catalog;
+
+	StarterPackageCheck(StarterPackages starterPackages, NotationCatalog catalog) {
 		this.starterPackages = starterPackages;
+		this.catalog = catalog;
 	}
 
 	@Override
 	public void afterPropertiesSet() {
 		for (StarterPackages.Shipped shipped : this.starterPackages.shipped()) {
 			try {
-				PackageValidator.validate(MetamodelPackages.definition(MetamodelPackages.read(shipped.content())));
+				PackageValidator.validate(MetamodelPackages.definition(MetamodelPackages.read(shipped.content())),
+						this.catalog);
 			}
 			catch (RuntimeException ex) {
 				throw new IllegalStateException("shipped starter package " + shipped.packageId() + " is invalid: "

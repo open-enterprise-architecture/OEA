@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Editing the metamodel
@@ -121,15 +121,22 @@ A property that a solution keeps as a snapshot cannot be deleted until that solu
 
 ## Viewpoints {#viewpoints}
 
-A viewpoint names the entity types and connection types that belong to an organization-specific view, for example "Application Landscape" with applications, data objects and their data flows. The section *Viewpoints* of the metamodel page lists them; everyone who may read the metamodel sees them. Notations such as ArchiMate follow with the diagrams.
+A viewpoint names the entity types and connection types that belong to a view, for example "Application Landscape" with applications, data objects and their data flows, together with its notation and the element each type is drawn with. The section *Viewpoints* of the metamodel page lists them in two groups; everyone who may read the metamodel sees them:
+
+- **System-defined:** viewpoints installed by a [metamodel package](./metamodel-packages#viewpoints-in-packages), marked with a lock and their package. They are read-only; only a new version of their package changes them.
+- **Organization:** the viewpoints of your organization.
 
 You need the permission `viewpoint:manage` (for example the role `enterprise-architect`) to change viewpoints; the [lock mode](#lock-mode) of the metamodel does not apply to them.
 
 - *New viewpoint* asks for a name (up to 255 characters, unique regardless of upper and lower case), an optional description (up to 1000 characters), at least one entity type and any number of connection types of the instance.
+- *Notation* is *Generic*, *ArchiMate 3*, *UML* or *BPMN 2.0*. Viewpoints created before notations existed have *Generic*.
+- *Notation mapping* is optional: for each selected type you choose an *Element* of the notation, for example *Application Component* of ArchiMate, and optionally a *Width* and *Height* (1 to 2000 pixels) and a *Color*. The list offers only the elements of the chosen notation that fit the type (shapes for entity types, relationships for connection types) and the generic box or arrow. A type without an element is drawn as a generic box, a connection type as a generic arrow. Changing the notation clears the elements that no longer fit.
 - *Edit* changes them. If someone else changed the viewpoint meanwhile, the dialog shows the [current state](#concurrent-changes).
 - *Delete* removes the viewpoint after a confirmation.
 
-When an entity type is deleted, it disappears from the viewpoints that named it.
+When an entity type is deleted, it disappears from the viewpoints that named it, together with its mapping.
+
+Through the API, `GET /admin/viewpoints/notations` lists the elements of all notations with key (for example `archimate:ApplicationComponent`), notation, label, kind and default size. A viewpoint carries `notation`, `mappings` and, per allowed type, the `effectiveMappings` with the element actually used. An element of another notation or of the wrong kind is rejected with 422 naming `mappings`; changing or deleting a system-defined viewpoint is rejected with 422 and the problem type `urn:oea:problem:read-only-viewpoint`.
 
 ## Translating labels {#translating-labels}
 

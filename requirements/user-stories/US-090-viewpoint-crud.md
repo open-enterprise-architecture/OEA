@@ -2,9 +2,9 @@
 
 **ID**: US-090
 **Story Points**: 8
-**Status**: in-progress
+**Status**: done
 **Sprint**: S15
-**Implementation**: OpenSpec change `us-090-viewpoints` – generic viewpoints with allowed entity and connection types: `createViewpoint`, `listViewpoints`, `getViewpoint`, `updateViewpoint` and `deleteViewpoint` (`viewpoint:manage`, V39) and the section SCR-031 of the metamodel page (AC1, AC3). AC2 (diagrams affected) follows with the diagrams
+**Implementation**: OpenSpec change `us-090-viewpoints` – generic viewpoints with allowed entity and connection types: `createViewpoint`, `listViewpoints`, `getViewpoint`, `updateViewpoint` and `deleteViewpoint` (`viewpoint:manage`, V39) and the section SCR-031 of the metamodel page (AC1, AC3); OpenSpec change `us-091-viewpoint-notations` – the notation (`generic`, `archimate3`, `uml`, `bpmn2`) and the optional notation mappings of the story (V41, US-091). AC2 (diagrams affected) stays with the diagrams
 
 ## Story
 

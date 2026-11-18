@@ -2,8 +2,9 @@
 
 **ID**: US-095
 **Story Points**: 5
-**Status**: backlog
+**Status**: done
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-095-navigation-tree-items` – element entities (`entityId`) and solutions (`referenceId`) as entries next to catalogs, placed with "Place in navigation" on SCR-020 and SCR-061 (V40); removing an entry never changes its target (AC1); the entry of a deleted entity stays in every folder, marked "Deleted", until removed or the entity is restored (AC2). Diagram entries follow with the diagrams
 
 ## Story
 

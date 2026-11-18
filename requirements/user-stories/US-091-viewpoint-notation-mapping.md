@@ -2,8 +2,9 @@
 
 **ID**: US-091
 **Story Points**: 3
-**Status**: backlog
+**Status**: done
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-091-viewpoint-notations` – the shipped element catalog (`listNotationElements`) with the prefixes `archimate:`, `uml:` and `bpmn:` and the generic elements; the element select of the dialog on SCR-031 shows the elements of the notation and the generic ones (AC1); an element of another notation is rejected with 422 naming `mappings` (AC2); changing the notation clears the elements that no longer fit (AC3)
 
 ## Story
 

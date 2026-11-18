@@ -497,7 +497,7 @@ A metamodel package was imported ([US-033](../requirements/user-stories/US-033-i
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the importing principal |
 | Target | `metamodel-package`, package identifier |
-| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049) |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049); for a metamodel package also `viewpointsCreated` and `viewpointsUpdated` (the numbers of system-defined viewpoints of the package created and changed) and `viewpointsDeleted` (the IDs of the viewpoints of the package a re-import deleted because the package no longer carries them; [US-092](../requirements/user-stories/US-092-system-viewpoint-readonly.md), change us-091-viewpoint-notations D8) |
 
 ### `metamodel.metatype-imported`
 
@@ -796,31 +796,44 @@ A folder of the navigation tree was created, renamed or deleted ([US-054](../req
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
-| Actor | the person with `viewpoint:manage` |
+| Actor | the person with `viewpoint:manage` and `entity:read` |
 | Target | `tree-node`, ID of the folder |
 | Details | `name`; when created also `parentId`; when renamed also `previousName`; when deleted also `folders` and `items` (the numbers of removed folders, the folder itself included, and entries) |
 
 ### `tree-node.item-added`, `tree-node.item-removed`
 
-A catalog was placed in a folder of the navigation tree or its entry removed ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [REQ-050](../requirements/req/REQ-050-catalog-navigation-tree.md)). The catalog itself does not change.
+A catalog, an element entity or a solution was placed in a folder of the navigation tree, or its entry removed ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [US-095](../requirements/user-stories/US-095-navigation-tree-item-soft-reference.md), [REQ-050](../requirements/req/REQ-050-catalog-navigation-tree.md), [REQ-095](../requirements/req/REQ-095-navigation-tree-item-soft-reference.md); change us-095-navigation-tree-items). The target itself does not change.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
-| Actor | the person with `viewpoint:manage` |
+| Actor | the person with `viewpoint:manage` and `entity:read` |
 | Target | `tree-node`, ID of the folder |
-| Details | `itemId`, `itemType` (`catalog`) and `referenceId` (the ID of the catalog) |
+| Details | `itemId`, `itemType` (`catalog`, `entity` or `solution`) and the target ID: `entityId` for an entity, `referenceId` (the ID of the catalog or solution) otherwise |
+
+### `tree-node.moved`, `tree-node.item-moved`
+
+A folder of the navigation tree was moved with its subfolders and entries, or an entry was moved to another folder or another position ([US-096](../requirements/user-stories/US-096-navigation-tree-drag-drop.md), [REQ-096](../requirements/req/REQ-096-navigation-tree-drag-drop.md); change us-095-navigation-tree-items). A move to the same place, and a rejected move, are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `viewpoint:manage` and `entity:read` |
+| Target | `tree-node`, ID of the moved folder (`tree-node.moved`) or of the folder that held the entry (`tree-node.item-moved`) |
+| Details | `fromNodeId` (the old parent or folder), `toNodeId` (the new parent or folder) and `position` (the 0-based position among the new siblings); `tree-node.item-moved` also `itemId` and `itemType` |
+
+Display labels of entries and names of entities are free text that may hold personal data; no `tree-node.*` event records them (ADR-024, change us-095-navigation-tree-items D7). Details carry IDs, the item type, folders and the position only.
 
 ### `viewpoint.created` / `viewpoint.updated` / `viewpoint.deleted`
 
-A viewpoint was created, edited or deleted ([US-090](../requirements/user-stories/US-090-viewpoint-crud.md), [REQ-090](../requirements/req/REQ-090-create-edit-delete-viewpoint.md); change us-090-viewpoints). Rejected writes (validation error, stale or missing version, missing permission) are not audited.
+A viewpoint was created, edited or deleted ([US-090](../requirements/user-stories/US-090-viewpoint-crud.md), [REQ-090](../requirements/req/REQ-090-create-edit-delete-viewpoint.md); change us-090-viewpoints). Rejected writes (validation error, stale or missing version, missing permission, the read-only rejection of a system-defined viewpoint) are not audited. System-defined viewpoints are created, changed and deleted only by a package import, which audits them in `metamodel.package-imported`.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person with `viewpoint:manage` |
 | Target | `viewpoint`, ID of the viewpoint |
-| Details | `name`; for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `metatypeIds` and `connectionTypeIds` |
+| Details | `name` and `notation` (`generic`, `archimate3`, `uml` or `bpmn2`); for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `notation`, `metatypeIds`, `connectionTypeIds` and `mappings`. Mapping values (notation elements, sizes, visual hints) are not copied ([US-091](../requirements/user-stories/US-091-viewpoint-notation-mapping.md), [REQ-091](../requirements/req/REQ-091-viewpoint-notation-mapping.md); change us-091-viewpoint-notations D8) |
 
 ### `plateau.created` / `plateau.updated`
 

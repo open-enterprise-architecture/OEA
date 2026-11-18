@@ -23,6 +23,10 @@ public class InvalidTreeException extends RuntimeException {
 		return new InvalidTreeException("The root folder cannot be deleted.", List.of());
 	}
 
+	static InvalidTreeException rootNotMovable() {
+		return new InvalidTreeException("The root folder cannot be moved.", List.of());
+	}
+
 	public List<String> getInvalidFields() {
 		return this.invalidFields;
 	}

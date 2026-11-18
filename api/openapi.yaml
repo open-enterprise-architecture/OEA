@@ -1401,32 +1401,39 @@ components:
     TreeNodeItem:
       type: object
       description: |
-        An entry of a folder (US-054, REQ-050, REQ-095; business object `tree-node`): a soft
-        reference to a catalog. Only catalogs can be placed so far.
-      required: [id, itemType, referenceId, displayLabel, sortOrder, name, scope]
+        An entry of a folder (US-054, US-095, US-097, REQ-050, REQ-095; business object
+        `tree-node`): a soft reference to a catalog, an element entity or a solution. The entry
+        never changes or protects its target.
+      required: [id, itemType, referenceId, entityId, displayLabel, sortOrder, name, scope, deleted]
       properties:
         id:           { type: string, format: uuid }
         itemType:
           type: string
-          enum: [catalog]
-        referenceId:  { type: string, format: uuid, description: "ID of the catalog" }
-        displayLabel: { type: [string, 'null'], description: "Shown instead of the catalog's name if set" }
-        sortOrder:    { type: integer, description: "0 until manual ordering follows (REQ-096)" }
-        name:         { type: string, description: "The current name of the catalog" }
-        scope:        { $ref: '#/components/schemas/CatalogScope' }
+          enum: [catalog, entity, solution]
+        referenceId:  { type: [string, 'null'], format: uuid, description: "ID of the catalog or solution; null for an entity" }
+        entityId:     { type: [integer, 'null'], format: int32, description: "ID of the entity; null for a catalog or solution" }
+        displayLabel: { type: [string, 'null'], description: "Shown instead of the target's name if set" }
+        sortOrder:    { type: integer, minimum: 0, description: "Manual position among the entries of the folder (REQ-096); entries are returned in this order" }
+        name:         { type: string, description: "The current name of the target" }
+        scope:
+          description: Scope of the catalog; null for an entity or solution
+          oneOf:
+            - $ref: '#/components/schemas/CatalogScope'
+            - type: 'null'
+        deleted:      { type: boolean, description: "True for an entity entry whose entity is deleted (US-095 AC2); false otherwise" }
 
     TreeNode:
       type: object
       description: |
-        A folder of the navigation tree (US-054, REQ-094; business object `tree-node`), with its
-        entries and subfolders sorted by name regardless of case. The root is the folder
-        "Repository" without a parent.
+        A folder of the navigation tree (US-054, REQ-094, REQ-096; business object `tree-node`),
+        with its entries and subfolders in their manual order (`sortOrder`, then the name as a
+        tie-breaker). The root is the folder "Repository" without a parent.
       required: [id, name, parentId, sortOrder, items, children]
       properties:
         id:        { type: string, format: uuid }
         name:      { type: string }
         parentId:  { type: [string, 'null'], format: uuid, description: "null for the root" }
-        sortOrder: { type: integer, description: "0 until manual ordering follows (REQ-096)" }
+        sortOrder: { type: integer, minimum: 0, description: "Manual position among the sibling folders (REQ-096)" }
         items:
           type: array
           items: { $ref: '#/components/schemas/TreeNodeItem' }
@@ -1451,12 +1458,43 @@ components:
 
     TreeNodeItemCreate:
       type: object
-      description: A catalog placed in a folder (US-054, REQ-050, REQ-097; tree-node BR-04, BR-06)
-      required: [itemType, referenceId]
+      description: |
+        A catalog, an element entity or a solution placed in a folder (US-054, US-095, US-097,
+        REQ-050, REQ-097; tree-node BR-04, BR-06). `entityId` is required for `entity` and
+        `referenceId` for `catalog` and `solution`; a missing fitting field, or the field of the
+        other kind, is rejected with 422 naming that field.
+      required: [itemType]
       properties:
-        itemType:     { type: string, enum: [catalog] }
-        referenceId:  { type: string, format: uuid, description: "ID of a catalog visible to the caller" }
+        itemType:     { type: string, enum: [catalog, entity, solution] }
+        referenceId:  { type: [string, 'null'], format: uuid, description: "ID of a catalog visible to the caller, or of a solution" }
+        entityId:     { type: [integer, 'null'], format: int32, minimum: 1, description: "ID of an element entity that is not deleted" }
         displayLabel: { type: [string, 'null'], maxLength: 255, description: "Trimmed; empty means none" }
+
+    TreeNodeMove:
+      type: object
+      description: New parent and position of a folder (US-096, REQ-096; tree-node BR-03)
+      required: [parentId, position]
+      properties:
+        parentId: { type: string, format: uuid, description: "The new parent folder; neither the folder itself nor one of its descendants" }
+        position:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: 0-based position among the new siblings; a position past the end places the folder last
+
+    TreeNodeItemMove:
+      type: object
+      description: Target folder and position of an entry (US-096, REQ-096)
+      required: [nodeId, position]
+      properties:
+        nodeId:   { type: string, format: uuid, description: "The target folder; the current folder to reorder" }
+        position:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: |
+            0-based position among the entries of the target folder that the caller sees; a
+            position past the end places the entry last
 
     # ── Diagram ──────────────────────────────────────────────────────────────
     DiagramShape:
@@ -2140,10 +2178,13 @@ components:
           items: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
         viewpoints:
           type: array
-          description: Not supported yet; a package with viewpoints is rejected with `unsupported-package-content` (UC-12 A3, A4)
+          description: |
+            Viewpoints the import installs as system-defined, read-only viewpoints of the package
+            (US-092, REQ-059); at most 10000
           items: { $ref: '#/components/schemas/PackageViewpoint' }
         shapeAssignments:
           type: array
+          description: Not supported yet; a package with shape assignments is rejected with `unsupported-package-content`
           items: { $ref: '#/components/schemas/ShapeAssignment' }
         i18nBundles:
           type: object
@@ -2573,29 +2614,110 @@ components:
     # ── Admin – Viewpoints ────────────────────────────────────────────────────
     PackageViewpoint:
       type: object
-      required: [id, name]
-      description: A viewpoint in a metamodel package; the package import does not support it yet
+      required: [id, name, metatypeIds]
+      description: |
+        A viewpoint in a metamodel package (US-092, REQ-059), installed as a system-defined,
+        read-only viewpoint. It is identified by its stable `id` within the package; an ID or a
+        name of an organization viewpoint or of another package's viewpoint is a conflict (409).
+        Metatypes are referenced by the IDs of the package's metatypes or of the instance
+        configuration. The import applies the checks and limits of `ViewpointWrite`.
       properties:
-        id:               { type: string }
-        name:             { type: string }
-        description:      { type: string }
-        allowedMetatypes:
+        id:          { type: string, format: uuid }
+        name:        { type: string, minLength: 1, maxLength: 255, description: "Unique within the package (case-insensitive)" }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        notation:    { $ref: '#/components/schemas/ViewpointNotation' }
+        metatypeIds:
           type: array
-          items: { $ref: '#/components/schemas/MetatypeSummary' }
-        allowedRelations:
+          minItems: 1
+          maxItems: 500
+          items: { type: string, format: uuid }
+        connectionTypeIds:
           type: array
-          items: { $ref: '#/components/schemas/MetatypeSummary' }
+          maxItems: 500
+          items: { type: string, format: uuid }
+        mappings:
+          type: array
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/ViewpointMapping' }
+
+    ViewpointNotation:
+      type: string
+      enum: [generic, archimate3, uml, bpmn2]
+      default: generic
+      description: Notation of a viewpoint (US-090, UC-12 step 4); `generic` uses only `generic:Box` and `generic:Arrow`
+
+    ViewpointMapping:
+      type: object
+      required: [metatypeId, notationElement]
+      description: |
+        Maps an allowed metatype of the viewpoint to an element of its notation or a generic one
+        (US-091, REQ-091): an element shape for an element metatype, a relationship shape for a
+        connection metatype; at most one mapping per metatype.
+      properties:
+        metatypeId:      { type: string, format: uuid }
+        notationElement: { type: string, minLength: 1, maxLength: 100, description: "Key of the element catalog, e.g. `archimate:ApplicationComponent`", example: "archimate:ApplicationComponent" }
+        defaultWidth:    { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "null: the size of the catalog" }
+        defaultHeight:   { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "null: the size of the catalog" }
+        visualHint:      { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$', description: "Optional color `#rrggbb`" }
+
+    EffectiveViewpointMapping:
+      type: object
+      required: [metatypeId, notationElement, defaultWidth, defaultHeight, visualHint, fallback]
+      description: |
+        The element an allowed metatype is rendered with: its mapping, or `generic:Box`
+        (`generic:Arrow` for a connection metatype) with the size of the catalog (fallback)
+      properties:
+        metatypeId:      { type: string, format: uuid }
+        notationElement: { type: string }
+        defaultWidth:    { type: integer, minimum: 1, maximum: 2000 }
+        defaultHeight:   { type: integer, minimum: 1, maximum: 2000 }
+        visualHint:      { type: [string, 'null'] }
+        fallback:        { type: boolean, description: "True if the metatype has no mapping" }
+
+    NotationElement:
+      type: object
+      required: [key, notation, label, kind, defaultWidth, defaultHeight]
+      description: An element of the shipped element catalog (US-091 AC1, REQ-091)
+      properties:
+        key:           { type: string, maxLength: 100, example: "archimate:ApplicationComponent" }
+        notation:      { $ref: '#/components/schemas/ViewpointNotation' }
+        label:         { type: string, example: Application Component }
+        kind:
+          type: string
+          enum: [element, relationship]
+          description: Shape for an element metatype or for a connection metatype
+        defaultWidth:  { type: integer, minimum: 1, maximum: 2000 }
+        defaultHeight: { type: integer, minimum: 1, maximum: 2000 }
 
     ViewpointConfig:
       type: object
-      required: [id, name, description, allowedMetatypes, allowedRelations, version, createdAt, createdBy]
+      required: [id, name, description, notation, viewpointType, sourcePackage, allowedMetatypes, allowedRelations, mappings, effectiveMappings, version, createdAt, createdBy]
       description: |
-        A generic viewpoint (US-090, UC-12): the element metatypes and connection metatypes that
-        belong to an organization-specific view. Notations follow with the diagrams.
+        A viewpoint (US-090, US-091, US-092, UC-12): the element metatypes and connection
+        metatypes of a view, its notation and the optional notation mapping. A system-defined
+        viewpoint comes from a metamodel package and is read-only.
       properties:
         id:          { type: string, format: uuid }
         name:        { type: string }
         description: { type: [string, 'null'] }
+        notation:    { $ref: '#/components/schemas/ViewpointNotation' }
+        viewpointType:
+          type: string
+          enum: [system-defined, user-defined]
+          description: "`system-defined`: installed by a package, read-only (US-092)"
+        sourcePackage:
+          description: Package of a system-defined viewpoint; null for a user-defined one
+          oneOf:
+            - $ref: '#/components/schemas/SourcePackage'
+            - type: 'null'
+        mappings:
+          type: array
+          description: The stored notation mapping
+          items: { $ref: '#/components/schemas/ViewpointMapping' }
+        effectiveMappings:
+          type: array
+          description: One entry per allowed metatype and connection type, with the generic fallback
+          items: { $ref: '#/components/schemas/EffectiveViewpointMapping' }
         allowedMetatypes:
           type: array
           description: Element metatypes, ordered by name
@@ -2628,6 +2750,15 @@ components:
           maxItems: 500
           description: Connection metatypes of the instance configuration
           items: { type: string, format: uuid }
+        notation: { $ref: '#/components/schemas/ViewpointNotation' }
+        mappings:
+          type: array
+          maxItems: 1000
+          description: |
+            Optional notation mapping, at most one per allowed metatype or connection type. The
+            origin (`viewpointType`, `sourcePackage`) is set only by the package import; a write
+            through the API always stores a user-defined viewpoint.
+          items: { $ref: '#/components/schemas/ViewpointMapping' }
 
     # ── Admin – Property visibility (REQ-124, REQ-128, REQ-161) ───────────────
     PropertyVisibility:
@@ -4481,6 +4612,15 @@ components:
         labelCount:
           type: [integer, 'null']
           description: Labels stored from the `i18nBundles` of a metamodel package import
+        viewpointsCreated:
+          type: [integer, 'null']
+          description: Viewpoints a metamodel package import created; null for other imports
+        viewpointsUpdated:
+          type: [integer, 'null']
+          description: Viewpoints of the package a metamodel package import updated; null for other imports
+        viewpointsDeleted:
+          type: [integer, 'null']
+          description: Viewpoints of the package a re-import deleted because the package no longer carries them; null for other imports
         errors:
           type: array
           items:
@@ -6656,10 +6796,11 @@ paths:
       operationId: getExplorerView
       summary: Navigation tree (US-054, SCR-055, SCR-010/011)
       description: |
-        The navigation tree from the root folder "Repository", with all folders and their catalog
-        entries (US-054, REQ-050, REQ-095). Folders and entries are sorted by name regardless of
-        case, an entry by its display label if set. An entry on another person's personal catalog
-        and an entry whose catalog no longer exists are left out.
+        The navigation tree from the root folder "Repository", with all folders and their
+        entries – catalogs, element entities and solutions (US-054, US-095, REQ-050, REQ-095,
+        REQ-096). Folders and entries come in their manual order (`sortOrder`). An entry on
+        another person's personal catalog and an entry whose catalog no longer exists are left
+        out; the entry of a deleted entity stays with `deleted` true.
       tags: [Views – Navigation]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       responses:
@@ -6679,11 +6820,13 @@ paths:
       description: |
         Creates a folder under an existing folder. The name is trimmed, has 1–255 characters
         without control characters and is unique among its siblings regardless of case (BR-01).
-        A folder is at most 10 levels below the root; the tree has at most 500 folders.
+        A folder is at most 10 levels below the root; the tree has at most 500 folders. The new
+        folder goes after its siblings (REQ-096).
         Validation errors answer 422 with `invalidFields` `name` or `parentId` (an unknown parent).
-        Writes the audit event `tree-node.created`.
+        Writes the audit event `tree-node.created`. Every write of the tree needs `entity:read`
+        in addition, because it answers with the tree and the names of its entries.
       tags: [Views – Navigation]
-      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
       requestBody:
         required: true
         content:
@@ -6713,7 +6856,7 @@ paths:
         Renames the folder, the root included, under the rules for the name of a new folder.
         An unknown folder answers 404. Writes the audit event `tree-node.renamed`.
       tags: [Views – Navigation]
-      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
       parameters:
         - $ref: '#/components/parameters/TreeNodeIdParam'
       requestBody:
@@ -6745,7 +6888,7 @@ paths:
         The root cannot be deleted (BR-02, 422). An unknown folder answers 404. Writes the audit
         event `tree-node.deleted`.
       tags: [Views – Navigation]
-      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
       parameters:
         - $ref: '#/components/parameters/TreeNodeIdParam'
       responses:
@@ -6768,15 +6911,18 @@ paths:
   /tree-nodes/{nodeId}/items:
     post:
       operationId: addTreeNodeItem
-      summary: Place a catalog in a folder (US-054, REQ-050, REQ-097)
+      summary: Place a catalog, an entity or a solution in a folder (US-054, US-095, US-097, REQ-050, REQ-097)
       description: |
-        Places a catalog in the folder, with an optional display label of at most 255 characters.
-        A catalog may be placed in several folders, but only once per folder (BR-06). A second
-        entry in the same folder and a catalog the caller cannot see answer 422 with
-        `invalidFields` `referenceId`; a folder has at most 200 entries. An unknown folder answers
-        404. Writes the audit event `tree-node.item-added`.
+        Places a catalog, an element entity or a solution in the folder as its last entry, with
+        an optional display label of at most 255 characters; the target does not change. A target
+        may be placed in several folders, but only once per folder (BR-06). A second entry in the
+        same folder, a catalog the caller cannot see, an unknown solution and a full folder
+        (200 entries) answer 422 with `invalidFields` `referenceId`; a connection, an unknown or a
+        deleted entity, a second entry of it in the folder and a full folder answer 422 with
+        `entityId`. An unknown folder answers 404. Writes the audit event `tree-node.item-added`
+        with `itemType` and `referenceId` or `entityId`, without the display label.
       tags: [Views – Navigation]
-      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
       parameters:
         - $ref: '#/components/parameters/TreeNodeIdParam'
       requestBody:
@@ -6806,10 +6952,12 @@ paths:
       operationId: removeTreeNodeItem
       summary: Remove an entry from a folder (US-054, REQ-050, REQ-095)
       description: |
-        Removes only this entry; the catalog and its other entries stay. An unknown folder or
-        entry answers 404. Writes the audit event `tree-node.item-removed`.
+        Removes only this entry; the target and its other entries stay. An unknown folder or
+        entry, an entry of another folder and an entry on another person's personal catalog
+        answer 404. Writes the audit event `tree-node.item-removed` with `itemType` and
+        `referenceId` or `entityId`.
       tags: [Views – Navigation]
-      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
       parameters:
         - $ref: '#/components/parameters/TreeNodeIdParam'
         - $ref: '#/components/parameters/TreeNodeItemIdParam'
@@ -6823,6 +6971,89 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tree-nodes/{nodeId}/position:
+    put:
+      operationId: moveTreeNode
+      summary: Move a folder of the navigation tree (US-096, REQ-096, UC-13)
+      description: |
+        Moves the folder with its subfolders and entries under a new parent at a 0-based
+        position among the new siblings; a position past the end places it last, and the
+        siblings keep a dense order. An unknown parent, the folder itself or one of its
+        descendants as parent (BR-03), a name taken among the new siblings and a subtree that
+        would end more than 10 levels below the root answer 422 with `invalidFields` `parentId`;
+        a position outside 0–10000 answers 422 with `position`. The root cannot be moved (422).
+        An unknown folder answers 404. Writes the audit event `tree-node.moved` with the old and
+        new parent and the position; a move to the same place writes none.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/TreeNodeIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TreeNodeMove' }
+      responses:
+        '200':
+          description: The tree with the moved folder
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid move (problem type `urn:oea:problem:validation-failed`); nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /tree-nodes/{nodeId}/items/{itemId}/position:
+    put:
+      operationId: moveTreeNodeItem
+      summary: Move an entry within its folder or to another folder (US-096, REQ-096, UC-13)
+      description: |
+        Moves the entry to a 0-based position in the target folder (`nodeId`; the current folder
+        to reorder). The position counts the entries the caller sees: the entry goes before the
+        visible entry at that position, and entries on other persons' personal catalogs keep
+        their order relative to the others. A position past the end places it last, and the
+        entries keep a dense order. An unknown target folder, a target folder that already holds
+        the entry's target and a full target folder (200 entries) answer 422 with
+        `invalidFields` `nodeId`; a position outside 0–10000 answers 422 with `position`. An
+        unknown folder or entry, an entry of another folder and an entry on another person's
+        personal catalog answer 404. Writes the audit event `tree-node.item-moved` with the old
+        and new folder and the position; a move to the same place writes none.
+      tags: [Views – Navigation]
+      x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage", "entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/TreeNodeIdParam'
+        - $ref: '#/components/parameters/TreeNodeItemIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TreeNodeItemMove' }
+      responses:
+        '200':
+          description: The tree with the moved entry
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreeNode' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: Invalid move (problem type `urn:oea:problem:validation-failed`); nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
@@ -8128,7 +8359,9 @@ paths:
     get:
       operationId: listViewpoints
       summary: List viewpoints (US-090, SCR-031)
-      description: All viewpoints, ordered by name (case-insensitive), with their allowed metatypes and connection types.
+      description: |
+        All viewpoints, ordered by name (case-insensitive), with their allowed metatypes and
+        connection types, notation, mappings and origin (system-defined or user-defined).
       tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
       responses:
@@ -8146,9 +8379,11 @@ paths:
       operationId: createViewpoint
       summary: Create a viewpoint (US-090, UC-12)
       description: |
-        Creates a generic viewpoint with a name, an optional description, at least one element
-        metatype and any number of connection metatypes of the instance configuration (owner
-        decision 2026-11-17: notations follow with the diagrams). Writes `viewpoint.created`.
+        Creates a user-defined viewpoint with a name, an optional description, at least one
+        element metatype, any number of connection metatypes of the instance configuration, a
+        notation (default `generic`) and an optional notation mapping (US-090, US-091). Count,
+        key length, sizes and the visual hint are contract checks (400). Writes
+        `viewpoint.created` with the notation.
       tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       requestBody:
@@ -8174,12 +8409,38 @@ paths:
         '422':
           description: |
             A blank or taken name (`name`), no metatype, an unknown metatype, a connection
-            metatype or one of a solution extension (`metatypeIds`), or an unknown or element
-            metatype or one of a solution extension as connection type (`connectionTypeIds`);
-            problem type `urn:oea:problem:validation-failed`. Nothing is stored.
+            metatype or one of a solution extension (`metatypeIds`), an unknown or element
+            metatype or one of a solution extension as connection type (`connectionTypeIds`), or
+            a mapping of a type the viewpoint does not allow, of an unknown element, of an element
+            of another notation or of the wrong shape kind, or a second mapping of one metatype
+            (`mappings`); problem type `urn:oea:problem:validation-failed`. Nothing is stored.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/viewpoints/notations:
+    get:
+      operationId: listNotationElements
+      summary: Element catalog of the notations (US-091 AC1, SCR-031)
+      description: |
+        The elements of the shipped element catalog: ArchiMate 3.2, the component and class
+        elements of UML, the core elements of BPMN 2.0 and the generic elements, each with key,
+        notation, label, kind and default size, ordered by notation and key. Static data of the
+        release; it holds nothing of the instance. The literal path takes precedence over
+        `/admin/viewpoints/{id}`.
+      tags: [Viewpoints]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
+      responses:
+        '200':
+          description: Element catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/NotationElement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /admin/viewpoints/{id}:
@@ -8207,9 +8468,12 @@ paths:
       operationId: updateViewpoint
       summary: Update a viewpoint (US-090, UC-12 A1)
       description: |
-        Replaces name, description and the allowed types with the checks of the creation.
-        Requires `If-Match` with the version read. Writes `viewpoint.updated` with the changed
-        fields.
+        Replaces name, description, the allowed types, the notation and the mappings with the
+        checks of the creation; a new notation must not keep elements of the old one (422
+        `mappings`). Requires `If-Match` with the version read. A system-defined viewpoint is
+        read-only (422 `urn:oea:problem:read-only-viewpoint`, US-092 AC1). Writes
+        `viewpoint.updated` with the notation and the changed fields (`notation` and `mappings`
+        among them, without their values).
       tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       parameters:
@@ -8235,7 +8499,9 @@ paths:
         '412': { $ref: '#/components/responses/PreconditionFailed' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
-          description: As for `createViewpoint`. Nothing changes.
+          description: |
+            As for `createViewpoint`, or problem type `urn:oea:problem:read-only-viewpoint` with
+            the detail "System-defined viewpoints are read-only". Nothing changes.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -8244,7 +8510,10 @@ paths:
     delete:
       operationId: deleteViewpoint
       summary: Delete a viewpoint (US-090 AC3, US-093, UC-12 A2)
-      description: Requires `If-Match` with the version read. Writes `viewpoint.deleted`.
+      description: |
+        Requires `If-Match` with the version read. A system-defined viewpoint is read-only (422
+        `urn:oea:problem:read-only-viewpoint`, US-092 AC1). Writes `viewpoint.deleted` with the
+        notation.
       tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       parameters:
@@ -8257,6 +8526,13 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '422':
+          description: |
+            A system-defined viewpoint (problem type `urn:oea:problem:read-only-viewpoint`, detail
+            "System-defined viewpoints are read-only"). Nothing changes.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '428': { $ref: '#/components/responses/PreconditionRequired' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
@@ -10875,6 +11151,12 @@ paths:
         size (413) and validated against the package schema; a faulty package is rejected with
         422 and the location of the first problem (REQ-184). Every import is audited with one
         batch ID.
+        The section `viewpoints` installs system-defined, read-only viewpoints of the package
+        (US-092, REQ-059), identified by their ID; a re-import updates them and deletes those
+        the package no longer carries. An ID or a name of an organization viewpoint or of another
+        package's viewpoint is a conflict (409). `metamodel.package-imported` carries
+        `viewpointsCreated`, `viewpointsUpdated` and `viewpointsDeleted` (the IDs).
+        `shapeAssignments` are not supported (422).
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:

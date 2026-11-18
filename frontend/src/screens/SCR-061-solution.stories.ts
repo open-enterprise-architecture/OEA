@@ -12,6 +12,7 @@ import {
   DELTAS,
   DELTAS_WITH_MODIFIED,
   ME_SOLUTION_ARCHITECT,
+  ME_SOLUTION_MANAGER,
   ME_SOLUTION_VIEWER,
   manyDeltas,
   MODIFIED_ERP,
@@ -19,6 +20,8 @@ import {
   SOLUTIONS,
   solutionApi,
 } from '../test/solutions'
+import { clearTree } from '../navigation/store'
+import { navigationApi } from '../test/navigation'
 import { plateauApi, TARGET_2027_ID, TARGET_2028_ID, withPlateaus } from '../test/plateaus'
 
 // SCR-061 Solution (UC-05, US-038, US-039): name, status, owner, creation time and the
@@ -44,13 +47,14 @@ function screen(
   me: unknown = ME_SOLUTION_ARCHITECT,
   conflicts: Record<number, SolutionDeltaConflict[]> = {},
 ): Story {
-  const fetchFn = solutionApi({ landscape, deltas, me, conflicts, parallelChangeMetatypes: [APPLICATION] }).fetch
+  const fetchFn = navigationApi({ fallback: solutionApi({ landscape, deltas, me, conflicts, parallelChangeMetatypes: [APPLICATION] }).fetch })
   return {
     render: () => ({
       components: { AppHeader, SolutionPage },
       setup: () => {
         session.me = me as Me
         session.loaded = true
+        clearTree()
         return { fetchFn, id }
       },
       template: `
@@ -69,7 +73,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Solution: Story = {
-  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, CONFLICTS),
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED, ME_SOLUTION_MANAGER, CONFLICTS),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('ERP Extension Logistics')).toBeInTheDocument()
@@ -82,6 +86,30 @@ export const Solution: Story = {
     await expect(canvas.getAllByText('Modified')).toHaveLength(2)
     await expect(canvas.getByText('2 changes')).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Compare' })).toHaveAttribute('href', '/solutions/5d000000-0000-4000-8000-000000000002/diff')
+    await expect(canvas.getByRole('button', { name: 'Place in navigation' })).toBeInTheDocument()
+  },
+}
+
+/** "Place in navigation" (US-097): the folder as a path and the display label, as for catalogs. */
+export const PlaceInNavigation: Story = {
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED, ME_SOLUTION_MANAGER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Place in navigation' }))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await expect(await dialog.findByText('Place ERP Extension Logistics in the navigation')).toBeInTheDocument()
+    await userEvent.click(dialog.getByTestId('place-submit'))
+    await expect(await canvas.findByText('Placed in Repository.')).toBeVisible()
+  },
+}
+
+/** A reader without `viewpoint:manage` is not offered "Place in navigation" (design D7 of us-095). */
+export const NoPlacementForReader: Story = {
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS, ME_SOLUTION_VIEWER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('ERP Extension Logistics')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Place in navigation' })).toBeNull()
   },
 }
 

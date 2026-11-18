@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, type LocationQuery } from 'vue-router'
 import {
@@ -27,6 +27,7 @@ import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
 import CatalogFilterBar, { type FilterColumn } from '../components/CatalogFilterBar.vue'
 import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
 import PlaceInNavigation from '../components/PlaceInNavigation.vue'
+import type { Placement } from '../api/navigation'
 import CatalogTable from '../components/CatalogTable.vue'
 import CatalogViews from '../components/CatalogViews.vue'
 import { label, labelKeys } from '../i18n/labels'
@@ -60,8 +61,22 @@ const canConfigure = computed(
     catalog.value?.scope === 'personal' ||
     (session.me?.permissions.some((entry) => entry.permission === 'catalog:manage') ?? false),
 )
-// placing the catalog in the navigation tree needs viewpoint:manage (US-054)
-const canPlace = computed(() => session.me?.permissions.some((entry) => entry.permission === 'viewpoint:manage') ?? false)
+// placing the catalog or an entity in the navigation tree needs viewpoint:manage and entity:read, because
+// every change of the tree answers with the names of its entries (US-054, US-095; design D7 of us-095)
+const canPlace = computed(() => {
+  const granted = session.me?.permissions.map((entry) => entry.permission) ?? []
+  return granted.includes('viewpoint:manage') && granted.includes('entity:read')
+})
+// the entity row "Place in navigation" was chosen on; its dialog is the one of the catalog, without a button
+const rowPlacement = ref<Placement>()
+const rowPlace = ref<{ start: () => Promise<void> }>()
+async function placeRow(entityId: number, name: string) {
+  rowPlacement.value = { itemType: 'entity', entityId, name }
+  await nextTick()
+  await rowPlace.value?.start()
+}
+// a catalog of connections lists no elements, and a connection cannot be placed (US-095)
+const placeableRows = computed(() => canPlace.value && !(shown.value?.columns ?? []).some((column) => /^(source|target)\./.test(column.key)))
 // the path the page is shown at; query changes while navigating elsewhere are ignored
 const path = route.path
 let latestQuery = 0
@@ -521,7 +536,12 @@ watch(
             :label="catalog.scope === 'personal' ? t('catalogs.personal') : t('catalogs.shared')"
           />
           <div v-if="canConfigure || canPlace" class="ms-auto flex flex-wrap gap-2">
-            <PlaceInNavigation v-if="canPlace" :catalog-id="catalog.id" :catalog-name="catalog.name" :fetch-fn="fetchFn" />
+            <PlaceInNavigation
+              v-if="canPlace"
+              :placement="{ itemType: 'catalog', referenceId: catalog.id, name: catalog.name }"
+              :fetch-fn="fetchFn"
+            />
+            <PlaceInNavigation v-if="rowPlacement" ref="rowPlace" :placement="rowPlacement" :trigger="false" :fetch-fn="fetchFn" />
             <UButton
               v-if="canConfigure"
               data-testid="configure-columns"
@@ -579,6 +599,8 @@ watch(
         :result="shown"
         :loading="querying"
         :primary-label="metatypeName"
+        :placeable="placeableRows"
+        @place="placeRow"
         @sort="(sort) => showView(sort, 0)"
         @page="(page) => showView(view.sort, page)"
         @mode="switchMode"

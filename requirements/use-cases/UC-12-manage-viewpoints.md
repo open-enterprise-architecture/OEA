@@ -5,7 +5,7 @@ status: draft
 priority: must
 target_release: v1.0
 complexity: medium
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-27
 last_updated: 2026-11-17
 primary_actor: SH-03
@@ -21,6 +21,9 @@ references:
     - requirements/req/REQ-059-viewpoint-import-export.md
   user_stories:
     - requirements/user-stories/US-079-export-and-import-viewpoint.md
+    - requirements/user-stories/US-090-viewpoint-crud.md
+    - requirements/user-stories/US-091-viewpoint-notation-mapping.md
+    - requirements/user-stories/US-092-system-viewpoint-readonly.md
   concept:
     - concept/30-dynamics/12-domain-views.md
   related_use_cases:
@@ -262,3 +265,4 @@ Exported format (example):
 ## Realignment
 
 - 2026-11-17, OpenSpec change `us-090-viewpoints` (owner decisions 2026-11-17): viewpoints are generic for now – the basic flow and A1, A2 without the notation steps (steps 4 notation, 8, 9): a viewpoint names the allowed element and connection metatypes of the instance; it needs `viewpoint:manage`, and the metamodel lock does not apply; the section "Viewpoints" of the metamodel page is SCR-031 at `/metamodel/viewpoints`. Notations, notation mappings, system-defined viewpoints and the diagram counts follow with the diagrams; export and import (A3, A4) are not implemented yet.
+- 2026-11-17, OpenSpec change `us-091-viewpoint-notations` (owner decisions 2026-11-17, later the same day): the notation steps follow before the diagrams. Step 4 offers the notations `generic`, `archimate3`, `uml` and `bpmn2`; `generic` is the default, and viewpoints created before have it. Steps 8–9: the notation mapping is optional – per allowed entity or connection type an element of the shipped catalog (`listNotationElements`: ArchiMate 3.2, the UML component and class elements, the BPMN 2.0 core elements, and `generic:Box` and `generic:Arrow`, which fit every notation), a default size of 1–2000 and a visual hint `#rrggbb`; an unmapped type renders as the generic element. Keys carry the prefix `archimate:`, `uml:` or `bpmn:`. E3: a key of another notation, an unknown key or a shape of the wrong kind is rejected with 422 naming `mappings`, and changing the notation clears the elements that no longer fit. Step 2, E4: system-defined viewpoints come from metamodel packages (the starter package carries "Application Landscape" and "Technology Landscape"), are imported with `metamodel:write` alone and are read-only (422 `read-only-viewpoint`); SCR-031 shows them in their own group without "Edit" and "Delete". A4 is realized only as the package section `viewpoints` of the metamodel package import (UC-04): a re-import updates and deletes only the viewpoints of the same package, and an ID or name of an organization viewpoint or of another package is a conflict (409). The export (A3) and the import of viewpoint files outside packages are not implemented; the diagram counts (A1 step 3, A2 step 2) and the revalidation of diagrams (BR-05) follow with the diagrams.

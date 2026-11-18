@@ -4,6 +4,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.metamodel.ViewpointStore;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -11,6 +12,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,8 +51,15 @@ public class PackageImporter {
 
 	private final MetamodelVersions versions;
 
+	private final ViewpointStore viewpointStore;
+
+	private final NotationCatalog catalog;
+
 	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
-			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions) {
+			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions,
+			ViewpointStore viewpointStore, NotationCatalog catalog) {
+		this.viewpointStore = viewpointStore;
+		this.catalog = catalog;
 		this.labels = labels;
 		this.versions = versions;
 		this.jdbc = jdbc;
@@ -60,8 +70,12 @@ public class PackageImporter {
 		this.policies = policies;
 	}
 
-	/** Result of an import; counts refer to metatypes, {@code labels} to the stored package labels. */
-	public record Outcome(UUID batchId, int created, int updated, int labels) {
+	/**
+	 * Result of an import; counts refer to metatypes, {@code labels} to the stored package labels and
+	 * the viewpoint counts to the system-defined viewpoints of the package.
+	 */
+	public record Outcome(UUID batchId, int created, int updated, int labels, int viewpointsCreated,
+			int viewpointsUpdated, int viewpointsDeleted) {
 	}
 
 	/** Existing content with an identifier or a name of the package. */
@@ -77,7 +91,7 @@ public class PackageImporter {
 	@Transactional
 	public Outcome importPackage(OeaPrincipal principal, PackageDefinition definition) {
 		try {
-			PackageValidator.validate(definition);
+			PackageValidator.validate(definition, this.catalog);
 		}
 		catch (InvalidPackageException ex) {
 			rejected(principal, definition, ex.getType());
@@ -124,6 +138,7 @@ public class PackageImporter {
 			actions.put(metatype.id(), action);
 		}
 		uniqueInChains(principal, definition);
+		ViewpointImport viewpoints = importViewpoints(principal, definition, now);
 		// organization mappings are kept or removed by the re-import setting (us-032-metatype-editing D8)
 		Map<UUID, String> policies = this.policies.effective();
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
@@ -150,13 +165,22 @@ public class PackageImporter {
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", definition.packageId(), definition.version(),
 				definition.publisher(), batchId, Timestamp.from(now), principal.personId(),
 				principal.systemAdminAccountId(), created, updated);
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("packageId", definition.packageId());
+		details.put("version", definition.version());
+		details.put("batchId", batchId.toString());
+		details.put("metatypesCreated", created);
+		details.put("metatypesUpdated", updated);
+		details.put("labels", labelCount);
+		details.put("entitiesWithRemovedValues", sum(effects.removed()));
+		details.put("entitiesMarked", sum(effects.marked()));
+		details.put("skippedPackageEntries", skipped.stream().map(UUID::toString).toList());
+		details.put("viewpointsCreated", viewpoints.created());
+		details.put("viewpointsUpdated", viewpoints.updated());
+		details.put("viewpointsDeleted", viewpoints.deleted().stream().map(UUID::toString).toList());
 		this.audit.append(new AuditEvent("metamodel.package-imported", AuditEvent.Category.CHANGE,
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
-				"metamodel-package", definition.packageId(), Map.of("packageId", definition.packageId(), "version",
-						definition.version(), "batchId", batchId.toString(), "metatypesCreated", created,
-						"metatypesUpdated", updated, "labels", labelCount, "entitiesWithRemovedValues", sum(effects.removed()),
-						"entitiesMarked", sum(effects.marked()), "skippedPackageEntries",
-						skipped.stream().map(UUID::toString).toList())));
+				"metamodel-package", definition.packageId(), details));
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			String action = actions.get(metatype.id());
 			if (!"unchanged".equals(action)) {
@@ -166,7 +190,82 @@ public class PackageImporter {
 						Map.of("batchId", batchId.toString(), "packageId", definition.packageId(), "action", action)));
 			}
 		}
-		return new Outcome(batchId, created, updated, labelCount);
+		return new Outcome(batchId, created, updated, labelCount, viewpoints.created(), viewpoints.updated(),
+				viewpoints.deleted().size());
+	}
+
+	/** What the import did to the viewpoints of the package; {@code deleted} holds the IDs. */
+	private record ViewpointImport(int created, int updated, List<UUID> deleted) {
+	}
+
+	/**
+	 * Installs the viewpoints as system-defined ones after the metatypes (design D4 of
+	 * us-091-viewpoint-notations): viewpoints of the package that the new version no longer has are
+	 * deleted, the others are created or replaced with their links and mappings. Referenced types
+	 * must be element or connection metatypes of the instance configuration, including those the
+	 * package has just installed.
+	 */
+	private ViewpointImport importViewpoints(OeaPrincipal principal, PackageDefinition definition, Instant now) {
+		Set<UUID> wanted = new HashSet<>();
+		definition.viewpoints().forEach((viewpoint) -> wanted.add(viewpoint.id()));
+		List<UUID> deleted = new ArrayList<>();
+		for (UUID id : this.viewpointStore.packageViewpointIds(definition.packageId())) {
+			if (!wanted.contains(id)) {
+				this.viewpointStore.deletePackageViewpoint(id, definition.packageId());
+				deleted.add(id);
+			}
+		}
+		for (int i = 0; i < definition.viewpoints().size(); i++) {
+			PackageDefinition.Viewpoint viewpoint = definition.viewpoints().get(i);
+			List<UUID> all = new ArrayList<>(viewpoint.metatypeIds());
+			all.addAll(viewpoint.connectionTypeIds());
+			Map<UUID, ViewpointStore.Kind> kinds = this.viewpointStore.kinds(all, INSTANCE_CONFIGURATION);
+			for (UUID id : new HashSet<>(viewpoint.metatypeIds())) {
+				ViewpointStore.Kind kind = kinds.get(id);
+				fail(kind == null || kind.connection() || !kind.instance(), principal, definition,
+						"/viewpoints/" + i + "/metatypeIds", "A metatype of the viewpoint is not an element metatype "
+								+ "of the instance or of the package.");
+			}
+			for (UUID id : new HashSet<>(viewpoint.connectionTypeIds())) {
+				ViewpointStore.Kind kind = kinds.get(id);
+				fail(kind == null || !kind.connection() || !kind.instance(), principal, definition,
+						"/viewpoints/" + i + "/connectionTypeIds", "A connection type of the viewpoint is not a "
+								+ "connection metatype of the instance or of the package.");
+			}
+		}
+		// the names of the package's viewpoints are free again, so that a rename or swap cannot collide
+		this.viewpointStore.releaseNames(definition.packageId());
+		int created = 0;
+		int updated = 0;
+		for (PackageDefinition.Viewpoint viewpoint : definition.viewpoints()) {
+			ViewpointStore.Fields fields = new ViewpointStore.Fields(viewpoint.name().strip(),
+					(viewpoint.description() != null && !viewpoint.description().isBlank()) ? viewpoint.description()
+							: null,
+					viewpoint.notation(), List.copyOf(new LinkedHashSet<>(viewpoint.metatypeIds())),
+					List.copyOf(new LinkedHashSet<>(viewpoint.connectionTypeIds())),
+					viewpoint.mappings()
+						.stream()
+						.map((m) -> new ViewpointStore.MappingRow(m.metatypeId(), m.notationElement(),
+								m.defaultWidth(), m.defaultHeight(), m.visualHint()))
+						.toList());
+			if (this.viewpointStore.upsertSystemDefined(viewpoint.id(), fields, definition.packageId(),
+					definition.version(), principal.personId(), now)) {
+				created++;
+			}
+			else {
+				updated++;
+			}
+		}
+		return new ViewpointImport(created, updated, List.copyOf(deleted));
+	}
+
+	private void fail(boolean condition, OeaPrincipal principal, PackageDefinition definition, String pointer,
+			String message) {
+		if (condition) {
+			InvalidPackageException ex = new InvalidPackageException("invalid-package", pointer, message);
+			rejected(principal, definition, ex.getType());
+			throw ex;
+		}
 	}
 
 	private List<PackageConflictException.Conflict> conflicts(PackageDefinition definition) {
@@ -201,6 +300,14 @@ public class PackageImporter {
 						JOIN metatypes t ON t.id = m.metatype_id
 						WHERE m.id = ? AND m.metatype_id <> ?""", mapping.id(), metatype.id()));
 			}
+		}
+		for (PackageDefinition.Viewpoint viewpoint : definition.viewpoints()) {
+			List<Owner> owners = this.viewpointStore.owners(viewpoint.id(), viewpoint.name().strip())
+				.stream()
+				.map((owner) -> new Owner("system-defined".equals(owner.viewpointType()) ? "imported" : "organization",
+						owner.sourcePackageId()))
+				.toList();
+			check(conflicts, definition, "viewpoint " + viewpoint.name().strip(), owners);
 		}
 		return conflicts;
 	}

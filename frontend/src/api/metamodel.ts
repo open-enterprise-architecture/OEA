@@ -359,18 +359,45 @@ export function updateMetamodelLabels(
   return write<MetamodelLabel[]>('PUT', `${METAMODEL}/labels/${at(locale)}`, { labels }, undefined, fetchFn)
 }
 
-/** A generic viewpoint: the element and connection metatypes of a view (US-090; us-090-viewpoints). */
+/**
+ * A viewpoint: the element and connection metatypes of a view, its notation and the optional
+ * notation mapping; a system-defined one comes from a package and is read-only (US-090 to US-092;
+ * us-090-viewpoints, us-091-viewpoint-notations).
+ */
 export type Viewpoint = components['schemas']['ViewpointConfig']
 export type ViewpointWrite = components['schemas']['ViewpointWrite']
+export type ViewpointNotation = components['schemas']['ViewpointNotation']
+export type ViewpointMapping = components['schemas']['ViewpointMapping']
+export type NotationElement = components['schemas']['NotationElement']
+
+/** The notations of a viewpoint in the order the dialog offers them. */
+export const VIEWPOINT_NOTATIONS: ViewpointNotation[] = ['generic', 'archimate3', 'uml', 'bpmn2']
+
+/** The key prefix of each notation's elements; `generic:` elements fit every notation (REQ-091). */
+export const NOTATION_PREFIX: Record<ViewpointNotation, string> = { generic: 'generic:', archimate3: 'archimate:', uml: 'uml:', bpmn2: 'bpmn:' }
+
+/** The size limits of a mapping, in pixels (REQ-091). */
+export const MAPPING_SIZE_MIN = 1
+export const MAPPING_SIZE_MAX = 2000
 
 const VIEWPOINTS = '/api/v1/admin/viewpoints'
+
+/** GET /admin/viewpoints/notations: the shipped element catalog, read with `entity:read` or `viewpoint:manage`. */
+export function fetchNotationElements(fetchFn: typeof fetch = fetch): Promise<NotationElement[]> {
+  return read(`${VIEWPOINTS}/notations`, fetchFn)
+}
+
+/** Whether the catalog element may be used by a viewpoint of the notation: its own or a generic one. */
+export function elementFits(notation: ViewpointNotation, key: string): boolean {
+  return key.startsWith(NOTATION_PREFIX.generic) || key.startsWith(NOTATION_PREFIX[notation])
+}
 
 /** GET /admin/viewpoints, ordered by name. */
 export function fetchViewpoints(fetchFn: typeof fetch = fetch): Promise<Viewpoint[]> {
   return read(VIEWPOINTS, fetchFn)
 }
 
-/** POST /admin/viewpoints: 422 names `name`, `metatypeIds` or `connectionTypeIds`. */
+/** POST /admin/viewpoints: 422 names `name`, `metatypeIds`, `connectionTypeIds` or `mappings`. */
 export function createViewpoint(viewpoint: ViewpointWrite, fetchFn: typeof fetch = fetch): Promise<WriteOutcome<Viewpoint>> {
   return write('POST', VIEWPOINTS, viewpoint, undefined, fetchFn)
 }

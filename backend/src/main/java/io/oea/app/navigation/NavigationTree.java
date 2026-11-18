@@ -8,8 +8,8 @@ import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.core.catalog.CatalogStore;
 import io.oea.core.navigation.NavigationTreeStore;
-import io.oea.core.navigation.NavigationTreeStore.StoredCatalogItem;
 import io.oea.core.navigation.NavigationTreeStore.StoredNode;
+import io.oea.core.navigation.NavigationTreeStore.StoredVisibleItem;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -19,23 +19,31 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The navigation tree (US-054, REQ-050, REQ-094, REQ-095, REQ-097; design D3 of
- * us-054-catalog-navigation-tree). Every reader with {@code entity:read} reads the tree; an entry
- * on another person's personal catalog is left out. Folders and entries are changed only with
- * {@code viewpoint:manage}; every write answers with the tree as the caller sees it and is
- * audited.
+ * The navigation tree (US-054, US-095 to US-097, REQ-050, REQ-094 to REQ-097; design D3 of
+ * us-054-catalog-navigation-tree and of us-095-navigation-tree-items). Every reader with
+ * {@code entity:read} reads the tree in its manual order; an entry on another person's personal
+ * catalog is left out, an entry of a deleted entity is marked. Folders and entries are changed
+ * only with {@code viewpoint:manage} and {@code entity:read}; every write runs under the lock of
+ * the tree, answers with the tree as the caller sees it and is audited.
  */
 @Service
 public class NavigationTree {
 
 	/** Permission for all changes of the tree. */
 	public static final String MANAGE_PERMISSION = "viewpoint:manage";
+
+	/**
+	 * Permission every change needs in addition, because it answers with the tree and the names
+	 * of its targets (design D7 of us-095-navigation-tree-items).
+	 */
+	public static final String READ_PERMISSION = "entity:read";
 
 	static final int NAME_MAX_LENGTH = 255;
 
@@ -49,6 +57,16 @@ public class NavigationTree {
 	static final int MAX_ITEMS_PER_FOLDER = 200;
 
 	private static final String TARGET = "tree-node";
+
+	/** Folders in their manual order, then by name regardless of case. */
+	private static final Comparator<StoredNode> NODE_ORDER = Comparator.comparingInt(StoredNode::sortOrder)
+		.thenComparing((StoredNode node) -> node.name().toLowerCase(Locale.ROOT))
+		.thenComparing(StoredNode::id);
+
+	/** Entries in their manual order, then by the shown label regardless of case. */
+	private static final Comparator<Entry> ENTRY_ORDER = Comparator.comparingInt(Entry::sortOrder)
+		.thenComparing((Entry entry) -> entry.shownLabel().toLowerCase(Locale.ROOT))
+		.thenComparing(Entry::id);
 
 	private final NavigationTreeStore store;
 
@@ -74,11 +92,13 @@ public class NavigationTree {
 	}
 
 	/**
-	 * An entry: so far always a catalog, with its current {@code name} and {@code scope}
-	 * ({@code instance} or {@code personal}); {@code displayLabel} may be {@code null}.
+	 * An entry of a catalog, an element entity or a solution, with the current {@code name} of its
+	 * target. {@code referenceId} is set for a catalog or solution, {@code entityId} for an entity;
+	 * {@code scope} ({@code instance} or {@code personal}) only for a catalog; {@code deleted} is
+	 * true for an entry of a deleted entity. {@code displayLabel} may be {@code null}.
 	 */
-	public record Entry(UUID id, String itemType, UUID referenceId, String displayLabel, int sortOrder, String name,
-			String scope) {
+	public record Entry(UUID id, String itemType, UUID referenceId, Integer entityId, String displayLabel,
+			int sortOrder, String name, String scope, boolean deleted) {
 
 		/** The text the tree shows. */
 		public String shownLabel() {
@@ -87,7 +107,15 @@ public class NavigationTree {
 
 	}
 
-	/** The tree from the root as the person sees it, sorted by name regardless of case. */
+	/**
+	 * A target to place: {@code itemType} {@code catalog} or {@code solution} with
+	 * {@code referenceId}, or {@code entity} with {@code entityId}; {@code displayLabel} may be
+	 * {@code null}.
+	 */
+	public record Placement(String itemType, UUID referenceId, Integer entityId, String displayLabel) {
+	}
+
+	/** The tree from the root as the person sees it, in the manual order (REQ-096). */
 	@Transactional(readOnly = true)
 	public Folder read(OeaPrincipal principal) {
 		return tree(person(principal));
@@ -170,56 +198,237 @@ public class NavigationTree {
 	}
 
 	/**
-	 * Places a catalog the person can see in the folder (US-054 AC1, AC3, AC5; REQ-050, REQ-097;
-	 * BR-04, BR-06). Another person's personal catalog is answered like an unknown one.
+	 * Places a catalog, an element entity or a solution in the folder as its last entry (US-054,
+	 * US-095, US-097; REQ-050, REQ-095, REQ-097; BR-04, BR-06). The target does not change. Another
+	 * person's personal catalog is answered like an unknown one.
 	 */
 	@Transactional
-	public Folder addCatalog(OeaPrincipal principal, UUID nodeId, UUID catalogId, String rawLabel) {
+	public Folder addItem(OeaPrincipal principal, UUID nodeId, Placement placement) {
 		long personId = manager(principal);
 		this.store.lock();
 		existing(nodeId);
-		String label = label(rawLabel);
-		if (catalogId == null || this.catalogs.findVisible(catalogId, personId).isEmpty()) {
-			throw InvalidTreeException.invalid("referenceId", "The catalog does not exist.");
+		String itemType = placement.itemType();
+		String field = NavigationTreeStore.ENTITY.equals(itemType) ? "entityId" : "referenceId";
+		String otherField = NavigationTreeStore.ENTITY.equals(itemType) ? "referenceId" : "entityId";
+		boolean fittingMissing = NavigationTreeStore.ENTITY.equals(itemType) ? placement.entityId() == null
+				: placement.referenceId() == null;
+		boolean otherSet = NavigationTreeStore.ENTITY.equals(itemType) ? placement.referenceId() != null
+				: placement.entityId() != null;
+		if (!List.of(NavigationTreeStore.CATALOG, NavigationTreeStore.ENTITY, NavigationTreeStore.SOLUTION)
+			.contains(itemType)) {
+			throw InvalidTreeException.invalid("itemType", "The item type is not supported.");
+		}
+		if (fittingMissing) {
+			throw InvalidTreeException.invalid(field, "The " + field + " is required for the item type.");
+		}
+		if (otherSet) {
+			throw InvalidTreeException.invalid(otherField, "The " + otherField + " does not fit the item type.");
+		}
+		String label = label(placement.displayLabel());
+		switch (itemType) {
+			case NavigationTreeStore.CATALOG -> {
+				if (this.catalogs.findVisible(placement.referenceId(), personId).isEmpty()) {
+					throw InvalidTreeException.invalid(field, "The catalog does not exist.");
+				}
+			}
+			case NavigationTreeStore.SOLUTION -> {
+				if (!this.store.existsSolution(placement.referenceId())) {
+					throw InvalidTreeException.invalid(field, "The solution does not exist.");
+				}
+			}
+			default -> {
+				if (!this.store.existsElementEntity(placement.entityId())) {
+					throw InvalidTreeException.invalid(field,
+							"The entity does not exist, is deleted or is a connection.");
+				}
+			}
 		}
 		if (this.store.itemCount(nodeId) >= MAX_ITEMS_PER_FOLDER) {
-			throw InvalidTreeException.invalid("referenceId",
+			throw InvalidTreeException.invalid(field,
 					"A folder can have at most " + MAX_ITEMS_PER_FOLDER + " entries.");
 		}
 		UUID itemId;
 		try {
-			itemId = this.store.addItem(nodeId, NavigationTreeStore.CATALOG, catalogId, label, personId,
-					this.clock.instant());
+			itemId = this.store.addItem(nodeId, itemType, placement.referenceId(), placement.entityId(), label,
+					personId, this.clock.instant());
 		}
 		catch (DuplicateKeyException ex) {
-			if (ex.getMessage() != null && ex.getMessage().contains(NavigationTreeStore.ITEM_INDEX)) {
-				throw InvalidTreeException.invalid("referenceId", "The catalog is already in this folder.");
+			if (isItemIndex(ex)) {
+				throw InvalidTreeException.invalid(field, "The target is already in this folder.");
 			}
 			throw ex;
 		}
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("itemId", itemId.toString());
-		details.put("itemType", NavigationTreeStore.CATALOG);
-		details.put("referenceId", catalogId.toString());
+		putTarget(details, itemType, placement.referenceId(), placement.entityId());
 		audit(principal, "tree-node.item-added", nodeId, details);
 		return tree(personId);
 	}
 
-	/** Removes only this entry; the catalog and its other entries stay (US-054 AC4, REQ-095). */
+	/**
+	 * Removes only this entry; the target and its other entries stay (US-054 AC4, US-097 AC2,
+	 * REQ-095). An entry the person cannot see is answered like an unknown one.
+	 */
 	@Transactional
 	public Folder removeItem(OeaPrincipal principal, UUID nodeId, UUID itemId) {
 		long personId = manager(principal);
 		this.store.lock();
 		existing(nodeId);
-		NavigationTreeStore.StoredItem item = this.store.findItem(nodeId, itemId)
-			.orElseThrow(() -> new NoSuchElementException("tree node item " + itemId));
-		this.store.removeItem(itemId);
+		StoredVisibleItem item = visibleItem(nodeId, itemId, personId);
+		this.store.removeItem(nodeId, itemId);
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("itemId", itemId.toString());
+		putTarget(details, item.itemType(), item.referenceId(), item.entityId());
+		audit(principal, "tree-node.item-removed", nodeId, details);
+		return tree(personId);
+	}
+
+	/**
+	 * Moves a folder with its subfolders and entries under a new parent at a position among the
+	 * new siblings (US-096 AC1, REQ-096; BR-03). The root does not move; the new parent must be
+	 * neither the folder nor one of its descendants; the moved subtree stays within
+	 * {@link #MAX_DEPTH}. A move to the same place changes and audits nothing.
+	 */
+	@Transactional
+	public Folder moveNode(OeaPrincipal principal, UUID id, UUID parentId, int position) {
+		long personId = manager(principal);
+		this.store.lock();
+		List<StoredNode> nodes = this.store.nodes();
+		Map<UUID, StoredNode> byId = byId(nodes);
+		StoredNode node = byId.get(id);
+		if (node == null) {
+			throw new NoSuchElementException("tree node " + id);
+		}
+		if (node.parentId() == null) {
+			throw InvalidTreeException.rootNotMovable();
+		}
+		if (parentId == null || !byId.containsKey(parentId)) {
+			throw InvalidTreeException.invalid("parentId", "The parent folder does not exist.");
+		}
+		List<NavigationTreeStore.StoredDescendant> subtree = this.store.descendants(id, MAX_DEPTH + 1);
+		if (subtree.stream().anyMatch((descendant) -> descendant.id().equals(parentId))) {
+			throw InvalidTreeException.invalid("parentId",
+					"A folder cannot be moved under itself or one of its subfolders.");
+		}
+		int height = subtree.stream().mapToInt(NavigationTreeStore.StoredDescendant::level).max().orElse(0);
+		if (depth(byId, parentId) + 1 + height > MAX_DEPTH) {
+			throw InvalidTreeException.invalid("parentId",
+					"A folder can be at most " + MAX_DEPTH + " levels below the root.");
+		}
+		List<StoredNode> others = nodes.stream()
+			.filter((sibling) -> parentId.equals(sibling.parentId()) && !sibling.id().equals(id))
+			.sorted(NODE_ORDER)
+			.toList();
+		int target = Math.min(position, others.size());
+		if (parentId.equals(node.parentId())) {
+			List<StoredNode> siblings = nodes.stream()
+				.filter((sibling) -> parentId.equals(sibling.parentId()))
+				.sorted(NODE_ORDER)
+				.toList();
+			if (siblings.indexOf(node) == target) {
+				return tree(personId);
+			}
+		}
+		try {
+			this.store.moveNode(id, node.parentId(), parentId, target);
+		}
+		catch (DuplicateKeyException ex) {
+			if (ex.getMessage() != null && ex.getMessage().contains(NavigationTreeStore.NAME_INDEX)) {
+				throw InvalidTreeException.invalid("parentId", "A folder with this name already exists there.");
+			}
+			throw ex;
+		}
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("fromNodeId", node.parentId().toString());
+		details.put("toNodeId", parentId.toString());
+		details.put("position", target);
+		audit(principal, "tree-node.moved", id, details);
+		return tree(personId);
+	}
+
+	/**
+	 * Moves an entry within its folder or to another folder at a position among the entries the
+	 * person sees (US-096 AC2, AC3, REQ-096): it goes before the visible entry at that position,
+	 * or after the last visible one; hidden entries keep their order relative to the others. A
+	 * move to the same place changes and audits nothing.
+	 */
+	@Transactional
+	public Folder moveItem(OeaPrincipal principal, UUID nodeId, UUID itemId, UUID targetNodeId, int position) {
+		long personId = manager(principal);
+		this.store.lock();
+		existing(nodeId);
+		StoredVisibleItem item = visibleItem(nodeId, itemId, personId);
+		if (targetNodeId == null || this.store.nodes().stream().noneMatch((node) -> node.id().equals(targetNodeId))) {
+			throw InvalidTreeException.invalid("nodeId", "The target folder does not exist.");
+		}
+		boolean otherFolder = !targetNodeId.equals(nodeId);
+		if (otherFolder && this.store.itemCount(targetNodeId) >= MAX_ITEMS_PER_FOLDER) {
+			throw InvalidTreeException.invalid("nodeId",
+					"A folder can have at most " + MAX_ITEMS_PER_FOLDER + " entries.");
+		}
+		List<UUID> all = this.store.itemOrder(targetNodeId);
+		List<UUID> others = all.stream().filter((other) -> !other.equals(itemId)).toList();
+		Set<UUID> visible = new java.util.HashSet<>();
+		this.store.items(personId)
+			.stream()
+			.filter((entry) -> entry.nodeId().equals(targetNodeId))
+			.forEach((entry) -> visible.add(entry.id()));
+		List<Integer> visibleIndexes = new ArrayList<>();
+		for (int i = 0; i < others.size(); i++) {
+			if (visible.contains(others.get(i))) {
+				visibleIndexes.add(i);
+			}
+		}
+		int shown = Math.min(position, visibleIndexes.size());
+		int target;
+		if (shown < visibleIndexes.size()) {
+			target = visibleIndexes.get(shown);
+		}
+		else {
+			target = visibleIndexes.isEmpty() ? 0 : visibleIndexes.get(visibleIndexes.size() - 1) + 1;
+		}
+		if (!otherFolder && all.indexOf(itemId) == target) {
+			return tree(personId);
+		}
+		try {
+			this.store.moveItem(itemId, nodeId, targetNodeId, target);
+		}
+		catch (DuplicateKeyException ex) {
+			if (isItemIndex(ex)) {
+				throw InvalidTreeException.invalid("nodeId", "The target is already in this folder.");
+			}
+			throw ex;
+		}
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("itemId", itemId.toString());
 		details.put("itemType", item.itemType());
-		details.put("referenceId", item.referenceId().toString());
-		audit(principal, "tree-node.item-removed", nodeId, details);
+		details.put("fromNodeId", nodeId.toString());
+		details.put("toNodeId", targetNodeId.toString());
+		details.put("position", shown);
+		audit(principal, "tree-node.item-moved", nodeId, details);
 		return tree(personId);
+	}
+
+	private StoredVisibleItem visibleItem(UUID nodeId, UUID itemId, long personId) {
+		return this.store.findVisibleItem(nodeId, itemId, personId)
+			.orElseThrow(() -> new NoSuchElementException("tree node item " + itemId));
+	}
+
+	private static boolean isItemIndex(DuplicateKeyException ex) {
+		String message = ex.getMessage();
+		return message != null && (message.contains(NavigationTreeStore.ITEM_INDEX)
+				|| message.contains(NavigationTreeStore.ENTITY_ITEM_INDEX));
+	}
+
+	/** The item type and the target ID, without display label or name (design D7). */
+	private static void putTarget(Map<String, Object> details, String itemType, UUID referenceId, Integer entityId) {
+		details.put("itemType", itemType);
+		if (entityId != null) {
+			details.put("entityId", entityId);
+		}
+		else {
+			details.put("referenceId", referenceId.toString());
+		}
 	}
 
 	private Folder tree(long personId) {
@@ -238,10 +447,10 @@ public class NavigationTree {
 			throw new IllegalStateException("the navigation tree has no root");
 		}
 		Map<UUID, List<Entry>> items = new HashMap<>();
-		for (StoredCatalogItem item : this.store.visibleCatalogItems(personId)) {
+		for (StoredVisibleItem item : this.store.items(personId)) {
 			items.computeIfAbsent(item.nodeId(), (key) -> new ArrayList<>())
-				.add(new Entry(item.id(), NavigationTreeStore.CATALOG, item.referenceId(), item.displayLabel(),
-						item.sortOrder(), item.catalogName(), item.catalogScope()));
+				.add(new Entry(item.id(), item.itemType(), item.referenceId(), item.entityId(), item.displayLabel(),
+						item.sortOrder(), item.name(), item.scope(), item.deleted()));
 		}
 		return folder(root, children, items);
 	}
@@ -249,12 +458,10 @@ public class NavigationTree {
 	private static Folder folder(StoredNode node, Map<UUID, List<StoredNode>> children,
 			Map<UUID, List<Entry>> items) {
 		List<Entry> entries = new ArrayList<>(items.getOrDefault(node.id(), List.of()));
-		entries.sort(Comparator.comparing((Entry entry) -> entry.shownLabel().toLowerCase(Locale.ROOT))
-			.thenComparing(Entry::id));
+		entries.sort(ENTRY_ORDER);
 		List<Folder> subfolders = children.getOrDefault(node.id(), List.of())
 			.stream()
-			.sorted(Comparator.comparing((StoredNode child) -> child.name().toLowerCase(Locale.ROOT))
-				.thenComparing(StoredNode::id))
+			.sorted(NODE_ORDER)
 			.map((child) -> folder(child, children, items))
 			.toList();
 		return new Folder(node.id(), node.name(), node.parentId(), node.sortOrder(), List.copyOf(entries),
@@ -325,10 +532,14 @@ public class NavigationTree {
 				details));
 	}
 
-	/** The person who may change the tree; any other caller is answered with 403. */
+	/**
+	 * The person who may change the tree, holding {@code viewpoint:manage} and {@code entity:read};
+	 * any other caller is answered with 403.
+	 */
 	private long manager(OeaPrincipal principal) {
 		long personId = person(principal);
-		if (!this.permissions.permissions(principal).contains(MANAGE_PERMISSION)) {
+		Set<String> granted = this.permissions.permissions(principal);
+		if (!granted.contains(MANAGE_PERMISSION) || !granted.contains(READ_PERMISSION)) {
 			throw new PermissionDeniedException();
 		}
 		return personId;

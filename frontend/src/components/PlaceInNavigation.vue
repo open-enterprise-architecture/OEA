@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { folderPaths, placeCatalog } from '../api/navigation'
+import { folderPaths, placeInTree, type Placement } from '../api/navigation'
 import { rateLimitMessage } from '../api/problem'
 import { loadTree, navigation, showTree } from '../navigation/store'
 
-// "Place in navigation" of SCR-020 (US-054 AC1, AC5; design D4 of us-054-catalog-navigation-tree):
-// the folder as its path from the root and an optional display label.
+// "Place in navigation" (US-054 AC1, AC5, US-095, US-097; design D4 of
+// us-054-catalog-navigation-tree, D5 of us-095-navigation-tree-items): a catalog from the catalog
+// page, an element entity from a row of the catalog browser, a solution from its page. The folder
+// is chosen by its path from the root, with an optional display label. Without `trigger` the
+// button is left out and the parent opens the dialog with `start()`.
 
-const props = defineProps<{ catalogId: string; catalogName: string; fetchFn?: typeof fetch }>()
+const props = withDefaults(defineProps<{ placement: Placement; trigger?: boolean; fetchFn?: typeof fetch }>(), { trigger: true })
 const { t } = useI18n()
 
 const open = ref(false)
@@ -36,6 +39,11 @@ async function start() {
   }
 }
 
+defineExpose({ start })
+
+/** The field the server names when the target is refused: `entityId` for an entity, else `referenceId`. */
+const targetField = computed(() => (props.placement.itemType === 'entity' ? 'entityId' : 'referenceId'))
+
 async function place() {
   const target = folderId.value
   if (!target) {
@@ -44,13 +52,13 @@ async function place() {
   busy.value = true
   error.value = undefined
   try {
-    const outcome = await placeCatalog(target, props.catalogId, label.value.trim() || null, props.fetchFn)
+    const outcome = await placeInTree(target, props.placement, label.value.trim() || null, props.fetchFn)
     if (outcome.ok) {
       showTree(outcome.value)
       placed.value = t('navigation.placed', { path: folders.value.find((folder) => folder.id === target)?.path ?? '' })
       open.value = false
-    } else if (outcome.rejection.status === 422 && outcome.rejection.invalidFields.includes('referenceId')) {
-      error.value = t('navigation.alreadyPlaced')
+    } else if (outcome.rejection.status === 422 && outcome.rejection.invalidFields.includes(targetField.value)) {
+      error.value = t(`navigation.alreadyPlaced.${props.placement.itemType}`)
     } else {
       error.value = rateLimitMessage(outcome.rejection) ?? t('navigation.changeFailed')
     }
@@ -66,6 +74,7 @@ async function place() {
   <div class="flex items-center gap-2">
     <span v-if="placed" data-testid="place-done" class="text-sm text-muted">{{ placed }}</span>
     <UButton
+      v-if="trigger"
       data-testid="place-in-navigation"
       icon="i-lucide-folder-tree"
       color="neutral"
@@ -73,7 +82,7 @@ async function place() {
       :label="t('navigation.place')"
       @click="start"
     />
-    <UModal v-model:open="open" :title="t('navigation.placeTitle', { name: catalogName })">
+    <UModal v-model:open="open" :title="t('navigation.placeTitle', { name: placement.name })">
       <template #body>
         <form data-testid="place-form" class="flex flex-col gap-4" @submit.prevent="place">
           <UFormField :label="t('navigation.folder')" required>

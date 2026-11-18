@@ -20,6 +20,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -135,20 +138,19 @@ class NavigationTreeTests {
 	}
 
 	@Test
-	void foldersAndEntriesAreSortedByNameRegardlessOfCase() {
-		String parent = newFolder("Sorted", this.root);
-		createFolder("beta", parent);
-		createFolder("Alpha", parent);
-		createFolder("Gamma", parent);
+	void foldersAndEntriesComeInTheirManualOrderNotByName() {
+		String parent = newFolder("Ordered", this.root);
+		String beta = createdId(createFolder("beta", parent), "beta");
+		createdId(createFolder("Alpha", parent), "Alpha");
+		createdId(createFolder("Gamma", parent), "Gamma");
 		created(place(parent, catalog("Zulu", "instance", this.kurt), null));
 		created(place(parent, catalog("Mike", "instance", this.kurt), "alpha label"));
 		JsonNode folder = folder(ok(call(HttpMethod.GET, TREE, null, this.franz)), parent);
-		assertThat(texts(folder.path("children"), "name")).containsExactly("Alpha", "beta", "Gamma");
-		List<String> labels = new ArrayList<>();
-		folder.path("items").forEach((item) -> labels.add(item.path("displayLabel").isNull()
-				? item.path("name").asString() : item.path("displayLabel").asString()));
-		assertThat(labels.get(0)).isEqualTo("alpha label");
-		assertThat(labels.get(1)).startsWith("Zulu");
+		assertThat(texts(folder.path("children"), "name")).containsExactly("beta", "Alpha", "Gamma");
+		assertThat(texts(folder.path("children"), "sortOrder")).containsExactly("0", "1", "2");
+		assertThat(labels(folder)).containsExactly(folder.path("items").get(0).path("name").asString(), "alpha label");
+		assertThat(folder.path("items").get(0).path("name").asString()).startsWith("Zulu");
+		assertThat(beta).isNotNull();
 	}
 
 	@Test
@@ -411,7 +413,654 @@ class NavigationTreeTests {
 			.isEqualTo(inventory);
 	}
 
+	// New folders and entries go to the end
+
+	@Test
+	void newFoldersAndEntriesGoToTheEndAndTheOthersKeepTheirOrder() {
+		String parent = newFolder("Appended", this.root);
+		String first = newFolder("Zzz", parent);
+		String second = newFolder("Aaa", parent);
+		String entity = entity("Appended Entity " + suffix(), this.application, false);
+		String solution = solution("Appended Solution");
+		JsonNode tree = created(place(parent, catalog("Mmm", "instance", this.kurt), null));
+		tree = created(placeEntity(parent, entity, null));
+		tree = created(placeSolution(parent, solution, null));
+		JsonNode folder = folder(tree, parent);
+		assertThat(texts(folder.path("children"), "id")).containsExactly(first, second);
+		assertThat(texts(folder.path("items"), "itemType")).containsExactly("catalog", "entity", "solution");
+		assertThat(texts(folder.path("items"), "sortOrder")).containsExactly("0", "1", "2");
+		String third = newFolder("Mmm", parent);
+		assertThat(texts(folder(ok(call(HttpMethod.GET, TREE, null, this.franz)), parent).path("children"), "id"))
+			.containsExactly(first, second, third);
+	}
+
+	// Place an entity
+
+	@Test
+	void anEntityIsPlacedAtTheEndAndStaysUnchanged() {
+		String finance = newFolder("Finance", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		created(place(finance, catalog("Before", "instance", this.kurt), null));
+		JsonNode item = folder(created(placeEntity(finance, sap, " SAP label ")), finance).path("items").get(1);
+		assertThat(item.path("itemType").asString()).isEqualTo("entity");
+		assertThat(item.path("entityId").asInt()).isEqualTo(Integer.parseInt(sap));
+		assertThat(item.path("referenceId").isNull()).isTrue();
+		assertThat(item.path("displayLabel").asString()).isEqualTo("SAP label");
+		assertThat(item.path("deleted").asBoolean()).isFalse();
+		assertThat(item.path("scope").isNull()).isTrue();
+		assertThat(this.jdbc.queryForObject("SELECT version FROM entities WHERE id = ?", Integer.class,
+				Integer.parseInt(sap))).isEqualTo(1);
+	}
+
+	@Test
+	void theSameEntityInTwoFoldersButOnlyOnceInOne() {
+		String finance = newFolder("Finance", this.root);
+		String cloud = newFolder("Cloud Migration", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		created(placeEntity(finance, sap, null));
+		JsonNode tree = created(placeEntity(cloud, sap, null));
+		assertThat(folder(tree, finance).path("items").size()).isEqualTo(1);
+		assertThat(folder(tree, cloud).path("items").size()).isEqualTo(1);
+		assertInvalid(placeEntity(finance, sap, null), "entityId");
+		assertThat(folder(ok(call(HttpMethod.GET, TREE, null, this.kurt)), finance).path("items").size())
+			.isEqualTo(1);
+	}
+
+	@Test
+	void aConnectionAnUnknownAndADeletedEntityAreRejected() {
+		String finance = newFolder("Finance", this.root);
+		String connection = entity("Orders " + suffix(), connectionType(), true);
+		String deleted = entity("Gone " + suffix(), this.application, false);
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.kurtId,
+				Integer.parseInt(deleted));
+		assertInvalid(placeEntity(finance, connection, null), "entityId");
+		assertInvalid(placeEntity(finance, "2000000000", null), "entityId");
+		assertInvalid(placeEntity(finance, deleted, null), "entityId");
+		assertThat(folder(ok(call(HttpMethod.GET, TREE, null, this.kurt)), finance).path("items").size()).isZero();
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "entity,referenceId,entityId", "catalog,entityId,referenceId", "solution,entityId,referenceId" })
+	void theFieldMustFitTheItemType(String itemType, String wrongField, String fittingField) {
+		String finance = newFolder("Finance", this.root);
+		ObjectNode body = JsonMapper.shared().createObjectNode().put("itemType", itemType);
+		// the fitting field is missing, the other one is set
+		if (wrongField.equals("entityId")) {
+			body.put("entityId", 1);
+		}
+		else {
+			body.put("referenceId", UUID.randomUUID().toString());
+		}
+		assertInvalid(call(HttpMethod.POST, NODES + "/" + finance + "/items", body, this.kurt), fittingField);
+		// the fitting field is set together with the field of the other kind
+		ObjectNode both = JsonMapper.shared().createObjectNode().put("itemType", itemType).put("entityId", 1)
+			.put("referenceId", UUID.randomUUID().toString());
+		assertInvalid(call(HttpMethod.POST, NODES + "/" + finance + "/items", both, this.kurt), wrongField);
+	}
+
+	// Place a solution
+
+	@Test
+	void aSolutionIsPlacedOncePerFolder() {
+		String initiatives = newFolder("Initiatives", this.root);
+		String crm = solution("CRM Replacement");
+		JsonNode item = folder(created(placeSolution(initiatives, crm, null)), initiatives).path("items").get(0);
+		assertThat(item.path("itemType").asString()).isEqualTo("solution");
+		assertThat(item.path("referenceId").asString()).isEqualTo(crm);
+		assertThat(item.path("name").asString()).startsWith("CRM Replacement");
+		assertInvalid(placeSolution(initiatives, crm, null), "referenceId");
+		assertInvalid(placeSolution(initiatives, UUID.randomUUID().toString(), null), "referenceId");
+		String other = newFolder("Other", this.root);
+		created(placeSolution(other, crm, null));
+	}
+
+	// Deleted entity in the tree
+
+	@Test
+	void aDeletedEntityStaysMarkedInEveryFolderUntilItIsRestored() {
+		String finance = newFolder("Finance", this.root);
+		String cloud = newFolder("Cloud Migration", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		created(placeEntity(finance, sap, null));
+		created(placeEntity(cloud, sap, null));
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.kurtId,
+				Integer.parseInt(sap));
+		JsonNode tree = ok(call(HttpMethod.GET, TREE, null, this.franz));
+		assertThat(folder(tree, finance).path("items").get(0).path("deleted").asBoolean()).isTrue();
+		assertThat(folder(tree, cloud).path("items").get(0).path("deleted").asBoolean()).isTrue();
+		this.jdbc.update("UPDATE entities SET deleted_at = NULL, deleted_by = NULL WHERE id = ?",
+				Integer.parseInt(sap));
+		tree = ok(call(HttpMethod.GET, TREE, null, this.franz));
+		assertThat(folder(tree, finance).path("items").get(0).path("deleted").asBoolean()).isFalse();
+	}
+
+	@Test
+	void removingOneEntityEntryKeepsTheOtherAndTheEntity() {
+		String finance = newFolder("Finance", this.root);
+		String cloud = newFolder("Cloud Migration", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String item = itemId(created(placeEntity(finance, sap, null)), finance, 0);
+		created(placeEntity(cloud, sap, null));
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.kurtId,
+				Integer.parseInt(sap));
+		JsonNode tree = ok(call(HttpMethod.DELETE, NODES + "/" + finance + "/items/" + item, null, this.kurt));
+		assertThat(folder(tree, finance).path("items").size()).isZero();
+		assertThat(folder(tree, cloud).path("items").size()).isEqualTo(1);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM entities WHERE id = ?", Integer.class,
+				Integer.parseInt(sap))).isEqualTo(1);
+		assertThat(this.jdbc.queryForObject("""
+				SELECT details ->> 'entityId' || '/' || (details ->> 'itemType') || '/' || jsonb_exists(details, 'referenceId')
+				FROM audit.events WHERE event_type = 'tree-node.item-removed' AND target_id = ?""", String.class,
+				finance)).isEqualTo(sap + "/entity/false");
+	}
+
+	// Move a folder
+
+	@Test
+	void aFolderMovesWithItsContent() {
+		String initiatives = newFolder("Initiatives", this.root);
+		String cloud = newFolder("Cloud Migration", this.root);
+		String sub = newFolder("Sub", cloud);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		created(placeEntity(cloud, sap, null));
+		JsonNode tree = ok(moveFolder(cloud, initiatives, 0));
+		JsonNode moved = folder(tree, cloud);
+		assertThat(moved.path("parentId").asString()).isEqualTo(initiatives);
+		assertThat(moved.path("items").size()).isEqualTo(1);
+		assertThat(texts(moved.path("children"), "id")).containsExactly(sub);
+		assertThat(texts(folder(tree, initiatives).path("children"), "id")).containsExactly(cloud);
+		assertThat(find(ok(call(HttpMethod.GET, TREE, null, this.franz)), cloud).path("parentId").asString())
+			.isEqualTo(initiatives);
+	}
+
+	@Test
+	void aFolderMovesToAPositionAmongItsNewSiblings() {
+		String parent = newFolder("Target", this.root);
+		String one = newFolder("One", parent);
+		String two = newFolder("Two", parent);
+		String moving = newFolder("Moving", this.root);
+		assertThat(texts(folder(ok(moveFolder(moving, parent, 1)), parent).path("children"), "id"))
+			.containsExactly(one, moving, two);
+		assertThat(texts(folder(ok(moveFolder(moving, parent, 0)), parent).path("children"), "id"))
+			.containsExactly(moving, one, two);
+		assertThat(texts(folder(ok(moveFolder(moving, parent, 10000)), parent).path("children"), "id"))
+			.containsExactly(one, two, moving);
+		assertThat(sortOrders("tree_nodes", "parent_id = ?::uuid", parent)).containsExactly(0, 1, 2);
+		assertThat(sortOrders("tree_nodes", "parent_id = ?::uuid", this.root)).doesNotContain(-1);
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { 0, 1, 2 })
+	void aFolderCannotMoveUnderItselfOrADescendant(int levelsBelow) {
+		String top = newFolder("Initiatives", this.root);
+		String target = top;
+		for (int level = 0; level < levelsBelow; level++) {
+			target = newFolder("Level " + level, target);
+		}
+		int before = auditCount();
+		assertInvalid(moveFolder(top, target, 0), "parentId");
+		assertThat(find(ok(call(HttpMethod.GET, TREE, null, this.kurt)), top).path("parentId").asString())
+			.isEqualTo(this.root);
+		assertThat(auditCount()).isEqualTo(before);
+	}
+
+	@Test
+	void anUnknownParentATakenNameAndTheRootAreRejected() {
+		String cloud = newFolder("Cloud", this.root);
+		assertInvalid(moveFolder(cloud, UUID.randomUUID().toString(), 0), "parentId");
+		String target = newFolder("Target", this.root);
+		String taken = "Same " + suffix();
+		created(createFolder(taken, target));
+		created(createFolder(taken, this.root));
+		String sameName = this.jdbc.queryForObject("SELECT id::text FROM tree_nodes WHERE name = ? AND parent_id = ?::uuid",
+				String.class, taken, this.root);
+		int before = auditCount();
+		assertInvalid(moveFolder(sameName, target, 0), "parentId");
+		assertThat(find(ok(call(HttpMethod.GET, TREE, null, this.kurt)), sameName).path("parentId").asString())
+			.isEqualTo(this.root);
+		assertThat(auditCount()).isEqualTo(before);
+		MvcTestResult root = moveFolder(this.root, target, 0);
+		assertThat(root).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(body(root).path("invalidFields").size()).isZero();
+		assertThat(moveFolder(UUID.randomUUID().toString(), target, 0)).hasStatus(HttpStatus.NOT_FOUND);
+	}
+
+	@Test
+	void aFolderMoveToTheSamePlaceChangesAndAuditsNothing() {
+		String parent = newFolder("Same Place", this.root);
+		String one = newFolder("One", parent);
+		newFolder("Two", parent);
+		int before = auditCount();
+		ok(moveFolder(one, parent, 0));
+		assertThat(auditCount()).isEqualTo(before);
+		ok(moveFolder(one, parent, 1));
+		assertThat(auditCount()).isEqualTo(before + 1);
+	}
+
+	@Test
+	void theDepthOfAMovedSubtreeIsLimited() {
+		String moving = newFolder("Moving", this.root);
+		newFolder("Child", moving);
+		String parent = this.root;
+		List<String> chain = new ArrayList<>();
+		for (int level = 1; level <= 9; level++) {
+			parent = newFolder("Level " + level, parent);
+			chain.add(parent);
+		}
+		// Moving (1 level) with its child: under level 7 the child is 8 + 1 + 1 = at most 10 below the root
+		ok(moveFolder(moving, chain.get(7), 0));
+		assertThat(depthOf(moving)).isEqualTo(9);
+		ok(moveFolder(moving, chain.get(6), 0));
+		// under a folder 9 levels below the root the child would be 11 levels below it
+		assertInvalid(moveFolder(moving, chain.get(8), 0), "parentId");
+		// exactly 10 levels for the deepest folder
+		ok(moveFolder(moving, chain.get(7), 0));
+		assertThat(this.jdbc.queryForObject("SELECT parent_id::text FROM tree_nodes WHERE id = ?::uuid", String.class,
+				moving)).isEqualTo(chain.get(7));
+	}
+
+	@Test
+	void twoOppositeMovesAtTheSameTimeLeaveNoCycle() throws Exception {
+		String initiatives = newFolder("Initiatives", this.root);
+		String cloud = newFolder("Cloud Migration", this.root);
+		java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+		java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+		try {
+			var first = pool.submit(() -> {
+				start.await();
+				return moveFolder(initiatives, cloud, 0);
+			});
+			var second = pool.submit(() -> {
+				start.await();
+				return moveFolder(cloud, initiatives, 0);
+			});
+			start.countDown();
+			List<HttpStatus> statuses = List.of(HttpStatus.valueOf(first.get().getResponse().getStatus()),
+					HttpStatus.valueOf(second.get().getResponse().getStatus()));
+			assertThat(statuses).containsExactlyInAnyOrder(HttpStatus.OK, HttpStatus.UNPROCESSABLE_CONTENT);
+		}
+		finally {
+			pool.shutdownNow();
+		}
+		assertThat(depthOf(initiatives)).isBetween(1, 2);
+		assertThat(depthOf(cloud)).isBetween(1, 2);
+		JsonNode tree = ok(call(HttpMethod.GET, TREE, null, this.kurt));
+		assertThat(find(tree, initiatives)).isNotNull();
+		assertThat(find(tree, cloud)).isNotNull();
+	}
+
+	// Move an entry
+
+	@Test
+	void anEntryIsReorderedWithinItsFolder() {
+		String finance = newFolder("Finance", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String workday = entity("Workday " + suffix(), this.application, false);
+		String salesforce = entity("Salesforce " + suffix(), this.application, false);
+		created(placeEntity(finance, sap, null));
+		created(placeEntity(finance, workday, null));
+		JsonNode tree = created(placeEntity(finance, salesforce, null));
+		String last = itemId(tree, finance, 2);
+		assertThat(entityIds(folder(ok(moveItem(finance, last, finance, 0)), finance)))
+			.containsExactly(salesforce, sap, workday);
+		assertThat(entityIds(folder(ok(call(HttpMethod.GET, TREE, null, this.franz)), finance)))
+			.containsExactly(salesforce, sap, workday);
+		// the position of the last entry gives the last place
+		assertThat(entityIds(folder(ok(moveItem(finance, last, finance, 2)), finance)))
+			.containsExactly(sap, workday, salesforce);
+		// a position far past the end is clamped
+		String first = itemId(ok(call(HttpMethod.GET, TREE, null, this.kurt)), finance, 0);
+		assertThat(entityIds(folder(ok(moveItem(finance, first, finance, 10000)), finance)))
+			.containsExactly(workday, salesforce, sap);
+		assertThat(sortOrders("tree_node_items", "tree_node_id = ?::uuid", finance)).containsExactly(0, 1, 2);
+	}
+
+	@Test
+	void anEntryMovesToAnotherFolder() {
+		String finance = newFolder("Finance", this.root);
+		String hr = newFolder("HR", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String workday = entity("Workday " + suffix(), this.application, false);
+		String peoplesoft = entity("PeopleSoft " + suffix(), this.application, false);
+		created(placeEntity(finance, sap, null));
+		String item = itemId(created(placeEntity(finance, workday, null)), finance, 1);
+		created(placeEntity(hr, peoplesoft, null));
+		JsonNode tree = ok(moveItem(finance, item, hr, 0));
+		assertThat(entityIds(folder(tree, hr))).containsExactly(workday, peoplesoft);
+		assertThat(entityIds(folder(tree, finance))).containsExactly(sap);
+		assertThat(sortOrders("tree_node_items", "tree_node_id = ?::uuid", hr)).containsExactly(0, 1);
+		assertThat(sortOrders("tree_node_items", "tree_node_id = ?::uuid", finance)).containsExactly(0);
+		// an entry is addressed by its own folder
+		assertThat(moveItem(finance, item, hr, 0)).hasStatus(HttpStatus.NOT_FOUND);
+	}
+
+	@Test
+	void anUnknownTargetFolderAndATargetAlreadyThereAreRejected() {
+		String finance = newFolder("Finance", this.root);
+		String hr = newFolder("HR", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String item = itemId(created(placeEntity(finance, sap, null)), finance, 0);
+		created(placeEntity(hr, sap, null));
+		int before = auditCount();
+		assertInvalid(moveItem(finance, item, UUID.randomUUID().toString(), 0), "nodeId");
+		assertInvalid(moveItem(finance, item, hr, 0), "nodeId");
+		assertThat(auditCount()).isEqualTo(before);
+		assertThat(entityIds(folder(ok(call(HttpMethod.GET, TREE, null, this.kurt)), finance)))
+			.containsExactly(sap);
+	}
+
+	@Test
+	void aMoveToTheSamePlaceIsAnswered200WithoutAnAuditEvent() {
+		String finance = newFolder("Finance", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String workday = entity("Workday " + suffix(), this.application, false);
+		String item = itemId(created(placeEntity(finance, sap, null)), finance, 0);
+		created(placeEntity(finance, workday, null));
+		int before = auditCount();
+		JsonNode tree = ok(moveItem(finance, item, finance, 0));
+		assertThat(entityIds(folder(tree, finance))).containsExactly(sap, workday);
+		assertThat(auditCount()).isEqualTo(before);
+	}
+
+	@Test
+	void thePositionCountsOnlyTheEntriesTheCallerSees() {
+		String finance = newFolder("Finance", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String workday = entity("Workday " + suffix(), this.application, false);
+		TestSession maria = new TestPrincipals(this.sessions, this.accounts, this.jdbc)
+			.personWithIdpRole("enterprise-architect");
+		created(placeEntity(finance, sap, null));
+		created(place(finance, catalog("Kurt's Candidates", "personal", this.kurt), null));
+		String item = itemId(created(placeEntity(finance, workday, null)), finance, 2);
+		MvcTestResult result = call(HttpMethod.PUT, NODES + "/" + finance + "/items/" + item + "/position",
+				JsonMapper.shared().createObjectNode().put("nodeId", finance).put("position", 0), maria);
+		JsonNode mariasTree = ok(result);
+		assertThat(folder(mariasTree, finance).path("items").size()).isEqualTo(2);
+		assertThat(entityIds(folder(mariasTree, finance))).containsExactly(workday, sap);
+		JsonNode kurts = folder(ok(call(HttpMethod.GET, TREE, null, this.kurt)), finance);
+		assertThat(texts(kurts.path("items"), "itemType")).containsExactly("entity", "entity", "catalog");
+		assertThat(kurts.path("items").get(0).path("entityId").asInt()).isEqualTo(Integer.parseInt(workday));
+		assertThat(kurts.path("items").get(1).path("entityId").asInt()).isEqualTo(Integer.parseInt(sap));
+	}
+
+	@Test
+	void anotherPersonsPersonalCatalogEntryCannotBeMovedOrRemoved() {
+		String finance = newFolder("Finance", this.root);
+		String candidates = catalog("Kurt's Candidates", "personal", this.kurt);
+		String item = itemId(created(place(finance, candidates, null)), finance, 0);
+		TestSession maria = new TestPrincipals(this.sessions, this.accounts, this.jdbc)
+			.personWithIdpRole("enterprise-architect");
+		assertThat(call(HttpMethod.DELETE, NODES + "/" + finance + "/items/" + item, null, maria))
+			.hasStatus(HttpStatus.NOT_FOUND);
+		assertThat(call(HttpMethod.PUT, NODES + "/" + finance + "/items/" + item + "/position",
+				JsonMapper.shared().createObjectNode().put("nodeId", finance).put("position", 0), maria))
+			.hasStatus(HttpStatus.NOT_FOUND);
+		assertThat(folder(ok(call(HttpMethod.GET, TREE, null, this.kurt)), finance).path("items").size())
+			.isEqualTo(1);
+	}
+
+	@Test
+	void unknownFolderAndEntryInThePathAnswer404() {
+		String finance = newFolder("Finance", this.root);
+		assertThat(moveItem(UUID.randomUUID().toString(), UUID.randomUUID().toString(), finance, 0))
+			.hasStatus(HttpStatus.NOT_FOUND);
+		assertThat(moveItem(finance, UUID.randomUUID().toString(), finance, 0)).hasStatus(HttpStatus.NOT_FOUND);
+		assertThat(call(HttpMethod.DELETE, NODES + "/" + finance + "/items/" + UUID.randomUUID(), null, this.kurt))
+			.hasStatus(HttpStatus.NOT_FOUND);
+	}
+
+	// Limits
+
+	@Test
+	void entriesPerFolderOnMoves() {
+		String full = newFolder("Full", this.root);
+		String almost = newFolder("Almost", this.root);
+		String source = newFolder("Source", this.root);
+		for (int i = 0; i < NavigationTree.MAX_ITEMS_PER_FOLDER - 1; i++) {
+			junkItem(almost);
+		}
+		for (int i = 0; i < NavigationTree.MAX_ITEMS_PER_FOLDER; i++) {
+			junkItem(full);
+		}
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String workday = entity("Workday " + suffix(), this.application, false);
+		created(placeEntity(source, sap, null));
+		JsonNode tree = created(placeEntity(source, workday, null));
+		String first = itemId(tree, source, 0);
+		String second = itemId(tree, source, 1);
+		ok(moveItem(source, first, almost, 0));
+		assertInvalid(moveItem(source, second, almost, 0), "nodeId");
+		assertInvalid(moveItem(source, second, full, 0), "nodeId");
+		assertInvalid(placeEntity(full, sap, null), "entityId");
+		assertInvalid(placeSolution(full, solution("Full Solution"), null), "referenceId");
+		// reordering in a folder that holds 200 entries
+		String twoReal = newFolder("Full With Two", this.root);
+		for (int i = 0; i < NavigationTree.MAX_ITEMS_PER_FOLDER - 2; i++) {
+			junkItem(twoReal);
+		}
+		created(placeEntity(twoReal, sap, null));
+		JsonNode filled = created(placeEntity(twoReal, workday, null));
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM tree_node_items WHERE tree_node_id = ?::uuid",
+				Integer.class, twoReal)).isEqualTo(NavigationTree.MAX_ITEMS_PER_FOLDER);
+		ok(moveItem(twoReal, itemId(filled, twoReal, 1), twoReal, 0));
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "0,200", "10000,200", "-1,422", "10001,422" })
+	void positionBoundaries(int position, int expected) {
+		String finance = newFolder("Finance", this.root);
+		String hr = newFolder("HR", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String item = itemId(created(placeEntity(finance, sap, null)), finance, 0);
+		MvcTestResult item_ = moveItem(finance, item, hr, position);
+		MvcTestResult node = moveFolder(hr, finance, position);
+		if (expected == 200) {
+			assertThat(item_).as(() -> content(item_)).hasStatus(HttpStatus.OK);
+			assertThat(node).as(() -> content(node)).hasStatus(HttpStatus.OK);
+		}
+		else {
+			assertInvalid(item_, "position");
+			assertInvalid(node, "position");
+		}
+	}
+
+	@Test
+	void aMissingPositionIsRejected() {
+		String finance = newFolder("Finance", this.root);
+		String hr = newFolder("HR", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String item = itemId(created(placeEntity(finance, sap, null)), finance, 0);
+		assertInvalid(call(HttpMethod.PUT, NODES + "/" + finance + "/items/" + item + "/position",
+				JsonMapper.shared().createObjectNode().put("nodeId", hr), this.kurt), "position");
+		assertInvalid(call(HttpMethod.PUT, NODES + "/" + hr + "/position",
+				JsonMapper.shared().createObjectNode().put("parentId", finance), this.kurt), "position");
+	}
+
+	// Permissions
+
+	@Test
+	void everyTreeWriteNeedsEntityReadInAdditionToViewpointManage() {
+		String role = "manage-only-" + suffix();
+		this.jdbc.update("INSERT INTO authorization_roles (id, name, is_builtin) VALUES (?, ?, false)", role, role);
+		this.jdbc.update("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, 'viewpoint:manage')", role);
+		TestSession eva = new TestPrincipals(this.sessions, this.accounts, this.jdbc).personWithIdpRole(role);
+		String finance = newFolder("Finance", this.root);
+		String hr = newFolder("HR", this.root);
+		String sap = entity("SAP ERP " + suffix(), this.application, false);
+		String inventory = catalog("Inventory", "instance", this.kurt);
+		String solution = solution("CRM");
+		JsonNode tree = created(placeEntity(finance, sap, null));
+		String item = itemId(tree, finance, 0);
+		int folders = this.jdbc.queryForObject("SELECT count(*) FROM tree_nodes", Integer.class);
+		int items = this.jdbc.queryForObject("SELECT count(*) FROM tree_node_items", Integer.class);
+		int events = auditCount();
+		String items_ = NODES + "/" + finance + "/items";
+		List<MvcTestResult> results = List.of(
+				call(HttpMethod.POST, NODES, folderBody("Eva", this.root), eva),
+				call(HttpMethod.PATCH, NODES + "/" + hr, JsonMapper.shared().createObjectNode().put("name", "Eva"), eva),
+				call(HttpMethod.DELETE, NODES + "/" + hr, null, eva),
+				call(HttpMethod.POST, items_, itemBody(inventory, null), eva),
+				call(HttpMethod.POST, items_, JsonMapper.shared().createObjectNode().put("itemType", "entity")
+					.put("entityId", Integer.parseInt(sap)), eva),
+				call(HttpMethod.POST, items_, JsonMapper.shared().createObjectNode().put("itemType", "solution")
+					.put("referenceId", solution), eva),
+				call(HttpMethod.DELETE, items_ + "/" + item, null, eva),
+				call(HttpMethod.PUT, NODES + "/" + hr + "/position",
+						JsonMapper.shared().createObjectNode().put("parentId", finance).put("position", 0), eva),
+				call(HttpMethod.PUT, items_ + "/" + item + "/position",
+						JsonMapper.shared().createObjectNode().put("nodeId", hr).put("position", 0), eva));
+		results.forEach((result) -> assertThat(result).hasStatus(HttpStatus.FORBIDDEN));
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM tree_nodes", Integer.class)).isEqualTo(folders);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM tree_node_items", Integer.class)).isEqualTo(items);
+		assertThat(auditCount()).isEqualTo(events);
+		// a reader cannot move either
+		assertThat(call(HttpMethod.PUT, NODES + "/" + hr + "/position",
+				JsonMapper.shared().createObjectNode().put("parentId", finance).put("position", 0), this.franz))
+			.hasStatus(HttpStatus.FORBIDDEN);
+	}
+
+	// Audit
+
+	@Test
+	void movesAndPlacementsAreAuditedWithoutLabelsAndNames() {
+		String finance = newFolder("Finance", this.root);
+		String hr = newFolder("HR", this.root);
+		String name = "Secret Name " + suffix();
+		String sap = entity(name, this.application, false);
+		String solution = solution("Secret Solution");
+		JsonNode tree = created(placeEntity(finance, sap, "Secret Label"));
+		created(placeSolution(finance, solution, "Solution Label"));
+		String item = itemId(tree, finance, 0);
+		ok(moveItem(finance, item, hr, 3));
+		ok(moveFolder(hr, finance, 0));
+		assertThat(this.jdbc.queryForList("""
+				SELECT event_type FROM audit.events WHERE event_type IN ('tree-node.item-moved', 'tree-node.moved')
+				  AND target_id IN (?, ?) ORDER BY id""", String.class, finance, hr))
+			.containsExactly("tree-node.item-moved", "tree-node.moved");
+		String moved = this.jdbc.queryForObject("""
+				SELECT details::text FROM audit.events WHERE event_type = 'tree-node.item-moved' AND target_id = ?""",
+				String.class, finance);
+		JsonNode details = JsonMapper.shared().readTree(moved);
+		assertThat(details.path("fromNodeId").asString()).isEqualTo(finance);
+		assertThat(details.path("toNodeId").asString()).isEqualTo(hr);
+		assertThat(details.path("position").asInt()).isZero();
+		assertThat(details.path("itemType").asString()).isEqualTo("entity");
+		String folderMoved = this.jdbc.queryForObject("""
+				SELECT details::text FROM audit.events WHERE event_type = 'tree-node.moved' AND target_id = ?""",
+				String.class, hr);
+		assertThat(JsonMapper.shared().readTree(folderMoved).path("fromNodeId").asString()).isEqualTo(this.root);
+		assertThat(JsonMapper.shared().readTree(folderMoved).path("toNodeId").asString()).isEqualTo(finance);
+		List<String> added = this.jdbc.queryForList("""
+				SELECT details::text FROM audit.events WHERE event_type = 'tree-node.item-added' AND target_id = ?
+				ORDER BY id""", String.class, finance);
+		assertThat(added).hasSize(2);
+		assertThat(JsonMapper.shared().readTree(added.get(0)).path("itemType").asString()).isEqualTo("entity");
+		assertThat(JsonMapper.shared().readTree(added.get(0)).path("entityId").asInt()).isEqualTo(Integer.parseInt(sap));
+		assertThat(JsonMapper.shared().readTree(added.get(1)).path("referenceId").asString()).isEqualTo(solution);
+		String all = this.jdbc.queryForList("SELECT details::text FROM audit.events WHERE target_type = 'tree-node'",
+				String.class).toString();
+		assertThat(all).doesNotContain("Secret Label", "Solution Label", name, "Secret Solution");
+	}
+
 	// helpers
+
+	private MvcTestResult placeEntity(String nodeId, String entityId, String label) {
+		ObjectNode body = JsonMapper.shared().createObjectNode().put("itemType", "entity").put("entityId",
+				Integer.parseInt(entityId));
+		if (label != null) {
+			body.put("displayLabel", label);
+		}
+		return call(HttpMethod.POST, NODES + "/" + nodeId + "/items", body, this.kurt);
+	}
+
+	private MvcTestResult placeSolution(String nodeId, String solutionId, String label) {
+		ObjectNode body = JsonMapper.shared().createObjectNode().put("itemType", "solution").put("referenceId",
+				solutionId);
+		if (label != null) {
+			body.put("displayLabel", label);
+		}
+		return call(HttpMethod.POST, NODES + "/" + nodeId + "/items", body, this.kurt);
+	}
+
+	private MvcTestResult moveFolder(String nodeId, String parentId, int position) {
+		return call(HttpMethod.PUT, NODES + "/" + nodeId + "/position",
+				JsonMapper.shared().createObjectNode().put("parentId", parentId).put("position", position), this.kurt);
+	}
+
+	private MvcTestResult moveItem(String nodeId, String itemId, String targetNodeId, int position) {
+		return call(HttpMethod.PUT, NODES + "/" + nodeId + "/items/" + itemId + "/position",
+				JsonMapper.shared().createObjectNode().put("nodeId", targetNodeId).put("position", position),
+				this.kurt);
+	}
+
+	/** Creates an entity of the metatype and returns its ID. */
+	private String entity(String name, UUID metatype, boolean unused) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO entities (metatype_id, name, created_by) VALUES (?, ?, ?) RETURNING id::text""", String.class,
+				metatype, name, this.kurtId);
+	}
+
+	private UUID connectionType() {
+		return this.jdbc.queryForObject("""
+				INSERT INTO metatypes (config_id, name, is_connection)
+				VALUES ('00000000-0000-0000-0000-000000000001', ?, true) RETURNING id""", UUID.class,
+				"Data Flow " + suffix());
+	}
+
+	private String solution(String name) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO solutions (id, name, owner_id, created_by) VALUES (gen_random_uuid(), ?, ?, ?)
+				RETURNING id::text""", String.class, name + " " + suffix(), this.kurtId, this.kurtId);
+	}
+
+	/** An entry no caller sees (a catalog that does not exist); it counts towards the limit of a folder. */
+	private void junkItem(String folder) {
+		this.jdbc.update("""
+				INSERT INTO tree_node_items (tree_node_id, item_type, reference_id, sort_order, created_by)
+				VALUES (?::uuid, 'catalog', ?, (SELECT count(*) FROM tree_node_items WHERE tree_node_id = ?::uuid), ?)""",
+				folder, UUID.randomUUID(), folder, this.kurtId);
+	}
+
+	private static String createdId(MvcTestResult result, String name) {
+		return id(result, name);
+	}
+
+	private static String itemId(JsonNode tree, String folderId, int index) {
+		return folder(tree, folderId).path("items").get(index).path("id").asString();
+	}
+
+	private static List<String> entityIds(JsonNode folder) {
+		List<String> ids = new ArrayList<>();
+		folder.path("items").forEach((item) -> ids.add(item.path("entityId").asString()));
+		return ids;
+	}
+
+	private static List<String> labels(JsonNode folder) {
+		List<String> labels = new ArrayList<>();
+		folder.path("items").forEach((item) -> labels.add(item.path("displayLabel").isNull()
+				? item.path("name").asString() : item.path("displayLabel").asString()));
+		return labels;
+	}
+
+	private List<Integer> sortOrders(String table, String where, String parameter) {
+		return this.jdbc.queryForList("SELECT sort_order FROM " + table + " WHERE " + where + " ORDER BY sort_order",
+				Integer.class, parameter);
+	}
+
+	private int auditCount() {
+		return this.jdbc.queryForObject("SELECT count(*) FROM audit.events WHERE event_type LIKE 'tree-node.%'",
+				Integer.class);
+	}
+
+	private int depthOf(String folder) {
+		return this.jdbc.queryForObject("""
+				WITH RECURSIVE up (id, parent_id, depth) AS (
+				    SELECT id, parent_id, 0 FROM tree_nodes WHERE id = ?::uuid
+				    UNION ALL
+				    SELECT n.id, n.parent_id, up.depth + 1 FROM tree_nodes n JOIN up ON n.id = up.parent_id
+				    WHERE up.depth < 50)
+				SELECT max(depth) FROM up""", Integer.class, folder);
+	}
 
 	private MvcTestResult createFolder(String name, String parentId) {
 		return call(HttpMethod.POST, NODES, folderBody(name, parentId), this.kurt);

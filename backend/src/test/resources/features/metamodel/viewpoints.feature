@@ -74,3 +74,86 @@ Feature: Viewpoints
   Scenario: Without viewpoint:manage
     When the viewer creates the viewpoint "Forbidden View" with "VP Application"
     Then the viewpoint answer is 403
+
+  # us-091-viewpoint-notations
+
+  # Requirement: Notation of a viewpoint
+
+  @US-090 @REQ-090
+  Scenario: ArchiMate viewpoint
+    When the architect creates the viewpoint "Cloud Security View" with the notation "archimate3" and "VP Application"
+    Then the viewpoint answer is 201
+    And the viewpoint has the notation "archimate3"
+
+  @US-090 @REQ-090
+  Scenario: Existing viewpoint
+    Given the viewpoint "Integration View" allows "VP Application"
+    Then the viewpoint "Integration View" has the notation "generic" and is user-defined
+
+  # Requirement: Notation mapping
+
+  @AC2 @US-091 @REQ-091
+  Scenario: Element of the notation
+    When the architect maps "VP Application" to "archimate:ApplicationComponent" in the new "archimate3" viewpoint "Mapped View"
+    Then the viewpoint answer is 201
+    And "VP Application" is mapped to "archimate:ApplicationComponent"
+
+  @AC2 @US-091 @REQ-091
+  Scenario: Element of another notation
+    When the architect maps "VP Application" to "bpmn:Task" in the new "archimate3" viewpoint "Foreign Element View"
+    Then the viewpoint answer is 422 naming "mappings"
+
+  @US-091 @REQ-091
+  Scenario: Generic box in any notation
+    When the architect maps "VP Data Object" to "generic:Box" in the new "bpmn2" viewpoint "Generic Box View"
+    Then the viewpoint answer is 201
+
+  @AC2 @US-091 @REQ-091
+  Scenario Outline: Size boundaries
+    When the architect maps "VP Application" to "archimate:ApplicationComponent" with the width <width> and height <height> in the new "archimate3" viewpoint "<name>"
+    Then the viewpoint answer is <status>
+
+    Examples:
+      | name       | width | height | status |
+      | Size Low  | 1     | 1      | 201    |
+      | Size High  | 2000  | 2000   | 201    |
+      | Size Zero  | 0     | 80     | 400    |
+      | Size Over  | 2001  | 80     | 400    |
+
+  # Requirement: Fallback rendering
+
+  @US-091 @REQ-091
+  Scenario: Unmapped entity type
+    When the architect creates the viewpoint "Fallback View" with the notation "archimate3" and "VP Application"
+    Then the effective element of "VP Application" is "generic:Box" as a fallback
+
+  # Requirement: Element catalog
+
+  @AC1 @US-091 @REQ-091
+  Scenario: ArchiMate elements
+    When the architect reads the element catalog
+    Then the catalog holds "archimate:ApplicationComponent" as an element of "archimate3"
+    And the catalog holds "archimate:Flow" as a relationship of "archimate3"
+
+  # Requirement: System-defined viewpoints are read-only
+
+  @AC1 @US-092 @REQ-092
+  Scenario: Delete a system-defined viewpoint
+    Given the system-defined viewpoint "VP Installed Landscape" of the package "vp-installed"
+    When the architect deletes "VP Installed Landscape" with its version
+    Then the viewpoint answer is 422 as read-only
+    And "VP Installed Landscape" is still listed
+
+  @AC1 @US-092 @REQ-092
+  Scenario: Update with the current version
+    Given the system-defined viewpoint "VP Updated Landscape" of the package "vp-installed"
+    When the architect changes the description of "VP Updated Landscape" with its version
+    Then the viewpoint answer is 422 as read-only
+
+  # Requirement: Origin of a viewpoint set only by the import
+
+  @US-092 @REQ-092
+  Scenario: Forged origin
+    When the architect creates the viewpoint "Forged View" with a forged system-defined origin
+    Then the viewpoint answer is 201
+    And the viewpoint is user-defined without a package

@@ -46,6 +46,19 @@ public final class OeaDatabases {
 		return new OeaDatabase(server, name);
 	}
 
+	/**
+	 * A new provisioned database without migrations, for tests that migrate to a version and
+	 * check what the next migration does to existing data; the caller drops it with
+	 * {@link OeaDatabase#stop()}.
+	 */
+	public static OeaDatabase freshProvisioned() {
+		PostgreSQLContainer server = OeaTestDatabase.migrated();
+		String name = "oea_t" + counter.incrementAndGet();
+		execute(server, "CREATE DATABASE " + name);
+		provision(server, name);
+		return new OeaDatabase(server, name);
+	}
+
 	public static Connection asSuperuser(PostgreSQLContainer postgres) throws SQLException {
 		return DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
 	}

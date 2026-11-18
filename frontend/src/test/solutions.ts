@@ -31,6 +31,8 @@ function me(displayName: string, permissions: string[]) {
 }
 
 export const ME_SOLUTION_ARCHITECT = me('Michael', ['portal:read', 'entity:read', 'solution:write', 'solution-metamodel:write'])
+/** The architect who also manages the navigation tree (US-097). */
+export const ME_SOLUTION_MANAGER = me('Michael', ['portal:read', 'entity:read', 'solution:write', 'solution-metamodel:write', 'viewpoint:manage'])
 export const ME_SOLUTION_VIEWER = me('Anna', ['portal:read', 'entity:read'])
 export const ME_CATALOG_WRITER = me('Ines', ['portal:read', 'entity:read', 'entity:write'])
 export const ME_PORTAL_READER = me('Clara', ['portal:read'])

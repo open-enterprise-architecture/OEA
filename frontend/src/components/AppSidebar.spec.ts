@@ -43,6 +43,17 @@ describe('AppSidebar', () => {
     wrapper.unmount()
   })
 
+  it('offers no folder actions with viewpoint:manage but without entity:read, as every tree write needs both (design D7 of us-095)', async () => {
+    const permissions = [{ permission: 'viewpoint:manage', grantedBy: [] }, { permission: 'entity:read', grantedBy: [] }]
+    const both = await sidebar({ ...ME_TREE_MANAGER, permissions })
+    expect(both.find('[data-testid="tree-folder-actions"]').exists()).toBe(true)
+    both.unmount()
+    // without entity:read there is no sidebar at all, so nothing to drag or move
+    const manageOnly = await sidebar({ ...ME_TREE_MANAGER, permissions: [permissions[0]] })
+    expect(manageOnly.find('[data-testid="app-sidebar"]').exists()).toBe(false)
+    manageOnly.unmount()
+  })
+
   it('is not shown without a session', async () => {
     const wrapper = await sidebar(undefined)
     expect(wrapper.find('[data-testid="app-sidebar"]').exists()).toBe(false)

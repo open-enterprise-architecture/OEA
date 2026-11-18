@@ -24,7 +24,7 @@ The S15 row of the sprint plan lists the stories:
 - [US-097](../../../requirements/user-stories/US-097-navigation-tree-multiple-placement.md);
 - [US-094](../../../requirements/user-stories/US-094-navigation-tree-folder-crud.md), which is only set to done.
 
-This is S15 change 2, the last change of S15.
+This is S15 change 2. It is implemented before change 3 (`us-091-viewpoint-notations`), so it takes migration V40.
 
 ## Traceability
 
@@ -56,17 +56,18 @@ This is S15 change 2, the last change of S15.
 - **Moving:**
   - `moveTreeNode` takes a new parent and a position, and `moveTreeNodeItem` takes a target folder and a position.
   - Moving a folder under itself or under one of its descendants gives 422 naming `parentId` (US-096 AC1). The root cannot be moved (422).
-  - A duplicate name among the new siblings gives 422 naming `name`. An entry whose target is already in the new folder gives 422 naming `referenceId`.
-  - The position is 0-based and clamped to the end of the list. The siblings move up or down to keep a dense order.
+  - A duplicate name among the new siblings gives 422 naming `parentId`. An entry whose target is already in the new folder gives 422 naming `nodeId`. The 422 names a field of the move request (design D3).
+  - The position is 0-based, counts the entries the caller sees, and is clamped to the end of the list. The siblings move up or down to keep a dense order.
 - **Keyboard and narrow screens:** besides drag and drop, each folder and entry offers "Move up", "Move down" and "Move to…" (a folder choice).
-- **Permissions and audit:** as today, changing the tree needs `viewpoint:manage`. Moves are audited as `tree-node.moved` and `tree-node.item-moved`, and placements as `tree-node.item-added` with the item type.
+- **Permissions and audit:** changing the tree needs `viewpoint:manage` and, newly, `entity:read`, because every change answers with the tree and the names of its entries (design D7). Moves are audited as `tree-node.moved` and `tree-node.item-moved`, and placements as `tree-node.item-added` with the item type.
 
 **Navigation tree (`navigation`):**
 
 - `TreeNodeItem` gets the item types `entity` and `solution`, `entityId` for an entity, and `deleted` for an entry whose entity was deleted.
 - `TreeNodeItemCreate` takes `referenceId` (catalog, solution) or `entityId` (entity).
 - `sortOrder` carries the manual order. Folders and entries are returned in that order.
-- `moveTreeNode` (`PUT /navigation/tree/{id}/position`) and `moveTreeNodeItem` (`PUT /navigation/tree/{id}/items/{itemId}/position`) are new.
+- `moveTreeNode` (`PUT /tree-nodes/{nodeId}/position`) and `moveTreeNodeItem` (`PUT /tree-nodes/{nodeId}/items/{itemId}/position`) are new.
+- Every write of the tree declares `viewpoint:manage` and `entity:read`.
 
 **Frontend:**
 
@@ -98,7 +99,8 @@ This is S15 change 2, the last change of S15.
 
 - **api/openapi.yaml:**
   - the item types and fields of `TreeNodeItem` and `TreeNodeItemCreate`;
-  - `moveTreeNode`, `moveTreeNodeItem` and `TreeNodePosition`;
+  - `moveTreeNode`, `moveTreeNodeItem`, `TreeNodeMove` and `TreeNodeItemMove`;
+  - `entity:read` in addition on every tree write;
   - the descriptions of the order.
 - **backend:**
   - migration `V40__navigation_tree_items.sql`:

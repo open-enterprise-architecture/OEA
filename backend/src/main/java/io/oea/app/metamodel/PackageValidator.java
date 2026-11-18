@@ -29,6 +29,30 @@ public final class PackageValidator {
 	private PackageValidator() {
 	}
 
+	/** The checks of {@link #validate(PackageDefinition)} plus the rules of the notation mappings. */
+	public static void validate(PackageDefinition definition, NotationCatalog catalog) {
+		validate(definition);
+		for (int i = 0; i < definition.viewpoints().size(); i++) {
+			PackageDefinition.Viewpoint viewpoint = definition.viewpoints().get(i);
+			List<io.oea.core.metamodel.ViewpointStore.MappingRow> mappings = viewpoint.mappings()
+				.stream()
+				.map((m) -> new io.oea.core.metamodel.ViewpointStore.MappingRow(m.metatypeId(), m.notationElement(),
+						m.defaultWidth(), m.defaultHeight(), m.visualHint()))
+				.toList();
+			ViewpointMappings
+				.problem(catalog, viewpoint.notation(), Set.copyOf(viewpoint.metatypeIds()),
+						Set.copyOf(viewpoint.connectionTypeIds()), mappings)
+				.ifPresent((problem) -> {
+					throw new InvalidPackageException("invalid-package", "/viewpoints/" + index(definition, viewpoint),
+							problem);
+				});
+		}
+	}
+
+	private static int index(PackageDefinition definition, PackageDefinition.Viewpoint viewpoint) {
+		return definition.viewpoints().indexOf(viewpoint);
+	}
+
 	public static void validate(PackageDefinition definition) {
 		if (definition.strategy() != null && !"merge".equals(definition.strategy())) {
 			throw unsupported("/strategy", "The strategy '" + definition.strategy() + "' is not supported yet.");
@@ -120,6 +144,54 @@ public final class PackageValidator {
 		noCycles(definition);
 		sameKindOfBase(definition);
 		labels(definition);
+		viewpoints(definition);
+	}
+
+	private static final Pattern VISUAL_HINT = Pattern.compile("^#[0-9a-fA-F]{6}$");
+
+	private static final Set<String> NOTATIONS = Set.of("generic", "archimate3", "uml", "bpmn2");
+
+	/**
+	 * Applies the limits of a viewpoint written through the API, because the package path does not
+	 * pass the contract checks of {@code ViewpointWrite} (design D8 of us-091-viewpoint-notations).
+	 * The messages do not repeat package content.
+	 */
+	private static void viewpoints(PackageDefinition definition) {
+		limit(definition.viewpoints(), "/viewpoints");
+		Set<UUID> viewpointIds = new HashSet<>();
+		Set<String> names = new HashSet<>();
+		for (int i = 0; i < definition.viewpoints().size(); i++) {
+			PackageDefinition.Viewpoint viewpoint = definition.viewpoints().get(i);
+			String pointer = "/viewpoints/" + i;
+			require(viewpoint.id() != null && viewpointIds.add(viewpoint.id()), pointer + "/id",
+					"Missing or duplicate identifier.");
+			require(notBlank(viewpoint.name()) && viewpoint.name().strip().length() <= 255
+					&& names.add(key(viewpoint.name())), pointer + "/name",
+					"The viewpoint name is missing, longer than 255 characters or not unique in the package.");
+			require(viewpoint.description() == null || viewpoint.description().length() <= 1000,
+					pointer + "/description", "The description has more than 1000 characters.");
+			require(NOTATIONS.contains(viewpoint.notation()), pointer + "/notation", "Unknown notation.");
+			require(!viewpoint.metatypeIds().isEmpty() && viewpoint.metatypeIds().size() <= 500
+					&& !viewpoint.metatypeIds().contains(null), pointer + "/metatypeIds",
+					"A viewpoint needs 1 to 500 metatypes.");
+			require(viewpoint.connectionTypeIds().size() <= 500 && !viewpoint.connectionTypeIds().contains(null),
+					pointer + "/connectionTypeIds", "A viewpoint allows at most 500 connection types.");
+			require(viewpoint.mappings().size() <= 1000, pointer + "/mappings",
+					"A viewpoint has at most 1000 mappings.");
+			for (PackageDefinition.ViewpointMapping mapping : viewpoint.mappings()) {
+				require(mapping.metatypeId() != null && notBlank(mapping.notationElement())
+						&& mapping.notationElement().length() <= 100, pointer + "/mappings",
+						"A mapping needs a metatype and an element key of at most 100 characters.");
+				require(inRange(mapping.defaultWidth()) && inRange(mapping.defaultHeight()), pointer + "/mappings",
+						"A default size is between 1 and 2000.");
+				require(mapping.visualHint() == null || VISUAL_HINT.matcher(mapping.visualHint()).matches(),
+						pointer + "/mappings", "The visual hint is not of the form #rrggbb.");
+			}
+		}
+	}
+
+	private static boolean inRange(Integer size) {
+		return size == null || (size >= 1 && size <= 2000);
 	}
 
 	/** Labels name only elements of the package, in a supported locale (us-140-dynamic-labels D5). */

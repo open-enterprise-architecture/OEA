@@ -4,7 +4,7 @@ title: Create, edit and delete viewpoint
 type: functional
 priority: must
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-28
 last_updated: 2026-11-17
 author: requirements-engineer
@@ -56,6 +56,7 @@ Organizations have specific perspectives (cloud security, domain overview) that 
 ## Implementation Notes
 
 - Realigned by the OpenSpec change `us-090-viewpoints` (owner decisions 2026-11-17): viewpoints are generic for now – name (1–255 characters, unique case-insensitively), description (at most 1000 characters), at least one element metatype and any number of connection metatypes of the instance; notation and notation mapping follow with the diagrams; `/admin/viewpoints` with `If-Match` on update and delete (412, 428); AC2 (diagrams affected) follows with the diagrams
+- Realigned by the OpenSpec change `us-091-viewpoint-notations` (owner decisions 2026-11-17, later the same day): `notation` is one of `generic`, `archimate3`, `uml` and `bpmn2` (not `bpmn20`), optional on write with the default `generic`; viewpoints created before have `generic` (V41). `mappings` (`metatypeId`, `notationElement`, `defaultWidth`, `defaultHeight`, `visualHint`) are optional, at most one per allowed type, for entity and connection types (REQ-091); `effectiveMappings` falls back to the generic element. The UI is one dialog on SCR-031 with the notation, the type selection and a mapping table, not a three-step form. AC1 and AC3 are met with the notation; AC2 follows with the diagrams
 
 - Three-step form with step indicators in the UI
 - Ensure uniqueness of the `name` field via DB constraint at instance level
@@ -67,3 +68,4 @@ Organizations have specific perspectives (cloud security, domain overview) that 
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-11-17 | Change us-090-viewpoints | Generic viewpoints implemented (AC1, AC3); AC2 with the diagrams |
+| 0.3.0 | 2026-11-17 | Change us-091-viewpoint-notations | Notation and optional notation mapping implemented |

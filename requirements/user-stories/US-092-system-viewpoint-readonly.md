@@ -2,8 +2,9 @@
 
 **ID**: US-092
 **Story Points**: 2
-**Status**: backlog
+**Status**: done
 **Sprint**: S15
+**Implementation**: OpenSpec change `us-091-viewpoint-notations` – system-defined viewpoints are installed by metamodel packages (the starter package carries two, V41); update and delete answer 422 `read-only-viewpoint` (AC1); SCR-031 shows them in their own group without "Edit" and "Delete" (AC2); another package or an organization viewpoint with the same ID or name is a conflict (409), and only a re-import of the same package changes them (AC3)
 
 ## Story
 

@@ -5,6 +5,7 @@ import io.oea.api.generated.model.ImportResult;
 import io.oea.api.generated.model.ImportResultConflictListInner;
 import io.oea.api.generated.model.MetatypeDetail;
 import io.oea.api.generated.model.MetatypePropertyMapping;
+import io.oea.api.generated.model.PackageViewpoint;
 import io.oea.api.generated.model.PropertyCategory;
 import io.oea.api.generated.model.PropertyDefinitionDetail;
 import io.oea.api.generated.model.PropertyEnumValue;
@@ -26,9 +27,6 @@ final class MetamodelPackages {
 
 	static PackageDefinition definition(ImportMetamodelPackageRequest request) {
 		List<String> unsupported = new ArrayList<>();
-		if (!empty(request.getViewpoints())) {
-			unsupported.add("viewpoints");
-		}
 		if (!empty(request.getShapeAssignments())) {
 			unsupported.add("shapeAssignments");
 		}
@@ -37,7 +35,19 @@ final class MetamodelPackages {
 				list(request.getPropertyCategories()).stream().map(MetamodelPackages::category).toList(),
 				list(request.getPropertyDefinitions()).stream().map(MetamodelPackages::property).toList(),
 				list(request.getMetatypes()).stream().map(MetamodelPackages::metatype).toList(),
-				labels(request.getI18nBundles()));
+				labels(request.getI18nBundles()),
+				list(request.getViewpoints()).stream().map(MetamodelPackages::viewpoint).toList());
+	}
+
+	private static PackageDefinition.Viewpoint viewpoint(PackageViewpoint viewpoint) {
+		return new PackageDefinition.Viewpoint(viewpoint.getId(), viewpoint.getName(), viewpoint.getDescription(),
+				viewpoint.getNotation().getValue(), list(viewpoint.getMetatypeIds()),
+				list(viewpoint.getConnectionTypeIds()),
+				list(viewpoint.getMappings()).stream()
+					.map((mapping) -> new PackageDefinition.ViewpointMapping(mapping.getMetatypeId(),
+							mapping.getNotationElement(), mapping.getDefaultWidth(), mapping.getDefaultHeight(),
+							mapping.getVisualHint()))
+					.toList());
 	}
 
 	private static Map<String, Map<String, String>> labels(Map<String, Map<String, String>> bundles) {
@@ -57,6 +67,9 @@ final class MetamodelPackages {
 		return new ImportResult(ImportResult.StatusEnum.COMPLETED, outcome.created(), outcome.updated(), 0)
 			.batchId(outcome.batchId())
 			.labelCount(outcome.labels())
+			.viewpointsCreated(outcome.viewpointsCreated())
+			.viewpointsUpdated(outcome.viewpointsUpdated())
+			.viewpointsDeleted(outcome.viewpointsDeleted())
 			.conflictList(List.of());
 	}
 

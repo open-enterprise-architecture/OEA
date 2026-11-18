@@ -139,6 +139,147 @@ public class ViewpointSteps {
 		assertThat(names).doesNotContain(name + this.suffix);
 	}
 
+	// us-091-viewpoint-notations
+
+	@When("the architect creates the viewpoint {string} with the notation {string} and {string}")
+	public void createWithNotation(String name, String notation, String metatype) throws Exception {
+		ObjectNode body = body(name + this.suffix, List.of(this.metatypes.get(metatype)), List.of());
+		body.put("notation", notation);
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+	}
+
+	@When("the architect maps {string} to {string} in the new {string} viewpoint {string}")
+	public void mapIn(String metatype, String element, String notation, String name) throws Exception {
+		map(metatype, element, null, null, notation, name);
+	}
+
+	@When("the architect maps {string} to {string} with the width {int} and height {int} in the new {string} viewpoint {string}")
+	public void mapWithSize(String metatype, String element, int width, int height, String notation, String name)
+			throws Exception {
+		map(metatype, element, width, height, notation, name);
+	}
+
+	@When("the architect reads the element catalog")
+	public void readCatalog() throws Exception {
+		this.response = instance().oidc().get(VIEWPOINTS + "/notations", architect().token());
+	}
+
+	@When("the architect creates the viewpoint {string} with a forged system-defined origin")
+	public void forged(String name) throws Exception {
+		ObjectNode body = body(name + this.suffix, List.of(this.metatypes.get("VP Application")), List.of());
+		body.put("viewpointType", "system-defined");
+		body.putObject("sourcePackage").put("packageId", "oea-starter-togaf-classic").put("version", "1.2.0");
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+	}
+
+	@Given("the system-defined viewpoint {string} of the package {string}")
+	public void systemDefined(String name, String packageId) throws Exception {
+		String id = instance().oidc().single("""
+				INSERT INTO viewpoints (id, name, viewpoint_type, source_package_id, source_package_version, created_by)
+				VALUES (gen_random_uuid(), '%s', 'system-defined', '%s', '1.0.0', (SELECT min(id) FROM persons))
+				RETURNING id::text""".formatted(name + this.suffix, packageId));
+		ObjectNode viewpoint = JsonMapper.shared().createObjectNode().put("id", id).put("name", name + this.suffix).put(
+				"version", 1);
+		viewpoint.putArray("allowedMetatypes").addObject().put("id", this.metatypes.get("VP Application"));
+		this.viewpoints.put(name, viewpoint);
+	}
+
+	@Then("the viewpoint has the notation {string}")
+	public void notation(String notation) throws Exception {
+		assertThat(json().path("notation").asString()).isEqualTo(notation);
+	}
+
+	@Then("the viewpoint {string} has the notation {string} and is user-defined")
+	public void readNotation(String name, String notation) throws Exception {
+		JsonNode viewpoint = this.viewpoints.get(name);
+		HttpResponse<String> read = instance().oidc().get(VIEWPOINTS + "/" + viewpoint.path("id").asString(),
+				architect().token());
+		JsonNode body = JsonMapper.shared().readTree(read.body());
+		assertThat(body.path("notation").asString()).isEqualTo(notation);
+		assertThat(body.path("viewpointType").asString()).isEqualTo("user-defined");
+	}
+
+	@Then("{string} is mapped to {string}")
+	public void mapped(String metatype, String element) throws Exception {
+		for (JsonNode mapping : json().path("mappings")) {
+			if (mapping.path("metatypeId").asString().equals(this.metatypes.get(metatype))) {
+				assertThat(mapping.path("notationElement").asString()).isEqualTo(element);
+				return;
+			}
+		}
+		throw new AssertionError("no mapping of " + metatype);
+	}
+
+	@Then("the effective element of {string} is {string} as a fallback")
+	public void effective(String metatype, String element) throws Exception {
+		status(201);
+		for (JsonNode mapping : json().path("effectiveMappings")) {
+			if (mapping.path("metatypeId").asString().equals(this.metatypes.get(metatype))) {
+				assertThat(mapping.path("notationElement").asString()).isEqualTo(element);
+				assertThat(mapping.path("fallback").asBoolean()).isTrue();
+				return;
+			}
+		}
+		throw new AssertionError("no effective element of " + metatype);
+	}
+
+	@Then("the catalog holds {string} as an element of {string}")
+	public void catalogElement(String key, String notation) throws Exception {
+		catalogEntry(key, notation, "element");
+	}
+
+	@Then("the catalog holds {string} as a relationship of {string}")
+	public void catalogRelationship(String key, String notation) throws Exception {
+		catalogEntry(key, notation, "relationship");
+	}
+
+	@Then("the viewpoint answer is 422 as read-only")
+	public void readOnly() throws Exception {
+		status(422);
+		assertThat(json().path("type").asString()).isEqualTo("urn:oea:problem:read-only-viewpoint");
+		assertThat(json().path("detail").asString()).isEqualTo("System-defined viewpoints are read-only");
+	}
+
+	@Then("{string} is still listed")
+	public void stillListed(String name) throws Exception {
+		HttpResponse<String> list = instance().oidc().get(VIEWPOINTS, architect().token());
+		List<String> names = new ArrayList<>();
+		JsonMapper.shared().readTree(list.body()).forEach((viewpoint) -> names.add(viewpoint.path("name").asString()));
+		assertThat(names).contains(name + this.suffix);
+	}
+
+	@Then("the viewpoint is user-defined without a package")
+	public void userDefined() throws Exception {
+		assertThat(json().path("viewpointType").asString()).isEqualTo("user-defined");
+		assertThat(json().path("sourcePackage").isNull()).isTrue();
+	}
+
+	private void catalogEntry(String key, String notation, String kind) throws Exception {
+		status(200);
+		for (JsonNode element : json()) {
+			if (element.path("key").asString().equals(key)) {
+				assertThat(element.path("notation").asString()).isEqualTo(notation);
+				assertThat(element.path("kind").asString()).isEqualTo(kind);
+				return;
+			}
+		}
+		throw new AssertionError("no catalog element " + key);
+	}
+
+	private void map(String metatype, String element, Integer width, Integer height, String notation, String name)
+			throws Exception {
+		ObjectNode body = body(name + this.suffix, List.of(this.metatypes.get(metatype)), List.of());
+		body.put("notation", notation);
+		ObjectNode mapping = body.putArray("mappings")
+			.addObject()
+			.put("metatypeId", this.metatypes.get(metatype))
+			.put("notationElement", element);
+		if (width != null) {
+			mapping.put("defaultWidth", width).put("defaultHeight", height);
+		}
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+	}
+
 	private void change(String name, String ifMatch) throws Exception {
 		JsonNode viewpoint = this.viewpoints.get(name);
 		List<String> types = new ArrayList<>();

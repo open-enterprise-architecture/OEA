@@ -25,7 +25,9 @@ public class MetamodelChangeException extends RuntimeException {
 		/** The configuration is {@code import-only}: only package imports change it (403 {@code metamodel-locked}, US-035). */
 		LOCKED,
 		/** A write that requires {@code If-Match} came without it (428 {@code precondition-required}, us-090-viewpoints D2). */
-		PRECONDITION_REQUIRED
+		PRECONDITION_REQUIRED,
+		/** A system-defined viewpoint cannot be updated or deleted (422 {@code read-only-viewpoint}, US-092 AC1). */
+		READ_ONLY_VIEWPOINT
 
 	}
 
@@ -68,6 +70,11 @@ public class MetamodelChangeException extends RuntimeException {
 
 	static MetamodelChangeException readOnly(String element, String message) {
 		return new MetamodelChangeException(Reason.READ_ONLY, "The " + element + " " + message, List.of(), null);
+	}
+
+	static MetamodelChangeException readOnlyViewpoint() {
+		return new MetamodelChangeException(Reason.READ_ONLY_VIEWPOINT, "System-defined viewpoints are read-only",
+				List.of(), null);
 	}
 
 	static MetamodelChangeException locked() {

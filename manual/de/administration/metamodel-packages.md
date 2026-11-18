@@ -13,7 +13,7 @@ Der Import von Paketen verlangt die Berechtigung `metamodel:write`, die nur die 
 
 ## Starterkonfiguration importieren
 
-OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*. Version 1.1.0 bringt deutsche Labels für seine Entitätstypen, *Status* und dessen Werte sowie englische Labels für die Werte mit (siehe [Labels übersetzen](./metamodel-editing#translating-labels)). Eine Instanz, die 1.0.0 importiert hat, erhält die Labels durch einen erneuten Import des Pakets.
+OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*. Version 1.2.0 fügt die zwei systemdefinierten Viewpoints *Application Landscape* und *Technology Landscape* in ArchiMate hinzu (siehe [Viewpoints in Paketen](#viewpoints-in-packages)). Version 1.1.0 brachte deutsche Labels für seine Entitätstypen, *Status* und dessen Werte sowie englische Labels für die Werte mit (siehe [Labels übersetzen](./metamodel-editing#translating-labels)). Eine Instanz, die eine frühere Version importiert hat, erhält die Labels und Viewpoints durch einen erneuten Import des Pakets.
 
 Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Startkonfiguration importieren*. Wähle *Importieren* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
 
@@ -36,6 +36,14 @@ Eigene Pakete verwenden dasselbe JSON-Format (`MetamodelPackage`, mit `packageId
 - Ein Paket kann für einen Entitätstyp einen Basistyp nennen (`baseMetatypeId`): einen Entitätstyp desselben Pakets oder einen eingebauten. Deine eigenen Eigenschaften an seinen Entitätstypen bleiben oder werden entfernt, je nach Einstellung für den erneuten Import (siehe [Metamodell bearbeiten](./metamodel-editing)).
 - Pakete, die größer als `oea.metamodel.import.max-size` sind (Standard 10 MB), werden mit `413` abgelehnt; fehlerhaftes JSON oder Inhalte, die nicht zum Format passen, mit `422` und der Stelle des Problems.
 - Ein Paket kann in `i18nBundles` Labels pro Sprache mitbringen, mit Schlüsseln wie unter [Labels übersetzen](./metamodel-editing#translating-labels), aber nur für seine eigenen Elemente. Ein erneuter Import ersetzt sie; deine eigenen Labels bleiben.
-- Die Strategie `replace`, Viewpoints und Shape-Zuordnungen werden noch nicht unterstützt (`422`).
+- Die Strategie `replace` und Shape-Zuordnungen werden noch nicht unterstützt (`422`).
 
 Jeder Import schreibt die Audit-Events `metamodel.package-imported` und `metamodel.metatype-imported` mit einer gemeinsamen Batch-ID.
+
+## Viewpoints in Paketen {#viewpoints-in-packages}
+
+Ein Paket kann in `viewpoints` Viewpoints mitbringen: jeden mit einer stabilen `id`, `name`, optionaler `description`, `notation`, den erlaubten `metatypeIds` und `connectionTypeIds` (Typen des Pakets oder der Instanz) und optionalen `mappings`. Der Import installiert sie als systemdefinierte, schreibgeschützte Viewpoints mit dem Paket als Herkunft (siehe [Viewpoints](./metamodel-editing#viewpoints)).
+
+- Ein Viewpoint hat dieselben Grenzen wie ein eigener: Name bis 255 Zeichen, Beschreibung bis 1000, höchstens 500 Entitätstypen, 500 Verbindungstypen und 1000 Zuordnungen, Grössen von 1 bis 2000 und Farben als `#rrggbb`. Ein Verstoss oder ein unbekannter Typ wird mit `422` abgelehnt und nennt den Viewpoint.
+- Ein erneuter Import desselben Pakets aktualisiert seine Viewpoints, auch wenn einer umbenannt wurde, und löscht die, die das Paket nicht mehr enthält. Viewpoints deiner Organisation oder eines anderen Pakets werden nie überschrieben: Dieselbe ID oder derselbe Name ergibt `409`.
+- Das Importergebnis zählt die angelegten, aktualisierten und gelöschten Viewpoints.
