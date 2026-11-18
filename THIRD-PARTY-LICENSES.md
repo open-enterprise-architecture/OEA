@@ -54,7 +54,7 @@ License texts and notices: the backend jar contains the license and notice files
 | tomcat-embed-el (`org.apache.tomcat.embed:tomcat-embed-el`) | 11.0.27 | Apache-2.0 | – | <https://tomcat.apache.org/> |
 | tomcat-embed-websocket (`org.apache.tomcat.embed:tomcat-embed-websocket`) | 11.0.27 | Apache-2.0 | – | <https://tomcat.apache.org/> |
 | AspectJ Weaver (`org.aspectj:aspectjweaver`) | 1.9.25.1 | EPL-2.0 | – | <https://www.eclipse.org/aspectj/> |
-| Bouncy Castle Provider (`org.bouncycastle:bcprov-jdk18on`) | 1.86 | MIT | – | <https://www.bouncycastle.org/download/bouncy-castle-java/> |
+| Bouncy Castle Provider (`org.bouncycastle:bcprov-jdk18on`) | 1.87 | MIT | – | <https://www.bouncycastle.org/download/bouncy-castle-java/> |
 | Checker Qual (`org.checkerframework:checker-qual`) | 3.55.1 | MIT | – | <https://checkerframework.org/> |
 | Angus Activation Registries (`org.eclipse.angus:angus-activation`) | 2.0.3 | BSD-3-Clause | – | <https://github.com/eclipse-ee4j/angus-activation/angus-activation> |
 | flyway-core (`org.flywaydb:flyway-core`) | 12.4.0 | Apache-2.0 | – | <https://flywaydb.org/flyway-core> |
