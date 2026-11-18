@@ -93,7 +93,7 @@ services:
 
   vite:
     profiles: ["dev"]
-    image: docker.io/library/node:26-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216
+    image: docker.io/library/node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5
     working_dir: /workspace/frontend
     command: ["sh", "-c", "npm ci --ignore-scripts && npm run dev -- --host 0.0.0.0 --port 5173"]
     environment:
