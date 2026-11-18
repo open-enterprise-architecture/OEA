@@ -35,6 +35,13 @@
     "licenseFile": true
   },
   {
+    "name": "@internationalized/number",
+    "version": "3.6.9",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/adobe/react-spectrum",
+    "licenseFile": true
+  },
+  {
     "name": "@intlify/core-base",
     "version": "11.4.18",
     "license": "MIT",
@@ -203,10 +210,45 @@
     "licenseFile": true
   },
   {
+    "name": "dompurify",
+    "version": "3.4.18",
+    "license": "(MPL-2.0 OR Apache-2.0)",
+    "repository": "git://github.com/cure53/DOMPurify",
+    "licenseFile": true
+  },
+  {
+    "name": "entities",
+    "version": "8.1.0",
+    "license": "BSD-2-Clause",
+    "repository": "https://github.com/fb55/entities",
+    "licenseFile": true
+  },
+  {
     "name": "hookable",
     "version": "6.1.2",
     "license": "MIT",
     "repository": "unjs/hookable",
+    "licenseFile": true
+  },
+  {
+    "name": "linkify-it",
+    "version": "6.1.0",
+    "license": "MIT",
+    "repository": "https://github.com/markdown-it/linkify-it",
+    "licenseFile": true
+  },
+  {
+    "name": "markdown-it",
+    "version": "15.0.3",
+    "license": "MIT",
+    "repository": "markdown-it/markdown-it",
+    "licenseFile": true
+  },
+  {
+    "name": "mdurl",
+    "version": "2.1.0",
+    "license": "MIT",
+    "repository": "https://github.com/markdown-it/mdurl",
     "licenseFile": true
   },
   {
@@ -215,6 +257,13 @@
     "license": "MIT",
     "repository": "unjs/ohash",
     "licenseFile": true
+  },
+  {
+    "name": "punycode.js",
+    "version": "2.3.1",
+    "license": "MIT",
+    "repository": "https://github.com/mathiasbynens/punycode.js",
+    "licenseFile": false
   },
   {
     "name": "reka-ui",
@@ -249,6 +298,13 @@
     "version": "4.3.5",
     "license": "MIT",
     "repository": "https://github.com/tailwindlabs/tailwindcss",
+    "licenseFile": true
+  },
+  {
+    "name": "uc.micro",
+    "version": "3.0.0",
+    "license": "MIT",
+    "repository": "markdown-it/uc.micro",
     "licenseFile": true
   },
   {
