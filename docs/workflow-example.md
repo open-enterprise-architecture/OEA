@@ -17,7 +17,7 @@ Before you start, make sure:
 - [ ] Vision in `business-analysis/vision.md` is formulated
 - [ ] At least Franz (SH-01) exists as a stakeholder
 - [ ] AGENTS.md is in the repo
-- [ ] Seven agent files are in `.opencode/agents/`
+- [ ] Eight agent files are in `.opencode/agents/`
 - [ ] Templates are in `templates/`
 
 If not: fix that first, otherwise the agents work in a vacuum.
