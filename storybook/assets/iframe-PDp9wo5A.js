@@ -1,1 +1,0 @@
-import{t as e}from"./iframe-Dxh2-G2b.js";e();
