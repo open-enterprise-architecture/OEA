@@ -4,9 +4,9 @@ title: Add, configure, and remove a widget
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -28,7 +28,9 @@ superseded_by: []
 
 ## Statement
 
-The system MUST allow the dashboard creator to add widgets to an existing [Dashboard](../../business-objects/dashboard.md), configure them, and remove them. Four widget types MUST be supported: `kpi`, `chart`, `table`, `text`. The widget type is immutable after creation; to change the type, the widget must be deleted and recreated. All mandatory fields of a widget type MUST be completely filled in at creation; the system MUST reject incomplete configurations with HTTP 422.
+The system MUST allow those who may change a dashboard (every holder of `dashboard:manage` for a shared dashboard, the owner for a personal one) to add widgets to an existing [Dashboard](../../business-objects/dashboard.md), configure them, and remove them. Four widget types MUST be supported: `kpi`, `chart`, `table`, `text`. The widget type is immutable after creation; to change the type, the widget must be deleted and recreated. All mandatory fields of a widget type MUST be completely filled in at creation; the system MUST reject incomplete configurations with HTTP 422.
+
+**Implementation note (change us-055-dashboards, S16)**: the first implementation accepts the types `text` and `table`; `kpi` and `chart` answer 422 naming `type` until S17. A table widget needs a catalog visible to its writer (403 otherwise) and, on a shared dashboard, a shared catalog (422 naming `catalogId`). Title: 1–150 characters, at most 50 widgets per dashboard, `pageSize` 5–100. The widget writes are `POST`, `PUT` and `DELETE` on `/dashboards/{id}/widgets[/{widgetId}]` and `PUT /dashboards/{id}/layout` for several positions at once; each returns the dashboard with its new version and needs `If-Match`.
 
 ## Rationale
 
@@ -46,9 +48,10 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 
 - `POST /api/v1/dashboards/{dashboardId}/widgets`
 - Request: widget configuration (type + type-specific fields + gridPosition)
-- Response 201: created widget with id
+- Response 200: the dashboard with the new widget and its new version (realigned 2026-11-18; formerly 201 with the widget)
 - Response 422: validation error (missing mandatory fields, invalid DataSource)
-- Response 403: requester is not the creator of the dashboard
+- Response 403: the requester may not change the dashboard (a shared dashboard without `dashboard:manage`, another person's personal dashboard for an administrator); 404 for another person's personal dashboard
+- Response 412 / 428: stale or missing `If-Match`
 
 **Configure (update)**:
 
@@ -78,7 +81,7 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 | BR-03 | A `kpi` widget must have a `dataSource` of type `PropertyAggregation`; `CatalogQuery` is invalid | onCreate, onUpdate |
 | BR-04 | A `table` widget must have a `dataSource` of type `CatalogQuery`; `PropertyAggregation` is invalid | onCreate, onUpdate |
 | BR-05 | A `kpi` widget with `comparisonMode=vs-target` requires `targetValue` | onCreate, onUpdate |
-| BR-06 | Only the dashboard creator or an admin may add, change, or remove widgets | onCreate, onUpdate, onDelete |
+| BR-06 | Every holder of `dashboard:manage` may add, change, or remove widgets of a shared dashboard; only the owner those of a personal dashboard (owner decision 2026-11-18) | onCreate, onUpdate, onDelete |
 
 ## Acceptance Criteria
 
@@ -125,3 +128,4 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; all 4 widget types, type immutability, BR-01–06 |
+| 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: who changes widgets; versions; the first implementation (text and table) |

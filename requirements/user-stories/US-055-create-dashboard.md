@@ -2,8 +2,9 @@
 
 **ID**: US-055
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-055-dashboards` – dashboards through `POST|GET /dashboards`, `PUT|DELETE /dashboards/{id}` and `GET /views/dashboards/{id}` (SCR-056 "Dashboards", SCR-024 "Dashboard editor"); every write needs `If-Match`. Owner decisions 2026-11-18: every holder of `dashboard:manage` maintains every shared dashboard; a taken name is 422 `dashboard-name-taken`
 
 ## Story
 
@@ -50,6 +51,6 @@ As a Lead Enterprise Architect, I want to create a new dashboard with name, desc
 
 - [ ] AC1–AC4 met
 - [ ] Code review
-- [ ] Tests: creation successful, duplicate name 409, 403 without permission, scope=personal not in others' list
+- [ ] Tests: creation successful, duplicate name 422 `dashboard-name-taken`, 403 without permission, scope=personal not in others' list
 - [ ] Linter and type checks green
 - [ ] Entered in trace matrix

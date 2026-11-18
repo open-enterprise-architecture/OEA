@@ -1867,6 +1867,53 @@ package "Navigation & Presentation" #EDE7F6 {
     .. at most one isDefault (US-053, us-053-saved-views, catalog BR-05, BR-06) ..
   }
 
+  class dashboards <<Table>> #D1C4E9 {
+    + id          : UUID          {PK}
+    --
+    + name        : TEXT          {NN}
+    .. stored trimmed, 1–200 characters ..
+    .. UNIQUE INDEX dashboards_instance_name on lower(btrim(name)) WHERE scope = 'instance' ..
+    .. UNIQUE INDEX dashboards_personal_name on (owner_id, lower(btrim(name))) WHERE scope = 'personal' (BR-01) ..
+    + description : TEXT          {NN} DEFAULT ''
+    .. max. 1000 characters ..
+    + scope       : TEXT          {NN}
+    .. CHECK IN (instance, personal); personal = owner, and read-only holders of settings:manage ..
+    .. a shared dashboard does not become personal (service rule) ..
+    + owner_id    : BIGINT        {NN} {FK→persons.id}
+    .. the person who created the dashboard; only persons own dashboards ..
+    + version     : INTEGER       {NN} DEFAULT 1
+    .. CHECK >= 1; raised by every change of the dashboard, its widgets or its layout; ETag / If-Match ..
+    + created_at  : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + created_by  : BIGINT        {NN} {FK→persons.id}
+    + updated_at  : TIMESTAMPTZ   {NN} DEFAULT NOW()
+    + updated_by  : BIGINT        {NN} {FK→persons.id}
+    .. deleted for real with its widgets (no soft delete, no architecture content); oea_app has DELETE ..
+  }
+
+  class dashboard_widgets <<Table>> #D1C4E9 {
+    + id           : UUID         {PK}
+    --
+    + dashboard_id : UUID         {NN} {FK→dashboards.id ON DELETE CASCADE}
+    + type         : TEXT         {NN}
+    .. CHECK IN (kpi, chart, table, text); only table and text are accepted by the service until S17 ..
+    + title        : TEXT         {NN}
+    .. stored trimmed, 1–150 characters ..
+    + col          : INTEGER      {NN}
+    .. CHECK 1–12 ..
+    + width        : INTEGER      {NN}
+    .. CHECK 1–12; CHECK (col + width <= 13) ..
+    + grid_row     : INTEGER      {NN}
+    .. CHECK 1–500 (an input limit; REQ-057 leaves the row open) ..
+    + height       : INTEGER      {NN}
+    .. CHECK 1–6 ..
+    + config       : JSONB        {NN}
+    .. text: {content} (max. 10 000 characters, Markdown); table: {catalogId, savedViewId?, pageSize 5–100} ..
+    .. validated by the service; a deleted catalog or view is shown as an error widget, not blocked ..
+    + created_at   : TIMESTAMPTZ  {NN} DEFAULT NOW()
+    + created_by   : BIGINT       {NN} {FK→persons.id}
+    .. at most 50 widgets per dashboard (service rule); index (dashboard_id) ..
+  }
+
   class tree_nodes <<Table>> #D1C4E9 {
     + id          : UUID                  {PK}
     --
@@ -2143,6 +2190,7 @@ package "Navigation & Presentation" #EDE7F6 {
   plateaus        "0..1" --o{ "0..*" diagrams        : plateau_id
 
   metatypes       "1"    --o{ "0..*" catalogs        : primary_metatype_id
+  dashboards      "1"    --o{ "0..*" dashboard_widgets : contains (ON DELETE CASCADE)
   tree_nodes      "0..1" --o{ "0..*" tree_nodes      : parent_id
   tree_nodes      "1"    --o{ "0..*" tree_node_items : contains
   entities        "0..1" --o{ "0..*" tree_node_items : entity_id (entity entries)
@@ -2167,6 +2215,8 @@ persons "1" --o{ "0..*" solutions                         : owner_id / created_b
 persons "1" --o{ "0..*" plateaus                          : created_by
 persons "1" --o{ "0..*" metamodel_configurations          : last_modified_by
 persons "1" --o{ "0..*" catalogs                          : created_by / last_modified_by
+persons "1" --o{ "0..*" dashboards                        : owner_id / created_by / updated_by
+persons "1" --o{ "0..*" dashboard_widgets                 : created_by
 persons "1" --o{ "0..*" tree_nodes                        : created_by
 persons "1" --o{ "0..*" diagrams                          : created_by
 persons "1" --o{ "0..*" diagram_notes                     : created_by / updated_by
@@ -2366,6 +2416,15 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   out of the change history (owner decision 2026-11-14). The history tables
 '   stay unchanged; the history read lists the changed fields without values.
 '   Reason: US-098, REQ-098.
+' 2026-11-18 (us-055-dashboards):
+'   dashboards and dashboard_widgets created by V43: shared (instance) and
+'   personal dashboards with a version for If-Match, widgets of the types text
+'   and table (kpi and chart follow in S17) with a grid position (col 1-12,
+'   width 1-12, col + width <= 13, row 1-500, height 1-6) and their
+'   configuration as JSONB. Deleted for real with their widgets; a catalog or
+'   saved view a table widget names is a soft reference without a foreign key.
+'   Reason: US-055, US-058 to US-060, US-062, REQ-051 to REQ-057;
+'   owner decisions 2026-11-18, ADR-032 amendment 2026-11-18.
 ' ─────────────────────────────────────────────────────
 
 @enduml

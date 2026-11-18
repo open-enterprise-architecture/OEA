@@ -2,6 +2,8 @@ import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
+import DashboardPage from '../pages/DashboardPage.vue'
+import DashboardsPage from '../pages/DashboardsPage.vue'
 import EntityHistoryPage from '../pages/EntityHistoryPage.vue'
 import ChangePasswordPage from '../pages/ChangePasswordPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
@@ -34,6 +36,9 @@ export const router = createRouter({
     { path: '/me/password', name: 'change-password', component: ChangePasswordPage },
     { path: '/catalogs', name: 'catalogs', component: CatalogsPage },
     { path: '/catalogs/:id', name: 'catalog', component: CatalogPage, props: true },
+    // dashboards with their widgets (SCR-056, SCR-024, us-055-dashboards)
+    { path: '/dashboards', name: 'dashboards', component: DashboardsPage },
+    { path: '/dashboards/:id', name: 'dashboard', component: DashboardPage, props: true },
     // the web portal for readers with portal:read (SCR-050, s9-portal-catalogs)
     { path: '/portal', name: 'portal', component: PortalPage },
     { path: '/portal/catalogs/:id', name: 'portal-catalog', component: PortalCatalogPage, props: true },

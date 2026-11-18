@@ -71,6 +71,7 @@ async function logOut() {
       <template v-if="session.me">
         <RouterLink v-if="canSeePortal" to="/portal" data-testid="header-portal">{{ t('portal.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
+        <RouterLink v-if="canSeeTree" to="/dashboards" data-testid="header-dashboards">{{ t('dashboards.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/solutions" data-testid="header-solutions">{{ t('solutions.title') }}</RouterLink>
         <RouterLink v-if="canSeePlateaus" to="/plateaus" data-testid="header-plateaus">{{ t('plateaus.title') }}</RouterLink>
         <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>

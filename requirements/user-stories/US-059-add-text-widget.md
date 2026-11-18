@@ -2,8 +2,9 @@
 
 **ID**: US-059
 **Story Points**: 2
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-055-dashboards` – the text widget (Markdown up to 10 000 characters, status `static`), rendered in the client with markdown-it and DOMPurify (no script, no event handlers, links `http`, `https` and `mailto` only)
 
 ## Story
 

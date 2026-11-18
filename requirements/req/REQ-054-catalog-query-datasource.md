@@ -4,9 +4,9 @@ title: Configure and validate CatalogQuery DataSource
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -117,3 +117,4 @@ The output corresponds to the catalog query response from REQ-046, restricted to
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; delegation to catalog API, error isolation, BR-01–04 |
+| 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: a shared dashboard shows shared catalogs only (422 naming `catalogId`); the data runs through the catalog query as the reader (channel `dashboard`); `additionalFilters` and column overrides are not implemented yet |

@@ -2,8 +2,9 @@
 
 **ID**: US-058
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-055-dashboards` – the table widget (`catalogId`, optional `savedViewId`, `pageSize` 5–100) with its data from the catalog query as the reader (`GET /views/dashboards/{id}/data`, further pages `…/widgets/{widgetId}/data?page=`); a shared dashboard shows shared catalogs only (422 naming `catalogId`); a catalog that is gone or not visible gives an error widget `catalog-not-found`
 
 ## Story
 

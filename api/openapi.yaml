@@ -118,7 +118,7 @@ x-oea-permissions: [
   {"id": "person:manage", "adminClass": true, "description": "Invite persons, change their lifecycle status, reset local credentials, set the account link to a Person entity"},
   {"id": "service-account:manage", "adminClass": true, "description": "Create and deactivate service accounts, issue and rotate client secrets"},
   {"id": "auth-config:manage", "adminClass": true, "description": "Configure authentication providers, 2FA policy, remote system admin mapping"},
-  {"id": "settings:manage", "adminClass": true, "description": "Change instance settings"}
+  {"id": "settings:manage", "adminClass": true, "description": "Change instance settings; read the personal dashboards of other persons, read-only"}
   ]
 
 x-oea-builtin-roles: [
@@ -1667,64 +1667,154 @@ components:
               label:    { type: [string, 'null'] }
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
+    DashboardScope:
+      type: string
+      enum: [instance, personal]
+      description: |
+        `instance` is a shared dashboard, visible to every reader and changed with
+        `dashboard:manage`; `personal` is visible to its owner and, read-only, to holders of
+        `settings:manage` (ADR-032 amendment 2026-11-18).
+
+    DashboardOwner:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:          { type: integer, description: "`persons.id` of the owner" }
+        displayName: { type: string }
+
+    DashboardCreate:
+      type: object
+      required: [name, scope]
+      properties:
+        name:        { type: string, minLength: 1, maxLength: 200, description: "1 to 200 characters after trimming; unique among the shared dashboards and among the personal dashboards of one owner, ignoring case" }
+        description: { type: string, maxLength: 1000 }
+        scope:       { $ref: '#/components/schemas/DashboardScope' }
+
+    DashboardUpdate:
+      type: object
+      required: [name, scope]
+      description: Replaces name, description and scope; a shared dashboard does not become personal
+      properties:
+        name:        { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+        scope:       { $ref: '#/components/schemas/DashboardScope' }
+
+    DashboardSummary:
+      type: object
+      required: [id, name, description, scope, owner, widgetCount, canEdit]
+      properties:
+        id:          { type: string, format: uuid }
+        name:        { type: string }
+        description: { type: string }
+        scope:       { $ref: '#/components/schemas/DashboardScope' }
+        owner:       { $ref: '#/components/schemas/DashboardOwner' }
+        widgetCount: { type: integer }
+        canEdit:     { type: boolean, description: 'Whether the caller may change and delete the dashboard' }
+
+    GridPosition:
+      type: object
+      required: [col, row, width, height]
+      description: Position in the 12-column grid; `col + width` is at most 13
+      properties:
+        col:    { type: integer, minimum: 1, maximum: 12 }
+        row:    { type: integer, minimum: 1, maximum: 500 }
+        width:  { type: integer, minimum: 1, maximum: 12 }
+        height: { type: integer, minimum: 1, maximum: 6 }
+
+    WidgetType:
+      type: string
+      enum: [kpi, chart, table, text]
+      description: '`text` and `table` are supported; `kpi` and `chart` answer 422 naming `type` until they are'
+
+    WidgetSettings:
+      type: object
+      description: |
+        The configuration of a widget by its `type`. Text widget: `content`. Table widget:
+        `catalogId`, `savedViewId` and `pageSize`. `dataSource` is `catalog-query` (the default)
+        for a table widget; any other value is rejected (US-058 AC5).
+      properties:
+        content:     { type: string, maxLength: 10000, description: "Markdown of a text widget, 0 to 10 000 characters; rendered as sanitized HTML by the client" }
+        catalogId:   { type: string, format: uuid, description: 'Catalog of a table widget: visible to the writer, and a shared catalog on a shared dashboard' }
+        savedViewId: { type: [string, 'null'], format: uuid, description: 'A saved view of that catalog; without it the default columns apply' }
+        pageSize:    { type: integer, minimum: 5, maximum: 100, description: 'Rows per page of a table widget, 10 if omitted' }
+        dataSource:  { type: string, enum: [catalog-query, property-aggregation], description: '`catalog-query` if omitted' }
+
+    WidgetWrite:
+      type: object
+      required: [type, title, position, config]
+      properties:
+        type:     { $ref: '#/components/schemas/WidgetType' }
+        title:    { type: string, minLength: 1, maxLength: 150 }
+        position: { $ref: '#/components/schemas/GridPosition' }
+        config:   { $ref: '#/components/schemas/WidgetSettings' }
+
     WidgetConfig:
       type: object
-      required: [id, widgetType, title, position]
+      required: [id, type, title, position, config]
       properties:
-        id:         { type: string, format: uuid }
-        widgetType:
-          type: string
-          enum: [kpi, bar-chart, donut-chart, table, diagram-embed]
-        title:      { type: string }
-        position:
-          type: object
-          properties:
-            col:    { type: integer }
-            row:    { type: integer }
-            width:  { type: integer }
-            height: { type: integer }
-        queryConfig:
-          type: [object, 'null']
-          description: Endpoint and filter parameters for widget data
-          additionalProperties: true
+        id:       { type: string, format: uuid }
+        type:     { $ref: '#/components/schemas/WidgetType' }
+        title:    { type: string }
+        position: { $ref: '#/components/schemas/GridPosition' }
+        config:   { $ref: '#/components/schemas/WidgetSettings' }
 
     DashboardConfig:
       type: object
-      required: [id, name, widgets]
+      required: [id, name, description, scope, owner, version, canEdit, widgets]
       properties:
-        id:      { type: string, format: uuid }
-        name:    { type: string }
+        id:          { type: string, format: uuid }
+        name:        { type: string }
+        description: { type: string }
+        scope:       { $ref: '#/components/schemas/DashboardScope' }
+        owner:       { $ref: '#/components/schemas/DashboardOwner' }
+        version:     { type: integer, minimum: 1, description: 'Version for `If-Match`, also the `ETag`' }
+        canEdit:     { type: boolean, description: 'Whether the caller may change and delete the dashboard' }
         widgets:
           type: array
           items: { $ref: '#/components/schemas/WidgetConfig' }
 
+    LayoutPosition:
+      type: object
+      required: [widgetId, col, row, width, height]
+      properties:
+        widgetId: { type: string, format: uuid }
+        col:      { type: integer, minimum: 1, maximum: 12 }
+        row:      { type: integer, minimum: 1, maximum: 500 }
+        width:    { type: integer, minimum: 1, maximum: 12 }
+        height:   { type: integer, minimum: 1, maximum: 6 }
+
+    LayoutUpdate:
+      type: object
+      required: [positions]
+      properties:
+        positions:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: '#/components/schemas/LayoutPosition' }
+
+    WidgetDataError:
+      type: object
+      required: [code, message]
+      properties:
+        code:    { type: string, enum: [catalog-not-found, view-not-found] }
+        message: { type: string }
+
     WidgetData:
       type: object
-      required: [widgetId, widgetType]
+      required: [widgetId, type, status]
       properties:
-        widgetId:   { type: string, format: uuid }
-        widgetType: { type: string }
-        data:
-          description: Type-specific data points
-          oneOf:
-            - type: object
-              description: KPI
-              properties:
-                value:     { type: string }
-                delta:     { type: string }
-                trendType: { type: string, enum: [up, down, neutral] }
-            - type: array
-              description: Bar / donut chart
-              items:
-                type: object
-                properties:
-                  label: { type: string }
-                  value: { type: number }
-            - type: array
-              description: Table
-              items:
-                type: object
-                additionalProperties: true
+        widgetId: { type: string, format: uuid }
+        type:     { $ref: '#/components/schemas/WidgetType' }
+        status:
+          type: string
+          enum: [ok, static, error]
+          description: '`static` for a text widget, `error` if the catalog or view of a table widget is gone or not visible'
+        error:    { $ref: '#/components/schemas/WidgetDataError' }
+        table:
+          description: The page of a table widget, computed with the reader's visibility and property redaction
+          allOf:
+            - $ref: '#/components/schemas/CatalogQueryResult'
 
     DashboardData:
       type: object
@@ -1735,6 +1825,19 @@ components:
           type: array
           items: { $ref: '#/components/schemas/WidgetData' }
         generatedAt:  { type: string, format: date-time }
+
+    DashboardValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [invalidFields]
+          properties:
+            invalidFields:
+              type: array
+              description: |
+                The rejected fields; a field of a nested object is named with its path, e.g.
+                `position.width` or `config.pageSize`
+              items: { type: string }
 
     # ── Plateau-Roadmap ───────────────────────────────────────────────────────
     RoadmapEntityCard:
@@ -7357,41 +7460,342 @@ paths:
         '501': { $ref: '#/components/responses/NotImplemented' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
-  # ║  VIEW – DASHBOARD (SCR-024)                                            ║
+  # ║  DASHBOARDS (US-055, US-058 to US-060, US-062)                         ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
-  /views/dashboards/{id}:
+  /dashboards:
     get:
-      operationId: getDashboardConfig
-      summary: Dashboard configuration (SCR-024)
-      tags: [Views – Editors]
+      operationId: listDashboards
+      summary: Dashboard overview (US-055, SCR-056)
+      description: |
+        The shared dashboards and the caller's own personal dashboards, ordered by name
+        (case-insensitive). Holders of `settings:manage` also see the personal dashboards of
+        other persons, marked by their owner and not changeable (ADR-032 amendment 2026-11-18).
+        Service accounts get 403.
+      tags: [Dashboards]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
-      x-oea-status: planned
-      parameters:
-        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
-          description: Dashboard configuration with widget layouts
+          description: Visible dashboards
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DashboardSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createDashboard
+      summary: Create a dashboard (US-055, US-062, REQ-051)
+      description: |
+        Creates a dashboard without widgets. Scope `instance` additionally requires
+        `dashboard:manage`; scope `personal` needs only `entity:read`. The name is unique among
+        the shared dashboards and among the personal dashboards of one owner, compared
+        case-insensitively after trimming, and stored trimmed. Writes the audit event
+        `dashboard.created`. Service accounts get 403.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "body field scope is 'instance'", "permissions": ["dashboard:manage"]}]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DashboardCreate' }
+      responses:
+        '201':
+          description: Dashboard created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the dashboard configuration
+            ETag: { $ref: '#/components/headers/VersionETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardConfig' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Not found
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or, on a dashboard, a
+            name that is already taken (`urn:oea:problem:dashboard-name-taken`, detail "A dashboard
+            with this name already exists"); `invalidFields` names the rejected fields. Nothing is changed.
           content:
             application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+              schema: { $ref: '#/components/schemas/DashboardValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /dashboards/{id}:
+    put:
+      operationId: updateDashboard
+      summary: Change name, description and scope of a dashboard (US-055, US-062)
+      description: |
+        Shared dashboards are changed with `dashboard:manage`, personal dashboards by their owner
+        only. The owner holding `dashboard:manage` may change the scope to `instance` unless a
+        widget shows a personal catalog (422 naming `scope`); a shared dashboard does not become
+        personal (422 naming `scope`). Another person's personal dashboard is answered with 404,
+        for holders of `settings:manage` with 403. Needs `If-Match`; writes `dashboard.updated`.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the dashboard has scope 'instance', or body field scope changes it to 'instance' (a personal dashboard is changeable by its owner only; another person's personal dashboard is never changeable)", "permissions": ["dashboard:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DashboardUpdate' }
+      responses:
+        '200':
+          description: Dashboard changed
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or, on a dashboard, a
+            name that is already taken (`urn:oea:problem:dashboard-name-taken`, detail "A dashboard
+            with this name already exists"); `invalidFields` names the rejected fields. Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DashboardValidationProblem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: deleteDashboard
+      summary: Delete a dashboard with its widgets (US-055)
+      description: |
+        Removes the dashboard and its widgets for good (no soft delete). Rights as `updateDashboard`.
+        Needs `If-Match`; writes `dashboard.deleted`.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the dashboard has scope 'instance' (a personal dashboard is changeable by its owner only; another person's personal dashboard is never changeable)", "permissions": ["dashboard:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '204': { description: Dashboard deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /dashboards/{id}/widgets:
+    post:
+      operationId: addDashboardWidget
+      summary: Add a widget (US-058, US-059, REQ-052)
+      description: |
+        Adds a text or table widget, up to 50 per dashboard. `kpi` and `chart` answer 422 naming
+        `type` until they are supported. A table widget needs a catalog visible to the writer (403
+        otherwise, also for an unknown catalog), on a shared dashboard a shared catalog (422 naming
+        `catalogId`), and a saved view of that catalog (422 naming `savedViewId`). Rights as
+        `updateDashboard`. Needs `If-Match`; writes `dashboard.updated`.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the dashboard has scope 'instance' (a personal dashboard is changeable by its owner only; another person's personal dashboard is never changeable)", "permissions": ["dashboard:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WidgetWrite' }
+      responses:
+        '200':
+          description: Widget added; the dashboard with its new version
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or, on a dashboard, a
+            name that is already taken (`urn:oea:problem:dashboard-name-taken`, detail "A dashboard
+            with this name already exists"); `invalidFields` names the rejected fields. Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DashboardValidationProblem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /dashboards/{id}/widgets/{widgetId}:
+    put:
+      operationId: updateDashboardWidget
+      summary: Change a widget (REQ-052)
+      description: |
+        Replaces title, position and configuration; the type cannot change (422 naming `type`).
+        Rights, checks and `If-Match` as `addDashboardWidget`.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the dashboard has scope 'instance' (a personal dashboard is changeable by its owner only; another person's personal dashboard is never changeable)", "permissions": ["dashboard:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: widgetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WidgetWrite' }
+      responses:
+        '200':
+          description: Widget changed; the dashboard with its new version
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or, on a dashboard, a
+            name that is already taken (`urn:oea:problem:dashboard-name-taken`, detail "A dashboard
+            with this name already exists"); `invalidFields` names the rejected fields. Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DashboardValidationProblem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: removeDashboardWidget
+      summary: Remove a widget (REQ-052)
+      description: Rights and `If-Match` as `addDashboardWidget`.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the dashboard has scope 'instance' (a personal dashboard is changeable by its owner only; another person's personal dashboard is never changeable)", "permissions": ["dashboard:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: widgetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '200':
+          description: Widget removed; the dashboard with its new version
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /dashboards/{id}/layout:
+    put:
+      operationId: updateDashboardLayout
+      summary: Position several widgets at once (US-060, REQ-057)
+      description: |
+        Sets the positions of 1 to 50 widgets of the dashboard in one request. A widget of
+        another dashboard answers 422 naming `widgetId`; `col + width` above 13 answers 422
+        "Widget exceeds the grid width" naming `width`. Overlaps are accepted. Rights and
+        `If-Match` as `addDashboardWidget`.
+      tags: [Dashboards]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "the dashboard has scope 'instance' (a personal dashboard is changeable by its owner only; another person's personal dashboard is never changeable)", "permissions": ["dashboard:manage"]}]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LayoutUpdate' }
+      responses:
+        '200':
+          description: Layout changed; the dashboard with its new version
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or, on a dashboard, a
+            name that is already taken (`urn:oea:problem:dashboard-name-taken`, detail "A dashboard
+            with this name already exists"); `invalidFields` names the rejected fields. Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DashboardValidationProblem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║  VIEW – DASHBOARD (SCR-024)                                            ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+  /views/dashboards/{id}:
+    get:
+      operationId: getDashboardConfig
+      summary: Dashboard configuration (SCR-024, US-055, REQ-055)
+      description: |
+        The dashboard with its widgets, their positions and `canEdit`, and the version as `ETag`.
+        A shared dashboard is readable by every reader. A personal dashboard of another person is
+        answered with 404, like a dashboard that does not exist, except for holders of
+        `settings:manage` with `entity:read`, who read it (read-only, ADR-032 amendment 2026-11-18).
+        Service accounts get 403.
+      tags: [Views – Editors]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      responses:
+        '200':
+          description: Dashboard configuration with widget layouts
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /views/dashboards/{id}/data:
     get:
       operationId: getDashboardData
-      summary: Dashboard data (SCR-024)
-      description: Current data points for all widgets of a dashboard.
+      summary: Dashboard data (SCR-024, REQ-055)
+      description: |
+        The data of all widgets, computed on each request from the current repository with the
+        reader's permissions and visibility (catalog visibility and property redaction apply).
+        A text widget is `static`; a table widget gives its first page. A widget whose catalog or
+        saved view is gone or not visible gets `status: error` and the others are computed normally.
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
-      x-oea-status: planned
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
@@ -7403,12 +7807,38 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Not found
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /views/dashboards/{id}/widgets/{widgetId}/data:
+    get:
+      operationId: getDashboardWidgetData
+      summary: Data of one dashboard widget (US-058)
+      description: |
+        The data of one widget, for further pages of a table widget. `page` is 0-based as in
+        `queryCatalog`; the page size is that of the widget.
+      tags: [Views – Editors]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: widgetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: Widget data
           content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+            application/json:
+              schema: { $ref: '#/components/schemas/WidgetData' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  VIEW – ROADMAP (SCR-025)                                              ║
@@ -11960,6 +12390,8 @@ paths:
 # TAGS
 # ═════════════════════════════════════════════════════════════════════════════
 tags:
+  - name: Dashboards
+    description: Dashboards and their widgets – create, list, change and arrange them (UC-07, US-055, US-058 to US-060, US-062); the reads are in Views – Editors
   - name: Catalogs
     description: Catalog definitions – create, list and read (UC-06, US-046) – and the catalog query (US-049)
   - name: Viewpoints

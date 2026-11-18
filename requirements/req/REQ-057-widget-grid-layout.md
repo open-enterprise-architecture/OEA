@@ -4,9 +4,9 @@ title: Configure widget grid layout (GridPosition)
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -28,7 +28,7 @@ superseded_by: []
 
 ## Statement
 
-The system MUST store a `GridPosition` for each widget of a dashboard and return it at runtime; it determines where the widget is placed in the dashboard's **12-column grid**. The system MUST reject `col + width > 13` (i.e. the last occupied column `col + width − 1` exceeds 12) (exceeding the grid width) as a validation error. Vertical rows are unlimited (the dashboard scrolls); widget overlap is not checked server-side (client responsibility).
+The system MUST store a `GridPosition` for each widget of a dashboard and return it at runtime; it determines where the widget is placed in the dashboard's **12-column grid**. The system MUST reject `col + width > 13` (i.e. the last occupied column `col + width − 1` exceeds 12) (exceeding the grid width) as a validation error. Vertical rows are limited to 500 as an input limit (the dashboard scrolls); widget overlap is not checked server-side (client responsibility).
 
 ## Rationale
 
@@ -41,7 +41,7 @@ A uniform grid layout (12 columns, analogous to the Bootstrap/Material grid) ena
 | Field | Type | Value Range | Description |
 |---|---|---|---|
 | col | integer | 1–12 | Start column (1-based) |
-| row | integer | ≥ 1 | Start row (1-based; unlimited downwards) |
+| row | integer | 1–500 | Start row (1-based; at most 500 as an input limit, decided 2026-11-18) |
 | width | integer | 1–12 | Column width; `col + width` must not exceed 13 |
 | height | integer | 1–6 | Height in grid units (1 = smallest unit, ~150px) |
 
@@ -58,7 +58,7 @@ GridPosition is set and validated on widget creation (REQ-052 POST) and widget u
 | Rule-ID | Statement | Trigger |
 |---|---|---|
 | BR-01 | `col + width` MUST NOT exceed 13; on violation → HTTP 422 | onCreate, onUpdate |
-| BR-02 | `col`, `row`, `width`, `height` are positive integers; 0 and negative values → 422 | onCreate, onUpdate |
+| BR-02 | `col`, `row`, `width`, `height` are positive integers; 0 and negative values → 422; `row` is at most 500 (501 → 422) | onCreate, onUpdate |
 | BR-03 | `height` is limited to a maximum of 6 (corresponds to approx. 900px at a unit size of 150px) | onCreate, onUpdate |
 | BR-04 | Widget overlap is not checked server-side; the client is responsible for an overlap-free layout | – |
 
@@ -67,12 +67,12 @@ GridPosition is set and validated on widget creation (REQ-052 POST) and widget u
 **AC1** (Valid GridPosition):
 
 - When: Create widget with gridPosition={col:4, row:1, width:9, height:3}
-- Then: HTTP 201; `col + width = 13` → valid (limit exactly exhausted)
+- Then: HTTP 200 (the widget is added to the dashboard, which is returned with its new version); `col + width = 13` → valid (limit exactly exhausted)
 
 **AC2** (Widget too wide):
 
 - When: Create widget with gridPosition={col:4, row:1, width:10, height:2}
-- Then: HTTP 422 "col + width = 14 exceeds the maximum grid width of 12"
+- Then: HTTP 422 "Widget exceeds the grid width" naming `width`
 
 **AC3** (Invalid values):
 
@@ -87,13 +87,13 @@ GridPosition is set and validated on widget creation (REQ-052 POST) and widget u
 **AC5** (GridPosition in dashboard response):
 
 - Given: Dashboard with 3 widgets with different GridPositions
-- When: GET /api/v1/dashboards/{id}
-- Then: each widget contains its `gridPosition` object; the client renders the layout from it
+- When: GET /api/v1/views/dashboards/{id}
+- Then: each widget contains its `position` object; the client renders the layout from it
 
 **AC6** (Overlap not blocked server-side):
 
 - When: Two widgets are created with overlapping GridPositions
-- Then: both widgets are accepted (HTTP 201); overlap is a client problem
+- Then: both widgets are accepted; overlap is a client problem (the editor marks both widgets)
 
 ## Dependencies
 
@@ -105,3 +105,4 @@ GridPosition is set and validated on widget creation (REQ-052 POST) and widget u
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; 12-column grid, width validation, overlap handled client-side |
+| 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: row limit 500; several positions change in one layout request (`PUT /dashboards/{id}/layout`); names of the contract |

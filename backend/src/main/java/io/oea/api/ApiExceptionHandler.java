@@ -18,6 +18,7 @@ import io.oea.app.access.SodConflictException;
 import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
+import io.oea.app.dashboard.InvalidDashboardException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.entity.ConnectionRejectedException;
@@ -674,6 +675,14 @@ public class ApiExceptionHandler {
 		return ex.isNameTaken()
 				? catalogProblem("catalog-name-taken", "Catalog name taken", ex.getMessage(), ex.getInvalidFields())
 				: catalogProblem("validation-failed", "Invalid catalog", ex.getMessage(), ex.getInvalidFields());
+	}
+
+	/** A dashboard or widget that violates a rule, or a taken dashboard name (design D2 of us-055-dashboards). */
+	@ExceptionHandler(InvalidDashboardException.class)
+	ResponseEntity<ProblemDetail> invalidDashboard(InvalidDashboardException ex) {
+		return ex.isNameTaken()
+				? catalogProblem("dashboard-name-taken", "Dashboard name taken", ex.getMessage(), ex.getInvalidFields())
+				: catalogProblem("validation-failed", "Invalid dashboard", ex.getMessage(), ex.getInvalidFields());
 	}
 
 	@ExceptionHandler(InvalidTreeException.class)
