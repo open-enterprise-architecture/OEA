@@ -1,5 +1,6 @@
 package io.oea.app.metamodel;
 
+import io.oea.core.metamodel.BuiltInMetatypes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +59,11 @@ public class AllowedConnections {
 		});
 		if (!existing.contains(sourceMetatypeId) || !existing.contains(targetMetatypeId)) {
 			throw new NoSuchElementException("unknown metatype");
+		}
+		if (BuiltInMetatypes.STRUCTURING_AID.equals(sourceMetatypeId)
+				|| BuiltInMetatypes.STRUCTURING_AID.equals(targetMetatypeId)) {
+			// a structuring aid has no semantic connections (US-136)
+			return List.of();
 		}
 		Map<UUID, Map<String, Set<UUID>>> constraints = new HashMap<>();
 		this.jdbc.query("SELECT metatype_id, direction, allowed_metatype_id FROM metatype_connection_constraints",

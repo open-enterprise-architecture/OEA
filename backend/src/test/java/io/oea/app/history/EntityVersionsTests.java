@@ -163,10 +163,10 @@ class EntityVersionsTests {
 		assertThat(state.path("version").asInt()).isEqualTo(4);
 		assertThat(state.path("entityName").asString()).isEqualTo("CRM System");
 		assertThat(state.path("changedBy").path("name").asString()).isEqualTo("Kurt");
-		assertThat(fieldKeys(state)).startsWith("name", "description", "isLogical", "metatypeId")
+		assertThat(fieldKeys(state)).startsWith("name", "description", "isLogical", "metatypeId", "parentEntityId")
 			.contains(this.owner.toString(), this.contact.toString(), this.lifecycleStatus.toString());
 		// mapped properties first, in mapping order
-		assertThat(fieldKeys(state).get(4)).isEqualTo(this.owner.toString());
+		assertThat(fieldKeys(state).get(5)).isEqualTo(this.owner.toString());
 		assertThat(field(state, this.owner.toString()).path("value").asString()).isEqualTo("Kurt");
 		assertThat(field(state, this.contact.toString()).path("value").isNull()).isTrue();
 		assertThat(field(state, this.lifecycleStatus.toString()).path("value").asString()).isEqualTo("active");

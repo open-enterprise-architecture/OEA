@@ -4,6 +4,8 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.metamodel.BuiltInMetatypes;
+import io.oea.core.metamodel.CompositionStore;
 import io.oea.core.metamodel.ViewpointStore;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +58,8 @@ public class PackageImporter {
 
 	private final NotationCatalog catalog;
 
+	private CompositionStore composition;
+
 	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions,
 			ViewpointStore viewpointStore, NotationCatalog catalog) {
@@ -68,6 +73,12 @@ public class PackageImporter {
 		this.effects = effects;
 		this.mappings = mappings;
 		this.policies = policies;
+	}
+
+	/** The store of the composition mark; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
+	@Autowired
+	void setComposition(CompositionStore composition) {
+		this.composition = composition;
 	}
 
 	/**
@@ -108,6 +119,7 @@ public class PackageImporter {
 		try {
 			checkBaseTypes(definition);
 			checkConnections(definition);
+			checkComposition(definition);
 		}
 		catch (InvalidPackageException ex) {
 			rejected(principal, definition, ex.getType());
@@ -120,8 +132,22 @@ public class PackageImporter {
 			upsertCategory(definition, category);
 		}
 		Map<UUID, String> actions = new HashMap<>();
+		// the mark of the package moves without meeting itself in the unique index
+		UUID wasComposition = this.composition.marked().orElse(null);
+		UUID willBe = definition.metatypes()
+			.stream()
+			.filter(PackageDefinition.Metatype::composition)
+			.map(PackageDefinition.Metatype::id)
+			.findFirst()
+			.orElse(null);
+		if (wasComposition != null && !wasComposition.equals(willBe)) {
+			this.composition.unmarkPackage(definition.packageId());
+		}
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
-			actions.put(metatype.id(), upsertMetatype(definition, metatype));
+			String action = upsertMetatype(definition, metatype);
+			// a changed mark counts as an update of the metatype
+			boolean marked = metatype.id().equals(wasComposition);
+			actions.put(metatype.id(), ("unchanged".equals(action) && marked != metatype.composition()) ? "updated" : action);
 		}
 		for (PackageDefinition.Property property : definition.properties()) {
 			upsertProperty(definition, property);
@@ -359,15 +385,17 @@ public class PackageImporter {
 		if (existing.isEmpty()) {
 			this.jdbc.update("""
 					INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, sort_order, scope,
-					    source_package_id, source_package_version) VALUES (?, ?, ?, ?, ?, ?, 'imported', ?, ?)""",
+					    source_package_id, source_package_version, is_composition)
+					VALUES (?, ?, ?, ?, ?, ?, 'imported', ?, ?, ?)""",
 					metatype.id(), INSTANCE_CONFIGURATION, wanted.name(), abbreviation, metatype.connection(),
-					metatype.sortOrder(), definition.packageId(), definition.version());
+					metatype.sortOrder(), definition.packageId(), definition.version(), metatype.composition());
 			return "created";
 		}
 		this.jdbc.update("""
 				UPDATE metatypes SET name = ?, abbreviation = ?, is_connection = ?, sort_order = ?,
-				       source_package_version = ? WHERE id = ?""", wanted.name(), abbreviation, metatype.connection(),
-				metatype.sortOrder(), definition.version(), metatype.id());
+				       source_package_version = ?, is_composition = ? WHERE id = ?""", wanted.name(), abbreviation,
+				metatype.connection(), metatype.sortOrder(), definition.version(), metatype.composition(),
+				metatype.id());
 		return existing.get(0).equals(wanted) ? "unchanged" : "updated";
 	}
 
@@ -398,6 +426,10 @@ public class PackageImporter {
 		definition.metatypes().forEach((metatype) -> own.add(metatype.id()));
 		for (int i = 0; i < definition.metatypes().size(); i++) {
 			UUID base = definition.metatypes().get(i).baseMetatypeId();
+			if (BuiltInMetatypes.STRUCTURING_AID.equals(base)) {
+				throw new InvalidPackageException("invalid-package", "/metatypes/" + i + "/baseMetatypeId",
+						"The structuring aid cannot be a base type.");
+			}
 			if (base != null && !own.contains(base) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
 					"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND scope = 'built-in')", Boolean.class, base))) {
 				throw new InvalidPackageException("invalid-package", "/metatypes/" + i + "/baseMetatypeId",
@@ -419,6 +451,10 @@ public class PackageImporter {
 			List<UUID> allowed = new ArrayList<>(metatype.allowedSources());
 			allowed.addAll(metatype.allowedTargets());
 			for (UUID endpoint : allowed) {
+				if (BuiltInMetatypes.STRUCTURING_AID.equals(endpoint)) {
+					throw new InvalidPackageException("invalid-package", pointer + "/connectionConstraints",
+							"A structuring aid has no connections.");
+				}
 				if (!own.contains(endpoint) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
 						"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND scope = 'built-in')", Boolean.class,
 						endpoint))) {
@@ -438,6 +474,24 @@ public class PackageImporter {
 			if (!stored.isEmpty() && stored.get(0) != metatype.connection()) {
 				throw new InvalidPackageException("invalid-package", pointer + "/isConnection",
 						"Whether a metatype is a connection cannot change at a re-import.");
+			}
+		}
+	}
+
+	/**
+	 * The composition metatype of the package must not meet another marked one of the instance
+	 * (design D4 of us-135-component-hierarchy).
+	 */
+	private void checkComposition(PackageDefinition definition) {
+		for (int i = 0; i < definition.metatypes().size(); i++) {
+			PackageDefinition.Metatype metatype = definition.metatypes().get(i);
+			CompositionStore.Marked marked = metatype.composition() ? this.composition.markedMetatype().orElse(null)
+					: null;
+			// the mark of this package moves with its re-import; one of another origin blocks it
+			if (marked != null && !marked.id().equals(metatype.id())
+					&& !definition.packageId().equals(marked.packageId())) {
+				throw new InvalidPackageException("invalid-package", "/metatypes/" + i + "/isComposition",
+						"Another connection metatype of the instance is the composition.");
 			}
 		}
 	}

@@ -55,5 +55,5 @@ Feature: Create a solution in project mode
   @AC5 @REQ-157
   Scenario: Built-in roles
     When the authorization roles are listed
-    Then "solution-architect" holds exactly "portal:read, entity:read, solution:write, solution-metamodel:write" and is not privileged
+    Then "solution-architect" holds exactly "portal:read, entity:read, entity:write, solution:write, solution-metamodel:write" and is not privileged
     And "enterprise-architect" holds "solution:write"

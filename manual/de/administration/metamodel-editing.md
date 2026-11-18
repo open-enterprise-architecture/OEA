@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Metamodell bearbeiten
@@ -52,6 +52,15 @@ Ein Verbindungstyp beschreibt gerichtete Beziehungen, die eigene Objekte sind: e
 - Der Basistyp eines Verbindungstyps ist ein Verbindungstyp, der Basistyp eines anderen Entitätstyps nicht.
 - Ein Entitätstyp, der erlaubte Quelle oder erlaubtes Ziel eines Verbindungstyps ist, lässt sich nicht löschen; entferne ihn zuerst aus dem Verbindungstyp.
 - Verbindungen werden über die API geschrieben, siehe [Entitäten im Batch schreiben](../usage/entities-batch#connections).
+
+### Komposition {#composition}
+
+Ein Verbindungstyp der Instanz kann als *Komposition* gekennzeichnet sein. Ordnet jemand im [Browser](../usage/navigation#arrange-components) eine Komponente unter eine andere ein, legt OEA dann eine Verbindung dieses Typs von den Eltern zum Kind an, wenn der Typ beide Entitätstypen erlaubt (siehe oben). Ohne gekennzeichneten Typ wird nur die Hierarchie gespeichert.
+
+1. Öffne einen eigenen Verbindungstyp und schalte *Komposition* ein (auch beim Anlegen).
+2. Wähle *Speichern*. Die Kennzeichnung zu ändern ist eine Änderung des Typs und erhöht seine Version.
+
+Höchstens ein Verbindungstyp der Instanz ist die Komposition; einen zweiten, einen Entitätstyp oder einen Typ einer Lösungserweiterung zu kennzeichnen wird abgelehnt. Das Starterpaket bringt den Verbindungstyp *Komposition* mit, bereits gekennzeichnet und ohne Einschränkung seiner Endpunkte. Der eingebaute Entitätstyp *Ordnungshilfe* ist schreibgeschützt und hat keine Eigenschaften; er kann weder Basistyp noch erlaubte Quelle oder erlaubtes Ziel sein.
 
 ### Basistypen
 

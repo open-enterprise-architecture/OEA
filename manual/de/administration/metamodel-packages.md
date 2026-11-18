@@ -13,7 +13,7 @@ Der Import von Paketen verlangt die Berechtigung `metamodel:write`, die nur die 
 
 ## Starterkonfiguration importieren
 
-OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*. Version 1.2.0 fügt die zwei systemdefinierten Viewpoints *Application Landscape* und *Technology Landscape* in ArchiMate hinzu (siehe [Viewpoints in Paketen](#viewpoints-in-packages)). Version 1.1.0 brachte deutsche Labels für seine Entitätstypen, *Status* und dessen Werte sowie englische Labels für die Werte mit (siehe [Labels übersetzen](./metamodel-editing#translating-labels)). Eine Instanz, die eine frühere Version importiert hat, erhält die Labels und Viewpoints durch einen erneuten Import des Pakets.
+OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*. Version 1.3.0 fügt den Verbindungstyp *Komposition* hinzu, gekennzeichnet als [Komposition](./metamodel-editing#composition) der Hierarchie von Komponenten. Version 1.2.0 fügt die zwei systemdefinierten Viewpoints *Application Landscape* und *Technology Landscape* in ArchiMate hinzu (siehe [Viewpoints in Paketen](#viewpoints-in-packages)). Version 1.1.0 brachte deutsche Labels für seine Entitätstypen, *Status* und dessen Werte sowie englische Labels für die Werte mit (siehe [Labels übersetzen](./metamodel-editing#translating-labels)). Eine Instanz, die eine frühere Version importiert hat, erhält die Labels und Viewpoints durch einen erneuten Import des Pakets.
 
 Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Startkonfiguration importieren*. Wähle *Importieren* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
 
@@ -39,6 +39,10 @@ Eigene Pakete verwenden dasselbe JSON-Format (`MetamodelPackage`, mit `packageId
 - Die Strategie `replace` und Shape-Zuordnungen werden noch nicht unterstützt (`422`).
 
 Jeder Import schreibt die Audit-Events `metamodel.package-imported` und `metamodel.metatype-imported` mit einer gemeinsamen Batch-ID.
+
+## Komposition in Paketen {#composition-in-packages}
+
+Ein Verbindungstyp eines Pakets kann `isComposition: true` tragen; ein Paket hat höchstens einen. Der Import wird abgelehnt, wenn die Instanz bereits einen anderen gekennzeichneten Verbindungstyp hat. Ein erneuter Import desselben Pakets verschiebt oder entfernt die Kennzeichnung mit dem Paket.
 
 ## Viewpoints in Paketen {#viewpoints-in-packages}
 

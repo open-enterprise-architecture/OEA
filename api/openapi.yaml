@@ -126,7 +126,7 @@ x-oea-builtin-roles: [
   {"id": "viewer", "assignableToServiceAccounts": true, "permissions": ["portal:read", "entity:read"]},
   {"id": "analyst", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "analytics:query"]},
   {"id": "enterprise-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "entity:delete", "entity:restore", "catalog:manage", "dashboard:manage", "viewpoint:manage", "plateau:write", "plateau:go-live", "webhook:manage", "solution-metamodel:write", "solution:write"]},
-  {"id": "solution-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "solution:write", "solution-metamodel:write"]},
+  {"id": "solution-architect", "assignableToServiceAccounts": false, "permissions": ["portal:read", "entity:read", "entity:write", "solution:write", "solution-metamodel:write"]},
   {"id": "integration-writer", "assignableToServiceAccounts": true, "permissions": ["entity:read", "entity:write"]},
   {"id": "auditor", "assignableToServiceAccounts": true, "permissions": ["audit:read"]},
   {"id": "metamodel-admin", "assignableToServiceAccounts": false, "permissions": ["metamodel:write", "solution-metamodel:write"]},
@@ -945,6 +945,13 @@ components:
             version:            { type: integer, minimum: 1, readOnly: true, description: "Grows with every change of the metatype, its mappings or its re-import setting (`ETag`, `If-Match`)" }
             configId:           { type: string, format: uuid, readOnly: true, description: "Configuration of the metatype: the instance or a solution extension (US-037)" }
             isConnection:       { type: boolean }
+            isComposition:
+              type: boolean
+              description: |
+                Marks the connection metatype that setting the parent of an entity creates its
+                automatic connection with (US-135, REQ-142); at most one per instance, only a
+                connection metatype of the instance configuration. In a package a connection
+                metatype may carry it (at most one per package); default false
             architectureLayer:  { type: [string, 'null'] }
             sortOrder:          { type: integer }
             scope:              { $ref: '#/components/schemas/MetamodelScope' }
@@ -1092,6 +1099,14 @@ components:
         name:                 { type: string }
         abbreviation:         { type: string }
         isConnection:         { type: boolean, default: false, description: "Connection metatype (US-036); set on creation, cannot change (422)" }
+        isComposition:
+          type: boolean
+          default: false
+          description: |
+            Marks the composition metatype (US-135, REQ-142): only a connection metatype of the
+            instance configuration, at most one in the instance; a second one, an element
+            metatype or one of a solution extension gives 422 naming `isComposition`. Changing it
+            is a change of the metatype and raises its version. Needs `metamodel:write`.
         architectureLayerId:  { type: [string, 'null'] }
         sortOrder:            { type: integer, default: 0 }
         configId:             { type: string, format: uuid, description: "The instance configuration or a solution extension (US-037); cannot change (422)" }
@@ -1502,7 +1517,7 @@ components:
     BrowserItem:
       type: object
       description: An element entity, a connection entity, a catalog or a delta of a solution
-      required: [kind, id, name, metatypeAbbreviation, entityId, solutionId, deltaType]
+      required: [kind, id, name, metatypeAbbreviation, entityId, solutionId, deltaType, childCount, structuringAid, version]
       properties:
         kind:
           type: string
@@ -1516,6 +1531,9 @@ components:
           oneOf:
             - { $ref: '#/components/schemas/SolutionDeltaType' }
             - { type: 'null' }
+        childCount:     { type: integer, minimum: 0, description: "Element entities with this entity as parent that are not deleted (US-135); 0 for connections, catalogs and deltas" }
+        structuringAid: { type: boolean, description: "The entity is a structuring aid (US-136); false for everything else" }
+        version:        { type: integer, minimum: 0, description: "The version of an entity, the `If-Match` of `setEntityParent` and `deleteStructuringAid`; 0 for catalogs and deltas" }
 
     TreeNodeCreate:
       type: object
@@ -1767,7 +1785,8 @@ components:
       description: |
         One field whose value differs between two versions (US-099). `field` uses the keys of
         `EntityVersionChange`. Values are text: booleans `true`/`false`, dates `yyyy-mm-dd`,
-        references and the system fields `metatypeId`, `sourceId` and `targetId` by name.
+        references and the system fields `metatypeId`, `sourceId`, `targetId` and `parentEntityId`
+        by name.
       properties:
         field:         { type: string, description: "System field key or ID of a property definition" }
         label:         { type: string, description: "Label in the caller's language (properties); English name of a system field" }
@@ -1827,7 +1846,8 @@ components:
       required: [field, label, isSystemField, restricted]
       description: |
         One field changed by a version, without values (US-098). `field` is a system field
-        (`name`, `description`, `isLogical`, `metatypeId`, `sourceId`, `targetId`) or the ID of
+        (`name`, `description`, `isLogical`, `metatypeId`, `sourceId`, `targetId`,
+        `parentEntityId`) or the ID of
         a property definition. `restricted` marks a property the caller may not read (REQ-160).
       properties:
         field:         { type: string }
@@ -2099,6 +2119,60 @@ components:
         id:       { type: integer }
         name:     { type: string }
         metatype: { $ref: '#/components/schemas/MetatypeSummary' }
+
+    EntityParentUpdate:
+      type: object
+      description: The new parent of an element entity (US-135)
+      required: [parentEntityId]
+      properties:
+        parentEntityId:
+          type: [integer, 'null']
+          minimum: 1
+          description: "The element entity that becomes the parent; `null` clears the parent (root level)"
+
+    EntityParentResult:
+      type: object
+      description: Outcome of `setEntityParent`
+      required: [entityId, version, parentEntityId, composition, removedConnectionId]
+      properties:
+        entityId:       { type: integer }
+        version:        { type: integer, description: "The version of the child after the change; unchanged for `composition.reason` `unchanged`" }
+        parentEntityId: { type: [integer, 'null'] }
+        composition:
+          type: object
+          required: [created, connectionId, reason]
+          properties:
+            created:      { type: boolean, description: "Whether an automatic composition connection was created" }
+            connectionId: { type: [integer, 'null'], description: "The created connection" }
+            reason:
+              type: string
+              enum: [created, structuring-aid, no-composition-metatype, not-allowed, unchanged, cleared]
+              description: |
+                Why: `created`; a structuring aid is parent or child (`structuring-aid`); no
+                connection metatype is marked as composition (`no-composition-metatype`); the
+                composition metatype does not allow the pair (`not-allowed`); the parent was
+                already set (`unchanged`); the parent was cleared (`cleared`)
+        removedConnectionId:
+          type: [integer, 'null']
+          description: "The auto-created connection of the previous parent that was deleted"
+
+    StructuringAidCreate:
+      type: object
+      required: [name]
+      properties:
+        name:           { type: string, minLength: 1, maxLength: 255, description: "Trimmed; not blank" }
+        description:    { type: string, maxLength: 2000 }
+        parentEntityId: { type: [integer, 'null'], minimum: 1, description: "An element entity that is not deleted; none = root level" }
+
+    StructuringAid:
+      type: object
+      required: [id, name, description, parentEntityId, version]
+      properties:
+        id:             { type: integer }
+        name:           { type: string }
+        description:    { type: string }
+        parentEntityId: { type: [integer, 'null'] }
+        version:        { type: integer }
 
     ConnectionDetail:
       type: object
@@ -6932,6 +7006,13 @@ paths:
         `urn:oea:problem:validation-failed`) with `invalidFields` `solutionId` when it is missing
         for `solution` or given for `current-state`, and `category` for `connections` or
         `catalogs` with `solution`; 404 for an unknown solution. Read only, not audited.
+
+        "Components" of `current-state` list the root level: the element entities without a
+        parent, or whose parent is deleted (US-135). With `parentEntityId` the page lists the
+        children of that element entity instead; this needs `scope` `current-state` and
+        `category` `components` (else 422 naming `parentEntityId`), a value below 1 gives 400,
+        and an unknown or deleted entity, or a connection, gives 404. Each entity item carries
+        its `childCount`, whether it is a `structuringAid` and its `version`.
       tags: [Views – Navigation]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
@@ -6950,6 +7031,11 @@ paths:
           required: true
           schema: { type: string, enum: [components, connections, catalogs] }
           description: Fixed base structure of the browser (REQ-139); building blocks and diagrams follow with their content
+        - name: parentEntityId
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1 }
+          description: "Lists the children of this element entity instead of the root level (US-135); only with `scope` `current-state` and `category` `components`"
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
       responses:
@@ -6964,8 +7050,8 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: |
-            Problem type `urn:oea:problem:validation-failed` with `invalidFields` `solutionId` or
-            `category`
+            Problem type `urn:oea:problem:validation-failed` with `invalidFields` `solutionId`,
+            `category` or `parentEntityId`
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -11227,6 +11313,168 @@ paths:
                       errors:
                         type: array
                         items: { $ref: '#/components/schemas/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /entities/{id}/parent:
+    put:
+      operationId: setEntityParent
+      summary: Set or clear the parent of an element entity (US-135, UC-13)
+      description: |
+        Places an element entity under another element entity, or clears the parent with
+        `parentEntityId: null` (US-135, US-136; REQ-141, REQ-142, ADR-021). The change is
+        versioned like other entity changes: it writes the next version of the child, whose
+        history, versions and diffs show the system field `parentEntityId` ("Parent") by name,
+        and the audit event `entity.parent-changed`; the parent keeps its version. A restore does
+        not restore the parent. Setting the parent the entity already has changes nothing and
+        writes no version and no event (`composition.reason` `unchanged`).
+
+        The parent is another element entity that is not deleted; connections have no parent and
+        are no parent. A parent that is the entity itself, one of its descendants, a connection,
+        deleted or unknown, or a subtree that would end more than 10 levels below the root (the
+        root level is level 1) gives 422 naming `parentEntityId`; a connection as child gives 422
+        naming `entityId`.
+
+        When neither entity is a structuring aid and the connection metatype marked as
+        composition (`isComposition`) allows the metatype of the parent as source and that of the
+        child as target, a connection of it from the parent to the child is created in the same
+        transaction and marked `autoCreated`; otherwise only the parent is stored and
+        `composition.reason` says why. Clearing or changing the parent soft-deletes the
+        connection auto-created for the previous parent (`removedConnectionId`), if it is not
+        deleted yet; a connection written by other means stays.
+
+        `If-Match` with the current version of the child is required: 428 without it, 412
+        `stale-version` when the entity changed meanwhile. An entity with an open issue of a
+        solution gives 409 `entity-blocked` (US-153). Needs `entity:write`.
+      tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntityParentUpdate' }
+      responses:
+        '200':
+          description: The parent is set or cleared
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntityParentResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Unknown or deleted entity
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: |
+            The entity has an open issue of a solution (`urn:oea:problem:entity-blocked`,
+            US-153 AC1); extension member `entities` with `entityId`, `entityName` and its
+            `issues`. Nothing changes.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Problem type `urn:oea:problem:validation-failed` with `invalidFields`
+            `parentEntityId` or `entityId`; nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /structuring-aids:
+    post:
+      operationId: createStructuringAid
+      summary: Create a structuring aid (US-136, UC-13)
+      description: |
+        Creates a structuring aid, a purely navigational grouping (US-136, REQ-141): an entity
+        of the built-in metatype "Structuring aid" with `isStructuralGrouper` set, at the root
+        level or under `parentEntityId`. It has no properties, no connections and is not part of
+        a solution. The name is trimmed and has 1–255 characters, the description at most 2000.
+        The parent is checked as for `setEntityParent` (an element entity that is not deleted,
+        at most 10 levels deep); an invalid one gives 422 naming `parentEntityId`, an invalid
+        name or description 422 naming `name` or `description`; a `parentEntityId` below 1 gives
+        422 naming `parentEntityId` too. Writes version 1 and the audit event `entity.created`.
+        Needs `entity:write`.
+      tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StructuringAidCreate' }
+      responses:
+        '201':
+          description: The structuring aid is created
+          headers:
+            Location:
+              description: The URI of the new structuring aid
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StructuringAid' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Problem type `urn:oea:problem:validation-failed` with `invalidFields` `name`,
+            `description` or `parentEntityId`; nothing is created
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /structuring-aids/{id}:
+    delete:
+      operationId: deleteStructuringAid
+      summary: Delete a structuring aid (US-136, UC-13)
+      description: |
+        Soft-deletes a structuring aid (ADR-019). Its children move to the root level, each with
+        a new version (`entity.parent-changed`), and none of them is deleted; the aid is
+        deleted with the audit event `entity.deleted` (`cause` `structuring-aid-deleted`), all
+        in one transaction. An entity that is no structuring aid gives 422 naming `entityId`.
+        `If-Match` with the current version of the aid is required (428, 412). The aid or one of
+        its children with an open issue of a solution gives 409 `entity-blocked`. Needs
+        `entity:write` and `entity:delete`.
+      tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write", "entity:delete"]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '204':
+          description: The structuring aid is deleted and its children are at the root level
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Unknown or already deleted entity
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: |
+            The aid or a child has an open issue of a solution (`urn:oea:problem:entity-blocked`);
+            nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '422':
+          description: The entity is no structuring aid (`invalidFields` `entityId`); nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ── Metamodel discovery (ADR-026) ─────────────────────────────────────────

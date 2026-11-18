@@ -21,7 +21,8 @@ onMounted(async () => {
     if (!me?.permissions.some((entry) => entry.permission === 'metamodel:write')) {
       return
     }
-    if ((await fetchMetatypes(props.fetchFn)).length > 0) {
+    // built-in metatypes (e.g. "Structuring aid") exist in every instance; only others count
+    if ((await fetchMetatypes(props.fetchFn)).some((metatype) => metatype.scope !== 'built-in')) {
       return
     }
     packages.value = await fetchStarterPackages(props.fetchFn)

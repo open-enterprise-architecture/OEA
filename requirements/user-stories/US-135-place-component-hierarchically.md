@@ -2,8 +2,9 @@
 
 **ID**: US-135
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-135-component-hierarchy` – in the browser of the sidebar SCR-055 a component of "Current state" is placed under another one by drag and drop or "Move to…" (`PUT /entities/{id}/parent`, `entity:write`, `If-Match`); it writes a new version of the child with the field "Parent" and the audit event `entity.parent-changed`, refuses cycles and more than 10 levels, and creates the connection of the metatype marked as composition (`isComposition`, starter package 1.3.0) with `autoCreated=true`, which detaching or moving removes. Owner decisions 2026-11-18: the change applies directly in the catalog; a Solution Architect holds `entity:write`
 
 ## Story
 

@@ -71,9 +71,28 @@ public class Browser {
 	public record Top(CurrentState currentState, List<PlateauNode> plateaus, List<SolutionNode> projects) {
 	}
 
-	/** An object of a category; {@code kind} is {@code entity}, {@code catalog} or {@code delta}. */
+	/**
+	 * An object of a category; {@code kind} is {@code entity}, {@code catalog} or {@code delta}. An
+	 * entity carries the number of its children, whether it is a structuring aid and its version
+	 * (US-135, US-136); catalogs and deltas have none of them.
+	 */
 	public record Item(String kind, String id, String name, String metatypeAbbreviation, Integer entityId,
-			UUID solutionId, String deltaType) {
+			UUID solutionId, String deltaType, int childCount, boolean structuringAid, int version) {
+
+		static Item catalog(String id, String name) {
+			return new Item("catalog", id, name, null, null, null, null, 0, false, 0);
+		}
+
+		static Item delta(String id, String name, String abbreviation, Integer entityId, UUID solutionId,
+				String deltaType) {
+			return new Item("delta", id, name, abbreviation, entityId, solutionId, deltaType, 0, false, 0);
+		}
+
+		static Item entity(EntityStore.BrowseRow row) {
+			return new Item("entity", String.valueOf(row.id()), row.name(), row.abbreviation(), null, null, null,
+					row.childCount(), row.structuringAid(), row.version());
+		}
+
 	}
 
 	/** One page of a category; {@code page} counts from 0. */
@@ -105,11 +124,13 @@ public class Browser {
 
 	/**
 	 * One page of a category. {@code page} counts from 0 and {@code pageSize} is 1 to 200; the
-	 * contract checks both.
+	 * contract checks both and that {@code parentEntityId} is at least 1. {@code parentEntityId}
+	 * lists the children of an element entity instead of the root level of the components of the
+	 * current state (US-135).
 	 */
 	@Transactional(readOnly = true)
-	public ItemPage items(OeaPrincipal principal, String scope, UUID solutionId, String category, int page,
-			int pageSize) {
+	public ItemPage items(OeaPrincipal principal, String scope, UUID solutionId, String category,
+			Integer parentEntityId, int page, int pageSize) {
 		long personId = person(principal);
 		if (!CURRENT_STATE.equals(scope) && !SOLUTION.equals(scope)) {
 			throw InvalidBrowserQueryException.unknownValue("scope", scope);
@@ -127,6 +148,10 @@ public class Browser {
 		if (solution && !COMPONENTS.equals(category)) {
 			throw new InvalidBrowserQueryException("category", "A solution has the category components only.");
 		}
+		if (parentEntityId != null && (solution || !COMPONENTS.equals(category))) {
+			throw new InvalidBrowserQueryException("parentEntityId",
+					"Only the components of the current state have a parent.");
+		}
 		long offset = (long) page * pageSize;
 		if (solution) {
 			if (!this.solutions.exists(solutionId)) {
@@ -134,26 +159,34 @@ public class Browser {
 			}
 			return page(this.solutions.pageDeltas(solutionId, pageSize, offset)
 				.stream()
-				.map((delta) -> new Item("delta", delta.id().toString(), delta.name(), delta.abbreviation(),
+				.map((delta) -> Item.delta(delta.id().toString(), delta.name(), delta.abbreviation(),
 						delta.entityId(), solutionId, delta.deltaType()))
 				.toList(), page, pageSize, this.solutions.countDeltas(solutionId));
 		}
 		return switch (category) {
 			case CATALOGS -> page(this.catalogs.pageVisible(personId, pageSize, offset)
 				.stream()
-				.map((row) -> new Item("catalog", row.id().toString(), row.name(), null, null, null, null))
+				.map((row) -> Item.catalog(row.id().toString(), row.name()))
 				.toList(), page, pageSize, this.catalogs.countVisible(personId));
-			case CONNECTIONS -> entityPage(true, page, pageSize, offset);
-			default -> entityPage(false, page, pageSize, offset);
+			case CONNECTIONS -> page(this.entities.pageActive(true, pageSize, offset)
+				.stream()
+				.map(Item::entity)
+				.toList(), page, pageSize, this.entities.countActive(true));
+			default -> components(parentEntityId, page, pageSize, offset);
 		};
 	}
 
-	private ItemPage entityPage(boolean connection, int page, int pageSize, long offset) {
-		return page(this.entities.pageActive(connection, pageSize, offset)
-			.stream()
-			.map((row) -> new Item("entity", String.valueOf(row.id()), row.name(), row.abbreviation(), null, null,
-					null))
-			.toList(), page, pageSize, this.entities.countActive(connection));
+	/** The root level of the components, or the children of an element entity. */
+	private ItemPage components(Integer parentEntityId, int page, int pageSize, long offset) {
+		if (parentEntityId == null) {
+			return page(this.entities.pageRoot(pageSize, offset).stream().map(Item::entity).toList(), page, pageSize,
+					this.entities.countRoot());
+		}
+		if (!this.entities.isActiveElement(parentEntityId)) {
+			throw new NoSuchElementException("entity " + parentEntityId);
+		}
+		return page(this.entities.pageChildren(parentEntityId, pageSize, offset).stream().map(Item::entity).toList(),
+				page, pageSize, this.entities.countChildren(parentEntityId));
 	}
 
 	private static ItemPage page(List<Item> items, int page, int pageSize, long total) {

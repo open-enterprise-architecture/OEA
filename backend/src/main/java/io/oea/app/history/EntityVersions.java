@@ -43,7 +43,7 @@ public class EntityVersions {
 
 	private static final List<String> SYSTEM_ORDER = List.of(EntityVersionStore.NAME, EntityVersionStore.DESCRIPTION,
 			EntityVersionStore.LOGICAL, EntityVersionStore.METATYPE, EntityVersionStore.SOURCE,
-			EntityVersionStore.TARGET);
+			EntityVersionStore.TARGET, EntityVersionStore.PARENT);
 
 	private final EntityVersionStore store;
 
@@ -228,7 +228,8 @@ public class EntityVersions {
 			properties.addAll(state.values().keySet());
 			state.values().values().stream().map(TypedValue::reference).filter(Objects::nonNull).forEach(referenced::add);
 			metatypes.add(state.metatypeId());
-			for (String endpoint : List.of(EntityVersionStore.SOURCE, EntityVersionStore.TARGET)) {
+			for (String endpoint : List.of(EntityVersionStore.SOURCE, EntityVersionStore.TARGET,
+					EntityVersionStore.PARENT)) {
 				String id = state.systemFields().get(endpoint);
 				if (id != null) {
 					referenced.add(Integer.valueOf(id));
@@ -254,7 +255,8 @@ public class EntityVersions {
 				if (raw != null && key.equals(EntityVersionStore.METATYPE)) {
 					text = metatypeNames.getOrDefault(UUID.fromString(raw), raw);
 				}
-				else if (raw != null && (key.equals(EntityVersionStore.SOURCE) || key.equals(EntityVersionStore.TARGET))) {
+				else if (raw != null && (key.equals(EntityVersionStore.SOURCE) || key.equals(EntityVersionStore.TARGET)
+						|| key.equals(EntityVersionStore.PARENT))) {
 					text = entityNames.getOrDefault(Integer.valueOf(raw), raw);
 				}
 				EntityHistory.SystemField system = EntityHistory.SYSTEM_FIELDS.get(key);

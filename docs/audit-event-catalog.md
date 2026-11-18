@@ -927,14 +927,26 @@ Open issues of a solution were resolved with a value, or by removing or discardi
 
 ### `entity.deleted`
 
-An entity was soft-deleted (ADR-019): by the go-live of a solution for a delta `retiring`, or as a connection of such an entity (change us-152-solution-go-live). The entity leaves catalogs and baselines; its history stays.
+An entity was soft-deleted (ADR-019): by the go-live of a solution for a delta `retiring`, or as a connection of such an entity (change us-152-solution-go-live); as the automatically created composition connection of a previous parent, or as a structuring aid (change us-135-component-hierarchy). The entity leaves catalogs and baselines; its history stays.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
-| Actor | the person who took the solution live |
+| Actor | the person who took the solution live, changed the parent or deleted the structuring aid |
 | Target | `entity`, ID of the entity; `entity_id` and `entity_name` |
-| Details | `solutionId`, `metatypeId`, `version` (the last version, unchanged) |
+| Details | `solutionId` (go-live) or `cause`: `parent-changed` (the connection of the previous parent) or `structuring-aid-deleted`; `metatypeId`, `version` (the last version, unchanged) |
+
+### `entity.parent-changed`
+
+The parent of an element entity was set, changed or cleared, or its structuring aid was deleted ([US-135](../requirements/user-stories/US-135-place-component-hierarchically.md), [US-136](../requirements/user-stories/US-136-structuring-aid-without-connection.md), [REQ-141](../requirements/req/REQ-141-component-hierarchy-explorer.md), [REQ-142](../requirements/req/REQ-142-implicit-parent-child-connection.md); change us-135-component-hierarchy). Setting the parent it already has changes nothing and is not audited; rejected changes are not audited. The connection created or deleted with it is audited by its own `entity.created` and `entity.deleted`.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person who changed the hierarchy |
+| Target | `entity`, ID of the child; `entity_id` and `entity_name` (empty for modeled persons) |
+| Details | `version` (after the change), `fromParentId` and `toParentId` where there was or is a parent, `createdConnectionId`, `removedConnectionId` where there are such; IDs only, no names |
+| Changes | one `audit.event_changes` row for the system field `parent_entity_id` with the old and the new parent ID as text |
 
 ## Planned Event Types
 

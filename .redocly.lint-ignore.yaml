@@ -1,9 +1,9 @@
 # This file instructs Redocly's linter to ignore the rules contained for specific parts of your API.
 # See https://redocly.com/docs/cli/ for more information.
 #
-# no-ambiguous-paths: /entities/{id}/history, /entities/{id}/diff and
-# /entities/by-external-id/{externalId} cannot collide at runtime because {id} is an integer (EntityIdParam) and
-# "by-external-id" is not. The path is fixed by ADR-026 (external write API).
+# no-ambiguous-paths: /entities/{id}/history, /entities/{id}/diff, /entities/{id}/parent and
+# /entities/by-external-id/{externalId} cannot collide at runtime because {id} is an
+# integer (EntityIdParam) and "by-external-id" is not. The path is fixed by ADR-026 (external write API).
 #
 # operation-2xx-response: the OIDC login endpoints startOidcLogin and completeOidcLogin
 # answer browser navigations with redirects only (302 to the IdP or back to the portal,
@@ -18,3 +18,4 @@ api/openapi.yaml:
     - '#/paths/~1auth~1oidc~1providers/get/responses'
   no-ambiguous-paths:
     - '#/paths/~1entities~1by-external-id~1{externalId}'
+    - '#/paths/~1entities~1{id}~1parent'

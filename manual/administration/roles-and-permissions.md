@@ -17,7 +17,7 @@ Every operation of OEA requires a permission, and permissions come only from rol
 | `viewer` | `portal:read`, `entity:read` | reading the repository |
 | `analyst` | `viewer` + `analytics:query` | analytics queries |
 | `enterprise-architect` | `viewer` + `entity:write`, `entity:delete`, `entity:restore`, `catalog:manage`, `dashboard:manage`, `viewpoint:manage`, `plateau:write`, `plateau:go-live`, `webhook:manage`, `solution-metamodel:write`, `solution:write` | maintaining the architecture |
-| `solution-architect` | `viewer` + `solution:write`, `solution-metamodel:write` | running change initiatives as [solutions](../usage/solutions) |
+| `solution-architect` | `viewer` + `entity:write`, `solution:write`, `solution-metamodel:write` | arranging components and running change initiatives as [solutions](../usage/solutions) |
 | `integration-writer` | `entity:read`, `entity:write` | integrations that write entities |
 | `auditor` | `audit:read` | reading and verifying the audit log |
 | `metamodel-admin` | `metamodel:write`, `solution-metamodel:write` | changing and importing the metamodel |

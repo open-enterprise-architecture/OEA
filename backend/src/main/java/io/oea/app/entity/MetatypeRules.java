@@ -1,7 +1,8 @@
 package io.oea.app.entity;
 
-import io.oea.core.solution.SnapshotStore;
 import io.oea.core.entity.MetatypeRuleStore;
+import io.oea.core.metamodel.BuiltInMetatypes;
+import io.oea.core.solution.SnapshotStore;
 import io.oea.core.entity.TypedValue;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,10 +42,15 @@ public final class MetatypeRules {
 	 * sources and targets, empty for every metatype (us-036-connection-metatypes D2).
 	 */
 	public record Metatype(UUID id, String name, boolean connection, Map<UUID, Mapping> mappings,
-			Set<UUID> allowedSources, Set<UUID> allowedTargets) {
+			Set<UUID> allowedSources, Set<UUID> allowedTargets, boolean composition) {
 
 		public Metatype(UUID id, String name, boolean connection, Map<UUID, Mapping> mappings) {
-			this(id, name, connection, mappings, Set.of(), Set.of());
+			this(id, name, connection, mappings, Set.of(), Set.of(), false);
+		}
+
+		public Metatype(UUID id, String name, boolean connection, Map<UUID, Mapping> mappings,
+				Set<UUID> allowedSources, Set<UUID> allowedTargets) {
+			this(id, name, connection, mappings, allowedSources, allowedTargets, false);
 		}
 
 	}
@@ -105,7 +111,7 @@ public final class MetatypeRules {
 			}
 			mappings.put(definition.id(), mapping);
 			changed.put(metatype.id(), new Metatype(metatype.id(), metatype.name(), metatype.connection(), mappings,
-					metatype.allowedSources(), metatype.allowedTargets()));
+					metatype.allowedSources(), metatype.allowedTargets(), metatype.composition()));
 		}
 		return new MetatypeRules(changed, this.bases, this.restrictedWritable, this.definitions);
 	}
@@ -149,7 +155,8 @@ public final class MetatypeRules {
 		// only the instance metamodel: metatypes of solution extensions get no entities until solutions
 		// exist (design D4 of us-037-solution-extensions-and-lock-mode)
 		for (MetatypeRuleStore.MetatypeRow row : store.metatypes(INSTANCE_CONFIGURATION)) {
-			own.put(row.id(), new Metatype(row.id(), row.name(), row.connection(), new LinkedHashMap<>()));
+			own.put(row.id(), new Metatype(row.id(), row.name(), row.connection(), new LinkedHashMap<>(), Set.of(),
+					Set.of(), row.composition()));
 			if (row.baseId() != null) {
 				bases.put(row.id(), row.baseId());
 			}
@@ -176,7 +183,8 @@ public final class MetatypeRules {
 				mappings.putAll(own.get(type).mappings());
 			}
 			metatypes.put(id, new Metatype(id, metatype.name(), metatype.connection(), mappings,
-					Set.copyOf(sources.getOrDefault(id, Set.of())), Set.copyOf(targets.getOrDefault(id, Set.of()))));
+					Set.copyOf(sources.getOrDefault(id, Set.of())), Set.copyOf(targets.getOrDefault(id, Set.of())),
+					metatype.composition()));
 		});
 		return new MetatypeRules(metatypes, bases, (id, entity) -> false, Map.copyOf(definitions));
 	}
@@ -213,8 +221,17 @@ public final class MetatypeRules {
 	 * metatype or one of its base types is listed, or nothing is listed (us-036-connection-metatypes D2).
 	 */
 	public boolean allows(Metatype connection, boolean source, UUID endpointMetatype) {
+		if (BuiltInMetatypes.STRUCTURING_AID.equals(endpointMetatype)) {
+			// a structuring aid has no semantic connections (US-136)
+			return false;
+		}
 		Set<UUID> allowed = source ? connection.allowedSources() : connection.allowedTargets();
 		return allowed.isEmpty() || chain(endpointMetatype, this.bases).stream().anyMatch(allowed::contains);
+	}
+
+	/** The connection metatype marked as composition (US-135, REQ-142), or {@code null} without one. */
+	public Metatype composition() {
+		return this.metatypes.values().stream().filter(Metatype::composition).findFirst().orElse(null);
 	}
 
 	/** The metatype with this ID, or {@code null}. */

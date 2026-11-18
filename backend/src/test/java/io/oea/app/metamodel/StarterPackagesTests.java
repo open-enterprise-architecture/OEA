@@ -80,7 +80,7 @@ class StarterPackagesTests {
 		assertThat(result).hasStatus(HttpStatus.OK);
 		JsonNode togaf = body(result).get(0);
 		assertThat(togaf.path("packageId").asString()).isEqualTo(TOGAF);
-		assertThat(togaf.path("metatypeCount").asInt()).isEqualTo(7);
+		assertThat(togaf.path("metatypeCount").asInt()).isEqualTo(8);
 		assertThat(togaf.path("propertyDefinitionCount").asInt()).isOne();
 		assertThat(togaf.path("metatypeNames").valueStream().map(JsonNode::asString))
 			.contains("Application Component", "Data Object", "Technology Component");
@@ -94,9 +94,9 @@ class StarterPackagesTests {
 				principals().personWithIdpRole("metamodel-admin"));
 		assertThat(result).hasStatus(HttpStatus.OK);
 		JsonNode outcome = body(result);
-		assertThat(outcome.path("created").asInt()).isEqualTo(7);
+		assertThat(outcome.path("created").asInt()).isEqualTo(8);
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE scope = 'imported' "
-				+ "AND source_package_id = ?", Integer.class, TOGAF)).isEqualTo(7);
+				+ "AND source_package_id = ?", Integer.class, TOGAF)).isEqualTo(8);
 		assertThat(this.jdbc.queryForObject("""
 				SELECT count(*) FROM metatype_property_mappings m JOIN property_definitions d ON d.id = m.property_def_id
 				WHERE d.name = 'Status'""", Integer.class)).isEqualTo(7);
@@ -106,7 +106,7 @@ class StarterPackagesTests {
 			.containsExactly("planned", "active", "phasing-out", "retired");
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM audit.events WHERE event_type = "
 				+ "'metamodel.metatype-imported' AND details ->> 'batchId' = ?", Integer.class,
-				outcome.path("batchId").asString())).isEqualTo(7);
+				outcome.path("batchId").asString())).isEqualTo(8);
 		assertThat(body(get("/api/v1/admin/metamodel/starter-packages",
 				principals().personWithIdpRole("metamodel-admin"))).get(0).path("imported").asBoolean()).isTrue();
 	}
@@ -117,12 +117,15 @@ class StarterPackagesTests {
 		MvcTestResult result = get("/api/v1/metamodel/metatypes", principals().personWithIdpRole("viewer"));
 		assertThat(result).hasStatus(HttpStatus.OK);
 		JsonNode metatypes = body(result);
-		assertThat(metatypes).hasSize(7);
-		assertThat(metatypes).allSatisfy((metatype) -> {
+		// the built-in "Structuring aid" and the 8 types of the package
+		assertThat(metatypes).hasSize(9);
+		assertThat(metatypes.get(0).path("name").asString()).isEqualTo("Structuring aid");
+		assertThat(metatypes.get(0).path("scope").asString()).isEqualTo("built-in");
+		assertThat(metatypes.valueStream().skip(1)).allSatisfy((metatype) -> {
 			assertThat(metatype.path("scope").asString()).isEqualTo("imported");
 			assertThat(metatype.path("sourcePackage").path("packageId").asString()).isEqualTo(TOGAF);
 		});
-		JsonNode component = metatypes.get(0);
+		JsonNode component = metatypes.get(1);
 		assertThat(component.path("name").asString()).isEqualTo("Application Component");
 		JsonNode status = component.path("propertyMappings").get(0).path("propertyDefinition");
 		assertThat(status.path("name").asString()).isEqualTo("Status");

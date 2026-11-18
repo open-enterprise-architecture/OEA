@@ -101,7 +101,7 @@ class PortalCatalogsTests {
 		this.petra = this.principals.personWithIdpRole("portal-reader");
 		this.kurtId = this.jdbc.queryForObject("SELECT person_id FROM sessions WHERE id = ?", Long.class,
 				this.kurt.sessionId());
-		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes", Long.class) == 0) {
+		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE name = 'Application Component'", Long.class) == 0) {
 			TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
 			assertThat(this.mvc.post()
 				.uri("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import")

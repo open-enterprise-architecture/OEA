@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-032, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Editing the metamodel
@@ -52,6 +52,15 @@ A connection type describes directed relationships that are objects of their own
 - The base type of a connection type is a connection type, the base type of another entity type is not.
 - An entity type that is an allowed source or target of a connection type cannot be deleted; remove it from the connection type first.
 - Connections are written through the API, see [Writing entities in batch](../usage/entities-batch#connections).
+
+### Composition {#composition}
+
+One connection type of the instance can be marked as *Composition*. When someone places a component under another one in the [browser](../usage/navigation#arrange-components), OEA then creates a connection of this type from the parent to the child, if the type allows both entity types (see above). Without a marked type, only the hierarchy is stored.
+
+1. Open a connection type of your own and switch on *Composition* (also when creating it).
+2. Choose *Save*. Changing the mark is a change of the type and raises its version.
+
+At most one connection type of the instance is the composition; marking a second one, an entity type or a type of a solution extension is refused. The starter package brings the connection type *Composition*, already marked and without restriction of its endpoints. The built-in entity type *Structuring aid* is read-only and has no properties; it cannot be a base type or an allowed source or target.
 
 ### Base types
 

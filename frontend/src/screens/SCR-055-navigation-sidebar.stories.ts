@@ -15,7 +15,9 @@ import {
   BROWSER_ITEMS,
   BROWSER_WITHOUT_PLATEAUS,
   COMPLIANCE_ID,
+  HIERARCHY,
   LANDSCAPE_ID,
+  ME_HIERARCHY_MANAGER,
   ME_TREE_MANAGER,
   ME_TREE_READER,
   navigationApi,
@@ -37,7 +39,7 @@ function shell(
   me: unknown,
   expanded: string[] = [ROOT_ID, LANDSCAPE_ID],
   tree = undefined as typeof TREE_WITH_ENTITIES | undefined,
-  extra: { tab?: SidebarTab; browser?: typeof BROWSER; browserItems?: typeof BROWSER_ITEMS } = {},
+  extra: { tab?: SidebarTab; browser?: typeof BROWSER; browserItems?: typeof BROWSER_ITEMS; components?: typeof HIERARCHY } = {},
 ): Story {
   return {
     render: () => ({
@@ -49,7 +51,7 @@ function shell(
         sidebarTab.value = extra.tab ?? 'tree'
         sessionStorage.setItem('oea.navigation.expanded', JSON.stringify(expanded))
         return {
-          fetchFn: navigationApi({ tree, browser: extra.browser, browserItems: extra.browserItems, fallback: catalogApi(APPLICATIONS, { me }) }),
+          fetchFn: navigationApi({ tree, browser: extra.browser, browserItems: extra.browserItems, components: extra.components, fallback: catalogApi(APPLICATIONS, { me }) }),
           id: CATALOG.id,
         }
       },
@@ -108,6 +110,72 @@ export const BrowserEmptyCategory: Story = {
     const connections = await canvas.findByRole('button', { name: 'Connections (0)' })
     await expect(connections).toHaveAttribute('data-empty', 'true')
     await expect(canvas.getByRole('button', { name: 'Components (3)' })).not.toHaveAttribute('data-empty')
+  },
+}
+
+/** The components of "Current state" as a hierarchy, for a person who holds `entity:write` and `entity:delete` (US-135, US-136). */
+const hierarchy = (components = HIERARCHY): Story => shell(ME_HIERARCHY_MANAGER, undefined, undefined, { tab: 'browser', components })
+
+async function openComponents(canvas: ReturnType<typeof within>) {
+  await userEvent.click(await canvas.findByRole('button', { name: 'Expand Current state' }))
+  await userEvent.click(await canvas.findByRole('button', { name: /^Expand Components/ }))
+}
+
+export const BrowserHierarchy: Story = {
+  ...hierarchy(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await openComponents(canvas)
+    await expect(await canvas.findByRole('link', { name: 'Finance landscape' })).toBeVisible()
+    // the structuring aid shows a folder and expands to its children
+    await expect(canvasElement.querySelectorAll('[data-testid="browser-item-folder"]')).toHaveLength(1)
+    await userEvent.click(canvas.getByRole('button', { name: 'Expand Finance landscape' }))
+    await expect(await canvas.findByRole('link', { name: 'Payroll' })).toBeVisible()
+  },
+}
+
+export const BrowserRefusedDropTarget: Story = {
+  ...hierarchy(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await openComponents(canvas)
+    const source = (await canvas.findByRole('link', { name: 'Finance module' })).closest<HTMLElement>('[data-testid="browser-entity-row"]')!
+    const target = canvas.getByRole('link', { name: 'SAP S/4HANA' }).closest<HTMLElement>('[data-testid="browser-entity-row"]')!
+    // dropped on itself: refused, with the marker for the refused target
+    await fireEvent.dragStart(source)
+    await fireEvent.dragOver(source)
+    await expect(source).toHaveAttribute('data-drop', 'invalid')
+    await fireEvent.dragEnd(source)
+    await fireEvent.dragStart(source)
+    await fireEvent.dragOver(target)
+    await expect(target).toHaveAttribute('data-drop', 'valid')
+    await fireEvent.dragLeave(target)
+    await fireEvent.dragEnd(source)
+  },
+}
+
+export const BrowserMoveTo: Story = {
+  ...hierarchy(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await openComponents(canvas)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Actions for Finance module' }))
+    await userEvent.click(await within(document.body).findByRole('menuitem', { name: 'Move to…' }))
+    const dialog = within(await within(document.body).findByTestId('move-to-dialog'))
+    // the dialog fades in
+    await waitFor(async () => expect(await dialog.findByRole('button', { name: 'Root level' })).toBeVisible())
+    await waitFor(async () => expect(await dialog.findByRole('button', { name: 'Move here: SAP S/4HANA' })).toBeVisible())
+  },
+}
+
+export const BrowserDeleteStructuringAid: Story = {
+  ...hierarchy(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await openComponents(canvas)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Actions for Finance landscape' }))
+    await userEvent.click(await within(document.body).findByRole('menuitem', { name: 'Delete' }))
+    await expect(await within(document.body).findByTestId('delete-aid-warning')).toHaveTextContent('1 child moves to the root level and is not deleted')
   },
 }
 

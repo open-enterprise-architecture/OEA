@@ -86,14 +86,15 @@ public class StarterPackageSteps {
 		assertThat(starter(packageId).path("imported").asBoolean()).isTrue();
 	}
 
-	@Then("{int} metatypes exist with scope {string}, each with the property {string} and the values {string}")
-	public void metatypesWithStatus(int count, String scope, String property, String values) throws Exception {
+	@Then("{int} metatypes exist with scope {string}, the {int} element metatypes each with the property {string} and the values {string}")
+	public void metatypesWithStatus(int count, String scope, int elements, String property, String values)
+			throws Exception {
 		assertThat(this.response.statusCode()).isEqualTo(200);
 		assertThat(shared.oidc().single("SELECT count(*)::text FROM metatypes WHERE scope = '" + scope + "'"))
 			.isEqualTo(String.valueOf(count));
 		assertThat(shared.oidc().single("""
 				SELECT count(*)::text FROM metatype_property_mappings m JOIN property_definitions d
-				ON d.id = m.property_def_id WHERE d.name = '%s'""".formatted(property))).isEqualTo(String.valueOf(count));
+				ON d.id = m.property_def_id WHERE d.name = '%s'""".formatted(property))).isEqualTo(String.valueOf(elements));
 		assertThat(shared.oidc().column("""
 				SELECT v.value FROM property_enum_values v JOIN property_definitions d ON d.id = v.property_def_id
 				WHERE d.name = '%s' ORDER BY v.sort_order""".formatted(property)))
@@ -109,7 +110,8 @@ public class StarterPackageSteps {
 	@Then("{int} metatypes are returned with scope {string} and origin {string}")
 	public void returned(int count, String scope, String packageId) {
 		assertThat(this.response.statusCode()).isEqualTo(200);
-		JsonNode metatypes = body();
+		// the built-in metatypes of the instance are listed too; only those of the scope count
+		List<JsonNode> metatypes = body().valueStream().filter((m) -> scope.equals(m.path("scope").asString())).toList();
 		assertThat(metatypes).hasSize(count);
 		assertThat(metatypes).allSatisfy((metatype) -> {
 			assertThat(metatype.path("scope").asString()).isEqualTo(scope);

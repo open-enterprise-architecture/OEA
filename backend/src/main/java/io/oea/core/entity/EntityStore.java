@@ -1,5 +1,6 @@
 package io.oea.core.entity;
 
+import io.oea.core.metamodel.BuiltInMetatypes;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,7 +22,8 @@ import org.springframework.stereotype.Repository;
 public class EntityStore {
 
 	private static final String SELECT = """
-			SELECT id, metatype_id, name, description, is_logical, version, external_id, deleted_at IS NOT NULL
+			SELECT id, metatype_id, name, description, is_logical, version, external_id, deleted_at IS NOT NULL,
+			       parent_entity_id
 			FROM entities""";
 
 	private final JdbcTemplate jdbc;
@@ -30,9 +32,15 @@ public class EntityStore {
 		this.jdbc = jdbc;
 	}
 
-	/** The stored system fields of an entity. */
+	/** The stored system fields of an entity; {@code parentEntityId} is {@code null} at the root level. */
 	public record StoredEntity(int id, UUID metatypeId, String name, String description, boolean logical, int version,
-			String externalId, boolean deleted) {
+			String externalId, boolean deleted, Integer parentEntityId) {
+
+		public StoredEntity(int id, UUID metatypeId, String name, String description, boolean logical, int version,
+				String externalId, boolean deleted) {
+			this(id, metatypeId, name, description, logical, version, externalId, deleted, null);
+		}
+
 	}
 
 	/** System fields of a new entity or of a change. */
@@ -159,9 +167,25 @@ public class EntityStore {
 				Boolean.class, id, metatypeId));
 	}
 
-	/** An entity of the solution browser with the abbreviation of its metatype ({@code null} when it has none). */
-	public record BrowseRow(int id, String name, String abbreviation) {
+	/**
+	 * An entity of the solution browser with the abbreviation of its metatype ({@code null} when it
+	 * has none), the number of its children that are not deleted, whether it is a structuring aid
+	 * and its version (design D5 of us-135-component-hierarchy).
+	 */
+	public record BrowseRow(int id, String name, String abbreviation, int childCount, boolean structuringAid,
+			int version) {
 	}
+
+	private static final String BROWSE = """
+			SELECT e.id, e.name, m.abbreviation,
+			       (SELECT count(*) FROM entities c WHERE c.parent_entity_id = e.id AND c.deleted_at IS NULL),
+			       e.metatype_id = ?, e.version
+			FROM entities e JOIN metatypes m ON m.id = e.metatype_id""";
+
+	/** The element entities at the root level: without a parent, or whose parent is deleted. */
+	private static final String ROOT_LEVEL = """
+			e.deleted_at IS NULL AND NOT m.is_connection AND (e.parent_entity_id IS NULL
+			    OR NOT EXISTS (SELECT 1 FROM entities p WHERE p.id = e.parent_entity_id AND p.deleted_at IS NULL))""";
 
 	/** The entities that are not deleted: elements, or connections with {@code connection} (design D2 of us-132-solution-browser). */
 	public int countActive(boolean connection) {
@@ -170,13 +194,88 @@ public class EntityStore {
 				WHERE e.deleted_at IS NULL AND m.is_connection = ?""", Integer.class, connection);
 	}
 
+	/** The element entities at the root level (US-135). */
+	public int countRoot() {
+		return this.jdbc.queryForObject(
+				"SELECT count(*) FROM entities e JOIN metatypes m ON m.id = e.metatype_id WHERE " + ROOT_LEVEL,
+				Integer.class);
+	}
+
+	/** One page of the root level, by name regardless of case, then by ID. */
+	public List<BrowseRow> pageRoot(int limit, long offset) {
+		return this.jdbc.query(BROWSE + " WHERE " + ROOT_LEVEL + " ORDER BY lower(e.name), e.id LIMIT ? OFFSET ?",
+				EntityStore::browseRow, BuiltInMetatypes.STRUCTURING_AID, limit, offset);
+	}
+
+	/** The children of an element entity that are not deleted. */
+	public int countChildren(int parentId) {
+		return this.jdbc.queryForObject(
+				"SELECT count(*) FROM entities WHERE parent_entity_id = ? AND deleted_at IS NULL", Integer.class,
+				parentId);
+	}
+
+	/** One page of the children of an element entity, by name regardless of case, then by ID. */
+	public List<BrowseRow> pageChildren(int parentId, int limit, long offset) {
+		return this.jdbc.query(BROWSE + """
+				 WHERE e.parent_entity_id = ? AND e.deleted_at IS NULL
+				ORDER BY lower(e.name), e.id LIMIT ? OFFSET ?""", EntityStore::browseRow,
+				BuiltInMetatypes.STRUCTURING_AID, parentId, limit, offset);
+	}
+
 	/** One page of the entities that are not deleted, by name regardless of case, then by ID. */
 	public List<BrowseRow> pageActive(boolean connection, int limit, long offset) {
-		return this.jdbc.query("""
-				SELECT e.id, e.name, m.abbreviation FROM entities e JOIN metatypes m ON m.id = e.metatype_id
-				WHERE e.deleted_at IS NULL AND m.is_connection = ?
-				ORDER BY lower(e.name), e.id LIMIT ? OFFSET ?""",
-				(rs, row) -> new BrowseRow(rs.getInt(1), rs.getString(2), rs.getString(3)), connection, limit, offset);
+		return this.jdbc.query(BROWSE + """
+				 WHERE e.deleted_at IS NULL AND m.is_connection = ?
+				ORDER BY lower(e.name), e.id LIMIT ? OFFSET ?""", EntityStore::browseRow,
+				BuiltInMetatypes.STRUCTURING_AID, connection, limit, offset);
+	}
+
+	/** Whether an element entity that is not deleted has this ID. */
+	public boolean isActiveElement(int id) {
+		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
+				SELECT EXISTS (SELECT 1 FROM entities e JOIN metatypes m ON m.id = e.metatype_id
+				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection)""", Boolean.class, id));
+	}
+
+	private static BrowseRow browseRow(ResultSet rs, int row) throws SQLException {
+		return new BrowseRow(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4), rs.getBoolean(5),
+				rs.getInt(6));
+	}
+
+	/**
+	 * The children of an entity that are not deleted, locked in ID order for the rest of the
+	 * transaction (deleting a structuring aid).
+	 */
+	public List<StoredEntity> lockChildren(int parentId) {
+		return this.jdbc.query(SELECT + " WHERE parent_entity_id = ? AND deleted_at IS NULL ORDER BY id FOR UPDATE",
+				EntityStore::entity, parentId);
+	}
+
+	/**
+	 * Sets or clears the parent as the next version (design D3 of us-135-component-hierarchy): the
+	 * entity, its version header and the history row of the field {@code parent_entity_id} with the
+	 * parent before the change. Returns the new version.
+	 */
+	public int updateParent(StoredEntity entity, Integer parentId, long personId, Instant now) {
+		int version = entity.version() + 1;
+		this.jdbc.update("""
+				UPDATE entities SET parent_entity_id = ?, version = ?, updated_at = ?, updated_by = ? WHERE id = ?""",
+				parentId, version, Timestamp.from(now), personId, entity.id());
+		header(entity.id(), version, personId, now);
+		this.jdbc.update("""
+				INSERT INTO entity_system_field_history (entity_id, entity_version, field_name, old_value, new_value,
+				    changed_at, changed_by)
+				VALUES (?, ?, 'parent_entity_id', ?, ?, ?, ?)""", entity.id(), version,
+				(entity.parentEntityId() != null) ? entity.parentEntityId().toString() : null,
+				(parentId != null) ? parentId.toString() : null, Timestamp.from(now), personId);
+		return version;
+	}
+
+	/** Sets the hierarchy fields of an entity that was just created (version 1, no history row). */
+	public void placeCreated(int id, Integer parentId, boolean structuralGrouper, boolean autoCreated) {
+		this.jdbc.update("""
+				UPDATE entities SET parent_entity_id = ?, is_structural_grouper = ?, auto_created = ? WHERE id = ?""",
+				parentId, structuralGrouper, autoCreated, id);
 	}
 
 	/** The current property values of an entity by property definition. */
@@ -292,7 +391,7 @@ public class EntityStore {
 
 	private static StoredEntity entity(ResultSet rs, int row) throws SQLException {
 		return new StoredEntity(rs.getInt(1), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4),
-				rs.getBoolean(5), rs.getInt(6), rs.getString(7), rs.getBoolean(8));
+				rs.getBoolean(5), rs.getInt(6), rs.getString(7), rs.getBoolean(8), rs.getObject(9, Integer.class));
 	}
 
 	private static TypedValue value(ResultSet rs, int first) throws SQLException {

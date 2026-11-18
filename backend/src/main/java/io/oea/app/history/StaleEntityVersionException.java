@@ -8,7 +8,7 @@ public class StaleEntityVersionException extends RuntimeException {
 
 	private final int currentVersion;
 
-	StaleEntityVersionException(int currentVersion) {
+	public StaleEntityVersionException(int currentVersion) {
 		super("The entity was changed meanwhile; its current version is " + currentVersion + ".");
 		this.currentVersion = currentVersion;
 	}

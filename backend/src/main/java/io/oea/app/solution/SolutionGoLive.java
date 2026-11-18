@@ -3,6 +3,7 @@ package io.oea.app.solution;
 import io.oea.app.access.LanguagePreferences;
 import io.oea.app.entity.EntityBlockedException;
 import io.oea.app.entity.EntityBlocks;
+import io.oea.app.entity.EntityDeletion;
 import io.oea.app.entity.EntityValidator;
 import io.oea.app.entity.EntityWriter;
 import io.oea.app.entity.MetatypeRules;
@@ -107,10 +108,14 @@ public class SolutionGoLive {
 
 	private final PlateauStore plateaus;
 
+	private final EntityDeletion deletion;
+
 	SolutionGoLive(GoLiveStore store, EntityStore entities, EntityVersionStore versions, PropertyValueStore values,
 			MetatypeRuleStore ruleStore, EntityWriter writer, PropertyAccess access, MetamodelLabels labels,
 			LanguagePreferences languages, SolutionDeltas deltas, AuditWriter audit, Clock clock, OpenIssueStore issues,
-			OpenIssues openIssues, SnapshotStore snapshots, EntityBlocks blocks, PlateauStore plateaus) {
+			OpenIssues openIssues, SnapshotStore snapshots, EntityBlocks blocks, PlateauStore plateaus,
+			EntityDeletion deletion) {
+		this.deletion = deletion;
 		this.plateaus = plateaus;
 		this.issues = issues;
 		this.openIssues = openIssues;
@@ -649,15 +654,8 @@ public class SolutionGoLive {
 	/** Soft-deletes an entity and audits {@code entity.deleted}. */
 	private void retire(OeaPrincipal principal, int entityId, GoLiveStore.SolutionRow solution, Instant now) {
 		StoredEntity entity = this.entities.find(entityId).orElseThrow();
-		this.entities.softDelete(entityId, principal.personId(), now, "Retired by the solution " + solution.name());
-		Map<String, Object> details = new LinkedHashMap<>();
-		details.put("solutionId", solution.id().toString());
-		details.put("metatypeId", entity.metatypeId().toString());
-		details.put("version", entity.version());
-		this.audit.append(new AuditEvent("entity.deleted", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
-				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "entity",
-				Integer.toString(entityId), details), new AuditEvent.EntityTarget(entityId, entity.name()),
-				AuditEvent.Agent.NONE, List.of());
+		this.deletion.delete(principal, entity, now, "Retired by the solution " + solution.name(),
+				Map.entry("solutionId", solution.id().toString()));
 	}
 
 	/** The typed own value of a resolution; an empty value removes a property value. */

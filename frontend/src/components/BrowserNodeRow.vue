@@ -1,16 +1,50 @@
 <script setup lang="ts">
+import { computed, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { browserItemRoute, type BrowserItem } from '../api/navigation'
 import type { BrowserNode } from '../navigation/browserNodes'
-import { browser } from '../navigation/store'
+import { HIERARCHY_CONTEXT } from '../navigation/hierarchyContext'
+import { browser, canDropOn, drag } from '../navigation/store'
+import BrowserEntityRow from './browser/BrowserEntityRow.vue'
 
 // One node of the solution browser (SCR-055; design D4 of us-132-solution-browser): the expand toggle, the
 // name with its count, the children, and for a category its objects page by page. Names are shown as text only, and
 // links are built from kind and ID.
 
-const props = defineProps<{ node: BrowserNode; depth: number }>()
+const props = defineProps<{ node: BrowserNode; depth: number; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ toggle: [node: BrowserNode]; more: [node: BrowserNode]; navigate: [] }>()
 const { t } = useI18n()
+
+const context = inject(HIERARCHY_CONTEXT, undefined)
+// the components of "Current state" form the hierarchy: the root level takes drops and new structuring aids (US-135, US-136)
+const hierarchy = computed(() => props.node.kind === 'components' && props.node.query?.scope === 'current-state')
+const writable = computed(() => hierarchy.value && context?.canWrite === true)
+const marker = ref<'valid' | 'invalid'>()
+
+function dragOver(event: DragEvent) {
+  const dragged = drag.item
+  if (!writable.value || !dragged) {
+    return
+  }
+  const valid = canDropOn(dragged, null)
+  marker.value = valid ? 'valid' : 'invalid'
+  if (valid) {
+    event.preventDefault()
+  }
+}
+
+function drop(event: DragEvent) {
+  marker.value = undefined
+  const dragged = drag.item
+  if (!writable.value || !dragged) {
+    return
+  }
+  drag.item = undefined
+  if (canDropOn(dragged, null)) {
+    event.preventDefault()
+    context?.drop(dragged, null)
+  }
+}
 
 const open = (): boolean => browser.expanded.has(props.node.key)
 const empty = (): boolean => props.node.count === 0
@@ -40,7 +74,15 @@ function itemIcon(item: BrowserItem): string {
 
 <template>
   <li data-testid="browser-node" :data-node-key="node.key" role="treeitem" :aria-level="depth + 1" :aria-expanded="canExpand() ? open() : undefined">
-    <div class="flex items-center gap-1 rounded-md pe-1 hover:bg-elevated" :style="{ paddingInlineStart: `${depth * 0.75}rem` }">
+    <div
+      class="flex items-center gap-1 rounded-md pe-1 hover:bg-elevated"
+      :class="marker === 'valid' ? 'ring-2 ring-primary' : marker === 'invalid' ? 'ring-2 ring-error cursor-not-allowed' : ''"
+      :style="{ paddingInlineStart: `${depth * 0.75}rem` }"
+      :data-drop="marker"
+      @dragover="dragOver"
+      @dragleave="marker = undefined"
+      @drop="drop"
+    >
       <UButton
         data-testid="browser-toggle"
         size="xs"
@@ -63,6 +105,16 @@ function itemIcon(item: BrowserItem): string {
       >
         {{ node.label }}<template v-if="node.count !== undefined"> ({{ node.count }})</template>
       </button>
+      <UButton
+        v-if="writable"
+        data-testid="browser-new-aid"
+        size="xs"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-folder-plus"
+        :aria-label="t('browser.newAid')"
+        @click="context!.newAid(null)"
+      />
       <RouterLink
         v-if="node.solutionId"
         data-testid="browser-solution-link"
@@ -75,11 +127,12 @@ function itemIcon(item: BrowserItem): string {
       </RouterLink>
     </div>
     <ul v-if="open() && canExpand()" role="group">
-      <BrowserNodeRow v-for="child in node.children" :key="child.key" :node="child" :depth="depth + 1" @toggle="emit('toggle', $event)" @more="emit('more', $event)" @navigate="emit('navigate')" />
+      <BrowserNodeRow v-for="child in node.children" :key="child.key" :node="child" :depth="depth + 1" :fetch-fn="fetchFn" @toggle="emit('toggle', $event)" @more="emit('more', $event)" @navigate="emit('navigate')" />
       <template v-if="node.query">
+        <template v-for="item in state()?.items ?? []" :key="`${item.kind}:${item.id}`">
+        <BrowserEntityRow v-if="item.kind === 'entity'" :item="item" :depth="depth + 1" :hierarchy="hierarchy" :fetch-fn="fetchFn" @navigate="emit('navigate')" />
         <li
-          v-for="item in state()?.items ?? []"
-          :key="`${item.kind}:${item.id}`"
+          v-else
           data-testid="browser-item"
           :data-item-kind="item.kind"
           role="treeitem"
@@ -110,6 +163,7 @@ function itemIcon(item: BrowserItem): string {
             />
           </div>
         </li>
+        </template>
         <li v-if="state()?.failed" data-testid="browser-category-failed" class="flex flex-col items-start gap-1 py-1 text-sm text-error" :style="{ paddingInlineStart: `${(depth + 1) * 0.75 + 1.5}rem` }">
           {{ t('browser.loadFailed') }}
           <UButton size="xs" color="neutral" variant="outline" :label="t('navigation.retry')" @click="emit('more', node)" />

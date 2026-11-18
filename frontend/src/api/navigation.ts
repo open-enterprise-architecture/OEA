@@ -11,6 +11,8 @@ export type BrowserSolution = components['schemas']['BrowserSolution']
 export type BrowserItem = components['schemas']['BrowserItem']
 export type BrowserItemPage = components['schemas']['BrowserItemPage']
 export type BrowserCategory = 'components' | 'connections' | 'catalogs'
+export type EntityParentResult = components['schemas']['EntityParentResult']
+export type StructuringAid = components['schemas']['StructuringAid']
 
 /** What "Place in navigation" places (US-054, US-095): a catalog, an element entity or a solution. */
 export type Placement =
@@ -50,6 +52,8 @@ export interface BrowserItemsQuery {
   scope: 'current-state' | 'solution'
   solutionId?: string
   category: BrowserCategory
+  /** the children of this element entity instead of the root level of the components (US-135) */
+  parentEntityId?: number
   page?: number
   pageSize?: number
 }
@@ -60,11 +64,56 @@ export async function fetchBrowserItems(query: BrowserItemsQuery, fetchFn: typeo
   if (query.solutionId) {
     params.set('solutionId', query.solutionId)
   }
+  if (query.parentEntityId !== undefined) {
+    params.set('parentEntityId', String(query.parentEntityId))
+  }
   const response = await fetchFn(`/api/v1/views/browser/items?${params}`, { credentials: 'same-origin', headers: JSON_HEADERS })
   if (!response.ok) {
     throw new RequestRejected(await readRejection(response))
   }
   return (await response.json()) as BrowserItemPage
+}
+
+/** A write of the hierarchy with the CSRF token and, where the contract requires it, `If-Match` with the version read. */
+async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body: unknown, version: number | undefined, fetchFn: typeof fetch): Promise<Outcome<T>> {
+  const csrfToken = currentCsrfToken()
+  const response = await fetchFn(path, {
+    method,
+    credentials: 'same-origin',
+    headers: {
+      ...JSON_HEADERS,
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(version !== undefined ? { 'If-Match': `"${version}"` } : {}),
+      ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  })
+  if (response.ok) {
+    return { ok: true, value: (response.status === 204 ? undefined : await response.json()) as T }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/**
+ * PUT /entities/{id}/parent: places the element entity under another one, or at the root level with `null`
+ * (US-135). `version` is the one the browser shows; a newer one is 412, a cycle or a depth above 10 is 422
+ * naming `parentEntityId`, an entity with open issues is 409.
+ */
+export function setEntityParent(entityId: number, version: number, parentEntityId: number | null, fetchFn: typeof fetch = fetch): Promise<Outcome<EntityParentResult>> {
+  return send('PUT', `/api/v1/entities/${entityId}/parent`, { parentEntityId }, version, fetchFn)
+}
+
+/** POST /structuring-aids: a structuring aid at the root level or under an element entity (US-136). */
+export function createStructuringAid(
+  input: { name: string; description?: string; parentEntityId?: number | null },
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<StructuringAid>> {
+  return send('POST', '/api/v1/structuring-aids', input, undefined, fetchFn)
+}
+
+/** DELETE /structuring-aids/{id}: deletes the aid; its children move to the root level (US-136 AC3). */
+export function deleteStructuringAid(id: number, version: number, fetchFn: typeof fetch = fetch): Promise<Outcome<void>> {
+  return send('DELETE', `/api/v1/structuring-aids/${id}`, undefined, version, fetchFn)
 }
 
 /** The route of a browser object, built only from its kind and IDs: entity history, catalog page or the solution of a delta. */

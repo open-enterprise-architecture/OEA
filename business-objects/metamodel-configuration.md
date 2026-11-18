@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.12.0
+version: 1.13.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -103,6 +103,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | scope | enum | required | `organization` | `[built-in, imported, organization]` (ADR-002) | `built-in`: part of the software, read-only; `imported`: from a package, changed only by re-importing the same package (fork creates an `organization` copy); `organization`: maintained by the organization |
 | sourcePackage | PackageReference | conditional | null | required iff `scope=imported`: `packageId` and `version` | Package the type was imported from |
 | isConnection | boolean | required | false | | Marks the type as a connection type; enforces `source` and `target` on every instance (REQ-036) |
+| isComposition | boolean | required | false | only if `isConnection=true`; only in the instance configuration; at most one per instance (unique index); a package marks at most one of its connection types | Marks the connection type of the automatic composition connection that setting the parent of an entity creates (US-135, REQ-142, ADR-021). The starter package 1.3.0 brings "Composition". The built-in element type "Structuring aid" (scope `built-in`, fixed ID, no properties) is read-only, cannot be a base type or an allowed endpoint, and its entities are written only by their own operations |
 | allowedSourceTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as start entity |
 | allowedTargetTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as target entity |
 | allowsConnectionAsSource | boolean | optional | false | only meaningful if `isConnection=true` | Allows instances of this type to act as the `sourceEntityId` of a further connection (n-connection, ADR-010); default false |
@@ -282,6 +283,7 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-30 | The label of an EntityType, category, PropertyDefinition or enum value in a locale (`de`, `en`, `fr`, `it`) is the organization label, else the label of the origin package, else the name in the corporate language; a re-import replaces only the package labels, and deleting an element deletes its labels | onRead, onImport, onDelete | REQ-152, ADR-025, ADR-049 |
 | BR-31 | A write on an EntityType, PropertyDefinition or property category, or on its mappings, enum values or re-import setting, that names an older `version` in `If-Match` is rejected and changes nothing; a write without `If-Match` applies | onUpdate, onDelete | UC-04 A5, REQ-032 |
 | BR-32 | `isConnection` is set when an EntityType is created and never changes; a connection type lists its allowed source and target types (each with its subtypes; an empty list allows every type, a connection type may be listed), its base type is a connection type and the base type of an element type an element type; a type listed by a connection type cannot be deleted | onCreate, onUpdate, onDelete, onImport | REQ-036, ADR-010 |
+| BR-33 | `isComposition` is allowed only on a connection type of the instance configuration and on at most one type per instance; a package import that would mark a second type is rejected | onCreate, onUpdate, onImport | US-135, REQ-142 |
 | BR-25 | Every change of EntityTypes or PropertyDefinitions regenerates the affected reporting views `reporting.<metatype>`; every generated column applies the same masking expression as `reporting.property_values` | onCreate, onUpdate, onDelete | ADR-034 §3.1, REQ-160 |
 
 ## Examples
@@ -473,3 +475,4 @@ Version 1.11.0 (change `us-124-property-visibility`) stores `readRoles` and `wri
 | 1.10.0 | 2026-11-05 | Business Engineer | `name` and `version` of a configuration; `solutionId` without a foreign key until solutions exist; BR-05, BR-06, BR-09 and BR-10 as implemented: lock mode, names and base types of extensions, deleting extensions (change `us-037-solution-extensions-and-lock-mode`) |
 | 1.11.0 | 2026-11-07 | Business Engineer | Read and write roles stored in `property_visibility_roles` (change `us-124-property-visibility`) |
 | 1.12.0 | 2026-11-13 | Change us-044-conflict-warning | `showParallelChanges` per EntityType: the marker of parallel changes in the baseline of a solution, off by default (owner decision 2026-11-13) |
+| 1.13.0 | 2026-11-18 | Change us-135-component-hierarchy | `isComposition` of connection types, the built-in element type "Structuring aid"; BR-33 |

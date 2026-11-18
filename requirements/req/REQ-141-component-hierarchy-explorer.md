@@ -4,9 +4,9 @@ title: Components Can Be Nested Hierarchically in the Browser
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-28
-last_updated: 2026-06-28
+last_updated: 2026-11-18
 author: requirements-engineer
 references:
   use_cases:
@@ -92,8 +92,13 @@ Real enterprise architectures are hierarchical: an "ERP system" contains modules
 - **Prerequisites**: ADR-021 (implicit connection); `entity.md` attributes `parentEntityId` and `isStructuralGrouper`
 - **Consequences**: REQ-142 (connection logic for instances)
 
+## Implementation
+
+- Realized by OpenSpec change `us-135-component-hierarchy`: the hierarchy is shown in "Components" of "Current state" in the browser (root level, children on expansion, structuring aids with a folder); the parent is a versioned system field of the child ("Parent"), changed by `setEntityParent`; at most 10 levels, no cycles (422 naming `parentEntityId`).
+
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-28 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-18 | fullstack-engineer | Implementation note and realignment (change `us-135-component-hierarchy`) |

@@ -18,6 +18,7 @@ import io.oea.core.catalog.CatalogQueryStore.KeyType;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
 import io.oea.core.entity.TypedValue;
+import io.oea.core.metamodel.BuiltInMetatypes;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -447,6 +448,10 @@ public class SolutionDeltas {
 			named.errors().stream().filter((issue) -> !"metatypeId".equals(issue.field())).forEach(errors::add);
 			throw new InvalidSolutionException(errors);
 		}
+		if (BuiltInMetatypes.STRUCTURING_AID.equals(input.metatypeId())) {
+			errors.add(new Issue("metatypeId", "NOT_SUPPORTED", "A structuring aid is no part of a solution."));
+			throw new InvalidSolutionException(errors);
+		}
 		MetatypeRules rules = rules(solutionId).forWriter(PropertyWriteAccess.writer(access));
 		EntityValidator.Checked checked = EntityValidator.check(entity, rules, null, Map.of(), this.store::isActive);
 		errors.addAll(checked.errors());
@@ -482,8 +487,8 @@ public class SolutionDeltas {
 	private boolean inBaseline(int entityId) {
 		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
 				SELECT EXISTS (SELECT 1 FROM entities e JOIN metatypes m ON m.id = e.metatype_id
-				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection)""", Boolean.class,
-				entityId));
+				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection AND m.id <> ?)""",
+				Boolean.class, entityId, BuiltInMetatypes.STRUCTURING_AID));
 	}
 
 	/**

@@ -51,6 +51,35 @@ describe('MetatypeDialog', () => {
     )
   })
 
+  // spec metamodel/connection-metatypes "Composition mark" (us-135-component-hierarchy)
+  it('shows the switch "Composition" only for a connection metatype and sends the mark', async () => {
+    const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)
+    expect(wrapper.find('[data-testid="metatype-composition"]').exists()).toBe(false)
+    await field(wrapper, 'metatype-name').setValue('Composed of')
+    wrapper.findAllComponents({ name: 'Switch' })[0]!.vm.$emit('update:modelValue', true)
+    await flushPromises()
+    expect(wrapper.find('[data-testid="metatype-composition"]').exists()).toBe(true)
+    wrapper.findAllComponents({ name: 'Switch' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-composition')!.vm.$emit('update:modelValue', true)
+    await flushPromises()
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.requests.find((request) => request.method === 'POST')?.body).toEqual(expect.objectContaining({ isConnection: true, isComposition: true }))
+  })
+
+  it('sends no mark for an element metatype', async () => {
+    const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)
+    await field(wrapper, 'metatype-name').setValue('Zone 2')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.requests.find((request) => request.method === 'POST')?.body).toEqual(expect.objectContaining({ isConnection: false, isComposition: false }))
+  })
+
+  it('shows the mark of a connection metatype that is the composition when editing', async () => {
+    const { wrapper } = await mountWithMetamodel(MetatypeDialog, { metatype: { ...metatypeById(IDS.dataFlow)!, isComposition: true } })
+    const marked = wrapper.findAllComponents({ name: 'Switch' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-composition')!
+    expect(marked.props('modelValue')).toBe(true)
+  })
+
   it('offers no connection switch when editing', async () => {
     const { wrapper } = await mountWithMetamodel(MetatypeDialog, () => ({ metatype: metatypeById(IDS.dataFlow) }))
     expect(wrapper.find('[data-testid="metatype-connection"]').exists()).toBe(false)

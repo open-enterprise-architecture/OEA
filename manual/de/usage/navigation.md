@@ -2,7 +2,7 @@
 title: Navigationsbaum
 covers:
   screens: [SCR-055]
-  stories: [US-054, US-094, US-095, US-096, US-097, US-132, US-133]
+  stories: [US-054, US-094, US-095, US-096, US-097, US-132, US-133, US-135, US-136]
 ---
 
 # Navigationsbaum
@@ -35,7 +35,26 @@ Jede Lösung hat die Kategorie *Komponenten*: ihre Änderungen am Repository, ge
 - **Objekt öffnen:** Eine Entität öffnet ihre Änderungshistorie, ein Katalog seine Seite, eine Änderung einer Lösung (und das Link-Symbol neben einer Lösung) die Lösungsseite.
 - **Metatyp:** Ein kleines Label neben einer Entität zeigt die Abkürzung ihres Metatyps, falls er eine hat.
 
-Der Browser zeigt nur an; den Baum ordnest du im Tab *Navigationsbaum*. Funktionale und Lösungs-Bausteine sowie Diagramme folgen mit ihren Inhalten.
+*Komponenten* des *Ist-Zustands* listet die oberste Ebene: die Entitäten ohne Eltern. Eine Entität mit Kindern zeigt einen Pfeil und klappt zu ihnen auf, nach Name, je 50. Wie du eine Komponente unter eine andere einordnest, steht unter [Komponenten anordnen](#arrange-components). Komponenten einer Lösung bleiben eine flache Liste.
+
+Die Ordner des Baums ordnest du im Tab *Navigationsbaum*. Funktionale und Lösungs-Bausteine sowie Diagramme folgen mit ihren Inhalten.
+
+## Komponenten anordnen {#arrange-components}
+
+Reale Architekturen sind hierarchisch: Das Modul *Finanzmodul* gehört zum System *SAP S/4HANA*. Unter *Ist-Zustand > Komponenten* ordnest du eine Komponente unter einer anderen ein. Das ändert die Entität selbst im Katalog, nicht nur die Seitenleiste: Es schreibt eine neue Version des Kindes mit dem Feld *Parent* in seiner [Änderungshistorie](./change-history), und es braucht die Berechtigung `entity:write` (Rollen `enterprise-architect`, `solution-architect`). Alle anderen sehen die Hierarchie, können sie aber nicht ändern.
+
+- **Ziehen und Ablegen:** Ziehe eine Komponente auf eine andere Komponente oder auf *Komponenten*, um sie auf der obersten Ebene einzuordnen. Ein Ziel, das sie nicht aufnehmen kann (die Komponente selbst, eines ihrer in der Seitenleiste gezeigten Kinder), zeigt *Kann hier nicht abgelegt werden*, und es wird nichts gesendet.
+- **Ohne Maus:** Die Schaltfläche *…* neben einer Komponente bietet *Verschieben nach…*. Der Dialog listet die Komponenten Ebene für Ebene; mit dem Pfeil siehst du die Kinder einer Komponente, mit dem Filter engst du die geladenen Namen ein, *Oberste Ebene* wählt die oberste Ebene, und *Hierher* wählt das Ziel.
+- **Regeln:** Die Eltern sind eine andere Komponente, die nicht gelöscht ist. Ein Zyklus (eine Komponente unter ihrem eigenen Kind) und mehr als 10 Ebenen werden mit *Die Komponente kann dort nicht eingeordnet werden.* abgelehnt. Eine Komponente mit einem offenen Problem einer Lösung lässt sich nicht ändern. Hat jemand die Komponente zwischenzeitlich geändert, sagt das die Seitenleiste und liest die Liste neu; versuche es dann erneut.
+
+Kennzeichnet das Metamodell einen [Kompositions-Verbindungstyp](../administration/metamodel-editing#composition), legt das Einordnen einer Komponente unter eine andere auch eine Verbindung dieses Typs von den Eltern zum Kind an, wenn der Typ beide Entitätstypen erlaubt. Verschieben oder Lösen der Komponente löscht die so angelegte Verbindung; Verbindungen, die du selbst geschrieben hast, bleiben. *Verbindungen* zählt eine Verbindung mehr.
+
+### Ordnungshilfen {#structuring-aids}
+
+Eine Ordnungshilfe ist ein Ordner in der Hierarchie ohne Bedeutung: Sie gruppiert Komponenten für die Navigation, zum Beispiel *Finanzlandschaft*, ohne dem Modell eine Verbindung hinzuzufügen. Sie hat ein Ordnersymbol, keine Eigenschaften und keine Verbindungen und gehört zu keiner Lösung.
+
+- **Neue Ordnungshilfe:** Die Schaltfläche neben *Komponenten* legt eine auf der obersten Ebene an; der Eintrag *Neue Ordnungshilfe* einer Komponente legt eine darunter an. Gib einen Namen mit 1 bis 255 Zeichen und optional eine Beschreibung mit bis zu 2000 Zeichen ein. Das braucht `entity:write`.
+- **Löschen:** Der Eintrag *Löschen* einer Ordnungshilfe braucht `entity:write` und `entity:delete` (Rolle `enterprise-architect`). Der Dialog sagt zuerst, wie viele Kinder auf die oberste Ebene verschoben werden; sie werden nicht gelöscht. Eine Ordnungshilfe mit einem Kind, das ein offenes Problem hat, lässt sich nicht löschen.
 
 ## Ordner
 

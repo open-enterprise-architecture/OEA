@@ -2,8 +2,9 @@
 
 **ID**: US-136
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S16
+**Implementation**: OpenSpec change `us-135-component-hierarchy` – the built-in metatype "Structuring aid" (V42) and `POST /structuring-aids` and `DELETE /structuring-aids/{id}` (the latter also needs `entity:delete`); a structuring aid shows a folder, creates no connection, and its children move to the root level when it is deleted
 
 ## Story
 

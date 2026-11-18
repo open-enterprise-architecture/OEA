@@ -21,6 +21,7 @@ import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.entity.ConnectionRejectedException;
+import io.oea.app.hierarchy.InvalidHierarchyException;
 import io.oea.app.login.InvalidCredentialsException;
 import io.oea.app.login.InvalidPasskeyException;
 import io.oea.app.login.InvalidTotpCodeException;
@@ -678,6 +679,13 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(InvalidTreeException.class)
 	ResponseEntity<ProblemDetail> invalidTree(InvalidTreeException ex) {
 		return catalogProblem("validation-failed", "Invalid navigation tree change", ex.getMessage(),
+				ex.getInvalidFields());
+	}
+
+	/** A parent change or a structuring aid that violates a rule of the hierarchy (US-135, US-136). */
+	@ExceptionHandler(InvalidHierarchyException.class)
+	ResponseEntity<ProblemDetail> invalidHierarchy(InvalidHierarchyException ex) {
+		return catalogProblem("validation-failed", "Invalid hierarchy change", ex.getMessage(),
 				ex.getInvalidFields());
 	}
 

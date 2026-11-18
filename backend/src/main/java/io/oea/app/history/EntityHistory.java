@@ -44,7 +44,7 @@ public class EntityHistory {
 			"description", new SystemField("description", "Description", 1), "is_logical",
 			new SystemField("isLogical", "Logical", 2), "metatype_id", new SystemField("metatypeId", "Metatype", 3),
 			"source_entity_id", new SystemField("sourceId", "Source", 4), "target_entity_id",
-			new SystemField("targetId", "Target", 5));
+			new SystemField("targetId", "Target", 5), "parent_entity_id", new SystemField("parentEntityId", "Parent", 6));
 
 	private final EntityHistoryStore store;
 

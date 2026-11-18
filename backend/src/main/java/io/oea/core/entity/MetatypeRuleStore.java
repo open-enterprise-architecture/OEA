@@ -33,8 +33,16 @@ public class MetatypeRuleStore {
 			BigDecimal maxValue, String pattern, String visibilityMode, UUID refMetatypeId, Set<String> enumValues) {
 	}
 
-	/** A metatype of the configuration, with its direct base type or {@code null}. */
-	public record MetatypeRow(UUID id, String name, boolean connection, UUID baseId) {
+	/**
+	 * A metatype of the configuration, with its direct base type or {@code null}; {@code composition}
+	 * marks the connection metatype of the automatic composition (US-135).
+	 */
+	public record MetatypeRow(UUID id, String name, boolean connection, UUID baseId, boolean composition) {
+
+		public MetatypeRow(UUID id, String name, boolean connection, UUID baseId) {
+			this(id, name, connection, baseId, false);
+		}
+
 	}
 
 	/** A mapping active on the date, in display order; {@code defaultValue} is {@code null} without one. */
@@ -65,9 +73,10 @@ public class MetatypeRuleStore {
 
 	/** The metatypes of the configuration. */
 	public List<MetatypeRow> metatypes(UUID configId) {
-		return this.jdbc.query("SELECT id, name, is_connection, base_metatype_id FROM metatypes WHERE config_id = ?",
+		return this.jdbc.query("""
+				SELECT id, name, is_connection, base_metatype_id, is_composition FROM metatypes WHERE config_id = ?""",
 				(rs, n) -> new MetatypeRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getBoolean(3),
-						rs.getObject(4, UUID.class)),
+						rs.getObject(4, UUID.class), rs.getBoolean(5)),
 				configId);
 	}
 
