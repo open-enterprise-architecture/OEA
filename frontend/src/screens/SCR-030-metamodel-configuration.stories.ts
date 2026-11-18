@@ -54,6 +54,50 @@ export const RestrictedProperty: Story = {
 
 export const Translations: Story = page('translations')
 
+/** The architecture layers: the layers of the starter package and one of the organization (change s17-architecture-layers). */
+export const Layers: Story = {
+  ...page('layers'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Strategy')).toBeInTheDocument()
+    await expect(canvas.getAllByTestId('layer-row')).toHaveLength(4)
+    // only the layer of the organization has actions
+    await expect(canvas.getAllByTestId('layer-edit')).toHaveLength(1)
+  },
+}
+
+/** A reader sees the layers and their entity types, nothing changeable. */
+export const LayersReader: Story = {
+  ...page('layers', undefined, ME_READER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Strategy')).toBeInTheDocument()
+    // the notice of a reader appears once the session of the reader is loaded
+    await expect(await canvas.findByText(/Changes need the metamodel administrator role/)).toBeInTheDocument()
+    await expect(canvas.queryByTestId('layer-new')).toBeNull()
+  },
+}
+
+/** The warning of deleting a layer that entity types still have: the number of entity types (409 in-use). */
+export const LayerInUse: Story = {
+  render: () => ({
+    components: { MetamodelPage },
+    setup: () => {
+      const api = metamodelApi()
+      api.state.metatypes.find((metatype) => metatype.id === IDS.zone)!.architectureLayerId = IDS.layerStrategy
+      return { fetchFn: api.fetch }
+    },
+    template: '<MetamodelPage section="layers" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByTestId('layer-delete'))
+    const dialog = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await dialog.findByTestId('delete-confirm'))
+    await expect(await dialog.findByTestId('delete-failure')).toHaveTextContent('It is assigned to 1 entity type')
+  },
+}
+
 /** The metamodel is locked (import-only, US-035): a notice and no changing actions. */
 export const Locked: Story = {
   ...page('metatypes', IDS.zone, undefined, true),
@@ -125,6 +169,35 @@ export const Collision: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
     await expect(await canvas.findByText('Changed by someone else meanwhile')).toBeInTheDocument()
     await expect(canvas.getByTestId('collision-abbreviation')).toHaveTextContent('NET')
+  },
+}
+
+/** The field "Layer" of the entity type dialog, with the layers of the instance and "No layer". */
+export const LayerSelect: Story = {
+  render: () => ({
+    components: { MetatypeDialog, UCard },
+    setup: () => {
+      const api = metamodelApi()
+      const ready = ref(false)
+      onBeforeMount(async () => {
+        await refreshSession(api.fetch)
+        await loadMetamodel(api.fetch)
+        ready.value = true
+      })
+      return { fetchFn: api.fetch, ready, metatype: () => ({ ...metatypeById(IDS.zone)!, architectureLayerId: IDS.layerStrategy }) }
+    },
+    template: `
+      <div class="flex min-h-screen items-start justify-center bg-elevated/50 p-8">
+        <UCard class="w-full max-w-lg">
+          <template #header><h2 class="text-lg font-semibold text-highlighted">Edit entity type</h2></template>
+          <MetatypeDialog v-if="ready" :metatype="metatype()" :fetch-fn="fetchFn" />
+        </UCard>
+      </div>`,
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const layer = await canvas.findByTestId('metatype-layer')
+    await expect(layer).toHaveTextContent('Strategy')
   },
 }
 

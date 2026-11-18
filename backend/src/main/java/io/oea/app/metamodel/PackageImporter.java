@@ -4,6 +4,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.metamodel.ArchitectureLayerStore;
 import io.oea.core.metamodel.BuiltInMetatypes;
 import io.oea.core.metamodel.CompositionStore;
 import io.oea.core.metamodel.ViewpointStore;
@@ -60,6 +61,8 @@ public class PackageImporter {
 
 	private CompositionStore composition;
 
+	private ArchitectureLayerStore layerStore;
+
 	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions,
 			ViewpointStore viewpointStore, NotationCatalog catalog) {
@@ -81,12 +84,20 @@ public class PackageImporter {
 		this.composition = composition;
 	}
 
+	/** The store of the architecture layers; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
+	@Autowired
+	void setLayerStore(ArchitectureLayerStore layerStore) {
+		this.layerStore = layerStore;
+	}
+
 	/**
-	 * Result of an import; counts refer to metatypes, {@code labels} to the stored package labels and
-	 * the viewpoint counts to the system-defined viewpoints of the package.
+	 * Result of an import; counts refer to metatypes, {@code labels} to the stored package labels, the
+	 * viewpoint counts to the system-defined viewpoints of the package and the layer counts to its
+	 * architecture layers ({@code layerAssignmentsCleared}: metatypes that lost a deleted layer).
 	 */
 	public record Outcome(UUID batchId, int created, int updated, int labels, int viewpointsCreated,
-			int viewpointsUpdated, int viewpointsDeleted) {
+			int viewpointsUpdated, int viewpointsDeleted, int layersCreated, int layersUpdated, int layersDeleted,
+			int layerAssignmentsCleared) {
 	}
 
 	/** Existing content with an identifier or a name of the package. */
@@ -120,6 +131,7 @@ public class PackageImporter {
 			checkBaseTypes(definition);
 			checkConnections(definition);
 			checkComposition(definition);
+			checkLayerLimit(definition);
 		}
 		catch (InvalidPackageException ex) {
 			rejected(principal, definition, ex.getType());
@@ -128,6 +140,7 @@ public class PackageImporter {
 		Instant now = this.clock.instant();
 		UUID batchId = UUID.randomUUID();
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
+		LayerImport layerImport = importLayers(principal, definition, now);
 		for (PackageDefinition.Category category : definition.categories()) {
 			upsertCategory(definition, category);
 		}
@@ -164,6 +177,7 @@ public class PackageImporter {
 			actions.put(metatype.id(), action);
 		}
 		uniqueInChains(principal, definition);
+		int cleared = dropLayers(definition, layerImport);
 		ViewpointImport viewpoints = importViewpoints(principal, definition, now);
 		// organization mappings are kept or removed by the re-import setting (us-032-metatype-editing D8)
 		Map<UUID, String> policies = this.policies.effective();
@@ -204,6 +218,10 @@ public class PackageImporter {
 		details.put("viewpointsCreated", viewpoints.created());
 		details.put("viewpointsUpdated", viewpoints.updated());
 		details.put("viewpointsDeleted", viewpoints.deleted().stream().map(UUID::toString).toList());
+		details.put("architectureLayersCreated", layerImport.created());
+		details.put("architectureLayersUpdated", layerImport.updated());
+		details.put("architectureLayersDeleted", layerImport.dropped().size());
+		details.put("layerAssignmentsCleared", cleared);
 		this.audit.append(new AuditEvent("metamodel.package-imported", AuditEvent.Category.CHANGE,
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"metamodel-package", definition.packageId(), details));
@@ -217,7 +235,70 @@ public class PackageImporter {
 			}
 		}
 		return new Outcome(batchId, created, updated, labelCount, viewpoints.created(), viewpoints.updated(),
-				viewpoints.deleted().size());
+				viewpoints.deleted().size(), layerImport.created(), layerImport.updated(), layerImport.dropped().size(),
+				cleared);
+	}
+
+	/** What the import did to the layers of the package; {@code dropped} holds the IDs the package no longer has. */
+	private record LayerImport(int created, int updated, List<UUID> dropped, int assigned) {
+	}
+
+	/**
+	 * Installs the layers of the package as imported ones before the metatypes that reference them
+	 * (design D3 of s17-architecture-layers). The names of the package's layers are released first,
+	 * so that a rename or swap cannot collide; the layers the new version no longer has are removed
+	 * after the metatypes by {@link #dropLayers}.
+	 */
+	private LayerImport importLayers(OeaPrincipal principal, PackageDefinition definition, Instant now) {
+		Map<UUID, ArchitectureLayerStore.LayerRow> existing = new HashMap<>();
+		this.layerStore.packageLayers(definition.packageId()).forEach((row) -> existing.put(row.id(), row));
+		Set<UUID> wanted = new HashSet<>();
+		definition.layers().forEach((layer) -> wanted.add(layer.id()));
+		List<UUID> dropped = existing.keySet().stream().filter((id) -> !wanted.contains(id)).toList();
+		// metatypes of any origin that have a layer the new version drops
+		int assigned = this.layerStore.assignedCount(dropped);
+		this.layerStore.releaseNames(definition.packageId());
+		// new layers go behind the existing ones in the order of the package; existing ones keep their position
+		int end = this.layerStore.count();
+		int created = 0;
+		int updated = 0;
+		for (PackageDefinition.Layer layer : definition.layers()) {
+			ArchitectureLayerStore.LayerRow row = existing.get(layer.id());
+			String name = layer.name().strip();
+			boolean changed = row != null && !row.name().equals(name);
+			if (this.layerStore.upsertImported(layer.id(), name, end + layer.sortOrder(), definition.packageId(),
+					definition.version(), changed, principal.personId(), now)) {
+				created++;
+			}
+			else if (changed) {
+				updated++;
+			}
+		}
+		return new LayerImport(created, updated, dropped, assigned);
+	}
+
+	/**
+	 * Removes the layers the package no longer has, after clearing the assignments of every
+	 * metatype to them, organization metatypes included; then numbers the layers densely. Returns
+	 * the number of metatypes that had one of the layers before the import.
+	 */
+	private int dropLayers(PackageDefinition definition, LayerImport layerImport) {
+		this.layerStore.clearAssignments(layerImport.dropped());
+		int cleared = layerImport.assigned();
+		for (UUID id : layerImport.dropped()) {
+			this.layerStore.deletePackageLayer(id, definition.packageId());
+		}
+		this.layerStore.renumber();
+		return cleared;
+	}
+
+	/** The layers of the package and the other layers of the instance number at most 20. */
+	private void checkLayerLimit(PackageDefinition definition) {
+		if (this.layerStore.countOutside(definition.packageId()) + definition.layers().size()
+				> ArchitectureLayers.MAXIMUM_LAYERS) {
+			throw new InvalidPackageException("invalid-package", "/architectureLayers",
+					"The layers of the package and of the instance exceed " + ArchitectureLayers.MAXIMUM_LAYERS + ".");
+		}
 	}
 
 	/** What the import did to the viewpoints of the package; {@code deleted} holds the IDs. */
@@ -327,6 +408,13 @@ public class PackageImporter {
 						WHERE m.id = ? AND m.metatype_id <> ?""", mapping.id(), metatype.id()));
 			}
 		}
+		for (PackageDefinition.Layer layer : definition.layers()) {
+			check(conflicts, definition, "architecture layer " + layer.name().strip(),
+					this.layerStore.owners(layer.id(), layer.name().strip())
+						.stream()
+						.map((owner) -> new Owner(owner.scope(), owner.packageId()))
+						.toList());
+		}
 		for (PackageDefinition.Viewpoint viewpoint : definition.viewpoints()) {
 			List<Owner> owners = this.viewpointStore.owners(viewpoint.id(), viewpoint.name().strip())
 				.stream()
@@ -370,32 +458,42 @@ public class PackageImporter {
 	}
 
 	/** Stored fields of a metatype that a package defines. */
-	private record MetatypeFields(String name, String abbreviation, boolean connection, int sortOrder) {
+	private record MetatypeFields(String name, String abbreviation, boolean connection, int sortOrder,
+			UUID architectureLayerId) {
+
+		MetatypeFields withLayer(UUID layerId) {
+			return new MetatypeFields(this.name, this.abbreviation, this.connection, this.sortOrder, layerId);
+		}
+
 	}
 
 	/** Returns {@code created}, {@code updated} or {@code unchanged} (mappings are compared later). */
 	private String upsertMetatype(PackageDefinition definition, PackageDefinition.Metatype metatype) {
 		String abbreviation = (metatype.abbreviation() != null) ? metatype.abbreviation().strip() : null;
 		MetatypeFields wanted = new MetatypeFields(metatype.name().strip(), abbreviation, metatype.connection(),
-				metatype.sortOrder());
+				metatype.sortOrder(), metatype.architectureLayerId());
 		List<MetatypeFields> existing = this.jdbc.query(
 				"SELECT name, abbreviation, is_connection, sort_order FROM metatypes WHERE id = ?",
-				(rs, n) -> new MetatypeFields(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getInt(4)),
-				metatype.id());
+				(rs, n) -> new MetatypeFields(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getInt(4), null),
+				metatype.id())
+			.stream()
+			.map((fields) -> fields.withLayer(this.layerStore.layerOf(metatype.id()).orElse(null)))
+			.toList();
 		if (existing.isEmpty()) {
 			this.jdbc.update("""
 					INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, sort_order, scope,
-					    source_package_id, source_package_version, is_composition)
-					VALUES (?, ?, ?, ?, ?, ?, 'imported', ?, ?, ?)""",
+					    source_package_id, source_package_version, is_composition, architecture_layer_id)
+					VALUES (?, ?, ?, ?, ?, ?, 'imported', ?, ?, ?, ?)""",
 					metatype.id(), INSTANCE_CONFIGURATION, wanted.name(), abbreviation, metatype.connection(),
-					metatype.sortOrder(), definition.packageId(), definition.version(), metatype.composition());
+					metatype.sortOrder(), definition.packageId(), definition.version(), metatype.composition(),
+					metatype.architectureLayerId());
 			return "created";
 		}
 		this.jdbc.update("""
 				UPDATE metatypes SET name = ?, abbreviation = ?, is_connection = ?, sort_order = ?,
-				       source_package_version = ?, is_composition = ? WHERE id = ?""", wanted.name(), abbreviation,
-				metatype.connection(), metatype.sortOrder(), definition.version(), metatype.composition(),
-				metatype.id());
+				       source_package_version = ?, is_composition = ?, architecture_layer_id = ? WHERE id = ?""",
+				wanted.name(), abbreviation, metatype.connection(), metatype.sortOrder(), definition.version(),
+				metatype.composition(), metatype.architectureLayerId(), metatype.id());
 		return existing.get(0).equals(wanted) ? "unchanged" : "updated";
 	}
 

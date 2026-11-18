@@ -4,6 +4,8 @@ import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.MetamodelApi;
 import io.oea.api.generated.model.SolutionDecision;
 import io.oea.api.generated.model.AllowedConnectionResult;
+import io.oea.api.generated.model.ArchitectureLayer;
+import io.oea.api.generated.model.ArchitectureLayerWrite;
 import io.oea.api.generated.model.AllowedConnectionResultOptionsInner;
 import io.oea.api.generated.model.CreateEnumValueRequest;
 import io.oea.api.generated.model.AuditActorType;
@@ -37,6 +39,7 @@ import io.oea.api.generated.model.ReimportPolicy;
 import io.oea.api.generated.model.SourcePackage;
 import io.oea.app.metamodel.SolutionImpact;
 import io.oea.app.metamodel.AllowedConnections;
+import io.oea.app.metamodel.ArchitectureLayers;
 import io.oea.app.metamodel.MetamodelChanges;
 import io.oea.app.metamodel.MetamodelConfigurations;
 import io.oea.app.metamodel.MetamodelLabels;
@@ -94,10 +97,13 @@ public class MetamodelController implements MetamodelApi {
 
 	private final ParallelChangeSettings parallelChanges;
 
+	private final ArchitectureLayers layers;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
 			AllowedConnections allowedConnections, MetamodelConfigurations configurations, MetamodelChanges changes,
-			ParallelChangeSettings parallelChanges) {
+			ParallelChangeSettings parallelChanges, ArchitectureLayers layers) {
+		this.layers = layers;
 		this.parallelChanges = parallelChanges;
 		this.configurations = configurations;
 		this.changes = changes;
@@ -157,6 +163,35 @@ public class MetamodelController implements MetamodelApi {
 	@Override
 	public ResponseEntity<Void> deleteMetamodelConfiguration(UUID id, String ifMatch) {
 		this.configurations.delete(principal(), id, expectedVersion(ifMatch));
+		return ResponseEntity.noContent().build();
+	}
+
+	@Override
+	public ResponseEntity<List<ArchitectureLayer>> listArchitectureLayers() {
+		return ResponseEntity.ok(this.layers.list().stream().map(MetamodelController::layer).toList());
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid architecture layer", detail = "Some fields are invalid.")
+	public ResponseEntity<ArchitectureLayer> createArchitectureLayer(ArchitectureLayerWrite write) {
+		ArchitectureLayer created = layer(this.layers.create(principal(), write.getName(), write.getSortOrder()));
+		return ResponseEntity.created(URI.create("/api/v1/metamodel/architecture-layers/" + created.getId()))
+			.eTag(etag(created.getVersion()))
+			.body(created);
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid architecture layer", detail = "Some fields are invalid.")
+	public ResponseEntity<ArchitectureLayer> updateArchitectureLayer(UUID id, String ifMatch,
+			ArchitectureLayerWrite write) {
+		ArchitectureLayer updated = layer(this.layers.update(principal(), id, write.getName(), write.getSortOrder(),
+				expectedVersion(ifMatch)));
+		return ResponseEntity.ok().eTag(etag(updated.getVersion())).body(updated);
+	}
+
+	@Override
+	public ResponseEntity<Void> deleteArchitectureLayer(UUID id, String ifMatch) {
+		this.layers.delete(principal(), id, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
 	}
 
@@ -466,7 +501,8 @@ public class MetamodelController implements MetamodelApi {
 				(metatype.abbreviation() != null) ? metatype.abbreviation() : "")
 			.isConnection(metatype.connection())
 			.isComposition(metatype.composition())
-			.architectureLayer(metatype.architectureLayerId())
+			.architectureLayerId(metatype.architectureLayerId())
+			.architectureLayerName(metatype.architectureLayerName())
 			.sortOrder(metatype.sortOrder())
 			.scope(MetamodelScope.fromValue(metatype.scope()))
 			.baseMetatypeId(metatype.baseMetatypeId())
@@ -485,6 +521,13 @@ public class MetamodelController implements MetamodelApi {
 			.version(metatype.version())
 			.configId(metatype.configId())
 			.showParallelChanges(metatype.showParallelChanges());
+	}
+
+	private static ArchitectureLayer layer(ArchitectureLayers.Layer layer) {
+		return new ArchitectureLayer(layer.id(), layer.name(), layer.sortOrder(), MetamodelScope.fromValue(layer.scope()),
+				(int) layer.metatypeCount(), layer.version())
+			.sourcePackage((layer.sourcePackage() != null)
+					? new SourcePackage(layer.sourcePackage().packageId(), layer.sourcePackage().version()) : null);
 	}
 
 	private static MetamodelChange change(MetamodelChanges.Change change) {

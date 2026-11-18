@@ -754,7 +754,7 @@ package "I18N" #FFF3E0 {
     + id           : UUID                 {PK}
     --
     + entity_type  : TEXT                 {NN}
-    .. enum: metatype | property_def | enum_value | property_category (V17) ..
+    .. enum: metatype | property_def | enum_value | property_category (V17) | architecture_layer (V44) ..
     .. authorization_role and description fields follow later ..
     .. business roles are EA entities (monolingual), not translated here ..
     + entity_id    : UUID                 {NN}
@@ -820,7 +820,7 @@ package "Metamodel" #E8F5E9 {
     == Configuration as JSONB (ADR-030) ==
     + config           : JSONB            {NN} DEFAULT '{}'
     .. mapped via @JdbcTypeCode(SqlTypes.JSON) ..
-    .. viewpoints[], architectureLayers[] ..
+    .. viewpoints[] ..
     .. constraintRules[], stereotypes[]   ..
     .. documentCollectionDefinitions[]    ..
   }
@@ -837,8 +837,9 @@ package "Metamodel" #E8F5E9 {
     + is_composition        : BOOLEAN     {NN} DEFAULT false
     .. V42, US-135: CHECK NOT is_composition OR is_connection; UNIQUE INDEX metatypes_one_composition ((true)) WHERE is_composition ..
     .. the built-in metatype "Structuring aid" (scope built-in, id c3f523b8-f07f-5475-9ab0-6f2ea39b537e) is inserted by V42 ..
-    + architecture_layer_id : TEXT
-    .. soft ref in config.architectureLayers ..
+    + architecture_layer_id : UUID        {FK→architecture_layers.id}
+    .. optional; V44 (s17-architecture-layers) converts the former free text, which referenced no layer, ..
+    .. to a reference and clears it; also for metatypes of a solution extension, which use the instance layers ..
     + sort_order            : INTEGER     {NN} DEFAULT 0
     + scope                 : TEXT        {NN} DEFAULT 'organization'
     .. enum: built-in | imported | organization (ADR-002) ..
@@ -877,6 +878,31 @@ package "Metamodel" #E8F5E9 {
     .. (us-036-connection-metatypes D2) ..
   }
 
+  class architecture_layers <<Table>> #C8E6C9 {
+    + id                     : UUID       {PK}
+    --
+    + config_id              : UUID       {NN} {FK→metamodel_configurations.id}
+    .. always the instance configuration (CHECK, V44); layers of solution extensions follow later ..
+    + name                   : TEXT       {NN}
+    .. 1–100 characters, stripped (CHECK); UNIQUE(config_id, lower(btrim(name))) ..
+    .. corporate language; translations in i18n_entries (key architecture-layer.{id}.name) ..
+    + sort_order             : INTEGER    {NN}
+    .. CHECK >= 0; dense (0, 1, 2, ...) after every change; at most 20 layers (service) ..
+    + version                : INTEGER    {NN} DEFAULT 1
+    .. CHECK version >= 1; grows with every change; If-Match of the writes ..
+    + scope                  : TEXT       {NN} DEFAULT 'organization'
+    .. enum: imported | organization (CHECK) ..
+    + source_package_id      : TEXT
+    + source_package_version : TEXT
+    .. origin package; NOT NULL iff scope = 'imported' (CHECK architecture_layers_origin) ..
+    + created_at             : TIMESTAMPTZ {NN} DEFAULT NOW()
+    + created_by             : BIGINT     {FK→persons.id}
+    + updated_at             : TIMESTAMPTZ {NN} DEFAULT NOW()
+    + updated_by             : BIGINT     {FK→persons.id}
+    .. NULL created_by / updated_by for a package imported by a system admin account ..
+    .. s17-architecture-layers D1; US-057 AC4, REQ-053 BR-04, ADR-017 ..
+  }
+
   class metamodel_package_imports <<Table>> #C8E6C9 {
     + id                    : UUID        {PK}
     --
@@ -894,6 +920,8 @@ package "Metamodel" #E8F5E9 {
 
   metamodel_configurations "0..1" --o{ "0..*" metamodel_configurations       : parent_id
   metamodel_configurations "1"    --o{ "0..*" metatypes                      : defines
+  metamodel_configurations "1"    --o{ "0..*" architecture_layers            : defines (V44)
+  architecture_layers      "0..1" --o{ "0..*" metatypes                      : layer of (V44)
   metatypes                "1"    --o{ "0..*" metatype_connection_constraints : constrains
   metatypes                "1"    --o{ "0..*" metatype_connection_constraints : allowed endpoint
 

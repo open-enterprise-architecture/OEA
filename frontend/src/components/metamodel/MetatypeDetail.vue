@@ -147,6 +147,10 @@ function stateColor(state: PropertyMapping['state']): 'success' | 'info' | 'neut
             variant="subtle"
             :label="scopeLabel(metatype.scope, metatype.sourcePackage)"
           />
+          <span v-if="metatype.architectureLayerId" data-testid="metatype-layer-shown">
+            {{ t('metamodel.metatype.layer') }}:
+            {{ label(labelKeys.architectureLayer(metatype.architectureLayerId), metatype.architectureLayerName ?? '') }}
+          </span>
           <span v-if="base" data-testid="metatype-base-type">
             {{ t('metamodel.metatype.inheritsFrom') }}
             <RouterLink :to="`/metamodel/metatypes/${base.id}`" class="text-primary underline">

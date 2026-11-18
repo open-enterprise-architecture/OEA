@@ -15,6 +15,7 @@ type Mapping = components['schemas']['MetatypePropertyMapping']
 type Scope = components['schemas']['MetamodelScope']
 type Configuration = Mutable<components['schemas']['MetamodelConfiguration']>
 type Change = components['schemas']['MetamodelChange']
+type Layer = Mutable<components['schemas']['ArchitectureLayer']>
 
 function me(displayName: string, permissions: string[]) {
   return {
@@ -43,10 +44,15 @@ export const IDS = {
   zone: 'a0000000-0000-4000-8000-000000000003',
   cloudZone: 'a0000000-0000-4000-8000-000000000004',
   dataFlow: 'a0000000-0000-4000-8000-000000000005',
+  layerBusiness: 'f1000000-0000-4000-8000-000000000001',
+  layerApplication: 'f1000000-0000-4000-8000-000000000002',
+  layerTechnology: 'f1000000-0000-4000-8000-000000000003',
+  layerStrategy: 'f1000000-0000-4000-8000-000000000004',
 }
 
 const STARTER = { packageId: 'oea-starter-togaf-classic', version: '1.1.0' }
 const STARTER_WITH_VIEWPOINTS = { packageId: 'oea-starter-togaf-classic', version: '1.2.0' }
+const STARTER_WITH_LAYERS = { packageId: 'oea-starter-togaf-classic', version: '1.4.0' }
 
 type NotationElement = components['schemas']['NotationElement']
 
@@ -85,6 +91,8 @@ interface Stored {
   metatypes: (Omit<Metatype, 'propertyMappings' | 'effectiveReimportPolicy'> & { entities: number })[]
   properties: Property[]
   categories: Category[]
+  /** The architecture layers in their order, without the number of metatypes (change s17-architecture-layers). */
+  layers: Omit<Layer, 'metatypeCount'>[]
   entries: Entry[]
   globalReimport: 'keep' | 'remove'
   /** The instance configuration with its edit mode (US-035). */
@@ -137,6 +145,12 @@ function seed(): Stored {
   const general: Category = { id: IDS.general, name: 'General', sortOrder: 0, scope: 'imported', version: 1 }
   return {
     categories: [general],
+    layers: [
+      { id: IDS.layerBusiness, name: 'Business', sortOrder: 0, scope: 'imported', sourcePackage: STARTER_WITH_LAYERS, version: 1 },
+      { id: IDS.layerApplication, name: 'Application', sortOrder: 1, scope: 'imported', sourcePackage: STARTER_WITH_LAYERS, version: 1 },
+      { id: IDS.layerTechnology, name: 'Technology', sortOrder: 2, scope: 'imported', sourcePackage: STARTER_WITH_LAYERS, version: 1 },
+      { id: IDS.layerStrategy, name: 'Strategy', sortOrder: 3, scope: 'organization', sourcePackage: null, version: 1 },
+    ],
     viewpoints: [
       {
         id: 'b0000000-0000-4000-8000-000000000001',
@@ -194,8 +208,8 @@ function seed(): Stored {
       { id: IDS.owner, name: 'Owner', dataType: 'string', scope: 'organization', sqlColumnName: 'owner', version: 1, maxLength: 100, enumValues: [] },
     ],
     metatypes: [
-      { id: IDS.component, name: 'Application Component', abbreviation: 'AC', sortOrder: 1, scope: 'imported', sourcePackage: STARTER, isConnection: false, reimportPolicy: 'inherit', version: 1, entities: 12, connectionConstraints: [] },
-      { id: IDS.service, name: 'Application Service', abbreviation: 'AS', sortOrder: 2, scope: 'imported', sourcePackage: STARTER, isConnection: false, reimportPolicy: 'inherit', version: 1, entities: 0, connectionConstraints: [] },
+      { id: IDS.component, name: 'Application Component', abbreviation: 'AC', sortOrder: 1, scope: 'imported', sourcePackage: STARTER, isConnection: false, reimportPolicy: 'inherit', version: 1, entities: 12, connectionConstraints: [], architectureLayerId: IDS.layerApplication },
+      { id: IDS.service, name: 'Application Service', abbreviation: 'AS', sortOrder: 2, scope: 'imported', sourcePackage: STARTER, isConnection: false, reimportPolicy: 'inherit', version: 1, entities: 0, connectionConstraints: [], architectureLayerId: IDS.layerApplication },
       { id: IDS.zone, name: 'Network Zone', abbreviation: 'NZ', sortOrder: 10, scope: 'organization', isConnection: false, reimportPolicy: 'inherit', version: 3, entities: 5, connectionConstraints: [] },
       { id: IDS.cloudZone, name: 'Cloud Zone', abbreviation: 'CZ', sortOrder: 11, scope: 'organization', isConnection: false, baseMetatypeId: IDS.zone, reimportPolicy: 'inherit', version: 1, entities: 0, connectionConstraints: [] },
       {
@@ -268,6 +282,7 @@ function seedChanges(): Change[] {
     }),
     change(2, 9, 'metamodel.metatype-imported', 'package', KURT, 'Application Service', batch),
     change(1, 8, 'metamodel.metatype-imported', 'package', KURT, 'Application Component', batch),
+    change(8, 5, 'metamodel.layer-created', 'layer', KURT, 'Strategy', { targetType: 'architecture-layer', targetId: IDS.layerStrategy }),
   ]
 }
 
@@ -369,7 +384,26 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
     )
   const detail = (id: string): Metatype => {
     const { entities: _entities, ...metatype } = state.metatypes.find((candidate) => candidate.id === id)!
-    return { ...metatype, propertyMappings: mappings(id, false), effectiveReimportPolicy: effective(id) }
+    const layer = state.layers.find((candidate) => candidate.id === metatype.architectureLayerId)
+    return {
+      ...metatype,
+      architectureLayerId: layer?.id ?? null,
+      architectureLayerName: layer?.name ?? null,
+      propertyMappings: mappings(id, false),
+      effectiveReimportPolicy: effective(id),
+    }
+  }
+  // the layers in their order with the number of metatypes that have each
+  const layerList = (): Layer[] =>
+    [...state.layers]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((layer, index) => ({ ...layer, sortOrder: index, metatypeCount: state.metatypes.filter((metatype) => metatype.architectureLayerId === layer.id).length }))
+  const knownLayer = (layerId: unknown): boolean => layerId === undefined || layerId === null || state.layers.some((layer) => layer.id === layerId)
+  const unknownLayer = () => problem(422, 'validation-failed', { invalidFields: ['architectureLayerId'], detail: 'The architecture layer does not exist.' })
+  const placeLayer = (layer: Omit<Layer, 'metatypeCount'>, position: unknown) => {
+    const others = layerList().filter((candidate) => candidate.id !== layer.id)
+    others.splice(Math.min(Number(position), others.length), 0, { ...layer, metatypeCount: 0 })
+    state.layers = others.map(({ metatypeCount: _count, ...rest }, index) => ({ ...rest, sortOrder: index }))
   }
   const labelList = (locale: string) => {
     const own = state.labels[locale] ?? {}
@@ -387,6 +421,7 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         (property.enumValues ?? []).map((value) => entry(`enum-value.${value.id}.label`, 'enum-value', value.value)),
       ),
       ...state.categories.map((category) => entry(`property-category.${category.id}.name`, 'property-category', category.name)),
+      ...state.layers.map((layer) => entry(`architecture-layer.${layer.id}.name`, 'architecture-layer', layer.name)),
     ]
   }
   const stale = (element: { version?: number }, ifMatch: string | undefined): Response | undefined =>
@@ -563,9 +598,13 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         if (state.metatypes.some((metatype) => metatype.name.toLowerCase() === name.toLowerCase())) {
           return problem(409, 'name-taken', { invalidFields: ['name'] })
         }
+        if (!knownLayer(body?.architectureLayerId)) {
+          return unknownLayer()
+        }
         const created = {
           id: newId(),
           name,
+          architectureLayerId: (body?.architectureLayerId as string | null | undefined) ?? null,
           abbreviation: String(body?.abbreviation ?? ''),
           sortOrder: Number(body?.sortOrder ?? 0),
           scope: 'organization' as Scope,
@@ -601,8 +640,12 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
           state.metatypes = state.metatypes.filter((metatype) => metatype.id !== stored.id)
           return json(undefined, 204)
         }
+        if (!knownLayer(body?.architectureLayerId)) {
+          return unknownLayer()
+        }
         Object.assign(stored, {
           name: String(body?.name),
+          architectureLayerId: (body?.architectureLayerId as string | null | undefined) ?? null,
           abbreviation: String(body?.abbreviation ?? ''),
           sortOrder: Number(body?.sortOrder ?? 0),
           isComposition: stored.isConnection === true && Boolean(body?.isComposition),
@@ -646,6 +689,58 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         stored.version = (stored.version ?? 1) + 1
         return json(undefined, 204)
       }
+    }
+
+    if (kind === 'architecture-layers') {
+      const stored = state.layers.find((layer) => layer.id === id)
+      if (!id) {
+        if (method === 'GET') {
+          return json(layerList())
+        }
+        const name = String(body?.name ?? '').trim()
+        if (name === '' || name.length > 100) {
+          return problem(422, 'validation-failed', { invalidFields: ['name'] })
+        }
+        if (state.layers.some((layer) => layer.name.toLowerCase() === name.toLowerCase())) {
+          return problem(409, 'name-taken', { invalidFields: ['name'] })
+        }
+        if (state.layers.length >= 20) {
+          return problem(422, 'validation-failed', { invalidFields: ['architectureLayers'] })
+        }
+        const created = { id: newId(), name, sortOrder: state.layers.length, scope: 'organization' as Scope, sourcePackage: null, version: 1 }
+        placeLayer(created, body?.sortOrder ?? state.layers.length)
+        return json(layerList().find((layer) => layer.id === created.id), 201, 1)
+      }
+      if (!stored) {
+        return problem(404, 'not-found')
+      }
+      if (stored.scope !== 'organization') {
+        return problem(409, 'read-only-metatype')
+      }
+      const rejected = stale(stored, ifMatch)
+      if (rejected) {
+        return rejected
+      }
+      if (method === 'DELETE') {
+        const count = state.metatypes.filter((metatype) => metatype.architectureLayerId === stored.id).length
+        if (count > 0) {
+          return problem(409, 'in-use', { count })
+        }
+        state.layers = state.layers.filter((layer) => layer.id !== stored.id)
+        return json(undefined, 204)
+      }
+      const name = String(body?.name ?? '').trim()
+      if (name === '' || name.length > 100) {
+        return problem(422, 'validation-failed', { invalidFields: ['name'] })
+      }
+      if (state.layers.some((layer) => layer.id !== stored.id && layer.name.toLowerCase() === name.toLowerCase())) {
+        return problem(409, 'name-taken', { invalidFields: ['name'] })
+      }
+      Object.assign(stored, { name, version: stored.version + 1 })
+      if (body?.sortOrder !== undefined) {
+        placeLayer(stored, body.sortOrder)
+      }
+      return json(layerList().find((layer) => layer.id === stored.id), 200, stored.version)
     }
 
     if (kind === 'property-definitions') {

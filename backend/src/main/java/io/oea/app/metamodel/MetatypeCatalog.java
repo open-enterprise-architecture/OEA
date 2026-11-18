@@ -1,5 +1,6 @@
 package io.oea.app.metamodel;
 
+import io.oea.core.metamodel.ArchitectureLayerStore;
 import io.oea.core.solution.SnapshotStore;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,11 +32,19 @@ public class MetatypeCatalog {
 
 	private final SnapshotStore snapshots;
 
+	private ArchitectureLayerStore layers;
+
 	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock, PropertyVisibility visibility, SnapshotStore snapshots) {
 		this.snapshots = snapshots;
 		this.jdbc = jdbc;
 		this.clock = clock;
 		this.visibility = visibility;
+	}
+
+	/** The store of the architecture layers; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
+	@Autowired
+	void setLayers(ArchitectureLayerStore layers) {
+		this.layers = layers;
 	}
 
 	public record EnumValue(UUID id, String value, int sortOrder) {
@@ -83,7 +93,8 @@ public class MetatypeCatalog {
 
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String effectiveReimportPolicy, String architectureLayerId, List<Mapping> mappings, int version,
+			String effectiveReimportPolicy, UUID architectureLayerId, String architectureLayerName, List<Mapping> mappings,
+			int version,
 			List<Constraint> constraints, UUID configId, boolean showParallelChanges, boolean composition) {
 	}
 
@@ -93,7 +104,7 @@ public class MetatypeCatalog {
 
 	private record Row(UUID id, String name, String abbreviation, boolean connection, int sortOrder, String scope,
 			String sourcePackageId, String sourcePackageVersion, UUID baseMetatypeId, String reimportPolicy,
-			String architectureLayerId, int version, UUID configId, boolean showParallelChanges, boolean composition) {
+			int version, UUID configId, boolean showParallelChanges, boolean composition) {
 	}
 
 	/** The metatypes of the instance configuration. */
@@ -161,7 +172,8 @@ public class MetatypeCatalog {
 			result.add(new Metatype(metatype.id(), metatype.name(), metatype.abbreviation(), metatype.connection(),
 					metatype.sortOrder(), metatype.scope(), metatype.sourcePackageId(), metatype.sourcePackageVersion(),
 					metatype.baseMetatypeId(), metatype.reimportPolicy(), metatype.effectiveReimportPolicy(),
-					metatype.architectureLayerId(), List.copyOf(mappings), metatype.version(), metatype.constraints(),
+					metatype.architectureLayerId(), metatype.architectureLayerName(), List.copyOf(mappings), metatype.version(),
+					metatype.constraints(),
 					metatype.configId(), metatype.showParallelChanges(), metatype.composition()));
 		}
 		return result;
@@ -242,14 +254,15 @@ public class MetatypeCatalog {
 		Map<UUID, Map<UUID, List<Mapping>>> own = entries(includeHistory);
 		Map<UUID, Row> rows = new LinkedHashMap<>();
 		this.jdbc.query("""
-				SELECT id, name, abbreviation, is_connection, sort_order, scope, source_package_id, source_package_version,
-				       base_metatype_id, reimport_organization_mappings, architecture_layer_id, version, config_id,
-				       show_parallel_changes, is_composition
-				FROM metatypes WHERE config_id IN (?, ?) ORDER BY sort_order, name""", (rs) -> {
+				SELECT m.id, m.name, m.abbreviation, m.is_connection, m.sort_order, m.scope, m.source_package_id,
+				       m.source_package_version, m.base_metatype_id, m.reimport_organization_mappings,
+				       m.version, m.config_id, m.show_parallel_changes, m.is_composition
+				FROM metatypes m
+				WHERE m.config_id IN (?, ?) ORDER BY m.sort_order, m.name""", (rs) -> {
 			UUID metatype = rs.getObject(1, UUID.class);
 			rows.put(metatype, new Row(metatype, rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getInt(5),
 					rs.getString(6), rs.getString(7), rs.getString(8), rs.getObject(9, UUID.class), rs.getString(10),
-					rs.getString(11), rs.getInt(12), rs.getObject(13, UUID.class), rs.getBoolean(14), rs.getBoolean(15)));
+					rs.getInt(11), rs.getObject(12, UUID.class), rs.getBoolean(13), rs.getBoolean(14)));
 		}, PackageImporter.INSTANCE_CONFIGURATION, config);
 		Map<UUID, UUID> bases = new HashMap<>();
 		rows.values().stream().filter((row) -> row.baseMetatypeId() != null)
@@ -266,6 +279,9 @@ public class MetatypeCatalog {
 							new MetatypeRef(allowed.id(), allowed.name(), allowed.abbreviation())));
 			}
 		});
+		Map<UUID, UUID> layerIds = this.layers.layerByMetatype(rows.keySet());
+		Map<UUID, String> layerNames = new HashMap<>();
+		this.layers.list().forEach((layer) -> layerNames.put(layer.id(), layer.name()));
 		List<Metatype> metatypes = new ArrayList<>();
 		for (Row row : rows.values()) {
 			if (id != null && !id.equals(row.id())) {
@@ -282,7 +298,8 @@ public class MetatypeCatalog {
 			}
 			metatypes.add(new Metatype(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
 					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
-					row.reimportPolicy(), policies.get(row.id()), row.architectureLayerId(), List.copyOf(mappings),
+					row.reimportPolicy(), policies.get(row.id()), layerIds.get(row.id()), layerNames.get(layerIds.get(row.id())),
+					List.copyOf(mappings),
 					row.version(), List.copyOf(constraints.getOrDefault(row.id(), List.of())), row.configId(),
 					row.showParallelChanges(), row.composition()));
 		}

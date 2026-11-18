@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import ArchitectureLayersSection from '../components/metamodel/ArchitectureLayersSection.vue'
 import CategoriesSection from '../components/metamodel/CategoriesSection.vue'
 import ChangesSection from '../components/metamodel/ChangesSection.vue'
 import MetatypesSection from '../components/metamodel/MetatypesSection.vue'
@@ -20,7 +21,7 @@ const props = defineProps<{ fetchFn?: typeof fetch; section?: string; id?: strin
 const router = useRouter()
 const { t } = useI18n()
 
-const SECTIONS = ['metatypes', 'properties', 'categories', 'viewpoints', 'translations', 'changes', 'settings'] as const
+const SECTIONS = ['metatypes', 'properties', 'categories', 'layers', 'viewpoints', 'translations', 'changes', 'settings'] as const
 // sections for metamodel administrators only (changes: US-034)
 const ADMINISTRATION: readonly Section[] = ['changes', 'settings']
 type Section = (typeof SECTIONS)[number]
@@ -113,6 +114,7 @@ async function select(section: string | number) {
       />
       <PropertiesSection v-else-if="active === 'properties'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <CategoriesSection v-else-if="active === 'categories'" :can-write="canWrite" :fetch-fn="fetchFn" />
+ <ArchitectureLayersSection v-else-if="active === 'layers'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <ViewpointsSection v-else-if="active === 'viewpoints'" :can-manage="canManageViewpoints" :fetch-fn="fetchFn" />
       <TranslationsSection v-else-if="active === 'translations'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <ChangesSection v-else-if="active === 'changes' && canAdminister" :fetch-fn="fetchFn" />

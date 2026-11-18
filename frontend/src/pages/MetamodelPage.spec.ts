@@ -43,6 +43,38 @@ describe('MetamodelPage', () => {
     expect(wrapper.find('[data-testid="metatype-new"]').exists()).toBe(true)
   })
 
+  // spec metamodel/architecture-layers "Assign a layer": the layer in the list and in the detail
+  it('shows the layer of a metatype in the list and in the detail', async () => {
+    const { wrapper } = await open(`/metamodel/metatypes/${IDS.component}`)
+    const items = wrapper.findAll('[data-testid="metatype-item"]').map((item) => item.text())
+    expect(items[0]).toContain('Application')
+    expect(wrapper.get('[data-testid="metatype-layer-shown"]').text()).toContain('Layer: Application')
+    expect(wrapper.findAll('[data-testid="metatype-item-layer"]')).toHaveLength(2)
+    const { wrapper: zone } = await open(`/metamodel/metatypes/${IDS.zone}`)
+    expect(zone.find('[data-testid="metatype-layer-shown"]').exists()).toBe(false)
+  })
+
+  it('lists the layers under their own section and in the translations', async () => {
+    const { wrapper } = await open('/metamodel/layers')
+    expect(wrapper.findAll('[data-testid="layer-row"]')).toHaveLength(4)
+    expect(wrapper.get('[data-testid="metamodel-sections"]').text()).toContain('Layers')
+    const { wrapper: translations } = await open('/metamodel/translations')
+    const rows = translations.findAll('[data-testid="translation-row"]')
+    const strategy = rows.find((row) => row.text().includes('Strategy'))!
+    expect(strategy.text()).toContain('Layer')
+    expect(rows.filter((row) => row.text().includes('Layer'))).toHaveLength(4)
+  })
+
+  it('offers no layer changes to a reader and while the metamodel is locked', async () => {
+    const { wrapper } = await open('/metamodel/layers', { me: ME_READER })
+    expect(wrapper.findAll('[data-testid="layer-row"]')).toHaveLength(4)
+    expect(wrapper.find('[data-testid="layer-new"]').exists()).toBe(false)
+    const { wrapper: locked } = await open('/metamodel/layers', { locked: true })
+    expect(locked.findAll('[data-testid="layer-row"]')).toHaveLength(4)
+    expect(locked.find('[data-testid="layer-new"]').exists()).toBe(false)
+    expect(locked.find('[data-testid="layer-edit"]').exists()).toBe(false)
+  })
+
   it('marks connection metatypes and names their allowed endpoints', async () => {
     const { wrapper } = await open(`/metamodel/metatypes/${IDS.dataFlow}`)
     expect(wrapper.findAll('[data-testid="metatype-connection-badge"]')).toHaveLength(1)
@@ -215,7 +247,7 @@ describe('MetamodelPage changes', () => {
   it('lists the changes with person, time and element', async () => {
     const { wrapper } = await open('/metamodel/changes')
     const rows = wrapper.findAll('[data-testid="change-row"]')
-    expect(rows).toHaveLength(7)
+    expect(rows).toHaveLength(8)
     expect(rows[1]!.get('[data-testid="change-person"]').text()).toBe('Lukas Mathis')
     expect(rows[1]!.get('[data-testid="change-action"]').text()).toBe('Entity type deleted')
     expect(rows[1]!.get('[data-testid="change-element"]').text()).toBe('Legacy Zone')
@@ -242,7 +274,7 @@ describe('MetamodelPage changes', () => {
     expect(wrapper.find('[data-testid="changes-batch-filter"]').exists()).toBe(true)
     await wrapper.get('[data-testid="changes-batch-clear"]').trigger('click')
     await flushPromises()
-    expect(wrapper.findAll('[data-testid="change-row"]')).toHaveLength(7)
+    expect(wrapper.findAll('[data-testid="change-row"]')).toHaveLength(8)
   })
 
   it('filters by person and kind', async () => {

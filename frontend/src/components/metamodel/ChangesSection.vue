@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{ fetchFn?: typeof fetch; pageSize?: numb
 const { t, te } = useI18n()
 
 const ALL = '-'
-const KINDS: MetamodelChangeKind[] = ['metatype', 'property', 'category', 'enum-value', 'mapping', 'labels', 'reimport', 'package', 'configuration']
+const KINDS: MetamodelChangeKind[] = ['metatype', 'property', 'category', 'enum-value', 'mapping', 'layer', 'labels', 'reimport', 'package', 'configuration']
 
 const filter = reactive({ kind: ALL, actorRef: ALL, from: '', to: '', batchId: '' })
 const items = ref<MetamodelChange[]>([])

@@ -66,4 +66,5 @@ export const labelKeys = {
   metatype: (id: string) => `metatype.${id}.name`,
   enumValue: (id: string) => `enum-value.${id}.label`,
   property: (id: string) => `property-def.${id}.label`,
+  architectureLayer: (id: string) => `architecture-layer.${id}.name`,
 }

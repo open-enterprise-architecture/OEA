@@ -16,6 +16,8 @@ const props = defineProps<{
   title: string
   description: string
   warning?: string
+  /** The message of a 409 `in-use` with the count, where the generic one does not fit (a layer). */
+  inUse?: (count: number | undefined) => string
   version?: number
   run: (version: number | undefined, decisions: SolutionDecision[]) => Promise<WriteOutcome<void>>
 }>()
@@ -57,6 +59,8 @@ async function confirm(version: number | undefined) {
       staleVersion.value = outcome.rejection.currentVersion
       // the caller reloads and shows the current state in the slot
       emit('stale')
+    } else if (outcome.rejection.problemType === 'in-use' && props.inUse) {
+      failure.value = props.inUse(outcome.rejection.count)
     } else {
       failure.value = rejectionMessage(outcome.rejection)
     }

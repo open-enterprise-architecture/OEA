@@ -12,10 +12,16 @@ import java.util.UUID;
  * @param unsupportedSections non-empty package sections this version cannot import yet
  * @param labels locale → label key → text of the package's own elements (us-140-dynamic-labels D5)
  * @param viewpoints the viewpoints the package installs as system-defined ones
+ * @param layers the architecture layers the package installs as imported ones (s17-architecture-layers D3)
  */
 public record PackageDefinition(String packageId, String version, String publisher, String strategy,
 		List<String> unsupportedSections, List<Category> categories, List<Property> properties,
-		List<Metatype> metatypes, Map<String, Map<String, String>> labels, List<Viewpoint> viewpoints) {
+		List<Metatype> metatypes, Map<String, Map<String, String>> labels, List<Viewpoint> viewpoints,
+		List<Layer> layers) {
+
+	/** An architecture layer of the package, identified by its stable ID within the package. */
+	public record Layer(UUID id, String name, int sortOrder) {
+	}
 
 	/**
 	 * A viewpoint of the package, installed as a system-defined one (US-092; design D4 of
@@ -44,15 +50,16 @@ public record PackageDefinition(String packageId, String version, String publish
 	 * @param allowedSources allowed sources of a connection metatype (us-036-connection-metatypes D2)
 	 * @param allowedTargets allowed targets of a connection metatype
 	 * @param composition the connection metatype of the automatic composition (US-135); at most one
+	 * @param architectureLayerId the layer of the package the metatype has, or {@code null}
 	 */
 	public record Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder,
 			UUID baseMetatypeId, List<Mapping> mappings, List<UUID> allowedSources, List<UUID> allowedTargets,
-			boolean composition) {
+			boolean composition, UUID architectureLayerId) {
 
 		public Metatype(UUID id, String name, String abbreviation, boolean connection, int sortOrder,
 				UUID baseMetatypeId, List<Mapping> mappings, List<UUID> allowedSources, List<UUID> allowedTargets) {
 			this(id, name, abbreviation, connection, sortOrder, baseMetatypeId, mappings, allowedSources,
-					allowedTargets, false);
+					allowedTargets, false, null);
 		}
 
 	}

@@ -5,6 +5,7 @@ import io.oea.api.generated.model.ImportResult;
 import io.oea.api.generated.model.ImportResultConflictListInner;
 import io.oea.api.generated.model.MetatypeDetail;
 import io.oea.api.generated.model.MetatypePropertyMapping;
+import io.oea.api.generated.model.PackageArchitectureLayer;
 import io.oea.api.generated.model.PackageViewpoint;
 import io.oea.api.generated.model.PropertyCategory;
 import io.oea.api.generated.model.PropertyDefinitionDetail;
@@ -36,7 +37,13 @@ final class MetamodelPackages {
 				list(request.getPropertyDefinitions()).stream().map(MetamodelPackages::property).toList(),
 				list(request.getMetatypes()).stream().map(MetamodelPackages::metatype).toList(),
 				labels(request.getI18nBundles()),
-				list(request.getViewpoints()).stream().map(MetamodelPackages::viewpoint).toList());
+				list(request.getViewpoints()).stream().map(MetamodelPackages::viewpoint).toList(),
+				list(request.getArchitectureLayers()).stream().map(MetamodelPackages::layer).toList());
+	}
+
+	private static PackageDefinition.Layer layer(PackageArchitectureLayer layer) {
+		return new PackageDefinition.Layer(layer.getId(), layer.getName(),
+				Objects.requireNonNullElse(layer.getSortOrder(), 0));
 	}
 
 	private static PackageDefinition.Viewpoint viewpoint(PackageViewpoint viewpoint) {
@@ -70,6 +77,10 @@ final class MetamodelPackages {
 			.viewpointsCreated(outcome.viewpointsCreated())
 			.viewpointsUpdated(outcome.viewpointsUpdated())
 			.viewpointsDeleted(outcome.viewpointsDeleted())
+			.layersCreated(outcome.layersCreated())
+			.layersUpdated(outcome.layersUpdated())
+			.layersDeleted(outcome.layersDeleted())
+			.layerAssignmentsCleared(outcome.layerAssignmentsCleared())
 			.conflictList(List.of());
 	}
 
@@ -98,7 +109,7 @@ final class MetamodelPackages {
 				metatype.getBaseMetatypeId(),
 				list(metatype.getPropertyMappings()).stream().map(MetamodelPackages::mapping).toList(),
 				allowed(metatype, "source"), allowed(metatype, "target"),
-				Boolean.TRUE.equals(metatype.getIsComposition()));
+				Boolean.TRUE.equals(metatype.getIsComposition()), metatype.getArchitectureLayerId());
 	}
 
 	/** The allowed metatypes of a connection metatype in one direction (us-036-connection-metatypes D2). */

@@ -82,6 +82,9 @@ async function deleted() {
                   :label="t('metamodel.connection.badge')"
                 />
                 {{ scopeLabel(metatype.scope, metatype.sourcePackage) }}
+                <span v-if="metatype.architectureLayerId" data-testid="metatype-item-layer">
+                  · {{ label(labelKeys.architectureLayer(metatype.architectureLayerId), metatype.architectureLayerName ?? '') }}
+                </span>
               </span>
             </span>
             <span class="text-xs text-muted">{{ t('metamodel.metatype.propertyCount', { count: metatype.propertyMappings?.length ?? 0 }) }}</span>

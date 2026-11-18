@@ -20,6 +20,12 @@ export type MetamodelEditMode = components['schemas']['MetamodelEditMode']
 export type MetamodelChange = components['schemas']['MetamodelChange']
 export type MetamodelChangePage = components['schemas']['MetamodelChangePage']
 export type MetamodelChangeKind = components['schemas']['MetamodelChangeKind']
+export type ArchitectureLayer = components['schemas']['ArchitectureLayer']
+export type ArchitectureLayerWrite = components['schemas']['ArchitectureLayerWrite']
+
+/** The limits of the architecture layers (change s17-architecture-layers): name length and number of layers. */
+export const LAYER_NAME_MAX = 100
+export const LAYER_LIMIT = 20
 
 /** The filters of the metamodel changes; an empty filter is left out. */
 export interface ChangeFilter {
@@ -150,6 +156,31 @@ function at(id: string): string {
 /** GET /metamodel/property-categories (US-032). */
 export function fetchCategories(fetchFn: typeof fetch = fetch): Promise<PropertyCategory[]> {
   return read(`${METAMODEL}/property-categories`, fetchFn)
+}
+
+/** GET /metamodel/architecture-layers: the layers of the instance in their order (REQ-053 BR-04). */
+export function fetchArchitectureLayers(fetchFn: typeof fetch = fetch): Promise<ArchitectureLayer[]> {
+  return read(`${METAMODEL}/architecture-layers`, fetchFn)
+}
+
+/** POST /metamodel/architecture-layers: a new organization layer, last or at the position (422 names `name`). */
+export function createArchitectureLayer(body: ArchitectureLayerWrite, fetchFn: typeof fetch = fetch) {
+  return write<ArchitectureLayer>('POST', `${METAMODEL}/architecture-layers`, body, undefined, fetchFn)
+}
+
+/** PUT /metamodel/architecture-layers/{id}: renames and, with `sortOrder`, moves the layer; needs the version. */
+export function updateArchitectureLayer(
+  id: string,
+  body: ArchitectureLayerWrite,
+  version: number | undefined,
+  fetchFn: typeof fetch = fetch,
+) {
+  return write<ArchitectureLayer>('PUT', `${METAMODEL}/architecture-layers/${at(id)}`, body, version, fetchFn)
+}
+
+/** DELETE /metamodel/architecture-layers/{id}: 409 `in-use` with the number of metatypes that have it. */
+export function deleteArchitectureLayer(id: string, version: number | undefined, fetchFn: typeof fetch = fetch) {
+  return write<void>('DELETE', `${METAMODEL}/architecture-layers/${at(id)}`, undefined, version, fetchFn)
 }
 
 /** GET /metamodel/metatypes/{id}/property-mappings with every dated entry (US-137). */

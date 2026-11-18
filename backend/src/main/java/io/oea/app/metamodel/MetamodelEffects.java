@@ -113,7 +113,8 @@ public class MetamodelEffects {
 				    SELECT 1 FROM metatypes WHERE i.entity_type = 'metatype' AND id = i.entity_id
 				    UNION ALL SELECT 1 FROM property_categories WHERE i.entity_type = 'property_category' AND id = i.entity_id
 				    UNION ALL SELECT 1 FROM property_definitions WHERE i.entity_type = 'property_def' AND id = i.entity_id
-				    UNION ALL SELECT 1 FROM property_enum_values WHERE i.entity_type = 'enum_value' AND id = i.entity_id)""");
+				    UNION ALL SELECT 1 FROM property_enum_values WHERE i.entity_type = 'enum_value' AND id = i.entity_id
+				    UNION ALL SELECT 1 FROM architecture_layers WHERE i.entity_type = 'architecture_layer' AND id = i.entity_id)""");
 	}
 
 	Instant now() {

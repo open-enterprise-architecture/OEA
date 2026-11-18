@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.13.0
+version: 1.14.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -84,7 +84,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | stereotypes | Stereotype[] | required | [] | | List of defined stereotypes |
 | constraintRules | ConstraintRule[] | required | [] | | List of expression constraint rules |
 | viewpoints | ViewpointDefinition[] | required | [] | Contains system-defined (built-in) + user-defined viewpoints | List of viewpoints; see [viewpoint.md](./viewpoint.md) for the full specification |
-| architectureLayers | ArchitectureLayerDefinition[] | required | [] | | List of architecture layers; empty = no layer categorization |
+| architectureLayers | ArchitectureLayerDefinition[] | required | [] | at most 20; stored in the table `architecture_layers` | List of architecture layers of the instance metamodel; empty = no layer categorization |
 | mandatoryConnectionConstraints | MandatoryConnectionConstraint[] | required | [] | | Declarative mandatory-connection rules |
 | documentCollectionDefinitions | DocumentCollectionDefinition[] | required | [] | | Operator-defined documentation types with chapters (Arc42, third-party, license register, etc.); see [document-collection.md](./document-collection.md) |
 
@@ -107,7 +107,7 @@ Changes to the configuration are versioned and recorded in the audit log.
 | allowedSourceTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as start entity |
 | allowedTargetTypes | string[] | optional | null | null = any EntityType or connection type permitted | Restriction: which types are allowed as target entity |
 | allowsConnectionAsSource | boolean | optional | false | only meaningful if `isConnection=true` | Allows instances of this type to act as the `sourceEntityId` of a further connection (n-connection, ADR-010); default false |
-| architectureLayerId | string | optional | null | must reference a valid ArchitectureLayerDefinition.id | Assignment to the architecture layer; null = no layer assigned |
+| architectureLayerId | UUID | optional | null | must reference an ArchitectureLayerDefinition.id of the instance metamodel; also for types of a solution extension (BR-15) | Assignment to the architecture layer; null = no layer assigned. A layer that a type has cannot be deleted |
 | creationSteps | CreationStep[] | optional | [] | | Defines the wizard on creation; empty = simple creation form without wizard |
 | version | integer | required | 1 | ≥ 1; set by the system | Grows with every change of the type, its mappings or its re-import setting, also by a re-import; writes name it in `If-Match` (BR-31) |
 
@@ -191,13 +191,16 @@ Changes to the configuration are versioned and recorded in the audit log.
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| id | string | required | | kebab-case, unique | Technical identifier (e.g. `business-layer`, `application-layer`) |
-| name | string | required | | unique in the MetamodelConfiguration | Display name (e.g. "Business", "Application", "Technology") |
-| sortOrder | integer | required | | ≥ 0; controls display order | Order in lists and diagrams (ascending) |
-| color | string | optional | | hex color code (#RRGGBB) | Color coding for visual distinction |
-| description | string | optional | | max. 500 characters | Description of the scope of this layer |
+| id | UUID | required | generated; stable ID of a package layer | unique | Identifier; a package layer keeps the ID of its package |
+| name | string | required | | 1–100 characters, stripped; unique in the instance metamodel regardless of case (BR-18) | Display name in the corporate language (e.g. "Business", "Application", "Technology"); translations per locale in `i18n_entries` (key `architecture-layer.{id}.name`) |
+| sortOrder | integer | required | | ≥ 0; dense (0, 1, 2, …) | Position in lists and charts (ascending) |
+| scope | enum | required | `organization` | `[imported, organization]` | `organization` layers are changed by metamodel administrators; `imported` layers come from a package and are read-only |
+| sourcePackage | PackageReference | conditional | null | required iff `scope=imported` | Package the layer comes from |
+| version | integer | required | 1 | ≥ 1; set by the system | Grows with every change; writes name it in `If-Match` |
 
-**Usage**: Each `EntityTypeDefinition` can be assigned to exactly one layer via `architectureLayerId`. Entity instances inherit the layer of their type. Layers control sorting and filterability in catalogs and dashboards.
+`color` and `description` of earlier drafts are not implemented; they follow when a screen needs them.
+
+**Usage**: Each `EntityTypeDefinition` can be assigned to exactly one layer via `architectureLayerId`. Entity instances inherit the layer of their type. Dashboards group charts by layer (US-057 AC4, REQ-053 BR-04; change `us-056-kpi-and-chart-widgets`). Layers of solution extensions do not exist yet: the types of an extension use the layers of the instance.
 
 ### MandatoryConnectionConstraint
 
@@ -266,10 +269,10 @@ Describes a single page (step) in the creation wizard that is run through when c
 | BR-12 | `PropertyDefinition.dataType.kind=enum` requires `enumValues` with at least 2 unique entries | onCreate, onUpdate | – |
 | BR-13 | `PropertyDefinition.name` must be unique within an EntityType (case-insensitive) | onCreate, onUpdate | – |
 | BR-14 | `PropertyDefinition.category` must not be empty; whitespace-only counts as empty | onCreate, onUpdate | – |
-| BR-15 | `EntityTypeDefinition.architectureLayerId`, if set, must reference an `ArchitectureLayerDefinition.id` of the same `MetamodelConfiguration` (or its parent configuration) | onCreate, onUpdate | – |
+| BR-15 | `EntityTypeDefinition.architectureLayerId`, if set, must reference an `ArchitectureLayerDefinition.id` of the instance metamodel; this holds for the types of the instance and of a solution extension alike (an unknown layer: 422 naming `architectureLayerId`). A layer that a type of any configuration still has cannot be deleted (409 `in-use`) | onCreate, onUpdate, onDelete | US-057 AC4, REQ-053 BR-04 |
 | BR-16 | `MandatoryConnectionConstraint.connectionType` must reference an `EntityTypeDefinition` with `isConnection=true` | onCreate, onUpdate | – |
 | BR-17 | `MandatoryConnectionConstraint.sourceEntityType` and `targetEntityType` (if set) must be valid EntityType IDs | onCreate, onUpdate | – |
-| BR-18 | `ArchitectureLayerDefinition.id` and `ArchitectureDomainDefinition.id` must be unique within the MetamodelConfiguration (shared namespace does not allow conflicts) | onCreate, onUpdate | – |
+| BR-18 | `ArchitectureLayerDefinition.id` and `ArchitectureDomainDefinition.id` must be unique within the MetamodelConfiguration (shared namespace does not allow conflicts); the `name` of a layer is unique regardless of case and has 1–100 characters (409 `name-taken`); an instance has at most 20 layers; imported layers are read-only; in `import-only` layer writes are rejected (403 `metamodel-locked`) | onCreate, onUpdate, onDelete | US-057 AC4 |
 | BR-19 | `CreationStep.stepId` must be unique within the `creationSteps` list of an EntityType | onCreate, onUpdate | – |
 | BR-20 | `CreationStep.propertyCategory`, if set, must correspond to an existing `PropertyDefinition.category` value of the associated EntityType | onCreate, onUpdate | – |
 | BR-21 | `CreationStep.connectionType`, if set, must be a valid EntityType ID with `isConnection=true` in the same MetamodelConfiguration | onCreate, onUpdate | – |
@@ -295,7 +298,7 @@ entityType: SecurityZone
 id: security-zone
 extends: null
 description: "Logical network zone with a defined trust level"
-architectureLayerId: technology-layer
+architectureLayerId: 9e1b6d22-3a7f-4c94-9f66-2c3d4e5f6a73   # the layer "Technology"
 properties:
   - name: trustLevel
     displayLabel: "Trust Level"
@@ -368,25 +371,19 @@ severity: error
 message: "Every Interface must have an owner ApplicationComponent assigned"
 ```
 
-**ArchitectureLayer definitions (YAML representation)**:
+**ArchitectureLayer definitions (YAML representation; the package format of ADR-026 carries `id`, `name` and `sortOrder`)**:
 
 ```yaml
 architectureLayers:
-  - id: business-layer
+  - id: 5c0f2b3e-6e7b-4f0a-9d21-0a1b2c3d4e51
     name: "Business"
-    sortOrder: 1
-    color: "#F5A623"
-    description: "Business processes, roles, and organizational units"
-  - id: application-layer
+    sortOrder: 0
+  - id: 7a9d4c10-2f6e-4b83-8e55-1b2c3d4e5f62
     name: "Application"
-    sortOrder: 2
-    color: "#4A90D9"
-    description: "Application components and services"
-  - id: technology-layer
+    sortOrder: 1
+  - id: 9e1b6d22-3a7f-4c94-9f66-2c3d4e5f6a73
     name: "Technology"
-    sortOrder: 3
-    color: "#7ED321"
-    description: "Infrastructure, platforms, and technical services"
+    sortOrder: 2
 ```
 
 **ArchitectureDomain definitions (YAML representation)**:
@@ -449,6 +446,8 @@ Version 1.9.0 (change `us-036-connection-metatypes`) stores the allowed endpoint
 
 Version 1.11.0 (change `us-124-property-visibility`) stores `readRoles` and `writeRoles` in `property_visibility_roles` (migration V23); `visibilityMode` and `scopingConnectionType` are the existing columns of `property_definitions`. The visibility is changed only through security administration and never by a package import, because who may see a value is a decision of the organization, not of a package.
 
+Version 1.14.0 (change `s17-architecture-layers`, owner decisions 2026-11-18) makes the layers real: dashboards group charts by layer (US-057 AC4, REQ-053 BR-04), so the layers are a configurable list of the instance metamodel, not a fixed set. They are rows of `architecture_layers` (migration V44) with a UUID instead of the kebab-case ID, because packages bring their own layers and an ID must stay stable across renames and translations. `metatypes.architecture_layer_id`, a free-text column since V5 that nothing wrote, becomes a reference. A package re-import removes the layers its new version no longer has and clears the assignments to them, organization types included, because rejecting the re-import would block package updates over a cosmetic attribute.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -476,3 +475,4 @@ Version 1.11.0 (change `us-124-property-visibility`) stores `readRoles` and `wri
 | 1.11.0 | 2026-11-07 | Business Engineer | Read and write roles stored in `property_visibility_roles` (change `us-124-property-visibility`) |
 | 1.12.0 | 2026-11-13 | Change us-044-conflict-warning | `showParallelChanges` per EntityType: the marker of parallel changes in the baseline of a solution, off by default (owner decision 2026-11-13) |
 | 1.13.0 | 2026-11-18 | Change us-135-component-hierarchy | `isComposition` of connection types, the built-in element type "Structuring aid"; BR-33 |
+| 1.14.0 | 2026-11-18 | Change s17-architecture-layers | `ArchitectureLayerDefinition` as rows with UUID, `sortOrder`, `scope` and `version`; `architectureLayerId` references a layer; BR-15 and BR-18 aligned; `color` and `description` not implemented |

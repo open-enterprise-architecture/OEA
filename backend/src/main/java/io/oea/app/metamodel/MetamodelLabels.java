@@ -36,6 +36,7 @@ public class MetamodelLabels {
 			    UNION ALL SELECT 'property_category', id, name FROM property_categories
 			    UNION ALL SELECT 'property_def', id, name FROM property_definitions
 			    UNION ALL SELECT 'enum_value', id, value FROM property_enum_values
+			    UNION ALL SELECT 'architecture_layer', id, name FROM architecture_layers
 			)
 			SELECT e.entity_type, e.entity_id, e.name, p.value AS package_text, o.value AS organization_text
 			FROM elements e

@@ -497,7 +497,7 @@ A metamodel package was imported ([US-033](../requirements/user-stories/US-033-i
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the importing principal |
 | Target | `metamodel-package`, package identifier |
-| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049); for a metamodel package also `viewpointsCreated` and `viewpointsUpdated` (the numbers of system-defined viewpoints of the package created and changed) and `viewpointsDeleted` (the IDs of the viewpoints of the package a re-import deleted because the package no longer carries them; [US-092](../requirements/user-stories/US-092-system-viewpoint-readonly.md), change us-091-viewpoint-notations D8) |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049); for a metamodel package also `viewpointsCreated` and `viewpointsUpdated` (the numbers of system-defined viewpoints of the package created and changed) and `viewpointsDeleted` (the IDs of the viewpoints of the package a re-import deleted because the package no longer carries them; [US-092](../requirements/user-stories/US-092-system-viewpoint-readonly.md), change us-091-viewpoint-notations D8); also `architectureLayersCreated`, `architectureLayersUpdated` and `architectureLayersDeleted` (the numbers of architecture layers of the package created, renamed and deleted by a re-import) and `layerAssignmentsCleared` (the number of metatypes, of the package or of the organization, that had a layer the re-import deleted and lost it; change s17-architecture-layers). A layer written by an import has no event of its own |
 
 ### `metamodel.metatype-imported`
 
@@ -553,6 +553,17 @@ A value of an organization enum property was added or deleted; deleting removes 
 | Actor | the metamodel administrator |
 | Target | `property-definition`, ID of the definition |
 | Details | `valueId`, `value`; on delete also `entitiesWithRemovedValues`, `entitiesMarked` (entities now missing a mandatory value) and `solutionDecisions` if active solutions were asked |
+
+### `metamodel.layer-created` / `metamodel.layer-updated` / `metamodel.layer-deleted`
+
+An organization architecture layer was created, renamed or moved, or deleted ([US-057](../requirements/user-stories/US-057-configure-chart-widget.md) AC4, REQ-053 BR-04, ADR-017; change s17-architecture-layers). Rejected writes (invalid or taken name, the 21st layer, stale or missing version, an imported layer, a layer in use, missing permission, `import-only`) are not audited. The metamodel changes list them under the kind `layer`. The layer of a metatype is a field of `metamodel.metatype-updated` (`architectureLayerId` in `changedFields`) and of `metamodel.metatype-created`.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator |
+| Target | `architecture-layer`, ID of the layer |
+| Details | `name`; created also `sortOrder`; updated also `changedFields` (`name`, `sortOrder`) |
 
 ### `metamodel.category-created` / `metamodel.category-updated` / `metamodel.category-deleted`
 

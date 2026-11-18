@@ -32,7 +32,7 @@ public class MetamodelChanges {
 	/** The event types of each kind, as LIKE patterns, and the types a kind leaves out (design D2). */
 	private static final Map<String, List<String>> KINDS = Map.of("metatype", List.of("metamodel.metatype-%"),
 			"property", List.of("metamodel.property-%"), "category", List.of("metamodel.category-%"), "enum-value",
-			List.of("metamodel.enum-value-%"), "mapping", List.of("metamodel.mapping-%"), "labels",
+			List.of("metamodel.enum-value-%"), "mapping", List.of("metamodel.mapping-%"), "layer", List.of("metamodel.layer-%"), "labels",
 			List.of("metamodel.labels-changed"), "reimport", List.of("metamodel.reimport-policy-changed"), "package",
 			List.of("metamodel.package-%", "metamodel.metatype-imported"), "configuration",
 			List.of("metamodel.configuration-%", "metamodel.edit-mode-changed"));
@@ -84,7 +84,7 @@ public class MetamodelChanges {
 		List<Change> items = this.jdbc.query("""
 				SELECT e.id, e.occurred_at, e.event_type, e.actor_type, e.actor_person_id, e.actor_admin_id,
 				       coalesce(p.name, a.login_name), e.target_type, e.target_id,
-				       coalesce(e.details ->> 'name', e.details ->> 'value', m.name, d.name, c.name, g.name,
+				       coalesce(e.details ->> 'name', e.details ->> 'value', m.name, d.name, c.name, g.name, y.name,
 				                CASE WHEN e.target_type = 'metamodel-package' THEN e.target_id END),
 				       e.details ->> 'batchId', e.details::text
 				FROM audit.events e
@@ -95,6 +95,7 @@ public class MetamodelChanges {
 				LEFT JOIN property_categories c ON e.target_type = 'property-category' AND c.id::text = e.target_id
 				LEFT JOIN metamodel_configurations g ON e.target_type = 'metamodel-configuration'
 				     AND g.id::text = e.target_id
+				LEFT JOIN architecture_layers y ON e.target_type = 'architecture-layer' AND y.id::text = e.target_id
 				""" + " WHERE " + where + """
 
 				ORDER BY e.occurred_at DESC, e.id DESC LIMIT ? OFFSET ?""", MetamodelChanges::change, paged.toArray());

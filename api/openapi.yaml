@@ -952,7 +952,16 @@ components:
                 automatic connection with (US-135, REQ-142); at most one per instance, only a
                 connection metatype of the instance configuration. In a package a connection
                 metatype may carry it (at most one per package); default false
-            architectureLayer:  { type: [string, 'null'] }
+            architectureLayerId:
+              type: [string, 'null']
+              format: uuid
+              description: |
+                The architecture layer of the metatype (`listArchitectureLayers`), or `null` for
+                none. In a package: a layer of the package's `architectureLayers`.
+            architectureLayerName:
+              type: [string, 'null']
+              readOnly: true
+              description: Name of the layer in the corporate language; ignored in packages
             sortOrder:          { type: integer }
             scope:              { $ref: '#/components/schemas/MetamodelScope' }
             baseMetatypeId:
@@ -1038,10 +1047,10 @@ components:
     # ── Metamodel changes (US-034) ─────────────────────────────────────────────
     MetamodelChangeKind:
       type: string
-      enum: [metatype, property, category, enum-value, mapping, labels, reimport, package, configuration]
+      enum: [metatype, property, category, enum-value, mapping, labels, reimport, package, configuration, layer]
       description: |
         Group of metamodel event types: `metatype` (`metamodel.metatype-*` except imports),
-        `property`, `category`, `enum-value`, `mapping`, `labels`, `reimport`
+        `property`, `category`, `enum-value`, `mapping`, `layer` (`metamodel.layer-*`), `labels`, `reimport`
         (`metamodel.reimport-policy-changed`), `package` (`metamodel.package-*` and
         `metamodel.metatype-imported`) and `configuration` (`metamodel.configuration-*` and
         `metamodel.edit-mode-changed`).
@@ -1107,7 +1116,13 @@ components:
             instance configuration, at most one in the instance; a second one, an element
             metatype or one of a solution extension gives 422 naming `isComposition`. Changing it
             is a change of the metatype and raises its version. Needs `metamodel:write`.
-        architectureLayerId:  { type: [string, 'null'] }
+        architectureLayerId:
+          type: [string, 'null']
+          format: uuid
+          description: |
+            A layer of the instance metamodel (`listArchitectureLayers`) or `null` for none; an
+            unknown layer gives 422 naming `architectureLayerId`. Also for the metatypes of a
+            solution extension, which use the instance layers.
         sortOrder:            { type: integer, default: 0 }
         configId:             { type: string, format: uuid, description: "The instance configuration or a solution extension (US-037); cannot change (422)" }
         baseMetatypeId:       { type: [string, 'null'], format: uuid, description: "Base type of the same kind (connection or element); no cycles (422)" }
@@ -1174,6 +1189,59 @@ components:
           description: Whether a package re-import keeps or removes organization mappings of imported metatypes; removing deletes their values
 
     # ── Property categories ───────────────────────────────────────────────────
+    ArchitectureLayer:
+      type: object
+      required: [id, name, sortOrder, scope, metatypeCount, version]
+      description: |
+        An architecture layer of the instance metamodel (US-057 AC4, REQ-053 BR-04, ADR-017),
+        e.g. Business or Application; metatypes belong to at most one. Layers are listed in
+        their order, which is dense (0, 1, 2, ...). Translations go through
+        `updateMetamodelLabels` (key `architecture-layer.{id}.name`).
+      properties:
+        id:             { type: string, format: uuid }
+        name:           { type: string, minLength: 1, maxLength: 100, description: "Unique regardless of case" }
+        sortOrder:      { type: integer, minimum: 0, description: "Position in the list; the order is dense" }
+        scope:
+          allOf:
+            - $ref: '#/components/schemas/MetamodelScope'
+          description: "`organization` or `imported`; only organization layers can be changed"
+        sourcePackage:
+          oneOf:
+            - $ref: '#/components/schemas/SourcePackage'
+            - type: 'null'
+        metatypeCount:  { type: integer, minimum: 0, description: "Number of metatypes of all configurations that have the layer" }
+        version:        { type: integer, minimum: 1, description: "Grows with every change (`ETag`, `If-Match`)" }
+
+    ArchitectureLayerWrite:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Stripped; unique regardless of case (409 `name-taken`); blank gives 422
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          description: |
+            Position in the list: 0 is the first. A position beyond the last is placed at the
+            end. Without it, a new layer goes last and an existing layer keeps its position.
+
+    PackageArchitectureLayer:
+      type: object
+      required: [id, name]
+      description: |
+        An architecture layer of a metamodel package, installed as an imported, read-only layer.
+        It is identified by its stable `id`; an ID or a name of an organization layer or of another
+        package's layer is a conflict (409). The layers of the package and of the instance together
+        number at most 20 (422).
+      properties:
+        id:        { type: string, format: uuid }
+        name:      { type: string, minLength: 1, maxLength: 100, description: "Unique within the package (case-insensitive)" }
+        sortOrder: { type: integer, minimum: 0, default: 0 }
+
     PropertyCategory:
       type: object
       required: [id, name, sortOrder]
@@ -2428,6 +2496,15 @@ components:
         propertyDefinitions:
           type: array
           items: { $ref: '#/components/schemas/PropertyDefinitionDetail' }
+        architectureLayers:
+          type: array
+          maxItems: 20
+          description: |
+            Architecture layers the import installs as imported, read-only layers; the metatypes
+            of the package reference them by `architectureLayerId`. A re-import replaces the
+            package's own layers, clears the assignments to layers the new version no longer has
+            and keeps organization layers. At most 20 (also with the layers of the instance).
+          items: { $ref: '#/components/schemas/PackageArchitectureLayer' }
         viewpoints:
           type: array
           description: |
@@ -2442,7 +2519,8 @@ components:
           type: object
           description: |
             Locale (`de`, `en`, `fr`, `it`) → labels of the package's own metatypes,
-            categories, property definitions and enum values, keyed as in `I18nBundle`.
+            categories, property definitions, enum values and architecture layers, keyed as in
+            `I18nBundle`.
             Stored as package labels; a re-import replaces them and keeps organization labels.
           propertyNames: { enum: [de, en, fr, it] }
           additionalProperties: { $ref: '#/components/schemas/I18nBundle' }
@@ -4782,7 +4860,7 @@ components:
     # ── I18N ─────────────────────────────────────────────────────────────────
     I18nBundle:
       type: object
-      description: "Flat key-value map: `{element_type}.{uuid}.{field}` → text (`metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label`, `enum-value.{id}.label`)"
+      description: "Flat key-value map: `{element_type}.{uuid}.{field}` → text (`metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label`, `enum-value.{id}.label`, `architecture-layer.{id}.name`)"
       additionalProperties: { type: string }
       example:
         "metatype.bcf1b833-1942-51c6-9e0b-95fd6a30677a.name": "Anwendungskomponente"
@@ -4794,7 +4872,7 @@ components:
       required: [key, elementType, name, packageText, organizationText]
       properties:
         key:              { type: string, example: "metatype.bcf1b833-1942-51c6-9e0b-95fd6a30677a.name" }
-        elementType:      { type: string, enum: [metatype, property-category, property-def, enum-value] }
+        elementType:      { type: string, enum: [metatype, property-category, property-def, enum-value, architecture-layer] }
         name:             { type: string, description: "Name in the corporate language (enum values: the value)" }
         packageText:      { type: [string, 'null'], description: "Label brought by the origin package" }
         organizationText: { type: [string, 'null'], description: "Label set by the organization; wins over the package label" }
@@ -4873,6 +4951,18 @@ components:
         viewpointsDeleted:
           type: [integer, 'null']
           description: Viewpoints of the package a re-import deleted because the package no longer carries them; null for other imports
+        layersCreated:
+          type: [integer, 'null']
+          description: Architecture layers a metamodel package import created; null for other imports
+        layersUpdated:
+          type: [integer, 'null']
+          description: Architecture layers of the package a metamodel package import updated; null for other imports
+        layersDeleted:
+          type: [integer, 'null']
+          description: Architecture layers of the package a re-import deleted because the package no longer carries them; null for other imports
+        layerAssignmentsCleared:
+          type: [integer, 'null']
+          description: Metatypes, of the package or of the organization, that lost their layer because a re-import deleted it; null for other imports
         errors:
           type: array
           items:
@@ -8716,6 +8806,121 @@ paths:
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/architecture-layers:
+    get:
+      operationId: listArchitectureLayers
+      summary: List the architecture layers
+      description: |
+        The layers of the instance metamodel in their order (REQ-053 BR-04, ADR-017), with
+        the number of metatypes that have each.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      responses:
+        '200':
+          description: Layers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ArchitectureLayer' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createArchitectureLayer
+      summary: Create an architecture layer
+      description: |
+        Creates an organization layer: a name of 1 to 100 characters, unique regardless of case
+        (409 `urn:oea:problem:name-taken`), at most 20 layers in the instance (422 naming
+        `name`). A layer without `sortOrder` goes last. Writes `metamodel.layer-created`. In
+        `import-only` the answer is 403 `metamodel-locked` (US-035).
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ArchitectureLayerWrite' }
+      responses:
+        '201':
+          description: Layer created
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ArchitectureLayer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/architecture-layers/{id}:
+    put:
+      operationId: updateArchitectureLayer
+      summary: Rename or move an architecture layer
+      description: |
+        Renames the layer and, with `sortOrder`, moves it to that position; the order stays
+        dense. Requires `If-Match` with the version read (428 without, 412 for a stale one).
+        An imported layer gives 409 `urn:oea:problem:read-only-metatype`. Writes
+        `metamodel.layer-updated` with the changed fields. In `import-only` the answer is 403
+        `metamodel-locked`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ArchitectureLayerWrite' }
+      responses:
+        '200':
+          description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ArchitectureLayer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: deleteArchitectureLayer
+      summary: Delete an architecture layer
+      description: |
+        Deletes an organization layer with its organization labels. A layer that a metatype of
+        any configuration still has gives 409 `urn:oea:problem:in-use` with `count`, the number
+        of metatypes; an imported layer gives 409 `urn:oea:problem:read-only-metatype`. Requires
+        `If-Match`. Writes `metamodel.layer-deleted`. In `import-only` the answer is 403
+        `metamodel-locked`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '204':
+          description: Deleted
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/MetamodelConflict' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /metamodel/property-categories:
