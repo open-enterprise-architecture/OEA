@@ -1,6 +1,8 @@
 package io.oea.app.metamodel;
 
 import io.oea.core.metamodel.BuiltInMetatypes;
+import io.oea.core.metamodel.ConnectionConstraintStore;
+import io.oea.core.metamodel.MetatypeStore;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,7 +11,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +32,13 @@ public class AllowedConnections {
 	public record Option(MetatypeCatalog.MetatypeRef connection, Direction direction) {
 	}
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeStore metatypes;
 
-	public AllowedConnections(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	private final ConnectionConstraintStore constraintStore;
+
+	public AllowedConnections(MetatypeStore metatypes, ConnectionConstraintStore constraintStore) {
+		this.metatypes = metatypes;
+		this.constraintStore = constraintStore;
 	}
 
 	@Transactional(readOnly = true)
@@ -43,20 +47,17 @@ public class AllowedConnections {
 		Map<UUID, MetatypeCatalog.MetatypeRef> connections = new HashMap<>();
 		List<UUID> order = new ArrayList<>();
 		Set<UUID> existing = new HashSet<>();
-		this.jdbc.query("""
-				SELECT id, name, abbreviation, is_connection, base_metatype_id FROM metatypes
-				ORDER BY sort_order, name""", (rs) -> {
-			UUID id = rs.getObject(1, UUID.class);
+		for (MetatypeStore.KindRow row : this.metatypes.kinds()) {
+			UUID id = row.id();
 			existing.add(id);
-			UUID base = rs.getObject(5, UUID.class);
-			if (base != null) {
-				bases.put(id, base);
+			if (row.baseMetatypeId() != null) {
+				bases.put(id, row.baseMetatypeId());
 			}
-			if (rs.getBoolean(4)) {
-				connections.put(id, new MetatypeCatalog.MetatypeRef(id, rs.getString(2), rs.getString(3)));
+			if (row.connection()) {
+				connections.put(id, new MetatypeCatalog.MetatypeRef(id, row.name(), row.abbreviation()));
 				order.add(id);
 			}
-		});
+		}
 		if (!existing.contains(sourceMetatypeId) || !existing.contains(targetMetatypeId)) {
 			throw new NoSuchElementException("unknown metatype");
 		}
@@ -66,19 +67,18 @@ public class AllowedConnections {
 			return List.of();
 		}
 		Map<UUID, Map<String, Set<UUID>>> constraints = new HashMap<>();
-		this.jdbc.query("SELECT metatype_id, direction, allowed_metatype_id FROM metatype_connection_constraints",
-				(rs) -> {
-					constraints.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new HashMap<>())
-						.computeIfAbsent(rs.getString(2), (k) -> new HashSet<>())
-						.add(rs.getObject(3, UUID.class));
-				});
+		for (ConnectionConstraintStore.ConstraintRow row : this.constraintStore.all()) {
+			constraints.computeIfAbsent(row.metatypeId(), (k) -> new HashMap<>())
+				.computeIfAbsent(row.direction(), (k) -> new HashSet<>())
+				.add(row.allowedMetatypeId());
+		}
 		List<Option> options = new ArrayList<>();
 		for (UUID connection : order) {
 			Map<String, Set<UUID>> own = constraints.getOrDefault(connection, Map.of());
-			boolean forward = allows(own.get(ConnectionConstraints.SOURCE), sourceMetatypeId, bases)
-					&& allows(own.get(ConnectionConstraints.TARGET), targetMetatypeId, bases);
-			boolean backward = allows(own.get(ConnectionConstraints.SOURCE), targetMetatypeId, bases)
-					&& allows(own.get(ConnectionConstraints.TARGET), sourceMetatypeId, bases);
+			boolean forward = allows(own.get(ConnectionConstraintStore.SOURCE), sourceMetatypeId, bases)
+					&& allows(own.get(ConnectionConstraintStore.TARGET), targetMetatypeId, bases);
+			boolean backward = allows(own.get(ConnectionConstraintStore.SOURCE), targetMetatypeId, bases)
+					&& allows(own.get(ConnectionConstraintStore.TARGET), sourceMetatypeId, bases);
 			if (forward || backward) {
 				options.add(new Option(connections.get(connection), forward && backward ? Direction.BIDIRECTIONAL
 						: forward ? Direction.SOURCE_TO_TARGET : Direction.TARGET_TO_SOURCE));

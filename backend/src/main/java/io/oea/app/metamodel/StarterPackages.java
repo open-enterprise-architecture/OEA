@@ -12,9 +12,9 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import io.oea.core.metamodel.PackageImportStore;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -27,7 +27,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class StarterPackages {
 
-	private final JdbcTemplate jdbc;
+	private final PackageImportStore imports;
 
 	private final Map<String, Shipped> packages;
 
@@ -40,8 +40,8 @@ public class StarterPackages {
 	public record Summary(Shipped shipped, boolean imported) {
 	}
 
-	public StarterPackages(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	public StarterPackages(PackageImportStore imports) {
+		this.imports = imports;
 		this.packages = read().stream()
 			.collect(Collectors.toUnmodifiableMap(Shipped::packageId, Function.identity()));
 	}
@@ -53,8 +53,7 @@ public class StarterPackages {
 
 	@Transactional(readOnly = true)
 	public List<Summary> list() {
-		Set<String> imported = new HashSet<>(
-				this.jdbc.queryForList("SELECT DISTINCT package_id FROM metamodel_package_imports", String.class));
+		Set<String> imported = new HashSet<>(this.imports.importedPackageIds());
 		return shipped().stream().map((shipped) -> new Summary(shipped, imported.contains(shipped.packageId()))).toList();
 	}
 

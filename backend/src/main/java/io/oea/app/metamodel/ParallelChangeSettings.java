@@ -1,11 +1,11 @@
 package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.core.metamodel.MetatypeStore;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ParallelChangeSettings {
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeStore metatypes;
 
 	private final MetamodelEffects effects;
 
@@ -25,9 +25,9 @@ public class ParallelChangeSettings {
 
 	private final MetamodelVersions versions;
 
-	public ParallelChangeSettings(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
+	public ParallelChangeSettings(MetatypeStore metatypes, MetamodelEffects effects, MetamodelAudit audit,
 			MetamodelVersions versions) {
-		this.jdbc = jdbc;
+		this.metatypes = metatypes;
 		this.effects = effects;
 		this.audit = audit;
 		this.versions = versions;
@@ -43,12 +43,9 @@ public class ParallelChangeSettings {
 	public void update(OeaPrincipal principal, UUID metatypeId, boolean show, Long expectedVersion) {
 		this.effects.lock();
 		this.versions.check(MetamodelVersions.Element.METATYPE, metatypeId, expectedVersion);
-		Boolean before = this.jdbc
-			.queryForList("SELECT show_parallel_changes FROM metatypes WHERE id = ?", Boolean.class, metatypeId)
-			.stream()
-			.findFirst()
+		Boolean before = this.metatypes.showParallelChanges(metatypeId)
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + metatypeId));
-		this.jdbc.update("UPDATE metatypes SET show_parallel_changes = ? WHERE id = ?", show, metatypeId);
+		this.metatypes.setShowParallelChanges(metatypeId, show);
 		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("before", before);

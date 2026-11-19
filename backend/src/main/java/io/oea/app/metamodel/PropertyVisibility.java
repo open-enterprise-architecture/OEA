@@ -7,7 +7,9 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import java.sql.Date;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.PropertyMappingStore;
+import io.oea.core.metamodel.VisibilityStore;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,7 +22,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +45,11 @@ public class PropertyVisibility {
 
 	private static final Set<String> MODES = Set.of(PUBLIC, ROLE_RESTRICTED, CONNECTION_SCOPED);
 
-	private final JdbcTemplate jdbc;
+	private final VisibilityStore store;
+
+	private final MetatypeStore metatypes;
+
+	private final PropertyMappingStore mappings;
 
 	private final MetamodelVersions versions;
 
@@ -54,9 +59,12 @@ public class PropertyVisibility {
 
 	private final Clock clock;
 
-	public PropertyVisibility(JdbcTemplate jdbc, MetamodelVersions versions, PermissionResolver permissions,
+	public PropertyVisibility(VisibilityStore store, MetatypeStore metatypes, PropertyMappingStore mappings,
+			MetamodelVersions versions, PermissionResolver permissions,
 			AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.store = store;
+		this.metatypes = metatypes;
+		this.mappings = mappings;
 		this.versions = versions;
 		this.permissions = permissions;
 		this.audit = audit;
@@ -88,39 +96,30 @@ public class PropertyVisibility {
 	@Transactional(readOnly = true)
 	public List<Entry> list() {
 		Map<UUID, Visibility> visibilities = all();
-		Map<UUID, List<String>> metatypes = new LinkedHashMap<>();
-		this.jdbc.query("""
-				SELECT DISTINCT ON (m.metatype_id, m.property_def_id) m.property_def_id, t.name
-				FROM metatype_property_mappings m JOIN metatypes t ON t.id = m.metatype_id
-				WHERE m.valid_from <= ?
-				ORDER BY m.metatype_id, m.property_def_id, m.valid_from DESC""", (rs) -> {
-			metatypes.computeIfAbsent(rs.getObject(1, UUID.class), (key) -> new ArrayList<>()).add(rs.getString(2));
-		}, Date.valueOf(LocalDate.now(this.clock)));
+		Map<UUID, List<String>> metatypes = this.mappings.mappedMetatypeNames(LocalDate.now(this.clock));
 		metatypes.values().forEach((names) -> names.sort(String.CASE_INSENSITIVE_ORDER));
-		return this.jdbc.query(
-				"SELECT id, name FROM property_definitions WHERE retired_at IS NULL ORDER BY lower(name), id",
-				(rs, n) -> {
-					UUID id = rs.getObject(1, UUID.class);
-					return new Entry(id, rs.getString(2), List.copyOf(metatypes.getOrDefault(id, List.of())),
-							visibilities.getOrDefault(id, Visibility.DEFAULT));
-				});
+		return this.store.activeProperties()
+			.stream()
+			.map((property) -> new Entry(property.id(), property.name(),
+					List.copyOf(metatypes.getOrDefault(property.id(), List.of())),
+					visibilities.getOrDefault(property.id(), Visibility.DEFAULT)))
+			.toList();
 	}
 
 	/** The visibility of every property definition, retired ones included, by ID. */
 	public Map<UUID, Visibility> all() {
 		Map<UUID, List<String>> read = new LinkedHashMap<>();
 		Map<UUID, List<String>> write = new LinkedHashMap<>();
-		this.jdbc.query("SELECT property_def_id, role_id, access FROM property_visibility_roles ORDER BY role_id",
-				(rs) -> {
-					Map<UUID, List<String>> target = "write".equals(rs.getString(3)) ? write : read;
-					target.computeIfAbsent(rs.getObject(1, UUID.class), (key) -> new ArrayList<>()).add(rs.getString(2));
-				});
+		for (VisibilityStore.RoleAccessRow row : this.store.roleAccess()) {
+			Map<UUID, List<String>> target = "write".equals(row.access()) ? write : read;
+			target.computeIfAbsent(row.propertyDefId(), (key) -> new ArrayList<>()).add(row.roleId());
+		}
 		Map<UUID, Visibility> visibilities = new LinkedHashMap<>();
-		this.jdbc.query("SELECT id, visibility_mode, scoping_connection_type_id FROM property_definitions", (rs) -> {
-			UUID id = rs.getObject(1, UUID.class);
-			visibilities.put(id, new Visibility(rs.getString(2), read.getOrDefault(id, List.of()),
-					write.getOrDefault(id, List.of()), rs.getObject(3, UUID.class)));
-		});
+		for (VisibilityStore.ModeRow row : this.store.modes()) {
+			UUID id = row.propertyDefId();
+			visibilities.put(id, new Visibility(row.mode(), read.getOrDefault(id, List.of()),
+					write.getOrDefault(id, List.of()), row.scopingTypeId()));
+		}
 		return visibilities;
 	}
 
@@ -135,11 +134,9 @@ public class PropertyVisibility {
 	@Transactional
 	public List<Entry> update(OeaPrincipal principal, List<Change> changes) {
 		Map<UUID, Visibility> current = all();
-		Set<UUID> retired = new HashSet<>(this.jdbc.queryForList(
-				"SELECT id FROM property_definitions WHERE retired_at IS NOT NULL", UUID.class));
-		Set<String> roles = new HashSet<>(this.jdbc.queryForList("SELECT id FROM authorization_roles WHERE deleted_at IS NULL", String.class));
-		Set<UUID> connectionTypes = new HashSet<>(
-				this.jdbc.queryForList("SELECT id FROM metatypes WHERE is_connection", UUID.class));
+		Set<UUID> retired = new HashSet<>(this.store.retiredPropertyIds());
+		Set<String> roles = new HashSet<>(this.store.activeRoleIds());
+		Set<UUID> connectionTypes = new HashSet<>(this.metatypes.connectionIds());
 		List<String> invalid = new ArrayList<>();
 		Set<UUID> seen = new HashSet<>();
 		List<Visibility> requested = new ArrayList<>();
@@ -205,10 +202,7 @@ public class PropertyVisibility {
 		if (ids.isEmpty()) {
 			return;
 		}
-		Boolean scoping = this.jdbc.queryForObject(
-				"SELECT EXISTS (SELECT 1 FROM property_definitions WHERE scoping_connection_type_id = ANY (?))",
-				Boolean.class, (Object) ids.toArray(UUID[]::new));
-		if (Boolean.TRUE.equals(scoping) && !this.permissions.permissions(principal).contains(SCOPE_PERMISSION)) {
+		if (this.store.isScopingType(ids) && !this.permissions.permissions(principal).contains(SCOPE_PERMISSION)) {
 			throw new PermissionDeniedException();
 		}
 	}
@@ -225,23 +219,13 @@ public class PropertyVisibility {
 	}
 
 	private void store(UUID id, Visibility visibility) {
-		this.jdbc.update("UPDATE property_definitions SET visibility_mode = ?, scoping_connection_type_id = ? WHERE id = ?",
-				visibility.mode(), visibility.scopingType(), id);
-		this.jdbc.update("DELETE FROM property_visibility_roles WHERE property_def_id = ?", id);
-		for (String role : visibility.readRoles()) {
-			this.jdbc.update("INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES (?, ?, 'read')",
-					id, role);
-		}
-		for (String role : visibility.writeRoles()) {
-			this.jdbc.update(
-					"INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES (?, ?, 'write')", id,
-					role);
-		}
+		this.store.save(id, visibility.mode(), visibility.scopingType(), visibility.readRoles(),
+				visibility.writeRoles());
 	}
 
 	/** D3: old and new state; self-benefiting if a role the actor holds is added. */
 	private void audit(OeaPrincipal principal, UUID id, Visibility old, Visibility next, Set<String> held) {
-		String name = this.jdbc.queryForObject("SELECT name FROM property_definitions WHERE id = ?", String.class, id);
+		String name = this.store.propertyName(id);
 		Set<String> addedWrite = new HashSet<>(next.writeRoles());
 		addedWrite.removeAll(old.writeRoles());
 		Set<String> addedRead = new HashSet<>(next.readRoles());

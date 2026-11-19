@@ -7,9 +7,14 @@ import io.oea.audit.AuditWriter;
 import io.oea.core.metamodel.ArchitectureLayerStore;
 import io.oea.core.metamodel.BuiltInMetatypes;
 import io.oea.core.metamodel.CompositionStore;
+import io.oea.core.metamodel.ConnectionConstraintStore;
+import io.oea.core.metamodel.ContentOwner;
+import io.oea.core.metamodel.MetamodelConfigurationStore;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.PackageImportStore;
+import io.oea.core.metamodel.PropertyDefinitionStore;
+import io.oea.core.metamodel.PropertyMappingStore;
 import io.oea.core.metamodel.ViewpointStore;
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -19,10 +24,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,9 +41,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class PackageImporter {
 
 	/** The instance configuration created by the migration (design D4). */
-	public static final UUID INSTANCE_CONFIGURATION = UUID.fromString("00000000-0000-0000-0000-000000000001");
+	public static final UUID INSTANCE_CONFIGURATION = MetamodelConfigurationStore.INSTANCE;
 
-	private final JdbcTemplate jdbc;
+	private final MetamodelConfigurationStore configurationStore;
+
+	private final MetatypeStore metatypeStore;
+
+	private final PropertyDefinitionStore definitionStore;
+
+	private final PropertyMappingStore mappingStore;
+
+	private final ConnectionConstraintStore constraintStore;
+
+	private final PackageImportStore importStore;
+
+	private final CompositionStore composition;
+
+	private final ArchitectureLayerStore layerStore;
 
 	private final AuditWriter audit;
 
@@ -59,35 +77,29 @@ public class PackageImporter {
 
 	private final NotationCatalog catalog;
 
-	private CompositionStore composition;
-
-	private ArchitectureLayerStore layerStore;
-
-	public PackageImporter(JdbcTemplate jdbc, AuditWriter audit, Clock clock, MetamodelEffects effects,
+	public PackageImporter(MetamodelConfigurationStore configurationStore, MetatypeStore metatypeStore,
+			PropertyDefinitionStore definitionStore, PropertyMappingStore mappingStore,
+			ConnectionConstraintStore constraintStore, PackageImportStore importStore, CompositionStore composition,
+			ArchitectureLayerStore layerStore, AuditWriter audit, Clock clock, MetamodelEffects effects,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions,
 			ViewpointStore viewpointStore, NotationCatalog catalog) {
+		this.configurationStore = configurationStore;
+		this.metatypeStore = metatypeStore;
+		this.definitionStore = definitionStore;
+		this.mappingStore = mappingStore;
+		this.constraintStore = constraintStore;
+		this.importStore = importStore;
+		this.composition = composition;
+		this.layerStore = layerStore;
 		this.viewpointStore = viewpointStore;
 		this.catalog = catalog;
 		this.labels = labels;
 		this.versions = versions;
-		this.jdbc = jdbc;
 		this.audit = audit;
 		this.clock = clock;
 		this.effects = effects;
 		this.mappings = mappings;
 		this.policies = policies;
-	}
-
-	/** The store of the composition mark; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
-	@Autowired
-	void setComposition(CompositionStore composition) {
-		this.composition = composition;
-	}
-
-	/** The store of the architecture layers; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
-	@Autowired
-	void setLayerStore(ArchitectureLayerStore layerStore) {
-		this.layerStore = layerStore;
 	}
 
 	/**
@@ -120,8 +132,7 @@ public class PackageImporter {
 			throw ex;
 		}
 		// one import at a time: the instance configuration is the lock
-		this.jdbc.queryForObject("SELECT id FROM metamodel_configurations WHERE id = ? FOR UPDATE", UUID.class,
-				INSTANCE_CONFIGURATION);
+		this.configurationStore.lock(INSTANCE_CONFIGURATION);
 		List<PackageConflictException.Conflict> conflicts = conflicts(definition);
 		if (!conflicts.isEmpty()) {
 			rejected(principal, definition, "conflict");
@@ -195,16 +206,10 @@ public class PackageImporter {
 		MetamodelEffects.Effects effects = this.effects.apply(before, principal);
 		int created = (int) actions.values().stream().filter("created"::equals).count();
 		int updated = (int) actions.values().stream().filter("updated"::equals).count();
-		this.jdbc.update("""
-				UPDATE metamodel_configurations SET last_modified_at = ?, last_modified_by_person_id = ?,
-				       last_modified_by_admin_id = ? WHERE id = ?""", Timestamp.from(now), principal.personId(),
-				principal.systemAdminAccountId(), INSTANCE_CONFIGURATION);
-		this.jdbc.update("""
-				INSERT INTO metamodel_package_imports (package_id, package_version, publisher, batch_id, imported_at,
-				    imported_by_person_id, imported_by_admin_id, metatypes_created, metatypes_updated)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", definition.packageId(), definition.version(),
-				definition.publisher(), batchId, Timestamp.from(now), principal.personId(),
-				principal.systemAdminAccountId(), created, updated);
+		this.configurationStore.touch(INSTANCE_CONFIGURATION, now, principal.personId(),
+				principal.systemAdminAccountId());
+		this.importStore.record(definition.packageId(), definition.version(), definition.publisher(), batchId, now,
+				principal.personId(), principal.systemAdminAccountId(), created, updated);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("packageId", definition.packageId());
 		details.put("version", definition.version());
@@ -378,34 +383,24 @@ public class PackageImporter {
 	private List<PackageConflictException.Conflict> conflicts(PackageDefinition definition) {
 		List<PackageConflictException.Conflict> conflicts = new ArrayList<>();
 		for (PackageDefinition.Category category : definition.categories()) {
-			check(conflicts, definition, "property category " + category.name(), owners("""
-					SELECT scope, source_package_id FROM property_categories
-					WHERE id = ? OR (lower(name) = lower(?) AND id <> ?)""", category.id(), category.name(),
-					category.id()));
+			check(conflicts, definition, "property category " + category.name(),
+					owners(this.definitionStore.categoryOwners(category.id(), category.name())));
 		}
 		for (PackageDefinition.Property property : definition.properties()) {
-			check(conflicts, definition, "property definition " + property.name(), owners("""
-					SELECT scope, source_package_id FROM property_definitions
-					WHERE id = ? OR ((lower(name) = lower(?) OR sql_column_name = ?) AND id <> ?)""", property.id(),
-					property.name(), StorageNames.derive(property.name()), property.id()));
+			check(conflicts, definition, "property definition " + property.name(), owners(this.definitionStore
+				.propertyOwners(property.id(), property.name(), StorageNames.derive(property.name()))));
 			for (PackageDefinition.EnumValue value : property.enumValues()) {
-				check(conflicts, definition, "enum value " + value.value(), owners("""
-						SELECT d.scope, d.source_package_id FROM property_enum_values v
-						JOIN property_definitions d ON d.id = v.property_def_id
-						WHERE v.id = ? AND v.property_def_id <> ?""", value.id(), property.id()));
+				check(conflicts, definition, "enum value " + value.value(),
+						owners(this.definitionStore.enumValueOwners(value.id(), property.id())));
 			}
 		}
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
 			// also the names of extensions: an instance metatype never takes one (BR-09, us-037 D3)
-			check(conflicts, definition, "metatype " + metatype.name(), owners("""
-					SELECT scope, source_package_id FROM metatypes
-					WHERE id = ? OR (lower(name) = lower(?) AND id <> ?)""", metatype.id(), metatype.name(),
-					metatype.id()));
+			check(conflicts, definition, "metatype " + metatype.name(),
+					owners(this.metatypeStore.owners(metatype.id(), metatype.name())));
 			for (PackageDefinition.Mapping mapping : metatype.mappings()) {
-				check(conflicts, definition, "property mapping of " + metatype.name(), owners("""
-						SELECT t.scope, t.source_package_id FROM metatype_property_mappings m
-						JOIN metatypes t ON t.id = m.metatype_id
-						WHERE m.id = ? AND m.metatype_id <> ?""", mapping.id(), metatype.id()));
+				check(conflicts, definition, "property mapping of " + metatype.name(),
+						owners(this.mappingStore.owners(mapping.id(), metatype.id())));
 			}
 		}
 		for (PackageDefinition.Layer layer : definition.layers()) {
@@ -442,19 +437,13 @@ public class PackageImporter {
 		}
 	}
 
-	private List<Owner> owners(String sql, Object... arguments) {
-		return this.jdbc.query(sql, (rs, n) -> new Owner(rs.getString(1), rs.getString(2)), arguments);
+	private List<Owner> owners(List<ContentOwner> owners) {
+		return owners.stream().map((owner) -> new Owner(owner.scope(), owner.packageId())).toList();
 	}
 
 	private void upsertCategory(PackageDefinition definition, PackageDefinition.Category category) {
-		this.jdbc.update("""
-				INSERT INTO property_categories (id, name, sort_order, description, scope, source_package_id,
-				    source_package_version) VALUES (?, ?, ?, ?, 'imported', ?, ?)
-				ON CONFLICT (id) DO UPDATE SET name = excluded.name, sort_order = excluded.sort_order,
-				    description = excluded.description, source_package_version = excluded.source_package_version,
-				    version = property_categories.version + 1""",
-				category.id(), category.name().strip(), category.sortOrder(), category.description(),
-				definition.packageId(), definition.version());
+		this.definitionStore.upsertImportedCategory(category.id(), category.name().strip(), category.sortOrder(),
+				category.description(), definition.packageId(), definition.version());
 	}
 
 	/** Stored fields of a metatype that a package defines. */
@@ -472,50 +461,32 @@ public class PackageImporter {
 		String abbreviation = (metatype.abbreviation() != null) ? metatype.abbreviation().strip() : null;
 		MetatypeFields wanted = new MetatypeFields(metatype.name().strip(), abbreviation, metatype.connection(),
 				metatype.sortOrder(), metatype.architectureLayerId());
-		List<MetatypeFields> existing = this.jdbc.query(
-				"SELECT name, abbreviation, is_connection, sort_order FROM metatypes WHERE id = ?",
-				(rs, n) -> new MetatypeFields(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getInt(4), null),
-				metatype.id())
+		List<MetatypeFields> existing = this.metatypeStore.importedFields(metatype.id())
 			.stream()
-			.map((fields) -> fields.withLayer(this.layerStore.layerOf(metatype.id()).orElse(null)))
+			.map((row) -> new MetatypeFields(row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
+					this.layerStore.layerOf(metatype.id()).orElse(null)))
 			.toList();
 		if (existing.isEmpty()) {
-			this.jdbc.update("""
-					INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, sort_order, scope,
-					    source_package_id, source_package_version, is_composition, architecture_layer_id)
-					VALUES (?, ?, ?, ?, ?, ?, 'imported', ?, ?, ?, ?)""",
-					metatype.id(), INSTANCE_CONFIGURATION, wanted.name(), abbreviation, metatype.connection(),
-					metatype.sortOrder(), definition.packageId(), definition.version(), metatype.composition(),
-					metatype.architectureLayerId());
+			this.metatypeStore.insertImported(metatype.id(), INSTANCE_CONFIGURATION, wanted.name(), abbreviation,
+					metatype.connection(), metatype.sortOrder(), definition.packageId(), definition.version(),
+					metatype.composition(), metatype.architectureLayerId());
 			return "created";
 		}
-		this.jdbc.update("""
-				UPDATE metatypes SET name = ?, abbreviation = ?, is_connection = ?, sort_order = ?,
-				       source_package_version = ?, is_composition = ?, architecture_layer_id = ? WHERE id = ?""",
-				wanted.name(), abbreviation, metatype.connection(), metatype.sortOrder(), definition.version(),
-				metatype.composition(), metatype.architectureLayerId(), metatype.id());
+		this.metatypeStore.updateImported(metatype.id(), wanted.name(), abbreviation, metatype.connection(),
+				metatype.sortOrder(), definition.version(), metatype.composition(), metatype.architectureLayerId());
 		return existing.get(0).equals(wanted) ? "unchanged" : "updated";
 	}
 
 	private void upsertProperty(PackageDefinition definition, PackageDefinition.Property property) {
-		this.jdbc.update("""
-				INSERT INTO property_definitions (id, name, sql_column_name, data_type, category_id, ref_metatype_id,
-				    max_length, min_value, max_value, pattern, scope, source_package_id, source_package_version)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'imported', ?, ?)
-				ON CONFLICT (id) DO UPDATE SET name = excluded.name, data_type = excluded.data_type,
-				    category_id = excluded.category_id, ref_metatype_id = excluded.ref_metatype_id,
-				    max_length = excluded.max_length, min_value = excluded.min_value, max_value = excluded.max_value,
-				    pattern = excluded.pattern, source_package_version = excluded.source_package_version,
-				    version = property_definitions.version + 1""",
-				property.id(), property.name().strip(), StorageNames.derive(property.name()),
-				property.dataType(), property.categoryId(), property.refMetatypeId(), property.maxLength(),
-				property.minValue(), property.maxValue(), property.pattern(), definition.packageId(),
-				definition.version());
-		this.jdbc.update("DELETE FROM property_enum_values WHERE property_def_id = ?", property.id());
-		for (PackageDefinition.EnumValue value : property.enumValues()) {
-			this.jdbc.update("INSERT INTO property_enum_values (id, property_def_id, value, sort_order) VALUES (?, ?, ?, ?)",
-					value.id(), property.id(), value.value(), value.sortOrder());
-		}
+		this.definitionStore.upsertImportedProperty(property.id(), property.name().strip(),
+				StorageNames.derive(property.name()), property.dataType(), property.categoryId(),
+				property.refMetatypeId(), property.maxLength(), property.minValue(), property.maxValue(),
+				property.pattern(), definition.packageId(), definition.version(),
+				property.enumValues()
+					.stream()
+					.map((value) -> new PropertyDefinitionStore.EnumRow(value.id(), property.id(), value.value(),
+							value.sortOrder()))
+					.toList());
 	}
 
 	/** A base type outside the package must be a built-in metatype. */
@@ -528,8 +499,7 @@ public class PackageImporter {
 				throw new InvalidPackageException("invalid-package", "/metatypes/" + i + "/baseMetatypeId",
 						"The structuring aid cannot be a base type.");
 			}
-			if (base != null && !own.contains(base) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
-					"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND scope = 'built-in')", Boolean.class, base))) {
+			if (base != null && !own.contains(base) && !this.metatypeStore.builtIn(base)) {
 				throw new InvalidPackageException("invalid-package", "/metatypes/" + i + "/baseMetatypeId",
 						"The base type is neither part of the package nor built-in.");
 			}
@@ -553,23 +523,18 @@ public class PackageImporter {
 					throw new InvalidPackageException("invalid-package", pointer + "/connectionConstraints",
 							"A structuring aid has no connections.");
 				}
-				if (!own.contains(endpoint) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
-						"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND scope = 'built-in')", Boolean.class,
-						endpoint))) {
+				if (!own.contains(endpoint) && !this.metatypeStore.builtIn(endpoint)) {
 					throw new InvalidPackageException("invalid-package", pointer + "/connectionConstraints",
 							"The allowed metatype " + endpoint + " is neither part of the package nor built-in.");
 				}
 			}
 			UUID base = metatype.baseMetatypeId();
-			if (base != null && !own.contains(base) && !Boolean.TRUE.equals(this.jdbc.queryForObject(
-					"SELECT EXISTS (SELECT 1 FROM metatypes WHERE id = ? AND is_connection = ?)", Boolean.class, base,
-					metatype.connection()))) {
+			if (base != null && !own.contains(base) && !this.metatypeStore.existsOfKind(base, metatype.connection())) {
 				throw new InvalidPackageException("invalid-package", pointer + "/baseMetatypeId",
 						"The base type is not of the same kind (connection or element).");
 			}
-			List<Boolean> stored = this.jdbc.queryForList("SELECT is_connection FROM metatypes WHERE id = ?",
-					Boolean.class, metatype.id());
-			if (!stored.isEmpty() && stored.get(0) != metatype.connection()) {
+			Optional<Boolean> stored = this.metatypeStore.isConnection(metatype.id());
+			if (stored.isPresent() && stored.get() != metatype.connection()) {
 				throw new InvalidPackageException("invalid-package", pointer + "/isConnection",
 						"Whether a metatype is a connection cannot change at a re-import.");
 			}
@@ -596,18 +561,16 @@ public class PackageImporter {
 
 	/** Replaces the allowed endpoints; a metatype whose endpoints changed counts as updated. */
 	private String replaceConstraints(PackageDefinition.Metatype metatype, String action) {
-		Map<String, List<UUID>> before = ConnectionConstraints.of(this.jdbc, metatype.id());
-		ConnectionConstraints.replace(this.jdbc, metatype.id(), metatype.allowedSources(), metatype.allowedTargets());
-		boolean changed = !Set.copyOf(before.get(ConnectionConstraints.SOURCE)).equals(Set.copyOf(metatype.allowedSources()))
-				|| !Set.copyOf(before.get(ConnectionConstraints.TARGET)).equals(Set.copyOf(metatype.allowedTargets()));
+		Map<String, List<UUID>> before = this.constraintStore.of(metatype.id());
+		this.constraintStore.replace(metatype.id(), metatype.allowedSources(), metatype.allowedTargets());
+		boolean changed = !Set.copyOf(before.get(ConnectionConstraintStore.SOURCE)).equals(Set.copyOf(metatype.allowedSources()))
+				|| !Set.copyOf(before.get(ConnectionConstraintStore.TARGET)).equals(Set.copyOf(metatype.allowedTargets()));
 		return (changed && "unchanged".equals(action)) ? "updated" : action;
 	}
 
 	/** Sets the base type; a metatype whose base type changed counts as updated. */
 	private String setBaseType(PackageDefinition.Metatype metatype, String action) {
-		int changed = this.jdbc.update(
-				"UPDATE metatypes SET base_metatype_id = ? WHERE id = ? AND base_metatype_id IS DISTINCT FROM ?::uuid",
-				metatype.baseMetatypeId(), metatype.id(), metatype.baseMetatypeId());
+		int changed = this.metatypeStore.setBase(metatype.id(), metatype.baseMetatypeId());
 		return (changed > 0 && "unchanged".equals(action)) ? "updated" : action;
 	}
 
@@ -618,12 +581,7 @@ public class PackageImporter {
 			UUID id = definition.metatypes().get(i).id();
 			Set<UUID> related = new HashSet<>(MetamodelEffects.chain(id, bases));
 			related.addAll(MetamodelEffects.subtree(id, bases));
-			Boolean duplicate = this.jdbc.queryForObject("""
-					SELECT EXISTS (SELECT 1 FROM metatype_property_mappings a JOIN metatype_property_mappings b
-					    ON a.property_def_id = b.property_def_id AND a.metatype_id <> b.metatype_id
-					WHERE a.metatype_id = ? AND b.metatype_id = ANY (?::uuid[]))""", Boolean.class, id,
-					MetamodelEffects.ids(related));
-			if (Boolean.TRUE.equals(duplicate)) {
+			if (this.mappingStore.sharesPropertyWith(id, related)) {
 				InvalidPackageException ex = new InvalidPackageException("invalid-package",
 						"/metatypes/" + i + "/propertyMappings", "A property is mapped twice in the base type chain.");
 				rejected(principal, definition, ex.getType());
@@ -643,25 +601,17 @@ public class PackageImporter {
 	private String replaceMappings(PackageDefinition.Metatype metatype, String action, List<UUID> skipped) {
 		List<String> before = mappingSignature(metatype.id());
 		// rows already applied keep that state, so a re-import does not apply an entry twice
-		Map<UUID, Timestamp> applied = new HashMap<>();
-		this.jdbc.query("""
-				DELETE FROM metatype_property_mappings WHERE metatype_id = ? AND scope <> 'organization'
-				RETURNING id, effective_applied_at""", (rs) -> {
-			applied.put(rs.getObject(1, UUID.class), rs.getTimestamp(2));
-		}, metatype.id());
-		Timestamp now = Timestamp.from(this.clock.instant());
+		Map<UUID, Instant> applied = this.mappingStore.deleteImported(metatype.id());
+		Instant now = this.clock.instant();
 		for (PackageDefinition.Mapping mapping : metatype.mappings()) {
 			boolean inEffect = !mapping.validFrom().isAfter(this.effects.today());
 			// a new row in effect takes effect within the import; a kept row keeps its state
-			Timestamp appliedAt = applied.containsKey(mapping.id()) ? applied.get(mapping.id())
+			Instant appliedAt = applied.containsKey(mapping.id()) ? applied.get(mapping.id())
 					: inEffect ? now : null;
 			// on a date that an organization entry has, the organization entry wins (ADR-049)
-			int inserted = this.jdbc.update("""
-					INSERT INTO metatype_property_mappings (id, metatype_id, property_def_id, necessity, valid_from,
-					    sort_order, scope, effective_applied_at) VALUES (?, ?, ?, ?, ?, ?, 'imported', ?)
-					ON CONFLICT (metatype_id, property_def_id, valid_from) DO NOTHING""", mapping.id(), metatype.id(),
-					mapping.propertyDefinitionId(), mapping.necessity(), Date.valueOf(mapping.validFrom()),
-					mapping.sortOrder(), appliedAt);
+			int inserted = this.mappingStore.insertImported(mapping.id(), metatype.id(),
+					mapping.propertyDefinitionId(), mapping.necessity(), mapping.validFrom(), mapping.sortOrder(),
+					appliedAt);
 			if (inserted == 0) {
 				skipped.add(mapping.id());
 			}
@@ -673,10 +623,7 @@ public class PackageImporter {
 	}
 
 	private List<String> mappingSignature(UUID metatypeId) {
-		return this.jdbc.query("""
-				SELECT m.id || '|' || m.property_def_id || '|' || m.necessity || '|' || m.valid_from || '|' || m.sort_order
-				FROM metatype_property_mappings m WHERE m.metatype_id = ? AND m.scope <> 'organization' ORDER BY m.id""", (rs, n) -> rs.getString(1),
-				metatypeId);
+		return this.mappingStore.signature(metatypeId);
 	}
 
 	/** A package rejected before it reached the import (unreadable or not matching the format). */

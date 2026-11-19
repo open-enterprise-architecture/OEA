@@ -4,6 +4,9 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.core.metamodel.ArchitectureLayerStore;
 import io.oea.core.metamodel.BuiltInMetatypes;
 import io.oea.core.metamodel.CompositionStore;
+import io.oea.core.metamodel.ConnectionConstraintStore;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.PropertyMappingStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -13,8 +16,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,15 @@ public class MetatypeEditing {
 
 	static final int ABBREVIATION_MAX_LENGTH = 10;
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeStore store;
+
+	private final ConnectionConstraintStore constraints;
+
+	private final PropertyMappingStore mappings;
+
+	private final CompositionStore composition;
+
+	private final ArchitectureLayerStore layers;
 
 	private final MetamodelEffects effects;
 
@@ -42,30 +51,20 @@ public class MetatypeEditing {
 
 	private final SolutionImpact impact;
 
-	private CompositionStore composition;
-
-	private ArchitectureLayerStore layers;
-
-	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
-			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact) {
+	public MetatypeEditing(MetatypeStore store, ConnectionConstraintStore constraints, PropertyMappingStore mappings,
+			CompositionStore composition, ArchitectureLayerStore layers, MetamodelEffects effects,
+			MetamodelAudit audit, MetamodelVersions versions, MetamodelConfigurations configurations,
+			SolutionImpact impact) {
 		this.impact = impact;
-		this.jdbc = jdbc;
+		this.store = store;
+		this.constraints = constraints;
+		this.mappings = mappings;
+		this.composition = composition;
+		this.layers = layers;
 		this.effects = effects;
 		this.audit = audit;
 		this.versions = versions;
 		this.configurations = configurations;
-	}
-
-	/** The store of the composition mark; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
-	@Autowired
-	void setComposition(CompositionStore composition) {
-		this.composition = composition;
-	}
-
-	/** The store of the architecture layers; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
-	@Autowired
-	void setLayers(ArchitectureLayerStore layers) {
-		this.layers = layers;
 	}
 
 	/**
@@ -114,13 +113,9 @@ public class MetatypeEditing {
 		this.configurations.requireWritable(principal, config);
 		String name = validate(input, null, config);
 		UUID id = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO metatypes (id, config_id, name, abbreviation, is_connection, architecture_layer_id, sort_order,
-				    scope, created_by, base_metatype_id, is_composition) VALUES (?, ?, ?, ?, ?, ?, ?, 'organization', ?, ?, ?)""",
-				id, config, name, abbreviation(input), input.connection(),
-				input.architectureLayerId(), input.sortOrder(), principal.personId(), input.baseMetatypeId(),
-				input.composition());
-		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
+		this.store.insert(id, config, name, abbreviation(input), input.connection(), input.architectureLayerId(),
+				input.sortOrder(), principal.personId(), input.baseMetatypeId(), input.composition());
+		this.constraints.replace(id, input.allowedSources(), input.allowedTargets());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
 		if (!PackageImporter.INSTANCE_CONFIGURATION.equals(config)) {
@@ -173,18 +168,16 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.invalid("isConnection", "Whether a metatype is a connection cannot change.");
 		}
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
-		Map<String, List<UUID>> constraintsBefore = ConnectionConstraints.of(this.jdbc, id);
+		Map<String, List<UUID>> constraintsBefore = this.constraints.of(id);
 		boolean wasComposition = this.composition.marked().filter(id::equals).isPresent();
-		this.jdbc.update("""
-				UPDATE metatypes SET name = ?, abbreviation = ?, architecture_layer_id = ?, sort_order = ?,
-				       base_metatype_id = ?, is_composition = ? WHERE id = ?""", name, abbreviation(input),
-				input.architectureLayerId(), input.sortOrder(), input.baseMetatypeId(), input.composition(), id);
-		ConnectionConstraints.replace(this.jdbc, id, input.allowedSources(), input.allowedTargets());
+		this.store.update(id, name, abbreviation(input), input.architectureLayerId(), input.sortOrder(),
+				input.baseMetatypeId(), input.composition());
+		this.constraints.replace(id, input.allowedSources(), input.allowedTargets());
 		this.versions.increment(MetamodelVersions.Element.METATYPE, id);
 		List<String> changed = new ArrayList<>();
-		compare(changed, "allowedSourceMetatypeIds", Set.copyOf(constraintsBefore.get(ConnectionConstraints.SOURCE)),
+		compare(changed, "allowedSourceMetatypeIds", Set.copyOf(constraintsBefore.get(ConnectionConstraintStore.SOURCE)),
 				Set.copyOf(input.allowedSources()));
-		compare(changed, "allowedTargetMetatypeIds", Set.copyOf(constraintsBefore.get(ConnectionConstraints.TARGET)),
+		compare(changed, "allowedTargetMetatypeIds", Set.copyOf(constraintsBefore.get(ConnectionConstraintStore.TARGET)),
 				Set.copyOf(input.allowedTargets()));
 		compare(changed, "name", stored.name(), name);
 		compare(changed, "abbreviation", stored.abbreviation(), abbreviation(input));
@@ -216,22 +209,21 @@ public class MetatypeEditing {
 		if (!"organization".equals(stored.scope())) {
 			throw MetamodelChangeException.readOnly("metatype");
 		}
-		long entities = count("SELECT count(*) FROM entities WHERE metatype_id = ?", id);
-		long catalogs = count("SELECT count(*) FROM catalogs WHERE primary_metatype_id = ?", id);
-		long subtypes = count("SELECT count(*) FROM metatypes WHERE base_metatype_id = ?", id);
+		MetatypeStore.Usage usage = this.store.usage(id);
+		long entities = usage.entities();
+		long catalogs = usage.catalogs();
+		long subtypes = usage.subtypes();
 		// a deletion must not widen the constraints of a connection metatype to "any" (us-036 D2)
-		long endpoints = count("""
-				SELECT count(*) FROM metatype_connection_constraints WHERE allowed_metatype_id = ? AND metatype_id <> ?""",
-				id, id);
+		long endpoints = usage.endpoints();
 		if (entities > 0 || catalogs > 0 || subtypes > 0 || endpoints > 0) {
 			throw MetamodelChangeException.inUse("The metatype has " + entities + " entities, " + catalogs
 					+ " catalogs, " + subtypes + " subtypes and " + endpoints
 					+ " uses as endpoint of connection metatypes.", entities);
 		}
 		// the scoping type of a property definition (design D4 of us-124-property-visibility)
-		long scoping = count("SELECT count(*) FROM property_definitions WHERE scoping_connection_type_id = ?", id);
+		long scoping = usage.scopingTypes();
 		// the person metatype of connection-scoped visibility (design D2 of us-127-connection-scoped-visibility)
-		if (count("SELECT count(*) FROM visibility_settings WHERE person_metatype_id = ?", id) > 0) {
+		if (usage.personMetatype() > 0) {
 			throw MetamodelChangeException.inUse("The metatype is the person metatype of connection-scoped visibility.",
 					null);
 		}
@@ -239,9 +231,9 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.inUse(
 					"The metatype is the scoping type of " + scoping + " property definitions.", scoping);
 		}
-		this.jdbc.update("DELETE FROM metatype_connection_constraints WHERE metatype_id = ?", id);
-		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE metatype_id = ?", id);
-		this.jdbc.update("DELETE FROM metatypes WHERE id = ?", id);
+		this.constraints.deleteOf(id);
+		this.mappings.deleteOf(id);
+		this.store.delete(id);
 		this.effects.removeOrphanLabels();
 		this.audit.changed("metamodel.metatype-deleted", principal, "metatype", id, Map.of("name", stored.name()));
 	}
@@ -267,10 +259,7 @@ public class MetatypeEditing {
 			throw MetamodelChangeException.invalid("architectureLayerId", "The architecture layer does not exist.");
 		}
 		boolean instance = PackageImporter.INSTANCE_CONFIGURATION.equals(config);
-		if (count("""
-				SELECT count(*) FROM metatypes WHERE (? OR config_id IN (?, ?)) AND lower(name) = lower(?)
-				    AND id IS DISTINCT FROM ?::uuid""", instance, PackageImporter.INSTANCE_CONFIGURATION, config, name,
-				id) > 0) {
+		if (this.store.nameTaken(instance, PackageImporter.INSTANCE_CONFIGURATION, config, name, id)) {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		UUID base = input.baseMetatypeId();
@@ -288,8 +277,7 @@ public class MetatypeEditing {
 		}
 		if (base != null) {
 			// base types have the same kind (us-036-connection-metatypes D2)
-			if (count("SELECT count(*) FROM metatypes WHERE id = ? AND is_connection = ? AND config_id IN (?, ?)", base,
-					input.connection(), PackageImporter.INSTANCE_CONFIGURATION, config) == 0) {
+			if (!this.store.existsOfKind(base, input.connection(), PackageImporter.INSTANCE_CONFIGURATION, config)) {
 				throw MetamodelChangeException.invalid("baseMetatypeId", "The base type does not exist, is not of the "
 						+ "same kind (connection or element) or belongs to another configuration.");
 			}
@@ -331,8 +319,8 @@ public class MetatypeEditing {
 			if (BuiltInMetatypes.STRUCTURING_AID.equals(metatype)) {
 				throw MetamodelChangeException.invalid(field, "A structuring aid has no connections.");
 			}
-			if (!metatype.equals(id) && count("SELECT count(*) FROM metatypes WHERE id = ? AND config_id IN (?, ?)",
-					metatype, PackageImporter.INSTANCE_CONFIGURATION, config) == 0) {
+			if (!metatype.equals(id)
+					&& !this.store.existsIn(metatype, PackageImporter.INSTANCE_CONFIGURATION, config)) {
 				throw MetamodelChangeException.invalid(field,
 						"The metatype " + metatype + " does not exist in this configuration or the instance.");
 			}
@@ -343,31 +331,17 @@ public class MetatypeEditing {
 	private void checkUniqueInChain(UUID id, UUID base, Map<UUID, UUID> bases) {
 		List<UUID> above = MetamodelEffects.chain(base, bases);
 		Set<UUID> below = MetamodelEffects.subtree(id, bases);
-		Integer duplicates = this.jdbc.queryForObject("""
-				SELECT count(*) FROM metatype_property_mappings a JOIN metatype_property_mappings b
-				    ON a.property_def_id = b.property_def_id
-				WHERE a.metatype_id = ANY (?::uuid[]) AND b.metatype_id = ANY (?::uuid[])""", Integer.class,
-				MetamodelEffects.ids(above), MetamodelEffects.ids(below));
-		if (duplicates != null && duplicates > 0) {
+		if (this.mappings.mappedTwice(above, below)) {
 			throw MetamodelChangeException.conflict("A property would be mapped twice in the base type chain.");
 		}
 	}
 
 	private Stored stored(UUID id) {
-		return this.jdbc.query("""
-				SELECT name, abbreviation, is_connection, sort_order, scope, base_metatype_id, config_id
-				FROM metatypes WHERE id = ?""", (rs, n) -> new Stored(rs.getString(1), rs.getString(2), rs.getBoolean(3),
-				null, rs.getInt(4), rs.getString(5), rs.getObject(6, UUID.class), rs.getObject(7, UUID.class)),
-				id)
-			.stream()
-			.findFirst()
+		return this.store.stored(id)
+			.map((row) -> new Stored(row.name(), row.abbreviation(), row.connection(), null, row.sortOrder(),
+					row.scope(), row.baseMetatypeId(), row.configId()))
 			.map((stored) -> stored.withLayer(this.layers.layerOf(id).orElse(null)))
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));
-	}
-
-	private long count(String sql, Object... arguments) {
-		Long count = this.jdbc.queryForObject(sql, Long.class, arguments);
-		return (count != null) ? count : 0;
 	}
 
 	private static String abbreviation(Input input) {

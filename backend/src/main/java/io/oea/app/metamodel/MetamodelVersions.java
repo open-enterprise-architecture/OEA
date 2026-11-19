@@ -1,9 +1,9 @@
 package io.oea.app.metamodel;
 
-import java.util.List;
+import io.oea.core.metamodel.MetamodelConfigurationStore;
+import io.oea.core.metamodel.MetamodelConfigurationStore.Versioned;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,30 +17,27 @@ public class MetamodelVersions {
 	/** The versioned elements with their tables. */
 	public enum Element {
 
-		METATYPE("metatypes", "metatype", ""),
-		PROPERTY_DEFINITION("property_definitions", "property definition", " AND retired_at IS NULL"),
-		CATEGORY("property_categories", "property category", ""),
-		ARCHITECTURE_LAYER("architecture_layers", "architecture layer", ""),
-		CONFIGURATION("metamodel_configurations", "metamodel configuration", "");
+		METATYPE(Versioned.METATYPE, "metatype"),
+		PROPERTY_DEFINITION(Versioned.PROPERTY_DEFINITION, "property definition"),
+		CATEGORY(Versioned.CATEGORY, "property category"),
+		ARCHITECTURE_LAYER(Versioned.ARCHITECTURE_LAYER, "architecture layer"),
+		CONFIGURATION(Versioned.CONFIGURATION, "metamodel configuration");
 
-		private final String table;
+		private final Versioned stored;
 
 		private final String label;
 
-		private final String condition;
-
-		Element(String table, String label, String condition) {
-			this.table = table;
+		Element(Versioned stored, String label) {
+			this.stored = stored;
 			this.label = label;
-			this.condition = condition;
 		}
 
 	}
 
-	private final JdbcTemplate jdbc;
+	private final MetamodelConfigurationStore store;
 
-	public MetamodelVersions(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	public MetamodelVersions(MetamodelConfigurationStore store) {
+		this.store = store;
 	}
 
 	/**
@@ -51,19 +48,16 @@ public class MetamodelVersions {
 	 * @throws MetamodelChangeException with {@code STALE_VERSION} if the version differs (412)
 	 */
 	public void check(Element element, UUID id, Long expected) {
-		List<Integer> current = this.jdbc.queryForList(
-				"SELECT version FROM " + element.table + " WHERE id = ?" + element.condition, Integer.class, id);
-		if (current.isEmpty()) {
-			throw new NoSuchElementException("no " + element.label + " " + id);
-		}
-		if (expected != null && expected != current.get(0).longValue()) {
-			throw MetamodelChangeException.staleVersion(element.label, current.get(0));
+		Integer current = this.store.version(element.stored, id)
+			.orElseThrow(() -> new NoSuchElementException("no " + element.label + " " + id));
+		if (expected != null && expected != current.longValue()) {
+			throw MetamodelChangeException.staleVersion(element.label, current);
 		}
 	}
 
 	/** Increments the version of the element after a change. */
 	public void increment(Element element, UUID id) {
-		this.jdbc.update("UPDATE " + element.table + " SET version = version + 1 WHERE id = ?", id);
+		this.store.incrementVersion(element.stored, id);
 	}
 
 }

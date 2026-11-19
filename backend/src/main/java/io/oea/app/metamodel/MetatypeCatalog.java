@@ -1,6 +1,11 @@
 package io.oea.app.metamodel;
 
 import io.oea.core.metamodel.ArchitectureLayerStore;
+import io.oea.core.metamodel.ConnectionConstraintStore;
+import io.oea.core.metamodel.MetamodelConfigurationStore;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.PropertyDefinitionStore;
+import io.oea.core.metamodel.PropertyMappingStore;
 import io.oea.core.solution.SnapshotStore;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -12,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +27,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MetatypeCatalog {
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeStore metatypeStore;
+
+	private final MetamodelConfigurationStore configurationStore;
+
+	private final ConnectionConstraintStore constraintStore;
+
+	private final PropertyMappingStore mappingStore;
+
+	private final PropertyDefinitionStore definitionStore;
+
+	private final ArchitectureLayerStore layers;
 
 	private final Clock clock;
 
@@ -32,19 +45,19 @@ public class MetatypeCatalog {
 
 	private final SnapshotStore snapshots;
 
-	private ArchitectureLayerStore layers;
-
-	public MetatypeCatalog(JdbcTemplate jdbc, Clock clock, PropertyVisibility visibility, SnapshotStore snapshots) {
+	public MetatypeCatalog(MetatypeStore metatypeStore, MetamodelConfigurationStore configurationStore,
+			ConnectionConstraintStore constraintStore, PropertyMappingStore mappingStore,
+			PropertyDefinitionStore definitionStore, ArchitectureLayerStore layers, Clock clock,
+			PropertyVisibility visibility, SnapshotStore snapshots) {
 		this.snapshots = snapshots;
-		this.jdbc = jdbc;
+		this.metatypeStore = metatypeStore;
+		this.configurationStore = configurationStore;
+		this.constraintStore = constraintStore;
+		this.mappingStore = mappingStore;
+		this.definitionStore = definitionStore;
+		this.layers = layers;
 		this.clock = clock;
 		this.visibility = visibility;
-	}
-
-	/** The store of the architecture layers; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
-	@Autowired
-	void setLayers(ArchitectureLayerStore layers) {
-		this.layers = layers;
 	}
 
 	public record EnumValue(UUID id, String value, int sortOrder) {
@@ -121,9 +134,7 @@ public class MetatypeCatalog {
 	 */
 	@Transactional(readOnly = true)
 	public List<Metatype> list(UUID configId) {
-		Long exists = this.jdbc.queryForObject("SELECT count(*) FROM metamodel_configurations WHERE id = ?", Long.class,
-				configId);
-		if (exists == null || exists == 0) {
+		if (!this.configurationStore.exists(configId)) {
 			throw new NoSuchElementException("no metamodel configuration " + configId);
 		}
 		List<Metatype> metatypes = query(null, false, configId);
@@ -188,9 +199,7 @@ public class MetatypeCatalog {
 	/** The metatype; with history, every mapping entry ordered by property and date. */
 	@Transactional(readOnly = true)
 	public Metatype get(UUID id, boolean includeHistory) {
-		UUID config = this.jdbc.queryForList("SELECT config_id FROM metatypes WHERE id = ?", UUID.class, id)
-			.stream()
-			.findFirst()
+		UUID config = this.metatypeStore.configOf(id)
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));
 		return query(id, includeHistory, config).stream()
 			.findFirst()
@@ -223,21 +232,19 @@ public class MetatypeCatalog {
 
 	/** The global re-import setting of the instance configuration. */
 	String globalReimportPolicy() {
-		return this.jdbc.queryForObject("SELECT reimport_organization_mappings FROM metamodel_configurations WHERE id = ?",
-				String.class, PackageImporter.INSTANCE_CONFIGURATION);
+		return this.configurationStore.reimportPolicy(PackageImporter.INSTANCE_CONFIGURATION);
 	}
 
 	/** The re-import setting that applies to each metatype (design D8). */
 	Map<UUID, String> effectiveReimportPolicies() {
 		Map<UUID, String> own = new HashMap<>();
 		Map<UUID, UUID> bases = new HashMap<>();
-		this.jdbc.query("SELECT id, reimport_organization_mappings, base_metatype_id FROM metatypes", (rs) -> {
-			UUID id = rs.getObject(1, UUID.class);
-			own.put(id, rs.getString(2));
-			if (rs.getObject(3, UUID.class) != null) {
-				bases.put(id, rs.getObject(3, UUID.class));
+		for (MetatypeStore.PolicyRow row : this.metatypeStore.policies()) {
+			own.put(row.id(), row.policy());
+			if (row.baseMetatypeId() != null) {
+				bases.put(row.id(), row.baseMetatypeId());
 			}
-		});
+		}
 		String global = globalReimportPolicy();
 		Map<UUID, String> effective = new HashMap<>();
 		own.keySet().forEach((id) -> effective.put(id, MetamodelEffects.chain(id, bases)
@@ -253,32 +260,26 @@ public class MetatypeCatalog {
 	private List<Metatype> query(UUID id, boolean includeHistory, UUID config) {
 		Map<UUID, Map<UUID, List<Mapping>>> own = entries(includeHistory);
 		Map<UUID, Row> rows = new LinkedHashMap<>();
-		this.jdbc.query("""
-				SELECT m.id, m.name, m.abbreviation, m.is_connection, m.sort_order, m.scope, m.source_package_id,
-				       m.source_package_version, m.base_metatype_id, m.reimport_organization_mappings,
-				       m.version, m.config_id, m.show_parallel_changes, m.is_composition
-				FROM metatypes m
-				WHERE m.config_id IN (?, ?) ORDER BY m.sort_order, m.name""", (rs) -> {
-			UUID metatype = rs.getObject(1, UUID.class);
-			rows.put(metatype, new Row(metatype, rs.getString(2), rs.getString(3), rs.getBoolean(4), rs.getInt(5),
-					rs.getString(6), rs.getString(7), rs.getString(8), rs.getObject(9, UUID.class), rs.getString(10),
-					rs.getInt(11), rs.getObject(12, UUID.class), rs.getBoolean(13), rs.getBoolean(14)));
-		}, PackageImporter.INSTANCE_CONFIGURATION, config);
+		for (MetatypeStore.MetatypeRow row : this.metatypeStore.inConfigurations(PackageImporter.INSTANCE_CONFIGURATION,
+				config)) {
+			rows.put(row.id(), new Row(row.id(), row.name(), row.abbreviation(), row.connection(), row.sortOrder(),
+					row.scope(), row.sourcePackageId(), row.sourcePackageVersion(), row.baseMetatypeId(),
+					row.reimportPolicy(), row.version(), row.configId(), row.showParallelChanges(),
+					row.composition()));
+		}
 		Map<UUID, UUID> bases = new HashMap<>();
 		rows.values().stream().filter((row) -> row.baseMetatypeId() != null)
 			.forEach((row) -> bases.put(row.id(), row.baseMetatypeId()));
 		Map<UUID, String> policies = effectiveReimportPolicies();
 		Map<UUID, List<Constraint>> constraints = new HashMap<>();
-		this.jdbc.query("""
-				SELECT metatype_id, direction, allowed_metatype_id FROM metatype_connection_constraints
-				ORDER BY metatype_id, direction, allowed_metatype_id""", (rs) -> {
-			Row allowed = rows.get(rs.getObject(3, UUID.class));
+		for (ConnectionConstraintStore.ConstraintRow constraint : this.constraintStore.all()) {
+			Row allowed = rows.get(constraint.allowedMetatypeId());
 			if (allowed != null) {
-				constraints.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>())
-					.add(new Constraint(rs.getString(2),
+				constraints.computeIfAbsent(constraint.metatypeId(), (k) -> new ArrayList<>())
+					.add(new Constraint(constraint.direction(),
 							new MetatypeRef(allowed.id(), allowed.name(), allowed.abbreviation())));
 			}
-		});
+		}
 		Map<UUID, UUID> layerIds = this.layers.layerByMetatype(rows.keySet());
 		Map<UUID, String> layerNames = new HashMap<>();
 		this.layers.list().forEach((layer) -> layerNames.put(layer.id(), layer.name()));
@@ -313,24 +314,16 @@ public class MetatypeCatalog {
 	private Map<UUID, Map<UUID, List<Mapping>>> entries(boolean includeHistory) {
 		Map<UUID, Property> properties = propertyMap();
 		LocalDate today = LocalDate.now(this.clock);
-		record Entry(UUID id, UUID metatypeId, UUID propertyDefId, String necessity, LocalDate validFrom,
-				int sortOrder, String scope) {
-		}
-		List<Entry> rows = this.jdbc.query("""
-				SELECT id, metatype_id, property_def_id, necessity, valid_from, sort_order, scope
-				FROM metatype_property_mappings ORDER BY sort_order, property_def_id, valid_from""",
-				(rs, n) -> new Entry(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
-						rs.getObject(3, UUID.class), rs.getString(4), rs.getObject(5, LocalDate.class), rs.getInt(6),
-						rs.getString(7)));
+		List<PropertyMappingStore.EntryRow> rows = this.mappingStore.entries();
 		Map<List<UUID>, LocalDate> active = new HashMap<>();
-		for (Entry row : rows) {
+		for (PropertyMappingStore.EntryRow row : rows) {
 			if (!row.validFrom().isAfter(today)) {
 				active.merge(List.of(row.metatypeId(), row.propertyDefId()), row.validFrom(),
 						(a, b) -> a.isAfter(b) ? a : b);
 			}
 		}
 		Map<UUID, Map<UUID, List<Mapping>>> entries = new LinkedHashMap<>();
-		for (Entry row : rows) {
+		for (PropertyMappingStore.EntryRow row : rows) {
 			LocalDate activeFrom = active.get(List.of(row.metatypeId(), row.propertyDefId()));
 			String state = row.validFrom().isAfter(today) ? "future"
 					: row.validFrom().equals(activeFrom) ? "active" : "past";
@@ -346,35 +339,30 @@ public class MetatypeCatalog {
 
 	private Map<UUID, Category> categoryMap() {
 		Map<UUID, Category> categories = new LinkedHashMap<>();
-		this.jdbc.query("SELECT id, name, description, sort_order, scope, version FROM property_categories ORDER BY sort_order, name",
-				(rs) -> {
-					categories.put(rs.getObject(1, UUID.class), new Category(rs.getObject(1, UUID.class),
-							rs.getString(2), rs.getString(3), rs.getInt(4), rs.getString(5), rs.getInt(6)));
-				});
+		for (PropertyDefinitionStore.CategoryRow row : this.definitionStore.categories()) {
+			categories.put(row.id(), new Category(row.id(), row.name(), row.description(), row.sortOrder(), row.scope(),
+					row.version()));
+		}
 		return categories;
 	}
 
 	private Map<UUID, Property> propertyMap() {
 		Map<UUID, Category> categories = categoryMap();
 		Map<UUID, List<EnumValue>> values = new LinkedHashMap<>();
-		this.jdbc.query("SELECT id, property_def_id, value, sort_order FROM property_enum_values ORDER BY sort_order, value",
-				(rs) -> {
-					values.computeIfAbsent(rs.getObject(2, UUID.class), (k) -> new ArrayList<>())
-						.add(new EnumValue(rs.getObject(1, UUID.class), rs.getString(3), rs.getInt(4)));
-				});
+		for (PropertyDefinitionStore.EnumRow row : this.definitionStore.enumValues()) {
+			values.computeIfAbsent(row.propertyDefId(), (k) -> new ArrayList<>())
+				.add(new EnumValue(row.id(), row.value(), row.sortOrder()));
+		}
 		Map<UUID, Property> properties = new LinkedHashMap<>();
 		Map<UUID, PropertyVisibility.Visibility> visibilities = this.visibility.all();
-		this.jdbc.query("""
-				SELECT id, name, data_type, category_id, max_length, min_value, max_value, pattern, scope,
-				       source_package_id, source_package_version, sql_column_name, retired_at IS NOT NULL, version
-				FROM property_definitions""", (rs) -> {
-			UUID id = rs.getObject(1, UUID.class);
-			properties.put(id, new Property(id, rs.getString(2), rs.getString(3),
-					categories.get(rs.getObject(4, UUID.class)), (Integer) rs.getObject(5), rs.getBigDecimal(6),
-					rs.getBigDecimal(7), rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11),
-					List.copyOf(values.getOrDefault(id, List.of())), rs.getString(12), rs.getBoolean(13), rs.getInt(14),
+		for (PropertyDefinitionStore.PropertyRow row : this.definitionStore.properties()) {
+			UUID id = row.id();
+			properties.put(id, new Property(id, row.name(), row.dataType(), categories.get(row.categoryId()),
+					row.maxLength(), row.minValue(), row.maxValue(), row.pattern(), row.scope(),
+					row.sourcePackageId(), row.sourcePackageVersion(), List.copyOf(values.getOrDefault(id, List.of())),
+					row.sqlColumnName(), row.retired(), row.version(),
 					visibilities.getOrDefault(id, PropertyVisibility.Visibility.DEFAULT)));
-		});
+		}
 		return properties;
 	}
 

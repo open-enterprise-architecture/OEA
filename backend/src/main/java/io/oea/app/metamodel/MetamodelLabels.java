@@ -1,10 +1,11 @@
 package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.core.metamodel.MetamodelLabelStore;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -15,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,23 +30,7 @@ public class MetamodelLabels {
 	/** Maximum number of keys in one change. */
 	static final int MAXIMUM_KEYS = 5000;
 
-	private static final String ELEMENTS = """
-			WITH elements (entity_type, entity_id, name) AS (
-			    SELECT 'metatype', id, name FROM metatypes WHERE config_id = ?
-			    UNION ALL SELECT 'property_category', id, name FROM property_categories
-			    UNION ALL SELECT 'property_def', id, name FROM property_definitions
-			    UNION ALL SELECT 'enum_value', id, value FROM property_enum_values
-			    UNION ALL SELECT 'architecture_layer', id, name FROM architecture_layers
-			)
-			SELECT e.entity_type, e.entity_id, e.name, p.value AS package_text, o.value AS organization_text
-			FROM elements e
-			LEFT JOIN i18n_entries p ON p.entity_type = e.entity_type AND p.entity_id = e.entity_id
-			     AND p.locale = ? AND p.scope = 'imported'
-			LEFT JOIN i18n_entries o ON o.entity_type = e.entity_type AND o.entity_id = e.entity_id
-			     AND o.locale = ? AND o.scope = 'organization'
-			ORDER BY e.entity_type, lower(e.name), e.entity_id""";
-
-	private final JdbcTemplate jdbc;
+	private final MetamodelLabelStore store;
 
 	private final MetamodelEffects effects;
 
@@ -54,9 +38,9 @@ public class MetamodelLabels {
 
 	private final MetamodelConfigurations configurations;
 
-	public MetamodelLabels(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
+	public MetamodelLabels(MetamodelLabelStore store, MetamodelEffects effects, MetamodelAudit audit,
 			MetamodelConfigurations configurations) {
-		this.jdbc = jdbc;
+		this.store = store;
 		this.effects = effects;
 		this.audit = audit;
 		this.configurations = configurations;
@@ -91,12 +75,11 @@ public class MetamodelLabels {
 	@Transactional(readOnly = true)
 	public List<Label> list(String locale) {
 		requireLocale(locale);
-		return this.jdbc.query(ELEMENTS,
-				(rs, row) -> new Label(
-						new LabelKey(LabelKey.Element.ofColumn(rs.getString("entity_type")),
-								rs.getObject("entity_id", UUID.class)),
-						rs.getString("name"), rs.getString("package_text"), rs.getString("organization_text")),
-				PackageImporter.INSTANCE_CONFIGURATION, locale, locale);
+		return this.store.elements(PackageImporter.INSTANCE_CONFIGURATION, locale)
+			.stream()
+			.map((row) -> new Label(new LabelKey(LabelKey.Element.ofColumn(row.entityType()), row.entityId()),
+					row.name(), row.packageText(), row.organizationText()))
+			.toList();
 	}
 
 	/**
@@ -105,22 +88,11 @@ public class MetamodelLabels {
 	 */
 	@Transactional(readOnly = true)
 	public Map<UUID, String> propertyLabels(String locale, Collection<UUID> ids) {
-		Map<UUID, String> labels = new LinkedHashMap<>();
 		if (ids.isEmpty()) {
-			return labels;
+			return new LinkedHashMap<>();
 		}
 		String language = (locale != null && LabelKey.LOCALES.contains(locale)) ? locale : "";
-		this.jdbc.query("""
-				SELECT d.id, coalesce(o.value, p.value, d.name)
-				FROM property_definitions d
-				LEFT JOIN i18n_entries p ON p.entity_type = 'property_def' AND p.entity_id = d.id
-				     AND p.locale = ? AND p.scope = 'imported'
-				LEFT JOIN i18n_entries o ON o.entity_type = 'property_def' AND o.entity_id = d.id
-				     AND o.locale = ? AND o.scope = 'organization'
-				WHERE d.id = ANY(?)""", (rs) -> {
-			labels.put(rs.getObject(1, UUID.class), rs.getString(2));
-		}, language, language, ids.toArray(UUID[]::new));
-		return labels;
+		return this.store.propertyLabels(language, ids);
 	}
 
 	@Transactional(readOnly = true)
@@ -161,24 +133,18 @@ public class MetamodelLabels {
 		if (!invalid.isEmpty()) {
 			throw MetamodelChangeException.invalid(invalid.stream().sorted().toList(), "Unknown label keys.");
 		}
-		Timestamp now = Timestamp.from(this.effects.now());
+		Instant now = this.effects.now();
 		int set = 0;
 		int removed = 0;
 		for (Map.Entry<LabelKey, String> change : changes.entrySet()) {
 			LabelKey key = change.getKey();
 			if (change.getValue().isEmpty()) {
-				removed += this.jdbc.update("""
-						DELETE FROM i18n_entries WHERE entity_type = ? AND entity_id = ? AND locale = ? AND field = ?
-						    AND scope = 'organization'""", key.element().column(), key.id(), locale,
+				removed += this.store.deleteOrganization(key.element().column(), key.id(), locale,
 						key.element().field());
 			}
 			else {
-				this.jdbc.update("""
-						INSERT INTO i18n_entries (entity_type, entity_id, locale, field, value, scope, updated_at)
-						VALUES (?, ?, ?, ?, ?, 'organization', ?)
-						ON CONFLICT (entity_type, entity_id, locale, field, scope)
-						DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at""",
-						key.element().column(), key.id(), locale, key.element().field(), change.getValue(), now);
+				this.store.upsertOrganization(key.element().column(), key.id(), locale, key.element().field(),
+						change.getValue(), now);
 				set++;
 			}
 		}
@@ -190,16 +156,14 @@ public class MetamodelLabels {
 
 	/** Replaces the package labels of a package; organization labels stay (design D5). */
 	int replacePackageLabels(String packageId, Map<String, Map<String, String>> bundles) {
-		this.jdbc.update("DELETE FROM i18n_entries WHERE scope = 'imported' AND package_id = ?", packageId);
-		Timestamp now = Timestamp.from(this.effects.now());
+		this.store.deleteImported(packageId);
+		Instant now = this.effects.now();
 		int count = 0;
 		for (Map.Entry<String, Map<String, String>> bundle : bundles.entrySet()) {
 			for (Map.Entry<String, String> label : bundle.getValue().entrySet()) {
 				LabelKey key = LabelKey.parse(label.getKey()).orElseThrow();
-				this.jdbc.update("""
-						INSERT INTO i18n_entries (entity_type, entity_id, locale, field, value, scope, package_id, updated_at)
-						VALUES (?, ?, ?, ?, ?, 'imported', ?, ?)""", key.element().column(), key.id(), bundle.getKey(),
-						key.element().field(), label.getValue().strip(), packageId, now);
+				this.store.insertImported(key.element().column(), key.id(), bundle.getKey(), key.element().field(),
+						label.getValue().strip(), packageId, now);
 				count++;
 			}
 		}

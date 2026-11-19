@@ -2,7 +2,10 @@ package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
 import io.oea.core.entity.PropertyValueStore;
-import java.sql.Date;
+import io.oea.core.metamodel.MetamodelConfigurationStore;
+import io.oea.core.metamodel.MetamodelLabelStore;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.PropertyMappingStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -15,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,14 +29,24 @@ import org.springframework.stereotype.Component;
 @Component
 public class MetamodelEffects {
 
-	private final JdbcTemplate jdbc;
+	private final MetamodelConfigurationStore configurations;
+
+	private final MetatypeStore metatypes;
+
+	private final PropertyMappingStore mappings;
+
+	private final MetamodelLabelStore labels;
 
 	private final PropertyValueStore values;
 
 	private final Clock clock;
 
-	public MetamodelEffects(JdbcTemplate jdbc, PropertyValueStore values, Clock clock) {
-		this.jdbc = jdbc;
+	public MetamodelEffects(MetamodelConfigurationStore configurations, MetatypeStore metatypes,
+			PropertyMappingStore mappings, MetamodelLabelStore labels, PropertyValueStore values, Clock clock) {
+		this.configurations = configurations;
+		this.metatypes = metatypes;
+		this.mappings = mappings;
+		this.labels = labels;
 		this.values = values;
 		this.clock = clock;
 	}
@@ -58,12 +70,7 @@ public class MetamodelEffects {
 
 	/** Base type of each metatype that has one. */
 	Map<UUID, UUID> bases() {
-		Map<UUID, UUID> bases = new HashMap<>();
-		this.jdbc.query("SELECT id, base_metatype_id FROM metatypes WHERE base_metatype_id IS NOT NULL",
-				(rs) -> {
-					bases.put(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class));
-				});
-		return bases;
+		return this.metatypes.bases();
 	}
 
 	/** The metatype and its base types, nearest first. */
@@ -93,8 +100,7 @@ public class MetamodelEffects {
 
 	/** One metamodel change at a time: the instance configuration is the lock (as for the import). */
 	void lock() {
-		this.jdbc.queryForObject("SELECT id FROM metamodel_configurations WHERE id = ? FOR UPDATE", UUID.class,
-				PackageImporter.INSTANCE_CONFIGURATION);
+		this.configurations.lock(PackageImporter.INSTANCE_CONFIGURATION);
 	}
 
 	/** IDs as an SQL parameter for {@code ANY (?::uuid[])}. */
@@ -108,13 +114,7 @@ public class MetamodelEffects {
 
 	/** Removes the labels of elements that no longer exist; called by every delete path (design D2 of us-140-dynamic-labels). */
 	void removeOrphanLabels() {
-		this.jdbc.update("""
-				DELETE FROM i18n_entries i WHERE NOT EXISTS (
-				    SELECT 1 FROM metatypes WHERE i.entity_type = 'metatype' AND id = i.entity_id
-				    UNION ALL SELECT 1 FROM property_categories WHERE i.entity_type = 'property_category' AND id = i.entity_id
-				    UNION ALL SELECT 1 FROM property_definitions WHERE i.entity_type = 'property_def' AND id = i.entity_id
-				    UNION ALL SELECT 1 FROM property_enum_values WHERE i.entity_type = 'enum_value' AND id = i.entity_id
-				    UNION ALL SELECT 1 FROM architecture_layers WHERE i.entity_type = 'architecture_layer' AND id = i.entity_id)""");
+		this.labels.deleteOrphans();
 	}
 
 	Instant now() {
@@ -123,15 +123,7 @@ public class MetamodelEffects {
 
 	/** The active own mappings (latest {@code valid_from} not after the date) per metatype. */
 	private Map<UUID, Map<UUID, String>> ownMappings(LocalDate date) {
-		Map<UUID, Map<UUID, String>> own = new HashMap<>();
-		this.jdbc.query("""
-				SELECT DISTINCT ON (metatype_id, property_def_id) metatype_id, property_def_id, necessity
-				FROM metatype_property_mappings WHERE valid_from <= ?
-				ORDER BY metatype_id, property_def_id, valid_from DESC""", (rs) -> {
-			own.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new LinkedHashMap<>())
-				.put(rs.getObject(2, UUID.class), rs.getString(3));
-		}, Date.valueOf(date));
-		return own;
+		return this.mappings.active(date);
 	}
 
 	public Snapshot snapshot() {
@@ -143,7 +135,7 @@ public class MetamodelEffects {
 		Map<UUID, Map<UUID, String>> own = ownMappings(date);
 		Map<UUID, UUID> bases = bases();
 		Map<UUID, Map<UUID, String>> effective = new HashMap<>();
-		for (UUID metatype : this.jdbc.queryForList("SELECT id FROM metatypes", UUID.class)) {
+		for (UUID metatype : this.metatypes.ids()) {
 			Map<UUID, String> mappings = new LinkedHashMap<>();
 			for (UUID type : chain(metatype, bases)) {
 				own.getOrDefault(type, Map.of()).forEach(mappings::putIfAbsent);
