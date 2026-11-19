@@ -80,7 +80,7 @@ class BatchRateLimitTests {
 		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE name = 'Application Component'", Integer.class) == 0) {
 			TestSession metamodelAdmin = principals.personWithIdpRole("metamodel-admin");
 			assertThat(this.mvc.post()
-				.uri("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import")
+				.uri("/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import")
 				.cookie(new Cookie(SessionCookie.NAME, metamodelAdmin.token()))
 				.header(CsrfOriginFilter.HEADER, metamodelAdmin.csrfToken())
 				.exchange()).hasStatus(HttpStatus.OK);
@@ -132,7 +132,7 @@ class BatchRateLimitTests {
 		if (this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE name = 'Application Component'", Integer.class) == 0) {
 			TestSession metamodelAdmin = principals.personWithIdpRole("metamodel-admin");
 			assertThat(this.mvc.post()
-				.uri("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import")
+				.uri("/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import")
 				.cookie(new Cookie(SessionCookie.NAME, metamodelAdmin.token()))
 				.header(CsrfOriginFilter.HEADER, metamodelAdmin.csrfToken())
 				.exchange()).hasStatus(HttpStatus.OK);

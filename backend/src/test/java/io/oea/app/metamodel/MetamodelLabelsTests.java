@@ -91,7 +91,7 @@ class MetamodelLabelsTests {
 		this.architect = this.principals.personWithIdpRole("enterprise-architect");
 		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
 			MvcTestResult result = call(HttpMethod.POST,
-					"/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", null, this.admin);
+					"/metamodel/starter-packages/oea-starter-togaf-classic/import", null, this.admin);
 			assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 			assertThat(body(result).path("labelCount").asInt()).isEqualTo(26);
 		}
@@ -263,7 +263,7 @@ class MetamodelLabelsTests {
 	void labelOfAForeignElementOrLocaleRejectsTheImport() {
 		ObjectNode foreign = TestPackages.pkg("labels-foreign", 1);
 		foreign.putObject("i18nBundles").putObject("de").put(COMPONENT, "Fremd");
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/import", foreign, this.admin);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/import", foreign, this.admin);
 		assertThat(result).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(content(result)).contains(COMPONENT);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = 'labels-foreign'")).isZero();
@@ -271,7 +271,7 @@ class MetamodelLabelsTests {
 		ObjectNode locale = TestPackages.pkg("labels-locale", 1);
 		String type = locale.path("metatypes").get(0).path("id").asString();
 		locale.putObject("i18nBundles").putObject("es").put("metatype." + type + ".name", "Tipo");
-		assertThat(call(HttpMethod.POST, "/admin/metamodel/import", locale, this.admin))
+		assertThat(call(HttpMethod.POST, "/metamodel/import", locale, this.admin))
 			.hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = 'labels-locale'")).isZero();
 	}
@@ -336,7 +336,7 @@ class MetamodelLabelsTests {
 	}
 
 	private JsonNode importPackage(ObjectNode pkg) {
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/import", pkg, this.admin);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/import", pkg, this.admin);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 		return body(result);
 	}

@@ -154,9 +154,9 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 
 ## Implementation Notes
 
-- Export: `GET /admin/metamodel/viewpoints/{id}/export?format=yaml`
-- Bulk export: `GET /admin/metamodel/viewpoints/export?format=zip`
-- Import: `POST /admin/metamodel/viewpoints/import` (multipart form data)
+- Export: `GET /metamodel/viewpoints/{id}/export?format=yaml`
+- Bulk export: `GET /metamodel/viewpoints/export?format=zip`
+- Import: `POST /metamodel/viewpoints/import` (multipart form data)
 - ID validation server-side; no client-side pre-parsing
 
 ## Implementation

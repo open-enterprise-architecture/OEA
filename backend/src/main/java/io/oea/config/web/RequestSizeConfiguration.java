@@ -12,7 +12,7 @@ import org.springframework.util.unit.DataSize;
 public class RequestSizeConfiguration {
 
 	/** Path that accepts metamodel packages. */
-	public static final String IMPORT_PATH = "/api/v1/admin/metamodel/import";
+	public static final String IMPORT_PATH = "/api/v1/metamodel/import";
 
 	/** Path of the entity batch. */
 	public static final String BATCH_PATH = "/api/v1/entities/batch";

@@ -115,7 +115,7 @@ Change 2 (`us-013-local-bootstrapping`) adds the local bootstrapping, the audit 
    → a person with the role metamodel-admin (IdP group mapping; the local system admin
      account has no metamodel:write, ADR-032), e.g. dev-metamodel-admin with TOTP
    → US-033: start-page card "Import starter configuration" → oea-starter-togaf-classic
-     (ADR-005; POST /admin/metamodel/starter-packages/oea-starter-togaf-classic/import)
+     (ADR-005; POST /metamodel/starter-packages/oea-starter-togaf-classic/import)
    → Application Component, Data Object, Technology Component etc. are available as
      entity types with scope=imported, each with the property Status
 

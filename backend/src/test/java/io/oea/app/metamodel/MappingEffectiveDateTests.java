@@ -95,7 +95,7 @@ class MappingEffectiveDateTests {
 		this.admin = principals.personWithIdpRole("metamodel-admin");
 		this.architect = principals.personWithIdpRole("enterprise-architect");
 		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
-			assertThat(call(HttpMethod.POST, "/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", null,
+			assertThat(call(HttpMethod.POST, "/metamodel/starter-packages/oea-starter-togaf-classic/import", null,
 					this.admin)).hasStatus(HttpStatus.OK);
 		}
 		this.component = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'Application Component'",
@@ -366,7 +366,7 @@ class MappingEffectiveDateTests {
 	}
 
 	private void importPackage(ObjectNode pkg) {
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/import", pkg, this.admin);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/import", pkg, this.admin);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 	}
 

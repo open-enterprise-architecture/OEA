@@ -28,7 +28,7 @@ Request-Bodys werden begrenzt, bevor sie verarbeitet werden. Ein größerer Body
 |---|---|---|
 | `oea.web.request-size.default` (`OEA_WEB_REQUESTSIZE_DEFAULT`) | `1MB` | jede Operation mit Request-Body |
 | `oea.web.request-size.entity-batch` (`OEA_WEB_REQUESTSIZE_ENTITYBATCH`) | `10MB` | `POST /entities/batch` |
-| `oea.metamodel.import.max-size` (`OEA_METAMODEL_IMPORT_MAXSIZE`) | `10MB` | `POST /admin/metamodel/import` |
+| `oea.metamodel.import.max-size` (`OEA_METAMODEL_IMPORT_MAXSIZE`) | `10MB` | `POST /metamodel/import` |
 
 Ein Reverse Proxy vor OEA sollte mindestens den größten dieser Werte zulassen.
 

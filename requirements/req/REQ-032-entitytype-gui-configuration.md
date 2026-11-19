@@ -143,7 +143,7 @@ GUI configuration is the primary path for organization-specific metamodel extens
 
 ## Implementation Notes
 
-- Backend: `POST/PUT/DELETE /admin/metamodel/entity-types` (admin-only, RBAC)
+- Backend: `POST/PUT/DELETE /metamodel/entity-types` (admin-only, RBAC)
 - Frontend: list with integrated built-in types (read-only badge) + custom types (edit/delete icons); form component for properties and relations (dynamically addable/removable)
 - Validation: client-side for UX feedback, server-side for security
 

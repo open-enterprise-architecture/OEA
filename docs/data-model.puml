@@ -2068,7 +2068,7 @@ package "Navigation & Presentation" #EDE7F6 {
     Which metatype gets which shape/icon
     in which viewpoint?
     Exportable as part of the metamodel
-    package (ADR-026: GET /admin/metamodel/export).
+    package (ADR-026: GET /metamodel/export).
     Enables: writing systems can
     place entities correctly in diagrams
     without having to hard-code shape knowledge.

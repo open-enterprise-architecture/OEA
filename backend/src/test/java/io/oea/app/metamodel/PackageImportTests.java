@@ -286,7 +286,7 @@ class PackageImportTests {
 
 	private MvcTestResult post(String body, TestSession session) {
 		return this.mvc.post()
-			.uri("/api/v1/admin/metamodel/import")
+			.uri("/api/v1/metamodel/import")
 			.cookie(new Cookie(SessionCookie.NAME, session.token()))
 			.header(CsrfOriginFilter.HEADER, session.csrfToken())
 			.contentType("application/json")

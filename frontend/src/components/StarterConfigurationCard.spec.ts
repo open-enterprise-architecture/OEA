@@ -38,8 +38,8 @@ describe('StarterConfigurationCard', () => {
         {
           '/api/v1/me': { body: me(['metamodel:write']) },
           '/api/v1/metamodel/metatypes': { body: [] },
-          '/api/v1/admin/metamodel/starter-packages': { body: [TOGAF] },
-          '/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import': {
+          '/api/v1/metamodel/starter-packages': { body: [TOGAF] },
+          '/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import': {
             body: { status: 'completed', created: 7, updated: 0, conflicts: 0, batchId: 'b-1', conflictList: [] },
           },
         },
@@ -81,7 +81,7 @@ describe('StarterConfigurationCard', () => {
         '/api/v1/metamodel/metatypes': {
           body: [{ id: 'm-0', name: 'Structuring aid', abbreviation: '', scope: 'built-in' }],
         },
-        '/api/v1/admin/metamodel/starter-packages': { body: [TOGAF] },
+        '/api/v1/metamodel/starter-packages': { body: [TOGAF] },
       }),
     )
     expect(wrapper.find('[data-testid="starter-configuration"]').exists()).toBe(true)
@@ -105,8 +105,8 @@ describe('StarterConfigurationCard', () => {
       routedFetch({
         '/api/v1/me': { body: me(['metamodel:write']) },
         '/api/v1/metamodel/metatypes': { body: [] },
-        '/api/v1/admin/metamodel/starter-packages': { body: [TOGAF] },
-        '/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import': {
+        '/api/v1/metamodel/starter-packages': { body: [TOGAF] },
+        '/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import': {
           status: 409,
           body: {
             type: 'urn:oea:problem:package-conflict',

@@ -49,7 +49,7 @@ class PackageViewpointImportTests {
 
 	private static final String TOKEN_FILE = tempDirectory() + "/setup-token";
 
-	private static final String IMPORT = "/api/v1/admin/metamodel/import";
+	private static final String IMPORT = "/api/v1/metamodel/import";
 
 	private static final String STARTER = "oea-starter-togaf-classic";
 
@@ -93,7 +93,7 @@ class PackageViewpointImportTests {
 	@Test
 	void theStarterPackageInstallsTwoSystemDefinedViewpoints() {
 		MvcTestResult result = this.mvc.post()
-			.uri("/api/v1/admin/metamodel/starter-packages/" + STARTER + "/import")
+			.uri("/api/v1/metamodel/starter-packages/" + STARTER + "/import")
 			.cookie(new Cookie(SessionCookie.NAME, this.admin.token()))
 			.header(CsrfOriginFilter.HEADER, this.admin.csrfToken())
 			.exchange();
@@ -126,7 +126,7 @@ class PackageViewpointImportTests {
 		List<String> ids = this.jdbc.queryForList("SELECT id::text FROM viewpoints WHERE source_package_id = ? ORDER BY id",
 				String.class, STARTER);
 		MvcTestResult again = this.mvc.post()
-			.uri("/api/v1/admin/metamodel/starter-packages/" + STARTER + "/import")
+			.uri("/api/v1/metamodel/starter-packages/" + STARTER + "/import")
 			.cookie(new Cookie(SessionCookie.NAME, this.admin.token()))
 			.header(CsrfOriginFilter.HEADER, this.admin.csrfToken())
 			.exchange();

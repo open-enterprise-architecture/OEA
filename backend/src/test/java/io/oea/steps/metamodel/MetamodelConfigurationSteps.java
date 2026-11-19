@@ -235,7 +235,7 @@ public class MetamodelConfigurationSteps {
 	@When("the metamodel administrator imports a package")
 	public void importPackage() throws Exception {
 		this.packageId = "test-locked" + this.suffix;
-		this.response = send("POST", "/api/v1/admin/metamodel/import", TestPackages.pkg(this.packageId, 1),
+		this.response = send("POST", "/api/v1/metamodel/import", TestPackages.pkg(this.packageId, 1),
 				instance().metamodelAdmin());
 	}
 

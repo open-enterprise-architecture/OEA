@@ -100,7 +100,7 @@ public class MetamodelChangeSteps {
 	@Given("a package with {int} metatypes was imported")
 	public void imported(int metatypes) throws Exception {
 		this.packageId = "test-history" + this.suffix;
-		this.batchId = ok(send("POST", "/api/v1/admin/metamodel/import", TestPackages.pkg(this.packageId, metatypes),
+		this.batchId = ok(send("POST", "/api/v1/metamodel/import", TestPackages.pkg(this.packageId, metatypes),
 				kurt()), 200).path("batchId").asString();
 	}
 

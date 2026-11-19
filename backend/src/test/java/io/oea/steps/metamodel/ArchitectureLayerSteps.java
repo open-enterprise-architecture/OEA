@@ -290,7 +290,7 @@ public class ArchitectureLayerSteps {
 	@When("Sabine imports the starter package {string}")
 	public void importStarter(String packageId) throws Exception {
 		this.importsBefore = Integer.parseInt(shared.oidc().single("SELECT count(*)::text FROM metamodel_package_imports"));
-		this.response = shared.post("/api/v1/admin/metamodel/starter-packages/" + packageId + "/import", "",
+		this.response = shared.post("/api/v1/metamodel/starter-packages/" + packageId + "/import", "",
 				shared.metamodelAdmin());
 	}
 
@@ -310,7 +310,7 @@ public class ArchitectureLayerSteps {
 		this.packageId = "layers-unknown-" + suffix();
 		ObjectNode pkg = TestPackages.pkg(this.packageId, 1);
 		((ObjectNode) pkg.path("metatypes").get(0)).put("architectureLayerId", UUID.randomUUID().toString());
-		this.response = shared.post("/api/v1/admin/metamodel/import", pkg.toString(), shared.metamodelAdmin());
+		this.response = shared.post("/api/v1/metamodel/import", pkg.toString(), shared.metamodelAdmin());
 	}
 
 	@Then("the import is rejected with {int} and nothing is imported")
@@ -350,7 +350,7 @@ public class ArchitectureLayerSteps {
 			.put("name", name)
 			.put("sortOrder", 0);
 		((ObjectNode) pkg.path("metatypes").get(0)).put("architectureLayerId", TestPackages.uuid(this.packageId, "layer0"));
-		HttpResponse<String> imported = shared.post("/api/v1/admin/metamodel/import", pkg.toString(), shared.metamodelAdmin());
+		HttpResponse<String> imported = shared.post("/api/v1/metamodel/import", pkg.toString(), shared.metamodelAdmin());
 		assertThat(imported.statusCode()).as(imported.body()).isEqualTo(200);
 		this.motivationType = this.packageId + " Type 1";
 		assertThat(layerOfMetatype(this.motivationType)).isEqualTo(name);
@@ -360,7 +360,7 @@ public class ArchitectureLayerSteps {
 	public void importWithout(String name) throws Exception {
 		ObjectNode pkg = TestPackages.pkg(this.packageId, 1);
 		pkg.put("packageVersion", "2.0.0");
-		this.response = shared.post("/api/v1/admin/metamodel/import", pkg.toString(), shared.metamodelAdmin());
+		this.response = shared.post("/api/v1/metamodel/import", pkg.toString(), shared.metamodelAdmin());
 		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(200);
 	}
 
