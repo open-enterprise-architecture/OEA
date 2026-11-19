@@ -2,8 +2,10 @@ package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
 import io.oea.core.entity.PropertyValueStore;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.PropertyDefinitionStore;
+import io.oea.core.metamodel.PropertyMappingStore;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,7 +16,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,11 @@ public class PropertyDefinitions {
 	/** Data types an organization property can have; {@code reference} follows with connection metatypes. */
 	static final Set<String> DATA_TYPES = Set.of("string", "text", "integer", "boolean", "date", "url", "enum");
 
-	private final JdbcTemplate jdbc;
+	private final PropertyDefinitionStore store;
+
+	private final PropertyMappingStore mappingStore;
+
+	private final MetatypeStore metatypes;
 
 	private final PropertyValueStore values;
 
@@ -46,12 +51,15 @@ public class PropertyDefinitions {
 
 	private final io.oea.core.solution.SnapshotStore snapshots;
 
-	public PropertyDefinitions(JdbcTemplate jdbc, PropertyValueStore values, MetamodelEffects effects,
+	public PropertyDefinitions(PropertyDefinitionStore store, PropertyMappingStore mappingStore,
+			MetatypeStore metatypes, PropertyValueStore values, MetamodelEffects effects,
 			MetamodelAudit audit, MetamodelVersions versions, MetamodelConfigurations configurations,
 			SolutionImpact impact, io.oea.core.solution.SnapshotStore snapshots) {
 		this.impact = impact;
 		this.snapshots = snapshots;
-		this.jdbc = jdbc;
+		this.store = store;
+		this.mappingStore = mappingStore;
+		this.metatypes = metatypes;
 		this.values = values;
 		this.effects = effects;
 		this.audit = audit;
@@ -68,23 +76,14 @@ public class PropertyDefinitions {
 	public record CategoryInput(String name, String description, int sortOrder) {
 	}
 
-	private record Stored(String name, String dataType, UUID categoryId, Integer maxLength, BigDecimal minValue,
-			BigDecimal maxValue, String pattern, String scope) {
-	}
-
 	@Transactional
 	public UUID create(OeaPrincipal principal, Input input) {
 		this.effects.lock();
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		String name = validate(input, null);
 		UUID id = UUID.randomUUID();
-		String column = StorageNames.forNewProperty(name, (candidate) -> exists(
-				"SELECT EXISTS (SELECT 1 FROM property_definitions WHERE sql_column_name = ?)", candidate));
-		this.jdbc.update("""
-				INSERT INTO property_definitions (id, name, sql_column_name, data_type, category_id, max_length, min_value,
-				    max_value, pattern, scope, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'organization', ?)""", id, name,
-				column, input.dataType(), input.categoryId(), input.maxLength(), input.minValue(), input.maxValue(),
-				input.pattern(), principal.personId());
+		String column = StorageNames.forNewProperty(name, this.store::columnNameTaken);
+		this.store.insert(id, fields(input, name), column, principal.personId());
 		this.audit.changed("metamodel.property-created", principal, "property-definition", id,
 				Map.of("name", name, "dataType", input.dataType(), "sqlColumnName", column));
 		return id;
@@ -96,20 +95,17 @@ public class PropertyDefinitions {
 		this.effects.lock();
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, id, expectedVersion);
-		Stored stored = stored(id);
+		PropertyDefinitionStore.StoredRow stored = stored(id);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
 		String name = validate(input, id);
 		if (!stored.dataType().equals(input.dataType()) && this.values.hasValues(id, true)) {
 			throw MetamodelChangeException.inUse("The data type cannot change while entity values exist.", null);
 		}
 		if (!"enum".equals(input.dataType())) {
-			this.jdbc.update("DELETE FROM property_enum_values WHERE property_def_id = ?", id);
+			this.store.deleteEnumValues(id);
 			this.effects.removeOrphanLabels();
 		}
-		this.jdbc.update("""
-				UPDATE property_definitions SET name = ?, data_type = ?, category_id = ?, max_length = ?, min_value = ?,
-				       max_value = ?, pattern = ? WHERE id = ?""", name, input.dataType(), input.categoryId(),
-				input.maxLength(), input.minValue(), input.maxValue(), input.pattern(), id);
+		this.store.update(id, fields(input, name));
 		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, id);
 		List<String> changed = new ArrayList<>();
 		compare(changed, "name", stored.name(), name);
@@ -129,9 +125,9 @@ public class PropertyDefinitions {
 		this.effects.lock();
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, id, expectedVersion);
-		Stored stored = stored(id);
+		PropertyDefinitionStore.StoredRow stored = stored(id);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
-		if (exists("SELECT EXISTS (SELECT 1 FROM metatype_property_mappings WHERE property_def_id = ?)", id)) {
+		if (this.mappingStore.mapped(id)) {
 			throw MetamodelChangeException.inUse("The property definition is mapped to metatypes.", null);
 		}
 		if (this.snapshots.keeps(id)) {
@@ -139,13 +135,10 @@ public class PropertyDefinitions {
 		}
 		boolean retired = this.values.hasValues(id, true);
 		if (retired) {
-			this.jdbc.update("UPDATE property_definitions SET retired_at = ? WHERE id = ?",
-					Timestamp.from(this.effects.now()), id);
+			this.store.retire(id, this.effects.now());
 		}
 		else {
-			this.jdbc.update("DELETE FROM property_enum_values WHERE property_def_id = ?", id);
-			this.jdbc.update("DELETE FROM property_visibility_roles WHERE property_def_id = ?", id);
-			this.jdbc.update("DELETE FROM property_definitions WHERE id = ?", id);
+			this.store.delete(id);
 			this.effects.removeOrphanLabels();
 		}
 		this.audit.changed("metamodel.property-deleted", principal, "property-definition", id,
@@ -158,7 +151,7 @@ public class PropertyDefinitions {
 		this.effects.lock();
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
-		Stored stored = stored(propertyDefId);
+		PropertyDefinitionStore.StoredRow stored = stored(propertyDefId);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
 		if (!"enum".equals(stored.dataType())) {
 			throw MetamodelChangeException.invalid("value", "Only enum properties have values.");
@@ -167,18 +160,14 @@ public class PropertyDefinitions {
 		if (stripped.isEmpty() || stripped.length() > NAME_MAX_LENGTH) {
 			throw MetamodelChangeException.invalid("value", "The value must have 1 to 100 characters.");
 		}
-		if (exists("SELECT EXISTS (SELECT 1 FROM property_enum_values WHERE property_def_id = ? AND value = ?)",
-				propertyDefId, stripped)) {
+		if (this.store.enumValueExists(propertyDefId, stripped)) {
 			throw MetamodelChangeException.nameTaken("value");
 		}
 		// a missing or zero sort order appends the value
 		int order = (sortOrder != null && sortOrder != 0) ? sortOrder
-				: this.jdbc.queryForObject(
-						"SELECT coalesce(max(sort_order) + 1, 0) FROM property_enum_values WHERE property_def_id = ?",
-						Integer.class, propertyDefId);
+				: this.store.nextEnumOrder(propertyDefId);
 		UUID id = UUID.randomUUID();
-		this.jdbc.update("INSERT INTO property_enum_values (id, property_def_id, value, sort_order) VALUES (?, ?, ?, ?)",
-				id, propertyDefId, stripped, order);
+		this.store.insertEnumValue(id, propertyDefId, stripped, order);
 		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId);
 		this.audit.changed("metamodel.enum-value-created", principal, "property-definition", propertyDefId,
 				Map.of("valueId", id.toString(), "value", stripped));
@@ -201,21 +190,17 @@ public class PropertyDefinitions {
 		this.effects.lock();
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId, expectedVersion);
-		Stored stored = stored(propertyDefId);
+		PropertyDefinitionStore.StoredRow stored = stored(propertyDefId);
 		readOnlyUnlessOrganization(stored.scope(), "property definition");
-		String value = this.jdbc
-			.queryForList("SELECT value FROM property_enum_values WHERE id = ? AND property_def_id = ?", String.class,
-					valueId, propertyDefId)
-			.stream()
-			.findFirst()
+		String value = this.store.enumValue(valueId, propertyDefId)
 			.orElseThrow(() -> new NoSuchElementException("no enum value " + valueId));
 		Map<String, Object> details = new LinkedHashMap<>();
 		this.impact.apply(principal, this.effects.lostEnumValue(propertyDefId, value), decisions, details,
 				this.effects.now());
-		List<UUID> metatypes = this.jdbc.queryForList("SELECT id FROM metatypes", UUID.class);
+		List<UUID> metatypes = this.metatypes.ids();
 		int removed = this.values.removeValues(propertyDefId, metatypes, value, MetamodelEffects.author(principal),
 				this.effects.now());
-		this.jdbc.update("DELETE FROM property_enum_values WHERE id = ?", valueId);
+		this.store.deleteEnumValue(valueId);
 		this.versions.increment(MetamodelVersions.Element.PROPERTY_DEFINITION, propertyDefId);
 		this.effects.removeOrphanLabels();
 		int marked = (removed > 0) ? this.effects.markWhereMandatory(propertyDefId) : 0;
@@ -232,9 +217,7 @@ public class PropertyDefinitions {
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		String name = categoryName(input, null);
 		UUID id = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO property_categories (id, name, sort_order, description, scope)
-				VALUES (?, ?, ?, ?, 'organization')""", id, name, input.sortOrder(), input.description());
+		this.store.insertCategory(id, name, input.sortOrder(), input.description());
 		this.audit.changed("metamodel.category-created", principal, "property-category", id, Map.of("name", name));
 		return id;
 	}
@@ -246,8 +229,7 @@ public class PropertyDefinitions {
 		this.versions.check(MetamodelVersions.Element.CATEGORY, id, expectedVersion);
 		readOnlyUnlessOrganization(categoryScope(id), "property category");
 		String name = categoryName(input, id);
-		this.jdbc.update("UPDATE property_categories SET name = ?, sort_order = ?, description = ? WHERE id = ?", name,
-				input.sortOrder(), input.description(), id);
+		this.store.updateCategory(id, name, input.sortOrder(), input.description());
 		this.versions.increment(MetamodelVersions.Element.CATEGORY, id);
 		this.audit.changed("metamodel.category-updated", principal, "property-category", id, Map.of("name", name));
 	}
@@ -258,10 +240,10 @@ public class PropertyDefinitions {
 		this.configurations.requireWritable(principal, PackageImporter.INSTANCE_CONFIGURATION);
 		this.versions.check(MetamodelVersions.Element.CATEGORY, id, expectedVersion);
 		readOnlyUnlessOrganization(categoryScope(id), "property category");
-		if (exists("SELECT EXISTS (SELECT 1 FROM property_definitions WHERE category_id = ?)", id)) {
+		if (this.store.categoryInUse(id)) {
 			throw MetamodelChangeException.inUse("Property definitions belong to the category.", null);
 		}
-		this.jdbc.update("DELETE FROM property_categories WHERE id = ?", id);
+		this.store.deleteCategory(id);
 		this.effects.removeOrphanLabels();
 		this.audit.changed("metamodel.category-deleted", principal, "property-category", id, Map.of());
 	}
@@ -299,12 +281,10 @@ public class PropertyDefinitions {
 				throw MetamodelChangeException.invalid("pattern", "The pattern is not a valid regular expression.");
 			}
 		}
-		if (input.categoryId() != null
-				&& !exists("SELECT EXISTS (SELECT 1 FROM property_categories WHERE id = ?)", input.categoryId())) {
+		if (input.categoryId() != null && !this.store.categoryExists(input.categoryId())) {
 			throw MetamodelChangeException.invalid("categoryId", "The category does not exist.");
 		}
-		if (exists("SELECT EXISTS (SELECT 1 FROM property_definitions WHERE lower(name) = lower(?) AND id IS DISTINCT FROM ?::uuid)",
-				name, id)) {
+		if (this.store.nameTaken(name, id)) {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		return name;
@@ -315,34 +295,23 @@ public class PropertyDefinitions {
 		if (name.isEmpty() || name.length() > NAME_MAX_LENGTH) {
 			throw MetamodelChangeException.invalid("name", "The name must have 1 to 100 characters.");
 		}
-		if (exists("SELECT EXISTS (SELECT 1 FROM property_categories WHERE lower(name) = lower(?) AND id IS DISTINCT FROM ?::uuid)",
-				name, id)) {
+		if (this.store.categoryNameTaken(name, id)) {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		return name;
 	}
 
-	private Stored stored(UUID id) {
-		return this.jdbc.query("""
-				SELECT name, data_type, category_id, max_length, min_value, max_value, pattern, scope
-				FROM property_definitions WHERE id = ? AND retired_at IS NULL""",
-				(rs, n) -> new Stored(rs.getString(1), rs.getString(2), rs.getObject(3, UUID.class),
-						rs.getObject(4, Integer.class), rs.getBigDecimal(5), rs.getBigDecimal(6), rs.getString(7),
-						rs.getString(8)), id)
-			.stream()
-			.findFirst()
-			.orElseThrow(() -> new NoSuchElementException("no property definition " + id));
+	private PropertyDefinitionStore.StoredRow stored(UUID id) {
+		return this.store.stored(id).orElseThrow(() -> new NoSuchElementException("no property definition " + id));
 	}
 
 	private String categoryScope(UUID id) {
-		return this.jdbc.queryForList("SELECT scope FROM property_categories WHERE id = ?", String.class, id)
-			.stream()
-			.findFirst()
-			.orElseThrow(() -> new NoSuchElementException("no property category " + id));
+		return this.store.categoryScope(id).orElseThrow(() -> new NoSuchElementException("no property category " + id));
 	}
 
-	private boolean exists(String sql, Object... arguments) {
-		return Boolean.TRUE.equals(this.jdbc.queryForObject(sql, Boolean.class, arguments));
+	private static PropertyDefinitionStore.Fields fields(Input input, String name) {
+		return new PropertyDefinitionStore.Fields(name, input.dataType(), input.categoryId(), input.maxLength(),
+				input.minValue(), input.maxValue(), input.pattern());
 	}
 
 	static void readOnlyUnlessOrganization(String scope, String element) {

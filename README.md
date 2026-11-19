@@ -40,7 +40,7 @@ More details: [business-analysis/vision.md](business-analysis/vision.md)
 | ADRs | 51 |
 | Business Objects | 33 |
 
-_Concept: v0.20.1 · Last update: 2026-11-18._
+_Concept: v0.20.1 · Last update: 2026-11-19._
 <!-- /AUTO-GENERATED: stats -->
 
 **Next step**: the go-live of solutions in project mode and the plateaus with their go-live (S14), which completes Milestone 2.

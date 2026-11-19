@@ -3,9 +3,8 @@ package io.oea.app.metamodel;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.PermissionResolver;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import io.oea.core.metamodel.MetamodelConfigurationStore;
+import io.oea.core.metamodel.MetatypeStore;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -15,7 +14,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,11 +35,9 @@ public class MetamodelConfigurations {
 
 	static final int NAME_MAX_LENGTH = 100;
 
-	private static final String COLUMNS = """
-			c.id, c.scope, c.parent_id, c.solution_id, c.name, c.edit_mode, c.version, c.last_modified_at,
-			(SELECT count(*) FROM metatypes m WHERE m.config_id = c.id)""";
+	private final MetamodelConfigurationStore store;
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeStore metatypes;
 
 	private final MetamodelEffects effects;
 
@@ -51,9 +47,10 @@ public class MetamodelConfigurations {
 
 	private final PermissionResolver permissions;
 
-	public MetamodelConfigurations(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
+	public MetamodelConfigurations(MetamodelConfigurationStore store, MetatypeStore metatypes, MetamodelEffects effects, MetamodelAudit audit,
 			MetamodelVersions versions, PermissionResolver permissions) {
-		this.jdbc = jdbc;
+		this.store = store;
+		this.metatypes = metatypes;
 		this.effects = effects;
 		this.audit = audit;
 		this.versions = versions;
@@ -81,9 +78,7 @@ public class MetamodelConfigurations {
 	/** The instance configuration first, then the extensions by name. */
 	@Transactional(readOnly = true)
 	public List<Configuration> list() {
-		return this.jdbc.query("SELECT " + COLUMNS
-				+ " FROM metamodel_configurations c ORDER BY c.scope <> 'instance', lower(c.name), c.id",
-				MetamodelConfigurations::configuration);
+		return this.store.list().stream().map(MetamodelConfigurations::configuration).toList();
 	}
 
 	/** @throws NoSuchElementException if the configuration does not exist (404) */
@@ -100,17 +95,13 @@ public class MetamodelConfigurations {
 		if (input.solutionId() == null) {
 			throw MetamodelChangeException.invalid("solutionId", "An extension names its solution.");
 		}
-		if (!Boolean.TRUE.equals(this.jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM solutions WHERE id = ?)",
-				Boolean.class, input.solutionId()))) {
+		if (!this.store.solutionExists(input.solutionId())) {
 			// issue #237: an extension names an existing solution
 			throw MetamodelChangeException.invalid("solutionId", "The solution does not exist.");
 		}
 		UUID id = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO metamodel_configurations (id, scope, parent_id, solution_id, name, edit_mode, last_modified_at,
-				    last_modified_by_person_id) VALUES (?, 'solution', ?, ?, ?, ?, ?, ?)""", id,
-				PackageImporter.INSTANCE_CONFIGURATION, input.solutionId(), name, editMode,
-				Timestamp.from(this.effects.now()), principal.personId());
+		this.store.insertExtension(id, PackageImporter.INSTANCE_CONFIGURATION, input.solutionId(), name, editMode,
+				this.effects.now(), principal.personId());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
 		details.put("solutionId", input.solutionId().toString());
@@ -133,10 +124,7 @@ public class MetamodelConfigurations {
 		this.versions.check(MetamodelVersions.Element.CONFIGURATION, id, expectedVersion);
 		String name = name(change.name(), id);
 		String editMode = editMode(change.editMode());
-		this.jdbc.update("""
-				UPDATE metamodel_configurations SET name = ?, edit_mode = ?, last_modified_at = ?,
-				    last_modified_by_person_id = ?, last_modified_by_admin_id = NULL WHERE id = ?""", name, editMode,
-				Timestamp.from(this.effects.now()), principal.personId(), id);
+		this.store.update(id, name, editMode, this.effects.now(), principal.personId());
 		this.versions.increment(MetamodelVersions.Element.CONFIGURATION, id);
 		List<String> changed = new ArrayList<>();
 		if (!Objects.equals(current.name(), name)) {
@@ -169,7 +157,7 @@ public class MetamodelConfigurations {
 			throw MetamodelChangeException.inUse("The extension has " + current.metatypeCount() + " metatypes.",
 					(long) current.metatypeCount());
 		}
-		this.jdbc.update("DELETE FROM metamodel_configurations WHERE id = ?", id);
+		this.store.delete(id);
 		this.audit.changed("metamodel.configuration-deleted", principal, "metamodel-configuration", id,
 				Map.of("name", current.name()));
 	}
@@ -201,10 +189,7 @@ public class MetamodelConfigurations {
 
 	/** The configuration of a metatype, or the instance configuration for an unknown one. */
 	UUID configOf(UUID metatypeId) {
-		return this.jdbc.queryForList("SELECT config_id FROM metatypes WHERE id = ?", UUID.class, metatypeId)
-			.stream()
-			.findFirst()
-			.orElse(PackageImporter.INSTANCE_CONFIGURATION);
+		return this.metatypes.configOf(metatypeId).orElse(PackageImporter.INSTANCE_CONFIGURATION);
 	}
 
 	/** Whether the configuration exists and is an extension. */
@@ -220,10 +205,7 @@ public class MetamodelConfigurations {
 	}
 
 	private java.util.Optional<Configuration> find(UUID id) {
-		return this.jdbc.query("SELECT " + COLUMNS + " FROM metamodel_configurations c WHERE c.id = ?",
-				MetamodelConfigurations::configuration, id)
-			.stream()
-			.findFirst();
+		return this.store.find(id).map(MetamodelConfigurations::configuration);
 	}
 
 	/** Checks the name and that no other configuration uses it; returns it stripped. */
@@ -232,10 +214,7 @@ public class MetamodelConfigurations {
 		if (name.isEmpty() || name.length() > NAME_MAX_LENGTH) {
 			throw MetamodelChangeException.invalid("name", "The name must have 1 to 100 characters.");
 		}
-		Long taken = this.jdbc.queryForObject("""
-				SELECT count(*) FROM metamodel_configurations WHERE lower(name) = lower(?) AND id IS DISTINCT FROM ?::uuid""",
-				Long.class, name, id);
-		if (taken != null && taken > 0) {
+		if (this.store.nameTaken(name, id)) {
 			throw MetamodelChangeException.nameTaken("name");
 		}
 		return name;
@@ -248,10 +227,9 @@ public class MetamodelConfigurations {
 		return value;
 	}
 
-	private static Configuration configuration(ResultSet rs, int row) throws SQLException {
-		return new Configuration(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, UUID.class),
-				rs.getObject(4, UUID.class), rs.getString(5), rs.getString(6), rs.getInt(7),
-				rs.getTimestamp(8).toInstant(), rs.getInt(9));
+	private static Configuration configuration(MetamodelConfigurationStore.ConfigurationRow row) {
+		return new Configuration(row.id(), row.scope(), row.parentId(), row.solutionId(), row.name(), row.editMode(),
+				row.version(), row.lastModifiedAt(), row.metatypeCount());
 	}
 
 }

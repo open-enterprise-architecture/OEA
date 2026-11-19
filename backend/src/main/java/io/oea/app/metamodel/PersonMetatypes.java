@@ -5,12 +5,13 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.VisibilityStore;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +24,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PersonMetatypes {
 
-	private final JdbcTemplate jdbc;
+	private final VisibilityStore store;
+
+	private final MetatypeStore metatypes;
 
 	private final AuditWriter audit;
 
-	public PersonMetatypes(JdbcTemplate jdbc, AuditWriter audit) {
-		this.jdbc = jdbc;
+	public PersonMetatypes(VisibilityStore store, MetatypeStore metatypes, AuditWriter audit) {
+		this.store = store;
+		this.metatypes = metatypes;
 		this.audit = audit;
 	}
 
@@ -38,10 +42,8 @@ public class PersonMetatypes {
 
 	@Transactional(readOnly = true)
 	public View get() {
-		return this.jdbc.queryForObject("""
-				SELECT s.person_metatype_id, m.name FROM visibility_settings s
-				LEFT JOIN metatypes m ON m.id = s.person_metatype_id WHERE s.id = 1""",
-				(rs, n) -> new View(rs.getObject(1, UUID.class), rs.getString(2)));
+		VisibilityStore.PersonMetatypeRow row = this.store.personMetatype();
+		return new View(row.metatypeId(), row.metatypeName());
 	}
 
 	/**
@@ -53,9 +55,8 @@ public class PersonMetatypes {
 	public View set(OeaPrincipal principal, UUID metatypeId) {
 		View old = get();
 		if (metatypeId != null) {
-			List<Boolean> connection = this.jdbc.queryForList("SELECT is_connection FROM metatypes WHERE id = ?",
-					Boolean.class, metatypeId);
-			if (connection.isEmpty() || connection.getFirst()) {
+			Optional<Boolean> connection = this.metatypes.isConnection(metatypeId);
+			if (connection.isEmpty() || connection.get()) {
 				throw new InvalidAccessRequestException("metatypeId",
 						"The person metatype must be an existing element metatype.");
 			}
@@ -63,7 +64,7 @@ public class PersonMetatypes {
 		if (Objects.equals(old.metatypeId(), metatypeId)) {
 			return old;
 		}
-		this.jdbc.update("UPDATE visibility_settings SET person_metatype_id = ? WHERE id = 1", metatypeId);
+		this.store.setPersonMetatype(metatypeId);
 		View changed = get();
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("oldMetatypeId", (old.metatypeId() != null) ? old.metatypeId().toString() : "");

@@ -6,13 +6,13 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.metamodel.VisibilityStore;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,14 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class VisibilityOverride {
 
-	private final JdbcTemplate jdbc;
+	private final VisibilityStore store;
 
 	private final PermissionResolver permissions;
 
 	private final AuditWriter audit;
 
-	public VisibilityOverride(JdbcTemplate jdbc, PermissionResolver permissions, AuditWriter audit) {
-		this.jdbc = jdbc;
+	public VisibilityOverride(VisibilityStore store, PermissionResolver permissions, AuditWriter audit) {
+		this.store = store;
 		this.permissions = permissions;
 		this.audit = audit;
 	}
@@ -40,9 +40,7 @@ public class VisibilityOverride {
 	/** The IDs of the override roles, sorted. */
 	@Transactional(readOnly = true)
 	public List<String> roles() {
-		return this.jdbc.queryForList("""
-				SELECT id FROM authorization_roles WHERE overrides_property_visibility AND deleted_at IS NULL ORDER BY id""",
-				String.class);
+		return this.store.overrideRoles();
 	}
 
 	/**
@@ -53,8 +51,7 @@ public class VisibilityOverride {
 	@Transactional
 	public List<String> set(OeaPrincipal principal, Set<String> roles) {
 		Set<String> next = new TreeSet<>(roles);
-		List<String> existing = this.jdbc.queryForList(
-				"SELECT id FROM authorization_roles WHERE deleted_at IS NULL ORDER BY id FOR UPDATE", String.class);
+		List<String> existing = this.store.lockActiveRoleIdsSorted();
 		List<String> unknown = next.stream().filter((role) -> !existing.contains(role)).toList();
 		if (!unknown.isEmpty()) {
 			throw new InvalidAccessRequestException("roles", "Unknown roles: " + String.join(", ", unknown));
@@ -63,8 +60,7 @@ public class VisibilityOverride {
 		if (old.equals(List.copyOf(next))) {
 			return old;
 		}
-		this.jdbc.update("UPDATE authorization_roles SET overrides_property_visibility = (id = ANY(?))",
-				(Object) next.toArray(String[]::new));
+		this.store.setOverrideRoles(next);
 		Set<String> added = new HashSet<>(next);
 		old.forEach(added::remove);
 		Set<String> held = new HashSet<>(this.permissions.roles(principal));

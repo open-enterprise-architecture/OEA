@@ -6,6 +6,8 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.metamodel.MetatypeStore;
+import io.oea.core.metamodel.VisibilityStore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -14,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,14 +36,17 @@ public class HistoryVisibility {
 
 	private static final Set<String> MODES = Set.of(SHOW_RESTRICTED, HIDE);
 
-	private final JdbcTemplate jdbc;
+	private final VisibilityStore store;
+
+	private final MetatypeStore metatypeStore;
 
 	private final PermissionResolver permissions;
 
 	private final AuditWriter audit;
 
-	public HistoryVisibility(JdbcTemplate jdbc, PermissionResolver permissions, AuditWriter audit) {
-		this.jdbc = jdbc;
+	public HistoryVisibility(VisibilityStore store, MetatypeStore metatypeStore, PermissionResolver permissions, AuditWriter audit) {
+		this.store = store;
+		this.metatypeStore = metatypeStore;
 		this.permissions = permissions;
 		this.audit = audit;
 	}
@@ -54,13 +58,7 @@ public class HistoryVisibility {
 	/** The configured entries ({@code hide} only) of roles that are not deleted, by role and metatype name. */
 	@Transactional(readOnly = true)
 	public List<Entry> list() {
-		return this.jdbc.query("""
-				SELECT s.role_id, s.metatype_id, s.mode
-				FROM history_visibility_settings s
-				JOIN authorization_roles r ON r.id = s.role_id AND r.deleted_at IS NULL
-				JOIN metatypes t ON t.id = s.metatype_id
-				ORDER BY s.role_id, lower(t.name), s.metatype_id""",
-				(rs, n) -> new Entry(rs.getString(1), rs.getObject(2, UUID.class), rs.getString(3)));
+		return this.store.history().stream().map((row) -> new Entry(row.roleId(), row.metatypeId(), row.mode())).toList();
 	}
 
 	/**
@@ -74,13 +72,7 @@ public class HistoryVisibility {
 		if (distinct.isEmpty() || metatypeId == null) {
 			return false;
 		}
-		Integer hiding = this.jdbc.queryForObject(
-				"""
-						SELECT count(*) FROM history_visibility_settings s
-						JOIN authorization_roles r ON r.id = s.role_id AND r.deleted_at IS NULL
-						WHERE s.metatype_id = ? AND s.role_id = ANY(?)""",
-				Integer.class, metatypeId, distinct.toArray(String[]::new));
-		return hiding != null && hiding == distinct.size();
+		return this.store.hidingRoles(metatypeId, distinct) == distinct.size();
 	}
 
 	/**
@@ -94,12 +86,8 @@ public class HistoryVisibility {
 	 */
 	@Transactional
 	public List<Entry> update(OeaPrincipal principal, List<Entry> changes) {
-		Set<String> roles = new HashSet<>(this.jdbc
-			.queryForList("SELECT id FROM authorization_roles WHERE deleted_at IS NULL FOR UPDATE", String.class));
-		Map<UUID, String> metatypes = new LinkedHashMap<>();
-		this.jdbc.query("SELECT id, name FROM metatypes", (rs) -> {
-			metatypes.put(rs.getObject(1, UUID.class), rs.getString(2));
-		});
+		Set<String> roles = new HashSet<>(this.store.lockActiveRoleIds());
+		Map<UUID, String> metatypes = this.metatypeStore.names();
 		List<String> invalid = new ArrayList<>();
 		Set<String> seen = new HashSet<>();
 		for (int i = 0; i < changes.size(); i++) {
@@ -131,12 +119,10 @@ public class HistoryVisibility {
 				continue;
 			}
 			if (HIDE.equals(change.mode())) {
-				this.jdbc.update("INSERT INTO history_visibility_settings (role_id, metatype_id, mode) VALUES (?, ?, 'hide')",
-						change.roleId(), change.metatypeId());
+				this.store.hide(change.roleId(), change.metatypeId());
 			}
 			else {
-				this.jdbc.update("DELETE FROM history_visibility_settings WHERE role_id = ? AND metatype_id = ?",
-						change.roleId(), change.metatypeId());
+				this.store.show(change.roleId(), change.metatypeId());
 			}
 			audit(principal, change, old, metatypes.get(change.metatypeId()), held);
 		}
@@ -144,10 +130,7 @@ public class HistoryVisibility {
 	}
 
 	private String mode(String roleId, UUID metatypeId) {
-		Integer rows = this.jdbc.queryForObject(
-				"SELECT count(*) FROM history_visibility_settings WHERE role_id = ? AND metatype_id = ?", Integer.class,
-				roleId, metatypeId);
-		return (rows != null && rows > 0) ? HIDE : SHOW_RESTRICTED;
+		return this.store.hides(roleId, metatypeId) ? HIDE : SHOW_RESTRICTED;
 	}
 
 	private void audit(OeaPrincipal principal, Entry change, String old, String metatypeName, Set<String> held) {
