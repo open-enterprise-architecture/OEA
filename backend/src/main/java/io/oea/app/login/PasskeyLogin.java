@@ -4,11 +4,11 @@ import io.oea.app.access.PasswordPolicies;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.PersonStore;
 import io.oea.infrastructure.webauthn.PasskeyRejectedException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PasskeyLogin {
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
 
 	private final Passkeys passkeys;
 
@@ -35,9 +35,9 @@ public class PasskeyLogin {
 
 	private final LoginMetrics metrics;
 
-	public PasskeyLogin(JdbcTemplate jdbc, Passkeys passkeys, PasswordPolicies policies, PersonSessions personSessions,
+	public PasskeyLogin(PersonStore persons, Passkeys passkeys, PasswordPolicies policies, PersonSessions personSessions,
 			LoginThrottle throttle, AuditWriter audit, LoginMetrics metrics) {
-		this.jdbc = jdbc;
+		this.persons = persons;
 		this.passkeys = passkeys;
 		this.policies = policies;
 		this.personSessions = personSessions;
@@ -88,17 +88,10 @@ public class PasskeyLogin {
 		catch (PasskeyRejectedException ex) {
 			throw fail(client);
 		}
-		if (!this.policies.personPasswordLoginPossible() || !mayLogIn(verified.personId())) {
+		if (!this.policies.personPasswordLoginPossible() || !this.persons.mayLogIn(verified.personId())) {
 			throw fail(client);
 		}
 		return this.personSessions.start(verified.personId(), "passkey", client);
-	}
-
-	/** Human persons in status invited or active (REQ-004). */
-	private boolean mayLogIn(long personId) {
-		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
-				SELECT person_type = 'human' AND status IN ('invited', 'active') FROM persons WHERE id = ?""",
-				Boolean.class, personId));
 	}
 
 	private InvalidCredentialsException fail(LocalLogin.Client client) {

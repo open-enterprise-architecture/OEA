@@ -5,17 +5,17 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.IdentitySettingsStore;
 import io.oea.core.service.PasswordGenerator;
 import io.oea.core.service.PasswordHasher;
 import io.oea.core.service.PasswordPolicy;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PasswordPolicies {
 
-	private final JdbcTemplate jdbc;
+	private final IdentitySettingsStore settings;
+
+	private final CredentialStore credentials;
 
 	private final PasswordHasher hasher;
 
@@ -42,9 +44,10 @@ public class PasswordPolicies {
 
 	private final Clock clock;
 
-	public PasswordPolicies(JdbcTemplate jdbc, PasswordHasher hasher, PasswordGenerator generator,
+	public PasswordPolicies(IdentitySettingsStore settings, CredentialStore credentials, PasswordHasher hasher, PasswordGenerator generator,
 			PasswordPolicyFloors floors, PersonPasswordProperties personPasswords, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.settings = settings;
+		this.credentials = credentials;
 		this.hasher = hasher;
 		this.generator = generator;
 		this.floors = floors;
@@ -181,14 +184,10 @@ public class PasswordPolicies {
 			throw new InvalidAccessRequestException(invalid,
 					"The password policy is below an operator floor or inconsistent: " + String.join(", ", invalid) + ".");
 		}
-		int updated = this.jdbc.update("""
-				UPDATE system_settings SET password_min_length = ?, password_require_uppercase = ?,
-				       password_require_lowercase = ?, password_require_digits = ?, password_require_special_chars = ?,
-				       password_expiry_days = ?, password_history_count = ?, person_password_login = ?, updated_at = ?,
-				       updated_by_person_id = ?, updated_by_admin_id = ?
-				WHERE id = 1""", requested.minLength(), requested.requireUppercase(), requested.requireLowercase(),
+		int updated = this.settings.updatePasswordSettings(new IdentitySettingsStore.PasswordSettings(
+				requested.minLength(), requested.requireUppercase(), requested.requireLowercase(),
 				requested.requireDigits(), requested.requireSpecialChars(), requested.expiryDays(),
-				requested.historyCount(), requested.personPasswordLogin(), Timestamp.from(this.clock.instant()),
+				requested.historyCount(), requested.personPasswordLogin()), this.clock.instant(),
 				principal.personId(), principal.systemAdminAccountId());
 		if (updated != 1) {
 			throw new IllegalStateException("the instance has no settings yet");
@@ -206,23 +205,16 @@ public class PasswordPolicies {
 	}
 
 	private Settings stored() {
-		List<Settings> rows = this.jdbc.query("""
-				SELECT password_min_length, password_require_uppercase, password_require_lowercase,
-				       password_require_digits, password_require_special_chars, password_expiry_days,
-				       password_history_count, person_password_login
-				FROM system_settings WHERE id = 1""",
-				(rs, n) -> new Settings(rs.getInt(1), rs.getBoolean(2), rs.getBoolean(3), rs.getBoolean(4),
-						rs.getBoolean(5), rs.getInt(6), rs.getInt(7), rs.getBoolean(8)));
-		return rows.isEmpty() ? Settings.DEFAULT : rows.getFirst();
+		return this.settings.passwordSettings()
+			.map((row) -> new Settings(row.minLength(), row.requireUppercase(), row.requireLowercase(),
+					row.requireDigits(), row.requireSpecialChars(), row.expiryDays(), row.historyCount(),
+					row.personPasswordLogin()))
+			.orElse(Settings.DEFAULT);
 	}
 
 	/** The current password and the last {@code count - 1} revoked passwords of the owner (D3). */
 	private boolean inHistory(String password, Long personId, UUID systemAdminAccountId, int count) {
-		List<String> hashes = this.jdbc.queryForList("""
-				SELECT pc.password_hash FROM local_credentials c JOIN password_credentials pc ON pc.credential_id = c.id
-				WHERE c.type = 'password' AND (c.person_id = ? OR c.system_admin_account_id = ?)
-				ORDER BY c.status = 'active' DESC, c.revoked_at DESC NULLS LAST, c.created_at DESC
-				LIMIT ?""", String.class, personId, systemAdminAccountId, count);
+		List<String> hashes = this.credentials.passwordHistory(personId, systemAdminAccountId, count);
 		return hashes.stream().anyMatch((hash) -> this.hasher.matches(password, hash));
 	}
 

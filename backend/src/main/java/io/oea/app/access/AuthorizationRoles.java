@@ -5,13 +5,13 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.RoleStore;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,14 +27,14 @@ public class AuthorizationRoles {
 	private static final Set<String> VISIBILITY_ADMINISTRATION = Set.of("visibility:configure",
 			"visibility-scope:assign");
 
-	private final JdbcTemplate jdbc;
+	private final RoleStore roles;
 
 	private final AccessCatalog catalog;
 
 	private final AuditWriter audit;
 
-	public AuthorizationRoles(JdbcTemplate jdbc, AccessCatalog catalog, AuditWriter audit) {
-		this.jdbc = jdbc;
+	public AuthorizationRoles(RoleStore roles, AccessCatalog catalog, AuditWriter audit) {
+		this.roles = roles;
 		this.catalog = catalog;
 		this.audit = audit;
 	}
@@ -70,20 +70,14 @@ public class AuthorizationRoles {
 			throw new InvalidAccessRequestException("assignableToServiceAccounts",
 					"A role with an administrative permission cannot be assignable to service accounts (SoD-4).");
 		}
-		int inserted = this.jdbc.update("""
-				INSERT INTO authorization_roles (id, name, description, is_builtin, assignable_to_service_accounts,
-					created_by_person_id, created_by_admin_id)
-				VALUES (?, ?, ?, false, ?, ?, ?) ON CONFLICT (id) DO NOTHING""", role.id(), role.name(),
-				role.description(), role.assignableToServiceAccounts(), principal.personId(),
-				principal.systemAdminAccountId());
+		int inserted = this.roles.insertRole(role.id(), role.name(), role.description(),
+				role.assignableToServiceAccounts(), principal.personId(), principal.systemAdminAccountId());
 		if (inserted == 0) {
 			throw new AccessConflictException("The role ID " + role.id() + " is already taken.");
 		}
 		for (String permission : permissions) {
-			this.jdbc.update("""
-					INSERT INTO role_permissions (role_id, permission_id, added_by_person_id, added_by_admin_id,
-						approval_status) VALUES (?, ?, ?, ?, 'approved')""", role.id(), permission,
-					principal.personId(), principal.systemAdminAccountId());
+			this.roles.insertApprovedPermission(role.id(), permission, principal.personId(),
+					principal.systemAdminAccountId());
 		}
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", role.name());

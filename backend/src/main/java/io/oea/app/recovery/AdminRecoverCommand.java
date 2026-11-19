@@ -2,6 +2,12 @@ package io.oea.app.recovery;
 
 import io.oea.audit.AuditValueCipher;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.IdentitySettingsStore;
+import io.oea.core.access.LoginStateStore;
+import io.oea.core.access.LoginThrottleStore;
+import io.oea.core.access.SessionStore;
+import io.oea.core.access.SystemAdminAccountStore;
 import io.oea.core.service.PasswordHasher;
 import io.oea.core.service.TotpAlgorithm;
 import io.oea.infrastructure.guards.ConfigurationGuards;
@@ -28,7 +34,6 @@ import org.springframework.boot.jdbc.autoconfigure.JdbcTemplateAutoConfiguration
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -70,11 +75,12 @@ public final class AdminRecoverCommand {
 			.logStartupInfo(false)
 			.properties(ConfigurationGuards.MODE_PROPERTY + "=admin-recover")
 			.run(args)) {
-			AdminRecovery recovery = new AdminRecovery(context.getBean(JdbcTemplate.class),
+			AdminRecovery recovery = new AdminRecovery(context.getBean(SystemAdminAccountStore.class),
+					context.getBean(CredentialStore.class), context.getBean(SessionStore.class),
+					context.getBean(LoginStateStore.class), context.getBean(LoginThrottleStore.class),
+					context.getBean(IdentitySettingsStore.class),
 					new TransactionTemplate(context.getBean(PlatformTransactionManager.class)),
-					context.getBean(SecretCipher.class), new PasswordHasher(),
-					new AuditWriter(context.getBean(JdbcTemplate.class),
-							new AuditValueCipher(context.getBean(JdbcTemplate.class), context.getBean(SecretCipher.class))),
+					context.getBean(SecretCipher.class), new PasswordHasher(), context.getBean(AuditWriter.class),
 					Clock.systemUTC());
 			return recover(recovery, terminal, Clock.systemUTC());
 		}
@@ -214,7 +220,9 @@ public final class AdminRecoverCommand {
 	@Configuration(proxyBeanMethods = false)
 	@ImportAutoConfiguration({ DataSourceAutoConfiguration.class, JdbcTemplateAutoConfiguration.class,
 			DataSourceTransactionManagerAutoConfiguration.class })
-	@Import(SecretsConfiguration.class)
+	@Import({ SecretsConfiguration.class, SystemAdminAccountStore.class, CredentialStore.class, SessionStore.class,
+			LoginStateStore.class, LoginThrottleStore.class, IdentitySettingsStore.class, AuditValueCipher.class,
+			AuditWriter.class })
 	static class RecoverConfiguration {
 
 	}

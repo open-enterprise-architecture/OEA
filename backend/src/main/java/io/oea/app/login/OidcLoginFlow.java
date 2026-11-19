@@ -4,6 +4,7 @@ import io.oea.app.security.IdpRoles;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.LoginStateStore;
 import io.oea.core.domain.auth.AuthProvider;
 import io.oea.core.domain.auth.LoginSession;
 import io.oea.core.domain.person.Person;
@@ -23,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,7 +74,7 @@ public class OidcLoginFlow {
 
 	private final AuditWriter audit;
 
-	private final JdbcTemplate jdbc;
+	private final LoginStateStore loginStates;
 
 	private final Clock clock;
 
@@ -85,7 +84,7 @@ public class OidcLoginFlow {
 
 	public OidcLoginFlow(AuthProviderRepository providers, PersonIdentityRepository identities,
 			PersonRepository persons, LoginSessionRepository loginSessions, Sessions sessions, IdpRoles idpRoles,
-			OidcClient client, SecretCipher cipher, AuditWriter audit, JdbcTemplate jdbc, Clock clock,
+			OidcClient client, SecretCipher cipher, AuditWriter audit, LoginStateStore loginStates, Clock clock,
 			@Value("${oea.web.public-url:}") String publicUrl, LoginMetrics metrics) {
 		this.providers = providers;
 		this.identities = identities;
@@ -96,7 +95,7 @@ public class OidcLoginFlow {
 		this.client = client;
 		this.cipher = cipher;
 		this.audit = audit;
-		this.jdbc = jdbc;
+		this.loginStates = loginStates;
 		this.clock = clock;
 		this.publicUrl = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
 		this.metrics = metrics;
@@ -150,13 +149,9 @@ public class OidcLoginFlow {
 		byte[] stateHash = sha256(state);
 		SecretCipher.Encrypted encrypted = this.cipher.encrypt(verifier, verifierContext(stateHash));
 		Instant now = this.clock.instant();
-		this.jdbc.update("DELETE FROM oidc_login_states WHERE expires_at < ?", Timestamp.from(now));
-		this.jdbc.update("""
-				INSERT INTO oidc_login_states (state_hash, browser_binding_hash, auth_provider_id, nonce,
-				    code_verifier_encrypted, code_verifier_key_id, return_to, created_at, expires_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", stateHash, sha256(browserBinding), provider.getId(), nonce,
-				encrypted.ciphertext(), encrypted.keyId(), safeReturnTo(returnTo), Timestamp.from(now),
-				Timestamp.from(now.plus(LOGIN_VALIDITY)));
+		this.loginStates.deleteExpiredOidcStates(now);
+		this.loginStates.insertOidcState(stateHash, sha256(browserBinding), provider.getId(), nonce,
+				encrypted.ciphertext(), encrypted.keyId(), safeReturnTo(returnTo), now, now.plus(LOGIN_VALIDITY));
 		return new Started(authorizationUri, browserBinding);
 	}
 
@@ -278,23 +273,20 @@ public class OidcLoginFlow {
 			return Optional.empty();
 		}
 		byte[] stateHash = sha256(state);
-		List<Map<String, Object>> rows = this.jdbc.queryForList("""
-				DELETE FROM oidc_login_states WHERE state_hash = ?
-				RETURNING browser_binding_hash, auth_provider_id, nonce, code_verifier_encrypted,
-				          code_verifier_key_id, return_to, expires_at""", stateHash);
-		if (rows.isEmpty()) {
+		Optional<LoginStateStore.OidcState> stored = this.loginStates.consumeOidcState(stateHash);
+		if (stored.isEmpty()) {
 			return Optional.empty();
 		}
-		Map<String, Object> row = rows.get(0);
-		boolean bound = MessageDigest.isEqual((byte[]) row.get("browser_binding_hash"), sha256(browserBinding));
-		boolean current = ((Timestamp) row.get("expires_at")).toInstant().isAfter(this.clock.instant());
+		LoginStateStore.OidcState row = stored.get();
+		boolean bound = MessageDigest.isEqual(row.browserBindingHash(), sha256(browserBinding));
+		boolean current = row.expiresAt().isAfter(this.clock.instant());
 		if (!bound || !current) {
 			return Optional.empty();
 		}
-		String verifier = this.cipher.decrypt(new SecretCipher.Encrypted((String) row.get("code_verifier_encrypted"),
-				(String) row.get("code_verifier_key_id")), verifierContext(stateHash));
-		return Optional.of(new LoginState((UUID) row.get("auth_provider_id"), (String) row.get("nonce"), verifier,
-				(String) row.get("return_to")));
+		String verifier = this.cipher.decrypt(
+				new SecretCipher.Encrypted(row.codeVerifierEncrypted(), row.codeVerifierKeyId()),
+				verifierContext(stateHash));
+		return Optional.of(new LoginState(row.authProviderId(), row.nonce(), verifier, row.returnTo()));
 	}
 
 	private OidcLoginFailedException failed(UUID providerId, String reason) {

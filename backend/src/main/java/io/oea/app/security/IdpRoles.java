@@ -2,8 +2,9 @@ package io.oea.app.security;
 
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.IdpMappingStore;
+import io.oea.core.access.SessionStore;
 import io.oea.core.domain.auth.LoginSession;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -11,7 +12,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,14 +27,17 @@ public class IdpRoles {
 	/** Maximum age of an evaluation (owner decision Q16, REQ-165 AC5). */
 	public static final java.time.Duration MAXIMUM_AGE = java.time.Duration.ofMinutes(15);
 
-	private final JdbcTemplate jdbc;
+	private final SessionStore sessionStore;
+
+	private final IdpMappingStore mappingStore;
 
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	public IdpRoles(JdbcTemplate jdbc, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+	public IdpRoles(SessionStore sessionStore, IdpMappingStore mappingStore, AuditWriter audit, Clock clock) {
+		this.sessionStore = sessionStore;
+		this.mappingStore = mappingStore;
 		this.audit = audit;
 		this.clock = clock;
 	}
@@ -75,12 +78,10 @@ public class IdpRoles {
 		Instant now = this.clock.instant();
 		List<DerivedRole> previous = derived(session.getId());
 		List<DerivedRole> derived = "present".equals(claim.status()) && !claim.identifiers().isEmpty()
-				? this.jdbc.query("""
-						SELECT id, role_id FROM idp_group_mappings
-						WHERE issuer = ? AND active AND deleted_at IS NULL AND approval_status = 'approved'
-						  AND group_identifier = ANY (?) ORDER BY role_id, id""",
-						(rs, n) -> new DerivedRole(rs.getObject(1, UUID.class), rs.getString(2)), issuer,
-						claim.identifiers().toArray(String[]::new))
+				? this.mappingStore.findActiveForGroups(issuer, claim.identifiers())
+					.stream()
+					.map((mapping) -> new DerivedRole(mapping.id(), mapping.roleId()))
+					.toList()
 				: List.of();
 		replace(session.getId(), derived, now);
 		recordMatches(derived, secondFactorVerified, now);
@@ -117,26 +118,23 @@ public class IdpRoles {
 	/** Derived roles of a session whose mappings still apply (deleted or deactivated ones do not). */
 	@Transactional(readOnly = true)
 	public List<DerivedRole> effective(UUID sessionId) {
-		return this.jdbc.query("""
-				SELECT r.idp_group_mapping_id, r.role_id FROM session_idp_roles r
-				JOIN idp_group_mappings m ON m.id = r.idp_group_mapping_id
-				WHERE r.session_id = ? AND m.active AND m.deleted_at IS NULL ORDER BY r.role_id""",
-				(rs, n) -> new DerivedRole(rs.getObject(1, UUID.class), rs.getString(2)), sessionId);
+		return this.sessionStore.effectiveDerivedRoles(sessionId)
+			.stream()
+			.map((role) -> new DerivedRole(role.mappingId(), role.roleId()))
+			.toList();
 	}
 
 	private List<DerivedRole> derived(UUID sessionId) {
-		return this.jdbc.query(
-				"SELECT idp_group_mapping_id, role_id FROM session_idp_roles WHERE session_id = ? ORDER BY role_id, "
-						+ "idp_group_mapping_id",
-				(rs, n) -> new DerivedRole(rs.getObject(1, UUID.class), rs.getString(2)), sessionId);
+		return this.sessionStore.derivedRoles(sessionId)
+			.stream()
+			.map((role) -> new DerivedRole(role.mappingId(), role.roleId()))
+			.toList();
 	}
 
 	private void replace(UUID sessionId, List<DerivedRole> roles, Instant now) {
-		this.jdbc.update("DELETE FROM session_idp_roles WHERE session_id = ?", sessionId);
+		this.sessionStore.deleteDerivedRoles(sessionId);
 		for (DerivedRole role : roles) {
-			this.jdbc.update("""
-					INSERT INTO session_idp_roles (session_id, idp_group_mapping_id, role_id, derived_at)
-					VALUES (?, ?, ?, ?)""", sessionId, role.mappingId(), role.roleId(), Timestamp.from(now));
+			this.sessionStore.insertDerivedRole(sessionId, role.mappingId(), role.roleId(), now);
 		}
 	}
 
@@ -147,12 +145,7 @@ public class IdpRoles {
 	 */
 	private void recordMatches(List<DerivedRole> derived, boolean secondFactorVerified, Instant now) {
 		for (DerivedRole role : derived) {
-			this.jdbc.update("""
-					UPDATE idp_group_mappings m SET last_matched_at = ?
-					WHERE m.id = ? AND (m.last_matched_at IS NULL OR m.last_matched_at < ?)
-					  AND (? OR NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
-					                        WHERE rp.role_id = m.role_id AND p.admin_class))""",
-					Timestamp.from(now), role.mappingId(), Timestamp.from(now.minus(java.time.Duration.ofHours(1))),
+			this.mappingStore.recordMatch(role.mappingId(), now, now.minus(java.time.Duration.ofHours(1)),
 					secondFactorVerified);
 		}
 	}

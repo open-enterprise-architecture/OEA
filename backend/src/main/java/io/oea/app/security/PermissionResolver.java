@@ -1,6 +1,6 @@
 package io.oea.app.security;
 
-import java.sql.Timestamp;
+import io.oea.core.access.RoleStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,7 +27,7 @@ public class PermissionResolver {
 
 	static final Duration MAXIMUM_AGE = Duration.ofSeconds(60);
 
-	private final JdbcTemplate jdbc;
+	private final RoleStore roles;
 
 	private final IdpRoles idpRoles;
 
@@ -36,8 +35,8 @@ public class PermissionResolver {
 
 	private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
-	public PermissionResolver(JdbcTemplate jdbc, IdpRoles idpRoles, Clock clock) {
-		this.jdbc = jdbc;
+	public PermissionResolver(RoleStore roles, IdpRoles idpRoles, Clock clock) {
+		this.roles = roles;
 		this.idpRoles = idpRoles;
 		this.clock = clock;
 	}
@@ -72,9 +71,7 @@ public class PermissionResolver {
 
 	/** Permissions of one role (approved only). */
 	public Set<String> rolePermissions(String roleId) {
-		return Set.copyOf(this.jdbc.queryForList(
-				"SELECT permission_id FROM role_permissions WHERE role_id = ? AND approval_status = 'approved'",
-				String.class, roleId));
+		return Set.copyOf(this.roles.approvedPermissionIds(roleId));
 	}
 
 	/** Drops the cached roles of one session after its IdP roles were re-evaluated. */
@@ -109,12 +106,7 @@ public class PermissionResolver {
 			}
 			if (principal.personId() != null) {
 				// local assignments (US-144; design D2 of us-144-local-role-assignments): granted, valid, person active
-				for (String roleId : this.jdbc.queryForList("""
-						SELECT a.role_id FROM role_assignments a JOIN persons p ON p.id = a.person_id
-						WHERE a.person_id = ? AND a.status = 'granted' AND a.valid_from <= ?
-						  AND (a.valid_to IS NULL OR a.valid_to > ?) AND p.status = 'active'
-						ORDER BY a.role_id""", String.class, principal.personId(), Timestamp.from(now),
-						Timestamp.from(now))) {
+				for (String roleId : this.roles.effectiveLocalRoleIds(principal.personId(), now)) {
 					grants.add(grant(roleId, "local", null, principal.secondFactorVerified()));
 				}
 			}
@@ -122,9 +114,7 @@ public class PermissionResolver {
 		Set<String> permissions = new TreeSet<>();
 		for (RoleGrant grant : grants) {
 			if (grant.effective()) {
-				permissions.addAll(this.jdbc.queryForList("""
-						SELECT permission_id FROM role_permissions
-						WHERE role_id = ? AND approval_status = 'approved'""", String.class, grant.roleId()));
+				permissions.addAll(this.roles.approvedPermissionIds(grant.roleId()));
 			}
 		}
 		Cached result = new Cached(List.copyOf(grants), Set.copyOf(permissions), now);
@@ -133,13 +123,10 @@ public class PermissionResolver {
 	}
 
 	private RoleGrant grant(String roleId, String source, UUID mappingId, boolean secondFactorVerified) {
-		Map<String, Object> role = this.jdbc.queryForMap("""
-				SELECT r.name, EXISTS (SELECT 1 FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
-				                       WHERE rp.role_id = r.id AND p.admin_class) AS privileged
-				FROM authorization_roles r WHERE r.id = ?""", roleId);
-		boolean privileged = Boolean.TRUE.equals(role.get("privileged"));
+		RoleStore.RoleSummary role = this.roles.summary(roleId);
+		boolean privileged = role.privileged();
 		boolean effective = !privileged || secondFactorVerified || "system-admin-account".equals(source);
-		return new RoleGrant(roleId, (String) role.get("name"), privileged, source, mappingId, effective,
+		return new RoleGrant(roleId, role.name(), privileged, source, mappingId, effective,
 				effective ? null : "mfa-required");
 	}
 

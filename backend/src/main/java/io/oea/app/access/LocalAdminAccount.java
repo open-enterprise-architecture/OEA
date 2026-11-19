@@ -4,16 +4,16 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.SessionStore;
+import io.oea.core.access.SystemAdminAccountStore;
 import io.oea.core.domain.auth.SystemAdminAccount;
 import io.oea.core.repository.SystemAdminAccountRepository;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +31,9 @@ public class LocalAdminAccount {
 
 	private final AuditWriter audit;
 
-	private final JdbcTemplate jdbc;
+	private final SystemAdminAccountStore accountStore;
+
+	private final SessionStore sessionStore;
 
 	private final Clock clock;
 
@@ -41,11 +43,12 @@ public class LocalAdminAccount {
 	}
 
 	public LocalAdminAccount(SystemAdminAccountRepository accounts, AdministrationPaths paths, AuditWriter audit,
-			JdbcTemplate jdbc, Clock clock) {
+			SystemAdminAccountStore accountStore, SessionStore sessionStore, Clock clock) {
 		this.accounts = accounts;
 		this.paths = paths;
 		this.audit = audit;
-		this.jdbc = jdbc;
+		this.accountStore = accountStore;
+		this.sessionStore = sessionStore;
 		this.clock = clock;
 	}
 
@@ -64,7 +67,7 @@ public class LocalAdminAccount {
 	public State deactivate(OeaPrincipal principal) {
 		UUID id = accountId();
 		// the row lock serializes concurrent deactivations and the path check
-		this.jdbc.queryForObject("SELECT id FROM system_admin_accounts WHERE id = ? FOR UPDATE", UUID.class, id);
+		this.accountStore.lockAccount(id);
 		SystemAdminAccount account = this.accounts.findById(id).orElseThrow();
 		if (account.getStatus() == SystemAdminAccount.Status.DEACTIVATED) {
 			return view(account);
@@ -78,23 +81,16 @@ public class LocalAdminAccount {
 		}
 		Instant now = this.clock.instant();
 		account.deactivate(principal.systemAdminAccountId(), principal.personId(), now);
-		int revoked = this.jdbc.update("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'admin-action', revoked_by_admin_id = ?,
-				       revoked_by_person_id = ?
-				WHERE system_admin_account_id = ? AND revoked_at IS NULL""", Timestamp.from(now),
-				principal.systemAdminAccountId(), principal.personId(), id);
+		int revoked = this.sessionStore.revokeAllOfAdmin(id, now, "admin-action", principal.systemAdminAccountId(),
+				principal.personId());
 		this.accounts.flush();
 		this.audit.append(event(principal, account, AuditEvent.Outcome.SUCCESS, Map.of("sessionsRevoked", revoked)));
 		return view(account);
 	}
 
 	private UUID accountId() {
-		UUID id = this.jdbc.query("SELECT id FROM system_admin_accounts ORDER BY created_at, id LIMIT 1",
-				(rs) -> rs.next() ? rs.getObject(1, UUID.class) : null);
-		if (id == null) {
-			throw new NoSuchElementException("The instance is not bootstrapped.");
-		}
-		return id;
+		return this.accountStore.firstAccountId()
+			.orElseThrow(() -> new NoSuchElementException("The instance is not bootstrapped."));
 	}
 
 	private static AuditEvent event(OeaPrincipal principal, SystemAdminAccount account, AuditEvent.Outcome outcome,

@@ -2,11 +2,10 @@ package io.oea.app.security;
 
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.IdentitySettingsStore;
 import io.oea.core.repository.LocalCredentialRepository;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.Map;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SetupPhase {
 
-	private final JdbcTemplate jdbc;
+	private final IdentitySettingsStore settings;
 
 	private final LocalCredentialRepository credentials;
 
@@ -22,8 +21,8 @@ public class SetupPhase {
 
 	private final Clock clock;
 
-	public SetupPhase(JdbcTemplate jdbc, LocalCredentialRepository credentials, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+	public SetupPhase(IdentitySettingsStore settings, LocalCredentialRepository credentials, AuditWriter audit, Clock clock) {
+		this.settings = settings;
 		this.credentials = credentials;
 		this.audit = audit;
 		this.clock = clock;
@@ -40,9 +39,7 @@ public class SetupPhase {
 
 	@Transactional(readOnly = true)
 	public boolean isActive() {
-		Boolean ended = this.jdbc.query("SELECT setup_phase_ended_at IS NOT NULL FROM system_settings WHERE id = 1",
-				(rs) -> rs.next() ? rs.getBoolean(1) : Boolean.FALSE);
-		return !Boolean.TRUE.equals(ended);
+		return !this.settings.setupPhaseEnded();
 	}
 
 	/**
@@ -52,10 +49,7 @@ public class SetupPhase {
 	 */
 	@Transactional
 	public void requireSecondFactorFor(String action, OeaPrincipal principal) {
-		Boolean ended = this.jdbc.query(
-				"SELECT setup_phase_ended_at IS NOT NULL FROM system_settings WHERE id = 1 FOR UPDATE",
-				(rs) -> rs.next() ? rs.getBoolean(1) : Boolean.FALSE);
-		if (Boolean.TRUE.equals(ended)) {
+		if (this.settings.lockSetupPhaseEnded()) {
 			return;
 		}
 		boolean hasTotp = principal.type() == OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT && !this.credentials
@@ -64,8 +58,7 @@ public class SetupPhase {
 		if (!hasTotp || !principal.secondFactorVerified()) {
 			throw new SecondFactorRequiredForAccessException();
 		}
-		this.jdbc.update("UPDATE system_settings SET setup_phase_ended_at = ?, setup_phase_ended_by_action = ? WHERE id = 1",
-				Timestamp.from(this.clock.instant()), action);
+		this.settings.endSetupPhase(this.clock.instant(), action);
 		this.audit.append(new AuditEvent("system.setup-phase-ended", AuditEvent.Category.SECURITY,
 				AuditEvent.Severity.HIGH, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"system-settings", "1", Map.of("triggeringAction", action)));

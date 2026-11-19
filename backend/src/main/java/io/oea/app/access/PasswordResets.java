@@ -6,8 +6,11 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.PersonStore;
+import io.oea.core.access.RoleStore;
+import io.oea.core.access.SessionStore;
 import io.oea.core.service.PasswordHasher;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -16,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +33,13 @@ public class PasswordResets {
 	/** Reason of the denial: an administrator is reset by someone else than the system admin account (REQ-173 AC3). */
 	public static final String ADMIN_RESET_RESTRICTED = "admin-reset-restricted";
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
+
+	private final CredentialStore credentials;
+
+	private final RoleStore roles;
+
+	private final SessionStore sessionStore;
 
 	private final PasswordHasher hasher;
 
@@ -45,9 +53,13 @@ public class PasswordResets {
 
 	private final Clock clock;
 
-	public PasswordResets(JdbcTemplate jdbc, PasswordHasher hasher, PasswordPolicies policies, PersonPasswordProperties properties, PermissionDenials denials, AuditWriter audit,
-			Clock clock) {
-		this.jdbc = jdbc;
+	public PasswordResets(PersonStore persons, CredentialStore credentials, RoleStore roles, SessionStore sessionStore,
+			PasswordHasher hasher, PasswordPolicies policies, PersonPasswordProperties properties,
+			PermissionDenials denials, AuditWriter audit, Clock clock) {
+		this.persons = persons;
+		this.credentials = credentials;
+		this.roles = roles;
+		this.sessionStore = sessionStore;
 		this.hasher = hasher;
 		this.policies = policies;
 		this.properties = properties;
@@ -73,12 +85,9 @@ public class PasswordResets {
 	 */
 	@Transactional
 	public Result reset(OeaPrincipal principal, long personId, String reason) {
-		List<String> types = this.jdbc.queryForList("SELECT person_type FROM persons WHERE id = ? FOR UPDATE",
-				String.class, personId);
-		if (types.isEmpty()) {
-			throw new NoSuchElementException("no person " + personId);
-		}
-		if (!"human".equals(types.getFirst())) {
+		PersonStore.LockedPerson locked = this.persons.lockPerson(personId)
+			.orElseThrow(() -> new NoSuchElementException("no person " + personId));
+		if (!"human".equals(locked.personType())) {
 			throw new InvalidAccessRequestException("personId", "Service accounts have no password.");
 		}
 		if (principal.personId() != null && principal.personId() == personId) {
@@ -89,33 +98,24 @@ public class PasswordResets {
 		if (!this.policies.personPasswordLoginPossible()) {
 			throw new AccessConflictException("Password login of persons is switched off on this instance.");
 		}
-		List<UUID> active = this.jdbc.queryForList("""
-				SELECT id FROM local_credentials WHERE person_id = ? AND type = 'password' AND status = 'active'
-				FOR UPDATE""", UUID.class, personId);
+		List<UUID> active = this.credentials.lockActivePasswordCredentials(personId);
 		if (active.isEmpty()) {
 			throw new AccessConflictException("The person has no password to reset.");
 		}
 		Instant now = this.clock.instant().truncatedTo(ChronoUnit.MICROS);
 		if (principal.type() != OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT
-				&& holdsAdminClassPermission(this.jdbc, personId, now)) {
+				&& this.roles.holdsAdminClassPermission(personId, now)) {
 			this.denials.record(principal, "resetPersonPassword", "person", Long.toString(personId),
 					ADMIN_RESET_RESTRICTED);
 			throw new AdminResetRestrictedException();
 		}
-		this.jdbc.update("""
-				UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'admin_action',
-				       revoked_by_person_id = ?, revoked_by_admin_id = ?
-				WHERE id = ?""", Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(),
-				active.getFirst());
+		this.credentials.revoke(active.getFirst(), now, "admin_action", principal.personId(),
+				principal.systemAdminAccountId());
 		String password = this.policies.generate();
 		Instant expiresAt = now.plus(this.properties.temporaryPasswordValidity());
 		UUID credentialId = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO local_credentials (id, person_id, type, status, created_at)
-				VALUES (?, ?, 'password', 'active', ?)""", credentialId, personId, Timestamp.from(now));
-		this.jdbc.update("""
-				INSERT INTO password_credentials (credential_id, password_hash, origin, expires_at)
-				VALUES (?, ?, 'admin-reset', ?)""", credentialId, this.hasher.hash(password), Timestamp.from(expiresAt));
+		this.credentials.insertActivePassword(credentialId, personId, null, now);
+		this.credentials.insertPasswordHash(credentialId, this.hasher.hash(password), "admin-reset", expiresAt);
 		int sessions = revokeSessions(principal, personId, now);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("expiresAt", expiresAt.toString());
@@ -129,27 +129,10 @@ public class PasswordResets {
 		return new Result(password, expiresAt);
 	}
 
-	/**
-	 * A granted local role assignment that is not over contains an admin-class permission
-	 * (REQ-031 AC9); shared with the factor reset (design D6 of us-021-person-totp).
-	 */
-	static boolean holdsAdminClassPermission(JdbcTemplate jdbc, long personId, Instant now) {
-		return Boolean.TRUE.equals(jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM role_assignments a
-				               JOIN role_permissions rp ON rp.role_id = a.role_id
-				               JOIN permissions p ON p.id = rp.permission_id
-				               WHERE a.person_id = ? AND a.status = 'granted' AND p.admin_class
-				                 AND (a.valid_to IS NULL OR a.valid_to > ?))""", Boolean.class, personId,
-				Timestamp.from(now)));
-	}
-
 	/** REQ-031 AC3: every session of the person ends at once, each audited as {@code session.revoked}. */
 	private int revokeSessions(OeaPrincipal principal, long personId, Instant now) {
-		List<UUID> revoked = this.jdbc.queryForList("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'password-reset', revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?
-				WHERE person_id = ? AND revoked_at IS NULL RETURNING id""", UUID.class, Timestamp.from(now),
-				principal.personId(), principal.systemAdminAccountId(), personId);
+		List<UUID> revoked = this.sessionStore.revokeAllOfPersonReturningIds(personId, now, "password-reset",
+				principal.personId(), principal.systemAdminAccountId());
 		for (UUID session : revoked) {
 			this.audit.append(new AuditEvent("session.revoked", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
 					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "session",

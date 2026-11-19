@@ -103,6 +103,7 @@ We choose **Option 4: document the feature cut, SQL only in `core`, enforced by 
 
 - Until the frozen store is empty, the rule allows the known exceptions: 915 dependencies in 74 classes of `app` on 2026-11-16 (`JdbcTemplate` in 57 classes, plus the row mappers and nested records that use `java.sql`). The store makes the debt visible but does not remove it.
 - Progress note 2026-11-19: S17 removes the debt package by package. After the change `s17-sql-into-core-metamodel`, the 20 classes of `io.oea.app.metamodel` use stores in `io.oea.core.metamodel` and the frozen store lists 510 dependencies (860 before; 350 entries of that package removed); `s17-sql-into-core-identity` and `s17-sql-into-core-repository` follow.
+- Progress note 2026-11-19 (identity): after the change `s17-sql-into-core-identity`, the 29 classes of `io.oea.app.access`, `login`, `security` and `recovery` use eleven stores in `io.oea.core.access` and the frozen store lists 136 dependencies (510 before; 374 entries of these packages removed). The 136 remaining entries belong to the repository packages and to the 23 lines that only name `LanguagePreferences` and `OeaPrincipal`; `s17-sql-into-core-repository` empties the store.
 - Moving SQL out of `app` adds a store class per table group and some indirection for simple reads.
 - `FreezingArchRule` needs its store in the repository. A refactoring that renames a violating class produces a new violation, and the store must be updated in the same change.
 

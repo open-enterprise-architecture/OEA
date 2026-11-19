@@ -2,13 +2,12 @@ package io.oea.app.login;
 
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.LoginThrottleStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.sql.Timestamp;
 import java.util.Locale;
 import java.util.Map;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,14 +34,14 @@ public class LoginThrottle {
 
 	static final Duration ADDRESS_WINDOW = Duration.ofMinutes(10);
 
-	private final JdbcTemplate jdbc;
+	private final LoginThrottleStore store;
 
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	public LoginThrottle(JdbcTemplate jdbc, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+	public LoginThrottle(LoginThrottleStore store, AuditWriter audit, Clock clock) {
+		this.store = store;
 		this.audit = audit;
 		this.clock = clock;
 	}
@@ -83,7 +82,7 @@ public class LoginThrottle {
 
 	@Transactional
 	public void recordClientSuccess(String clientId) {
-		this.jdbc.update("DELETE FROM auth_throttle WHERE throttle_key = ?", clientKey(clientId));
+		this.store.delete(clientKey(clientId));
 	}
 
 	/** Seconds until the source address accepts attempts again; 0 if not throttled. */
@@ -106,10 +105,9 @@ public class LoginThrottle {
 	}
 
 	private long lockedFor(String key, Instant now) {
-		Timestamp lockedUntil = this.jdbc.query("SELECT locked_until FROM auth_throttle WHERE throttle_key = ?",
-				(rs) -> rs.next() ? rs.getTimestamp(1) : null, key);
-		if (lockedUntil != null && lockedUntil.toInstant().isAfter(now)) {
-			return Duration.between(now, lockedUntil.toInstant()).toSeconds() + 1;
+		Instant lockedUntil = this.store.lockedUntil(key);
+		if (lockedUntil != null && lockedUntil.isAfter(now)) {
+			return Duration.between(now, lockedUntil).toSeconds() + 1;
 		}
 		return 0;
 	}
@@ -136,22 +134,15 @@ public class LoginThrottle {
 
 	@Transactional
 	public void recordSuccess(String loginName) {
-		this.jdbc.update("DELETE FROM auth_throttle WHERE throttle_key = ?", accountKey(loginName));
+		this.store.delete(accountKey(loginName));
 	}
 
 	private int increment(String key, Instant now, Duration window) {
-		Timestamp windowStart = Timestamp.from(now.minus(window));
-		return this.jdbc.queryForObject("""
-				INSERT INTO auth_throttle (throttle_key, failures, window_started_at) VALUES (?, 1, ?)
-				ON CONFLICT (throttle_key) DO UPDATE SET
-				    failures = CASE WHEN auth_throttle.window_started_at < ? THEN 1 ELSE auth_throttle.failures + 1 END,
-				    window_started_at = CASE WHEN auth_throttle.window_started_at < ? THEN EXCLUDED.window_started_at
-				                             ELSE auth_throttle.window_started_at END
-				RETURNING failures""", Integer.class, key, Timestamp.from(now), windowStart, windowStart);
+		return this.store.incrementFailures(key, now, now.minus(window));
 	}
 
 	private void lock(String key, Instant until, boolean first, String scope) {
-		this.jdbc.update("UPDATE auth_throttle SET locked_until = ? WHERE throttle_key = ?", Timestamp.from(until), key);
+		this.store.lockUntil(key, until);
 		if (first) {
 			this.audit.append(new AuditEvent("auth.throttled", AuditEvent.Category.SECURITY, AuditEvent.Severity.WARNING,
 					AuditEvent.Outcome.DENIED, AuditEvent.Source.API, AuditEvent.Actor.unauthenticated(), null, null,

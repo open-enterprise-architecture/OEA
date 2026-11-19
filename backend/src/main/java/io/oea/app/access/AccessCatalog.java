@@ -1,5 +1,6 @@
 package io.oea.app.access;
 
+import io.oea.core.access.RoleStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -7,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AccessCatalog {
 
-	private final JdbcTemplate jdbc;
+	private final RoleStore roles;
 
-	public AccessCatalog(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	public AccessCatalog(RoleStore roles) {
+		this.roles = roles;
 	}
 
 	public record PermissionEntry(String id, String category, boolean adminClass) {
@@ -31,31 +31,27 @@ public class AccessCatalog {
 
 	@Transactional(readOnly = true)
 	public List<PermissionEntry> permissions() {
-		return this.jdbc.query("SELECT id, category, admin_class FROM permissions ORDER BY sort_order, id",
-				(rs, n) -> new PermissionEntry(rs.getString(1), rs.getString(2), rs.getBoolean(3)));
+		return this.roles.permissions().stream().map((p) -> new PermissionEntry(p.id(), p.category(), p.adminClass())).toList();
 	}
 
 	@Transactional(readOnly = true)
 	public List<RoleEntry> roles(Boolean assignableToServiceAccounts) {
 		Map<String, Set<String>> permissions = new LinkedHashMap<>();
-		Set<String> adminClass = new LinkedHashSet<>(
-				this.jdbc.queryForList("SELECT id FROM permissions WHERE admin_class", String.class));
-		this.jdbc.query("SELECT role_id, permission_id FROM role_permissions WHERE approval_status = 'approved' "
-				+ "ORDER BY role_id, permission_id", (rs) -> {
-					permissions.computeIfAbsent(rs.getString(1), (k) -> new LinkedHashSet<>()).add(rs.getString(2));
-				});
-		List<RoleEntry> roles = new ArrayList<>();
-		this.jdbc.query("""
-				SELECT id, name, description, is_builtin, assignable_to_service_accounts, overrides_property_visibility
-				FROM authorization_roles WHERE deleted_at IS NULL ORDER BY is_builtin DESC, id""", (rs) -> {
-			Set<String> granted = permissions.getOrDefault(rs.getString(1), Set.of());
-			RoleEntry role = new RoleEntry(rs.getString(1), rs.getString(2), rs.getString(3), rs.getBoolean(4),
-					rs.getBoolean(5), rs.getBoolean(6), granted, granted.stream().anyMatch(adminClass::contains));
+		Set<String> adminClass = new LinkedHashSet<>(this.roles.adminClassPermissionIds());
+		for (RoleStore.RolePermissionRow row : this.roles.approvedRolePermissions()) {
+			permissions.computeIfAbsent(row.roleId(), (k) -> new LinkedHashSet<>()).add(row.permissionId());
+		}
+		List<RoleEntry> result = new ArrayList<>();
+		for (RoleStore.RoleRow row : this.roles.liveRoles()) {
+			Set<String> granted = permissions.getOrDefault(row.id(), Set.of());
+			RoleEntry role = new RoleEntry(row.id(), row.name(), row.description(), row.builtin(),
+					row.assignableToServiceAccounts(), row.overridesPropertyVisibility(), granted,
+					granted.stream().anyMatch(adminClass::contains));
 			if (assignableToServiceAccounts == null || assignableToServiceAccounts == role.assignableToServiceAccounts()) {
-				roles.add(role);
+				result.add(role);
 			}
-		});
-		return roles;
+		}
+		return result;
 	}
 
 	/**

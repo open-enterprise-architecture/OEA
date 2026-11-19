@@ -8,9 +8,9 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import io.oea.core.access.PersonStore;
+import io.oea.core.access.RoleStore;
+import io.oea.core.access.SessionStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +36,11 @@ public class RoleAssignments {
 
 	private static final Set<String> VISIBILITY = Set.of("visibility:configure", "visibility-scope:assign");
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
+
+	private final RoleStore roles;
+
+	private final SessionStore sessionStore;
 
 	private final AccessCatalog catalog;
 
@@ -68,10 +71,12 @@ public class RoleAssignments {
 			boolean acknowledgeSodConflict) {
 	}
 
-	public RoleAssignments(JdbcTemplate jdbc, AccessCatalog catalog, AdministrationPaths paths,
+	public RoleAssignments(PersonStore persons, RoleStore roles, SessionStore sessionStore, AccessCatalog catalog, AdministrationPaths paths,
 			PermissionDenials denials, PermissionResolver permissions, SetupPhase setupPhase, AuditWriter audit,
 			Clock clock) {
-		this.jdbc = jdbc;
+		this.persons = persons;
+		this.roles = roles;
+		this.sessionStore = sessionStore;
 		this.catalog = catalog;
 		this.paths = paths;
 		this.denials = denials;
@@ -90,9 +95,9 @@ public class RoleAssignments {
 	public List<Assignment> list(long personId, Set<String> statuses) {
 		personType(personId);
 		Instant now = this.clock.instant();
-		return this.jdbc.query(SELECT + " WHERE a.person_id = ? ORDER BY a.granted_at, a.id",
-				(rs, n) -> assignment(rs, now), personId)
+		return this.roles.assignmentsOf(personId)
 			.stream()
+			.map((row) -> assignment(row, now))
 			.filter((assignment) -> statuses.contains(assignment.status()))
 			.toList();
 	}
@@ -127,11 +132,7 @@ public class RoleAssignments {
 			// SoD-4: service accounts never hold privileged roles
 			throw new InvalidAccessRequestException("roleId", "The role cannot be assigned to a service account.");
 		}
-		Boolean assigned = this.jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM role_assignments WHERE person_id = ? AND role_id = ? AND status = 'granted'
-				               AND (valid_to IS NULL OR valid_to > ?))""", Boolean.class, personId, role.id(),
-				Timestamp.from(now));
-		if (Boolean.TRUE.equals(assigned)) {
+		if (this.roles.isAssigned(personId, role.id(), now)) {
 			throw new AccessConflictException("The role is already assigned to the person.");
 		}
 		boolean sodConflict = combinesMetamodelAndVisibility(personId, role, now);
@@ -140,12 +141,8 @@ public class RoleAssignments {
 		}
 		this.setupPhase.requireSecondFactorFor("role-assignment", principal);
 		UUID id = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO role_assignments (id, person_id, role_id, valid_from, valid_to, reason, granted_at,
-				                              granted_by_person_id, granted_by_admin_id, sod_conflict)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", id, personId, role.id(), Timestamp.from(validFrom),
-				(request.validTo() != null) ? Timestamp.from(request.validTo()) : null, request.reason(),
-				Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(), sodConflict);
+		this.roles.insertAssignment(id, personId, role.id(), validFrom, request.validTo(), request.reason(), now,
+				principal.personId(), principal.systemAdminAccountId(), sodConflict);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("personId", personId);
 		details.put("roleId", role.id());
@@ -182,17 +179,10 @@ public class RoleAssignments {
 			this.paths.requireRemainingPath(AdministrationPaths.Removal.assignment(assignmentId));
 		}
 		Instant now = this.clock.instant();
-		this.jdbc.update("""
-				UPDATE role_assignments SET status = 'revoked', revoked_at = ?, revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?, revocation_reason = ?
-				WHERE id = ?""", Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(), reason,
-				assignmentId);
+		this.roles.revokeAssignment(assignmentId, now, principal.personId(), principal.systemAdminAccountId(), reason);
 		// REQ-164: the person logs in again and gets only the remaining roles
-		int sessions = this.jdbc.update("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'role-change', revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?
-				WHERE person_id = ? AND revoked_at IS NULL""", Timestamp.from(now), principal.personId(),
-				principal.systemAdminAccountId(), personId);
+		int sessions = this.sessionStore.revokeAllOfPerson(personId, now, "role-change", principal.personId(),
+				principal.systemAdminAccountId());
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("personId", personId);
 		details.put("roleId", assignment.roleId());
@@ -215,19 +205,15 @@ public class RoleAssignments {
 	@Transactional
 	public int revokeAllForOffboarding(OeaPrincipal principal, long personId) {
 		Instant now = this.clock.instant();
-		List<Assignment> granted = this.jdbc
-			.query(SELECT + " WHERE a.person_id = ? AND a.status = 'granted' ORDER BY a.granted_at, a.id",
-					(rs, n) -> assignment(rs, now), personId)
+		List<Assignment> granted = this.roles.grantedAssignmentsOf(personId)
 			.stream()
+			.map((row) -> assignment(row, now))
 			// expired assignments keep their history unchanged
 			.filter((assignment) -> !"expired".equals(assignment.status()))
 			.toList();
 		for (Assignment assignment : granted) {
-			this.jdbc.update("""
-					UPDATE role_assignments SET status = 'revoked', revoked_at = ?, revoked_by_person_id = ?,
-					       revoked_by_admin_id = ?, revocation_reason = 'offboarding'
-					WHERE id = ?""", Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(),
-					assignment.id());
+			this.roles.revokeAssignment(assignment.id(), now, principal.personId(), principal.systemAdminAccountId(),
+					"offboarding");
 			Map<String, Object> details = new LinkedHashMap<>();
 			details.put("personId", personId);
 			details.put("roleId", assignment.roleId());
@@ -242,21 +228,14 @@ public class RoleAssignments {
 
 	private Assignment get(long personId, UUID assignmentId) {
 		Instant now = this.clock.instant();
-		List<Assignment> found = this.jdbc.query(SELECT + " WHERE a.person_id = ? AND a.id = ?",
-				(rs, n) -> assignment(rs, now), personId, assignmentId);
-		if (found.isEmpty()) {
-			throw new NoSuchElementException("no assignment " + assignmentId + " of person " + personId);
-		}
-		return found.getFirst();
+		return this.roles.assignment(personId, assignmentId)
+			.map((row) -> assignment(row, now))
+			.orElseThrow(() -> new NoSuchElementException("no assignment " + assignmentId + " of person " + personId));
 	}
 
 	private String personType(long personId) {
-		List<String> types = this.jdbc.queryForList("SELECT person_type FROM persons WHERE id = ?", String.class,
-				personId);
-		if (types.isEmpty()) {
-			throw new NoSuchElementException("no person " + personId);
-		}
-		return types.getFirst();
+		return this.persons.personType(personId)
+			.orElseThrow(() -> new NoSuchElementException("no person " + personId));
 	}
 
 	/** SoD-1 (ADR-032): no principal administers its own role assignments. */
@@ -270,11 +249,7 @@ public class RoleAssignments {
 
 	/** SoD-3 (ADR-032): the person's local roles plus the new one combine metamodel and visibility administration. */
 	private boolean combinesMetamodelAndVisibility(long personId, AccessCatalog.RoleEntry role, Instant now) {
-		List<String> held = new ArrayList<>(this.jdbc.queryForList("""
-				SELECT DISTINCT rp.permission_id FROM role_assignments a
-				JOIN role_permissions rp ON rp.role_id = a.role_id AND rp.approval_status = 'approved'
-				WHERE a.person_id = ? AND a.status = 'granted' AND (a.valid_to IS NULL OR a.valid_to > ?)""",
-				String.class, personId, Timestamp.from(now)));
+		List<String> held = new ArrayList<>(this.roles.heldPermissionIds(personId, now));
 		held.addAll(role.permissions());
 		return held.contains("metamodel:write") && held.stream().anyMatch(VISIBILITY::contains);
 	}
@@ -285,58 +260,36 @@ public class RoleAssignments {
 				AuditEvent.Source.API, Sessions.actor(principal), "role-assignment", assignmentId.toString(), details));
 	}
 
-	private static final String SELECT = """
-			SELECT a.id, a.person_id, a.role_id, r.name AS role_name,
-			       EXISTS (SELECT 1 FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
-			               WHERE rp.role_id = a.role_id AND p.admin_class) AS privileged,
-			       a.status, a.valid_from, a.valid_to, a.reason, a.granted_at, a.sod_conflict,
-			       a.granted_by_person_id, gp.name AS granted_by_person, ga.login_name AS granted_by_admin,
-			       a.granted_by_admin_id,
-			       a.revoked_at, a.revoked_by_person_id, rpn.name AS revoked_by_person, ra.login_name AS revoked_by_admin,
-			       a.revoked_by_admin_id
-			FROM role_assignments a
-			JOIN authorization_roles r ON r.id = a.role_id
-			LEFT JOIN persons gp ON gp.id = a.granted_by_person_id
-			LEFT JOIN system_admin_accounts ga ON ga.id = a.granted_by_admin_id
-			LEFT JOIN persons rpn ON rpn.id = a.revoked_by_person_id
-			LEFT JOIN system_admin_accounts ra ON ra.id = a.revoked_by_admin_id""";
-
-	private static Assignment assignment(ResultSet rs, Instant now) throws SQLException {
-		Instant validFrom = rs.getTimestamp("valid_from").toInstant();
-		Timestamp validToValue = rs.getTimestamp("valid_to");
-		Instant validTo = (validToValue != null) ? validToValue.toInstant() : null;
-		Timestamp revokedAtValue = rs.getTimestamp("revoked_at");
+	private static Assignment assignment(RoleStore.AssignmentRow row, Instant now) {
+		Instant validTo = row.validTo();
 		String status;
-		if ("revoked".equals(rs.getString("status"))) {
+		if ("revoked".equals(row.status())) {
 			status = "revoked";
 		}
 		else if (validTo != null && !validTo.isAfter(now)) {
 			status = "expired";
 		}
-		else if (validFrom.isAfter(now)) {
+		else if (row.validFrom().isAfter(now)) {
 			status = "scheduled";
 		}
 		else {
 			status = "active";
 		}
-		return new Assignment(rs.getObject("id", UUID.class), rs.getLong("person_id"), rs.getString("role_id"),
-				rs.getString("role_name"), rs.getBoolean("privileged"), status, validFrom, validTo,
-				rs.getString("reason"),
-				actor(rs, "granted_by_person_id", "granted_by_person", "granted_by_admin_id", "granted_by_admin"),
-				rs.getTimestamp("granted_at").toInstant(),
-				(revokedAtValue != null)
-						? actor(rs, "revoked_by_person_id", "revoked_by_person", "revoked_by_admin_id", "revoked_by_admin")
-						: null,
-				(revokedAtValue != null) ? revokedAtValue.toInstant() : null, rs.getBoolean("sod_conflict"));
+		return new Assignment(row.id(), row.personId(), row.roleId(), row.roleName(), row.privileged(), status,
+				row.validFrom(), validTo, row.reason(),
+				actor(row.grantedByAdminId(), row.grantedByPersonId(), row.grantedByPersonName(),
+						row.grantedByAdminName()),
+				row.grantedAt(),
+				(row.revokedAt() != null) ? actor(row.revokedByAdminId(), row.revokedByPersonId(),
+						row.revokedByPersonName(), row.revokedByAdminName()) : null,
+				row.revokedAt(), row.sodConflict());
 	}
 
-	private static Actor actor(ResultSet rs, String personIdColumn, String personNameColumn, String adminIdColumn,
-			String adminNameColumn) throws SQLException {
-		if (rs.getObject(adminIdColumn) != null) {
-			return new Actor(true, null, rs.getString(adminNameColumn));
+	private static Actor actor(UUID adminId, long personId, String personName, String adminName) {
+		if (adminId != null) {
+			return new Actor(true, null, adminName);
 		}
-		long personId = rs.getLong(personIdColumn);
-		return new Actor(false, personId, rs.getString(personNameColumn));
+		return new Actor(false, personId, personName);
 	}
 
 }

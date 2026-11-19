@@ -7,13 +7,12 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.PersonStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PersonEntityLinks implements PropertyAccess.PersonEntityLinksView {
 
-	/** The active elements of the person metatype and its subtypes. */
-	static final String PERSON_ELEMENTS = """
-			WITH RECURSIVE person_types (id) AS (
-			    SELECT person_metatype_id FROM visibility_settings WHERE id = 1 AND person_metatype_id IS NOT NULL
-			    UNION SELECT m.id FROM metatypes m JOIN person_types p ON m.base_metatype_id = p.id)
-			SELECT e.id FROM entities e WHERE e.metatype_id IN (SELECT id FROM person_types) AND e.deleted_at IS NULL""";
-
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
 
 	private final AuditWriter audit;
 
@@ -41,8 +33,8 @@ public class PersonEntityLinks implements PropertyAccess.PersonEntityLinksView {
 
 	private final Clock clock;
 
-	public PersonEntityLinks(JdbcTemplate jdbc, AuditWriter audit, PermissionDenials denials, Clock clock) {
-		this.jdbc = jdbc;
+	public PersonEntityLinks(PersonStore persons, AuditWriter audit, PermissionDenials denials, Clock clock) {
+		this.persons = persons;
 		this.audit = audit;
 		this.denials = denials;
 		this.clock = clock;
@@ -63,42 +55,34 @@ public class PersonEntityLinks implements PropertyAccess.PersonEntityLinksView {
 	 */
 	@Transactional
 	public Link set(OeaPrincipal principal, long personId, Integer entityId) {
-		List<Map<String, Object>> rows = this.jdbc.queryForList(
-				"SELECT person_type, entity_id FROM persons WHERE id = ? FOR UPDATE", personId);
-		if (rows.isEmpty()) {
-			throw new NoSuchElementException("no person " + personId);
-		}
+		PersonStore.LockedPerson locked = this.persons.lockPerson(personId)
+			.orElseThrow(() -> new NoSuchElementException("no person " + personId));
 		if (principal.personId() != null && principal.personId() == personId) {
 			this.denials.record(principal, "setPersonEntityLink", "person", Long.toString(personId),
 					PermissionDenials.SELF_ADMINISTRATION);
 			throw new SelfAdministrationException();
 		}
-		if ("service-account".equals(rows.getFirst().get("person_type"))) {
+		if ("service-account".equals(locked.personType())) {
 			throw new InvalidAccessRequestException("personId", "A service account cannot be linked to an element.");
 		}
 		if (entityId != null) {
-			Integer covered = this.jdbc.queryForObject(
-					"SELECT count(*) FROM (" + PERSON_ELEMENTS + ") elements WHERE id = ?", Integer.class, entityId);
-			if (covered == null || covered == 0) {
+			if (!this.persons.isPersonElement(entityId)) {
 				throw new InvalidAccessRequestException("entityId",
 						"The element must be an active element of the person metatype; a person metatype must be set.");
 			}
-			Integer others = this.jdbc.queryForObject(
-					"SELECT count(*) FROM persons WHERE entity_id = ? AND id <> ?", Integer.class, entityId, personId);
-			if (others != null && others > 0) {
+			if (this.persons.isLinkedToOtherPerson(entityId, personId)) {
 				throw new AccessConflictException("The element is linked to another account.");
 			}
 		}
-		Integer old = (Integer) rows.getFirst().get("entity_id");
-		this.jdbc.update("UPDATE persons SET entity_id = ? WHERE id = ?", entityId, personId);
+		Integer old = locked.entityId();
+		this.persons.updateEntityLink(personId, entityId);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("oldEntityId", (old != null) ? old : "");
 		details.put("newEntityId", (entityId != null) ? entityId : "");
 		this.audit.append(new AuditEvent("person.account-linked", AuditEvent.Category.SECURITY,
 				AuditEvent.Severity.WARNING, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"person", Long.toString(personId), details));
-		String name = (entityId != null)
-				? this.jdbc.queryForObject("SELECT name FROM entities WHERE id = ?", String.class, entityId) : null;
+		String name = (entityId != null) ? this.persons.entityName(entityId) : null;
 		return new Link(personId, entityId, name, this.clock.instant());
 	}
 
@@ -108,9 +92,7 @@ public class PersonEntityLinks implements PropertyAccess.PersonEntityLinksView {
 	 */
 	@Override
 	public Integer anchor(long personId) {
-		List<Integer> anchors = this.jdbc.queryForList("SELECT p.entity_id FROM persons p WHERE p.id = ? AND p.entity_id IN ("
-				+ PERSON_ELEMENTS + ")", Integer.class, personId);
-		return anchors.isEmpty() ? null : anchors.getFirst();
+		return this.persons.anchor(personId);
 	}
 
 }

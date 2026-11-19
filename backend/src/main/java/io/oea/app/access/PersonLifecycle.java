@@ -7,7 +7,8 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import java.sql.Timestamp;
+import io.oea.core.access.PersonStore;
+import io.oea.core.access.SessionStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -16,7 +17,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +33,9 @@ public class PersonLifecycle {
 	private static final Map<String, Set<String>> TRANSITIONS = Map.of("invited", Set.of("offboarded"), "active",
 			Set.of("inactive", "offboarded"), "inactive", Set.of("active", "offboarded"), "offboarded", Set.of());
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
+
+	private final SessionStore sessionStore;
 
 	private final AdministrationPaths paths;
 
@@ -47,9 +49,10 @@ public class PersonLifecycle {
 
 	private final Clock clock;
 
-	public PersonLifecycle(JdbcTemplate jdbc, AdministrationPaths paths, RoleAssignments assignments,
+	public PersonLifecycle(PersonStore persons, SessionStore sessionStore, AdministrationPaths paths, RoleAssignments assignments,
 			PermissionDenials denials, PermissionResolver permissions, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.persons = persons;
+		this.sessionStore = sessionStore;
 		this.paths = paths;
 		this.assignments = assignments;
 		this.denials = denials;
@@ -68,13 +71,10 @@ public class PersonLifecycle {
 	 */
 	@Transactional
 	public void change(OeaPrincipal principal, long personId, String status, String reason) {
-		List<Map<String, Object>> rows = this.jdbc
-			.queryForList("SELECT person_type, status FROM persons WHERE id = ? FOR UPDATE", personId);
-		if (rows.isEmpty()) {
-			throw new NoSuchElementException("no person " + personId);
-		}
-		String from = (String) rows.getFirst().get("status");
-		if ("service-account".equals(rows.getFirst().get("person_type"))) {
+		PersonStore.LockedPerson locked = this.persons.lockPerson(personId)
+			.orElseThrow(() -> new NoSuchElementException("no person " + personId));
+		String from = locked.status();
+		if ("service-account".equals(locked.personType())) {
 			// SoD-4 area: service accounts change status with service-account:manage (US-142)
 			throw new InvalidAccessRequestException("personId",
 					"The status of a service account is changed with the service account management.");
@@ -91,11 +91,7 @@ public class PersonLifecycle {
 			this.paths.requireRemainingPath(AdministrationPaths.Removal.person(personId));
 		}
 		Instant now = this.clock.instant();
-		this.jdbc.update("""
-				UPDATE persons SET status = ?, status_changed_at = ?, status_changed_by_person_id = ?,
-				       status_changed_by_admin_id = ?
-				WHERE id = ?""", status, Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(),
-				personId);
+		this.persons.updateStatus(personId, status, now, principal.personId(), principal.systemAdminAccountId());
 		int sessions = "active".equals(status) ? 0 : revokeSessions(principal, personId, now);
 		int assignmentsRevoked = "offboarded".equals(status)
 				? this.assignments.revokeAllForOffboarding(principal, personId) : 0;
@@ -115,11 +111,8 @@ public class PersonLifecycle {
 
 	/** REQ-164 AC2: every session of the person ends at once, each audited as {@code session.revoked}. */
 	private int revokeSessions(OeaPrincipal principal, long personId, Instant now) {
-		List<UUID> revoked = this.jdbc.queryForList("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'person-status-change', revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?
-				WHERE person_id = ? AND revoked_at IS NULL RETURNING id""", UUID.class, Timestamp.from(now),
-				principal.personId(), principal.systemAdminAccountId(), personId);
+		List<UUID> revoked = this.sessionStore.revokeAllOfPersonReturningIds(personId, now, "person-status-change",
+				principal.personId(), principal.systemAdminAccountId());
 		for (UUID session : revoked) {
 			this.audit.append(new AuditEvent("session.revoked", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
 					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "session",

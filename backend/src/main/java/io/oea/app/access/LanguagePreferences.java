@@ -2,9 +2,8 @@ package io.oea.app.access;
 
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDeniedException;
-import java.util.List;
+import io.oea.core.access.PersonStore;
 import java.util.Set;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +17,10 @@ public class LanguagePreferences {
 	/** Languages a person may choose. */
 	public static final Set<String> LANGUAGES = Set.of("de", "en", "fr", "it");
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
 
-	public LanguagePreferences(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	public LanguagePreferences(PersonStore persons) {
+		this.persons = persons;
 	}
 
 	/** The chosen language of the principal, or {@code null}. */
@@ -30,9 +29,7 @@ public class LanguagePreferences {
 		if (principal.personId() == null) {
 			return null;
 		}
-		List<String> languages = this.jdbc.queryForList("SELECT ui_language FROM persons WHERE id = ?", String.class,
-				principal.personId());
-		return languages.isEmpty() ? null : languages.get(0);
+		return this.persons.language(principal.personId());
 	}
 
 	/**
@@ -45,9 +42,7 @@ public class LanguagePreferences {
 		if (language != null && !LANGUAGES.contains(language)) {
 			throw new IllegalArgumentException("unsupported language " + language);
 		}
-		if (principal.personId() == null || this.jdbc.update(
-				"UPDATE persons SET ui_language = ? WHERE id = ? AND person_type = 'human'", language,
-				principal.personId()) == 0) {
+		if (principal.personId() == null || this.persons.updateLanguage(principal.personId(), language) == 0) {
 			throw new PermissionDeniedException();
 		}
 	}

@@ -1,7 +1,7 @@
 package io.oea.app.access;
 
+import io.oea.core.access.AdministrationPathStore;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,10 +17,10 @@ public class AdministrationPaths {
 	/** Key of the transaction-scoped advisory lock that serializes SoD-7 checks. */
 	private static final long LOCK_KEY = 0x0EA5_0D07L;
 
-	private final JdbcTemplate jdbc;
+	private final AdministrationPathStore store;
 
-	public AdministrationPaths(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	public AdministrationPaths(AdministrationPathStore store) {
+		this.store = store;
 	}
 
 	/** The path a change removes; {@code null} fields remove nothing of that kind. */
@@ -51,7 +51,7 @@ public class AdministrationPaths {
 	 * @throws LastAdminPathException if the removal leaves no usable path
 	 */
 	public void requireRemainingPath(Removal removal) {
-		this.jdbc.query("SELECT pg_advisory_xact_lock(?)", (rs) -> null, LOCK_KEY);
+		this.store.lockPaths(LOCK_KEY);
 		if (remainingPaths(removal) == 0) {
 			throw new LastAdminPathException();
 		}
@@ -59,40 +59,19 @@ public class AdministrationPaths {
 
 	/** Whether the mapping currently counts as a usable path. */
 	public boolean isUsableMapping(UUID mappingId) {
-		return Boolean.TRUE.equals(this.jdbc.queryForObject("SELECT EXISTS (" + USABLE_MAPPINGS + " AND m.id = ?)",
-				Boolean.class, mappingId));
+		return this.store.isUsableMapping(mappingId);
 	}
 
 	/** Whether the person holds a usable path: an open-ended, valid {@code system-admin} assignment while active. */
 	public boolean isPersonPath(long personId) {
-		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM role_assignments a JOIN persons p ON p.id = a.person_id
-				               WHERE a.person_id = ? AND a.role_id = 'system-admin' AND a.status = 'granted'
-				                 AND a.valid_from <= now() AND a.valid_to IS NULL AND p.status = 'active')""",
-				Boolean.class, personId));
+		return this.store.isPersonPath(personId);
 	}
-
-	private static final String USABLE_MAPPINGS = """
-			SELECT 1 FROM idp_group_mappings m JOIN auth_providers p ON p.id = m.auth_provider_id
-			WHERE m.role_id = 'system-admin' AND m.active AND m.approval_status = 'approved'
-			  AND m.deleted_at IS NULL AND p.active AND m.last_matched_at IS NOT NULL""";
 
 	private int remainingPaths(Removal removal) {
-		Integer local = removal.removesLocalAccount() ? 0 : this.jdbc.queryForObject(
-				"SELECT count(*) FROM system_admin_accounts WHERE status <> 'deactivated'", Integer.class);
-		Integer mappings = this.jdbc.queryForObject(
-				"SELECT count(*) FROM (" + USABLE_MAPPINGS + " AND m.id IS DISTINCT FROM ?) usable", Integer.class,
-				removal.mappingId());
-		Integer persons = this.jdbc.queryForObject("""
-				SELECT count(*) FROM role_assignments a JOIN persons p ON p.id = a.person_id
-				WHERE a.role_id = 'system-admin' AND a.status = 'granted' AND a.valid_from <= now()
-				  AND a.valid_to IS NULL AND p.status = 'active' AND a.id IS DISTINCT FROM ?
-				  AND a.person_id IS DISTINCT FROM ?""", Integer.class, removal.assignmentId(), removal.personId());
-		return nullToZero(local) + nullToZero(mappings) + nullToZero(persons);
-	}
-
-	private static int nullToZero(Integer value) {
-		return (value != null) ? value : 0;
+		int local = removal.removesLocalAccount() ? 0 : this.store.localAccountPaths();
+		int mappings = this.store.mappingPaths(removal.mappingId());
+		int persons = this.store.personPaths(removal.assignmentId(), removal.personId());
+		return local + mappings + persons;
 	}
 
 }

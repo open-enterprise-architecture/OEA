@@ -6,6 +6,7 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
 import io.oea.core.domain.person.Person;
 import io.oea.core.repository.PersonRepository;
 import io.oea.core.service.PasswordPolicy;
@@ -14,7 +15,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 @Service
 class PersonSessions {
 
-	private final JdbcTemplate jdbc;
+	private final CredentialStore credentials;
 
 	private final PersonRepository persons;
 
@@ -40,9 +40,9 @@ class PersonSessions {
 
 	private final Clock clock;
 
-	PersonSessions(JdbcTemplate jdbc, PersonRepository persons, PasswordPolicies policies,
+	PersonSessions(CredentialStore credentials, PersonRepository persons, PasswordPolicies policies,
 			SecondFactorPolicies secondFactorPolicies, Sessions sessions, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.credentials = credentials;
 		this.persons = persons;
 		this.policies = policies;
 		this.secondFactorPolicies = secondFactorPolicies;
@@ -64,13 +64,7 @@ class PersonSessions {
 					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, new AuditEvent.Actor("person", personId, null),
 					"person", Long.toString(personId), Map.of("trigger", "first-login")));
 		}
-		record Password(String origin, Instant setAt) {
-		}
-		List<Password> active = this.jdbc.query("""
-				SELECT pc.origin, c.created_at FROM local_credentials c
-				JOIN password_credentials pc ON pc.credential_id = c.id
-				WHERE c.person_id = ? AND c.type = 'password' AND c.status = 'active'""",
-				(rs, n) -> new Password(rs.getString(1), rs.getTimestamp(2).toInstant()), personId);
+		List<CredentialStore.PasswordState> active = this.credentials.activePasswordStates(personId);
 		// REQ-173 AC2, REQ-028 AC2: a temporary or expired password only leads to the password change
 		PasswordPolicy policy = this.policies.effective();
 		boolean temporary = !active.isEmpty() && !"self-set".equals(active.getFirst().origin());
