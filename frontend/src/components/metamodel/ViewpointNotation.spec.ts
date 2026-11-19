@@ -107,14 +107,15 @@ describe('Viewpoints with notations', () => {
   // "Notation changed"
   it('clears the elements that no longer fit when the notation changes, and keeps the generic ones', async () => {
     const { wrapper, api } = await openEdit()
-    // "Application Component" is mapped to an ArchiMate element, with a size and a color
+    // "Application Component" is mapped to an ArchiMate element, with a color and a size
     expect(select(wrapper, `mapping-element-${IDS.component}`)!.props('modelValue')).toBe('archimate:ApplicationComponent')
-    expect(el<HTMLInputElement>(`mapping-width-${IDS.component}`)!.value).toBe('140')
+    expect(el<HTMLInputElement>(`size-width-${IDS.component}`)!.value).toBe('105')
     expect(el<HTMLInputElement>(`mapping-color-${IDS.component}`)!.value).toBe('#1a2b3c')
     await choose(wrapper, `mapping-element-${IDS.service}`, 'generic:Box')
     await choose(wrapper, 'viewpoint-notation', 'bpmn2')
     expect(select(wrapper, `mapping-element-${IDS.component}`)!.props('modelValue')).toBe('none')
-    expect(el<HTMLInputElement>(`mapping-width-${IDS.component}`)!.value).toBe('')
+    // the size stays when the notation changes
+    expect(el<HTMLInputElement>(`size-width-${IDS.component}`)!.value).toBe('105')
     expect(el(`mapping-color-clear-${IDS.component}`)).toBeNull()
     expect(select(wrapper, `mapping-element-${IDS.service}`)!.props('modelValue')).toBe('generic:Box')
     await submit()
@@ -139,8 +140,9 @@ describe('Viewpoints with notations', () => {
     await check('viewpoint-metatypes', IDS.service)
     await check('viewpoint-connections', IDS.dataFlow)
     await choose(wrapper, `mapping-element-${IDS.component}`, 'uml:Component')
-    await type(`mapping-width-${IDS.component}`, '140')
-    await type(`mapping-height-${IDS.component}`, '60')
+    await type(`size-width-${IDS.component}`, '140')
+    await type(`size-height-${IDS.component}`, '60')
+    await type(`size-length-${IDS.dataFlow}`, '150')
     const color = el<HTMLInputElement>(`mapping-color-${IDS.component}`)!
     color.value = '#a1b2c3'
     color.dispatchEvent(new Event('input'))
@@ -153,10 +155,16 @@ describe('Viewpoints with notations', () => {
       metatypeIds: [IDS.component, IDS.service],
       connectionTypeIds: [IDS.dataFlow],
       mappings: [
-        { metatypeId: IDS.component, notationElement: 'uml:Component', defaultWidth: 140, defaultHeight: 60, visualHint: '#a1b2c3' },
-        { metatypeId: IDS.dataFlow, notationElement: 'uml:Association', defaultWidth: null, defaultHeight: null, visualHint: null },
+        { metatypeId: IDS.component, notationElement: 'uml:Component', visualHint: '#a1b2c3' },
+        { metatypeId: IDS.dataFlow, notationElement: 'uml:Association', visualHint: null },
+      ],
+      sizes: [
+        { metatypeId: IDS.component, width: 140, height: 60 },
+        { metatypeId: IDS.dataFlow, length: 150 },
       ],
     })
+    // the type without a size has none, and the size fields carry the defaults as placeholders
+    expect((post?.body as { sizes: unknown[] }).sizes).toHaveLength(2)
     // the type without an element has no mapping
     expect((post?.body as { mappings: unknown[] }).mappings).toHaveLength(2)
   })
@@ -166,7 +174,7 @@ describe('Viewpoints with notations', () => {
     await check('viewpoint-metatypes', IDS.component)
     await submit()
     const put = api.requests.find((request) => request.method === 'PUT')
-    expect(put?.body).toMatchObject({ notation: 'archimate3', metatypeIds: [IDS.service], mappings: [] })
+    expect(put?.body).toMatchObject({ notation: 'archimate3', metatypeIds: [IDS.service], mappings: [], sizes: [{ metatypeId: IDS.dataFlow, length: 120 }] })
   })
 
   it('clears the color of a mapping', async () => {
@@ -178,7 +186,44 @@ describe('Viewpoints with notations', () => {
     expect((put?.body as { mappings: { visualHint: string | null }[] }).mappings[0]!.visualHint).toBeNull()
   })
 
-  // both sides of the size boundary (REQ-091: 1 to 2000)
+  // "Size fields"
+  it('offers width and height for an entity type and a length for a connection type, with the defaults as placeholders', async () => {
+    await openNew()
+    await check('viewpoint-metatypes', IDS.service)
+    await check('viewpoint-connections', IDS.dataFlow)
+    expect(el('viewpoint-sizes')).not.toBeNull()
+    expect(el<HTMLInputElement>(`size-width-${IDS.service}`)!.value).toBe('')
+    expect(el<HTMLInputElement>(`size-width-${IDS.service}`)!.placeholder).toBe('90')
+    expect(el<HTMLInputElement>(`size-height-${IDS.service}`)!.placeholder).toBe('30')
+    expect(el<HTMLInputElement>(`size-length-${IDS.dataFlow}`)!.placeholder).toBe('90')
+    expect(el(`size-length-${IDS.service}`)).toBeNull()
+    expect(el(`size-width-${IDS.dataFlow}`)).toBeNull()
+    expect(el(`size-height-${IDS.dataFlow}`)).toBeNull()
+    const table = el('viewpoint-sizes')!
+    expect(table.textContent).toContain('Width (pt)')
+    expect(table.textContent).toContain('Length (pt)')
+  })
+
+  it('shows the stored sizes of a viewpoint', async () => {
+    await openEdit()
+    expect(el<HTMLInputElement>(`size-width-${IDS.component}`)!.value).toBe('105')
+    expect(el<HTMLInputElement>(`size-height-${IDS.component}`)!.value).toBe('45')
+    expect(el<HTMLInputElement>(`size-length-${IDS.dataFlow}`)!.value).toBe('120')
+    expect(el<HTMLInputElement>(`size-width-${IDS.service}`)!.value).toBe('')
+  })
+
+  it('sizes a type without a mapping element', async () => {
+    const { api } = await openNew()
+    await type('viewpoint-name', 'Sized')
+    await check('viewpoint-metatypes', IDS.service)
+    await type(`size-width-${IDS.service}`, '120')
+    await type(`size-height-${IDS.service}`, '40')
+    await submit()
+    const post = api.requests.find((request) => request.method === 'POST' && request.path === '/api/v1/admin/viewpoints')
+    expect(post?.body).toMatchObject({ mappings: [], sizes: [{ metatypeId: IDS.service, width: 120, height: 40 }] })
+  })
+
+  // both sides of the size boundary (REQ-091: 1 to 2000 pt)
   it.each([
     ['1', true],
     ['2000', true],
@@ -187,24 +232,67 @@ describe('Viewpoints with notations', () => {
     ['2001', false],
     ['-5', false],
     ['1.5', false],
-  ])('a width of "%s" is accepted: %s', async (width, accepted) => {
+  ])('a width and height of "%s" is accepted: %s', async (value, accepted) => {
     await openEdit()
-    await type(`mapping-width-${IDS.component}`, width)
+    await type(`size-width-${IDS.component}`, value)
+    await type(`size-height-${IDS.component}`, value)
     expect(el<HTMLButtonElement>('viewpoint-submit')!.disabled).toBe(!accepted)
-    expect(el('mapping-size-error') !== null).toBe(!accepted)
-    // the height has the same limits
-    await type(`mapping-width-${IDS.component}`, '100')
-    await type(`mapping-height-${IDS.component}`, width)
-    expect(el<HTMLButtonElement>('viewpoint-submit')!.disabled).toBe(!accepted)
+    expect(el('size-error') !== null).toBe(!accepted)
   })
 
-  it('does not ask for a size while a type has no element', async () => {
-    const { wrapper } = await openEdit()
-    await type(`mapping-width-${IDS.component}`, '0')
+  it.each([
+    ['1', true],
+    ['2000', true],
+    ['', true],
+    ['0', false],
+    ['2001', false],
+  ])('a length of "%s" is accepted: %s', async (value, accepted) => {
+    await openEdit()
+    await type(`size-length-${IDS.dataFlow}`, value)
+    expect(el<HTMLButtonElement>('viewpoint-submit')!.disabled).toBe(!accepted)
+    expect(el('size-error') !== null).toBe(!accepted)
+  })
+
+  it('marks a width without a height and a height without a width', async () => {
+    await openEdit()
+    await type(`size-height-${IDS.component}`, '')
     expect(el<HTMLButtonElement>('viewpoint-submit')!.disabled).toBe(true)
-    await choose(wrapper, `mapping-element-${IDS.component}`, 'none')
+    expect(el('size-pair-error')?.textContent).toContain('together')
+    await type(`size-width-${IDS.component}`, '')
     expect(el<HTMLButtonElement>('viewpoint-submit')!.disabled).toBe(false)
-    expect(el<HTMLInputElement>(`mapping-width-${IDS.component}`)!.disabled).toBe(true)
+    expect(el('size-pair-error')).toBeNull()
+    await type(`size-height-${IDS.component}`, '50')
+    expect(el<HTMLButtonElement>('viewpoint-submit')!.disabled).toBe(true)
+  })
+
+  it('keeps the sizes when the notation changes', async () => {
+    const { wrapper, api } = await openEdit()
+    await choose(wrapper, 'viewpoint-notation', 'bpmn2')
+    expect(el<HTMLInputElement>(`size-width-${IDS.component}`)!.value).toBe('105')
+    await submit()
+    const put = api.requests.find((request) => request.method === 'PUT')
+    expect((put?.body as { sizes: { metatypeId: string }[] }).sizes.map((size) => size.metatypeId)).toEqual([IDS.component, IDS.dataFlow])
+  })
+
+  it('removes the size fields and values of a deselected type', async () => {
+    const { api } = await openEdit()
+    await check('viewpoint-metatypes', IDS.component)
+    expect(el(`size-width-${IDS.component}`)).toBeNull()
+    await check('viewpoint-metatypes', IDS.component)
+    // the type is back with empty fields, not with the old values
+    expect(el<HTMLInputElement>(`size-width-${IDS.component}`)!.value).toBe('')
+    await submit()
+    const put = api.requests.find((request) => request.method === 'PUT')
+    expect((put?.body as { sizes: { metatypeId: string }[] }).sizes.map((size) => size.metatypeId)).toEqual([IDS.dataFlow])
+  })
+
+  it('shows a rejected size at the sizes', async () => {
+    const mounted = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, rejectSizes: true })
+    await mounted.wrapper.find('[data-testid="viewpoint-list"] [data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await submit()
+    expect(el('viewpoint-failure')).toBeNull()
+    expect(el('viewpoint-sizes')!.closest('[data-slot="root"]')!.textContent).toContain('The size does not fit the metatype.')
   })
 
   // "a 422 shows at the mapping"

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -122,6 +123,9 @@ class PackageViewpointImportTests {
 				       || jsonb_array_length(details -> 'viewpointsDeleted')
 				FROM audit.events WHERE event_type = 'metamodel.package-imported' AND target_id = ?""", String.class,
 				STARTER)).isEqualTo("2/0/0");
+		assertThat(this.jdbc.queryForObject("""
+				SELECT count(*) FROM viewpoint_sizes s JOIN viewpoints v ON v.id = s.viewpoint_id
+				WHERE v.source_package_id = ?""", Integer.class, STARTER)).isZero();
 		// a second import replaces them and keeps the IDs
 		List<String> ids = this.jdbc.queryForList("SELECT id::text FROM viewpoints WHERE source_package_id = ? ORDER BY id",
 				String.class, STARTER);
@@ -408,7 +412,145 @@ class PackageViewpointImportTests {
 		assertNothingStored("case");
 	}
 
+	// Requirement: Limits and checks of package viewpoints, default sizes (s17-viewpoint-default-sizes D4)
+
+	@Test
+	void sizesAreImportedAndAReimportReplacesThem() {
+		ObjectNode first = pkg("sizes-vp");
+		String connection = connectionType(first);
+		ObjectNode viewpoint = viewpoint(first, "Sized", List.of(typeId(first, 0), typeId(first, 1)));
+		viewpoint.putArray("connectionTypeIds").add(connection);
+		viewpoint.putArray("sizes").addObject().put("metatypeId", typeId(first, 0)).put("width", 120).put("height", 40);
+		viewpoint.withArray("sizes").addObject().put("metatypeId", connection).put("length", 150);
+		MvcTestResult created = post(first);
+		assertThat(created).as(() -> content(created)).hasStatus(HttpStatus.OK);
+		String id = viewpoint.path("id").asString();
+		assertThat(sizes(id)).containsExactlyInAnyOrder(typeId(first, 0) + "=120:40:null", connection + "=null:null:150");
+
+		ObjectNode second = pkg("sizes-vp");
+		second.put("packageVersion", "1.1.0");
+		String again = connectionType(second);
+		ObjectNode changed = viewpointWithId(second, id, "Sized", List.of(typeId(second, 0), typeId(second, 1)));
+		changed.putArray("connectionTypeIds").add(again);
+		changed.putArray("sizes").addObject().put("metatypeId", typeId(second, 1)).put("width", 200).put("height", 90);
+		MvcTestResult reimported = post(second);
+		assertThat(reimported).as(() -> content(reimported)).hasStatus(HttpStatus.OK);
+		assertThat(sizes(id)).containsExactly(typeId(second, 1) + "=200:90:null");
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "1, 1, 200", "2000, 2000, 200", "0, 30, 422", "90, 0, 422", "2001, 30, 422", "90, 2001, 422" })
+	void sizeBoundaries(int width, int height, int status) {
+		ObjectNode pkg = pkg("size-bounds-" + width + "-" + height);
+		ObjectNode viewpoint = viewpoint(pkg, "Bounds " + pkg.path("packageId").asString(), List.of(typeId(pkg, 0)));
+		viewpoint.putArray("sizes").addObject().put("metatypeId", typeId(pkg, 0)).put("width", width).put("height", height);
+		assertSizes(pkg, status);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "1, 200", "2000, 200", "0, 422", "2001, 422" })
+	void lengthBoundaries(int length, int status) {
+		ObjectNode pkg = pkg("length-bounds-" + length);
+		String connection = connectionType(pkg);
+		ObjectNode viewpoint = viewpoint(pkg, "Bounds " + pkg.path("packageId").asString(), List.of(typeId(pkg, 0)));
+		viewpoint.putArray("connectionTypeIds").add(connection);
+		viewpoint.putArray("sizes").addObject().put("metatypeId", connection).put("length", length);
+		assertSizes(pkg, status);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "length on element", "width on connection", "width only", "not allowed", "twice" })
+	void aWrongSizeFailsTheImport(String kind) {
+		ObjectNode pkg = pkg("wrong-" + kind.replace(' ', '-'));
+		String connection = connectionType(pkg);
+		ObjectNode viewpoint = viewpoint(pkg, "Wrong " + pkg.path("packageId").asString(), List.of(typeId(pkg, 0)));
+		viewpoint.putArray("connectionTypeIds").add(connection);
+		ArrayNode sizes = viewpoint.putArray("sizes");
+		switch (kind) {
+			case "length on element" -> sizes.addObject().put("metatypeId", typeId(pkg, 0)).put("length", 90);
+			case "width on connection" -> sizes.addObject().put("metatypeId", connection).put("width", 90);
+			case "width only" -> sizes.addObject().put("metatypeId", typeId(pkg, 0)).put("width", 90);
+			case "not allowed" -> sizes.addObject().put("metatypeId", typeId(pkg, 1)).put("width", 90).put("height", 30);
+			default -> {
+				sizes.addObject().put("metatypeId", typeId(pkg, 0)).put("width", 90).put("height", 30);
+				sizes.addObject().put("metatypeId", typeId(pkg, 0)).put("width", 91).put("height", 31);
+			}
+		}
+		assertSizes(pkg, 422);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "1000, 200", "1001, 422" })
+	void numberOfSizes(int count, int status) {
+		ObjectNode pkg = pkg("sizes-" + count);
+		List<String> elements = new ArrayList<>();
+		List<String> connections = new ArrayList<>();
+		for (int i = 0; i < 500; i++) {
+			elements.add(addType(pkg, "Sized Element " + i, false));
+			connections.add(addType(pkg, "Sized Connection " + i, true));
+		}
+		ObjectNode viewpoint = viewpoint(pkg, "Many Sizes", elements);
+		connections.forEach(viewpoint.withArray("connectionTypeIds")::add);
+		ArrayNode sizes = viewpoint.putArray("sizes");
+		for (int i = 0; i < 1000; i++) {
+			boolean connection = i >= 500;
+			ObjectNode size = sizes.addObject().put("metatypeId", connection ? connections.get(i - 500) : elements.get(i));
+			if (connection) {
+				size.put("length", 90);
+			}
+			else {
+				size.put("width", 90).put("height", 30);
+			}
+		}
+		if (count > 1000) {
+			sizes.addObject().put("metatypeId", elements.get(0)).put("width", 90).put("height", 30);
+		}
+		assertSizes(pkg, status);
+	}
+
+	@Test
+	void aPackageMappingWithADefaultSizeIsImportedWithoutASize() {
+		ObjectNode pkg = pkg("old-mapping-size");
+		ObjectNode viewpoint = viewpoint(pkg, "Old", List.of(typeId(pkg, 0)));
+		viewpoint.put("notation", "archimate3");
+		viewpoint.withArray("mappings")
+			.addObject()
+			.put("metatypeId", typeId(pkg, 0))
+			.put("notationElement", "archimate:Node")
+			.put("defaultWidth", 120)
+			.put("defaultHeight", 55);
+		MvcTestResult result = post(pkg);
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
+		assertThat(sizes(viewpoint.path("id").asString())).isEmpty();
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM viewpoint_mappings WHERE viewpoint_id = ?::uuid",
+				Integer.class, viewpoint.path("id").asString())).isOne();
+	}
+
 	// helpers
+
+	private void assertSizes(ObjectNode pkg, int status) {
+		String packageId = pkg.path("packageId").asString();
+		MvcTestResult result = post(pkg);
+		if (status == 200) {
+			assertThat(result).as(() -> content(result).substring(0, Math.min(300, content(result).length())))
+				.hasStatus(HttpStatus.OK);
+			assertThat(this.jdbc.queryForObject("SELECT count(*) FROM viewpoints WHERE source_package_id = ?",
+					Integer.class, packageId)).isOne();
+		}
+		else {
+			assertThat(result).as(() -> content(result).substring(0, Math.min(300, content(result).length())))
+				.hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+			assertThat(body(result).path("pointer").asString()).startsWith("/viewpoints/0/sizes");
+			assertNothingStored(packageId);
+		}
+	}
+
+	private List<String> sizes(String viewpointId) {
+		return this.jdbc.queryForList("""
+				SELECT metatype_id || '=' || coalesce(width_pt::text, 'null') || ':' || coalesce(height_pt::text, 'null')
+				       || ':' || coalesce(length_pt::text, 'null') FROM viewpoint_sizes WHERE viewpoint_id = ?::uuid""",
+				String.class, viewpointId);
+	}
 
 	private void assertLimit(ObjectNode pkg, String packageId, int status) {
 		MvcTestResult result = post(pkg);
@@ -468,7 +610,7 @@ class PackageViewpointImportTests {
 	}
 
 	private static String connectionType(ObjectNode pkg) {
-		return addType(pkg, "Flow", true);
+		return addType(pkg, "Flow " + pkg.path("packageId").asString(), true);
 	}
 
 	private String organizationViewpoint(String name) {

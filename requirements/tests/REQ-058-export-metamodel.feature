@@ -18,7 +18,7 @@ Feature: REQ-058 – Export metamodel configuration
   Scenario: AC1 – Export as YAML – Kurt has metamodel editor permission; instance has 5...
     Given Kurt has metamodel editor permission; instance has 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints
     When  Kurt exports as YAML
-    Then  download starts; YAML contains all 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints with notationMappings incl. defaultWidth/defaultHeight
+    Then  download starts; YAML contains all 5 custom EntityTypes, 2 ArchitectureLayers, 3 Viewpoints with notationMappings and default sizes
 
   @AC2
   Scenario: AC2 – Export as JSON – same configuration as AC1

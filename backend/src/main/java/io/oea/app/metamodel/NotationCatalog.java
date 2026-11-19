@@ -39,8 +39,7 @@ public class NotationCatalog {
 	private final Map<String, Element> elements;
 
 	/** An element or relationship shape; {@code notation} is the API value such as {@code archimate3}. */
-	public record Element(String key, String notation, String label, boolean relationship, int defaultWidth,
-			int defaultHeight) {
+	public record Element(String key, String notation, String label, boolean relationship) {
 	}
 
 	public NotationCatalog() {
@@ -75,8 +74,7 @@ public class NotationCatalog {
 			JsonMapper.shared().readTree(stream).forEach(entries::add);
 			for (JsonNode entry : entries) {
 				Element element = new Element(entry.path("key").asString(), entry.path("notation").asString(),
-						entry.path("label").asString(), "relationship".equals(entry.path("kind").asString()),
-						entry.path("defaultWidth").asInt(), entry.path("defaultHeight").asInt());
+						entry.path("label").asString(), "relationship".equals(entry.path("kind").asString()));
 				if (elements.put(element.key(), element) != null) {
 					throw new IllegalStateException("Duplicate catalog key " + element.key());
 				}

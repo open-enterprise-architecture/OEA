@@ -74,13 +74,11 @@ class NotationCatalogTests {
 	}
 
 	@Test
-	void keysAreUniqueAndAtMost100CharactersAndSizesAreWithinTheContract() {
+	void keysAreUniqueAndAtMost100Characters() {
 		Set<String> keys = this.catalog.list().stream().map(NotationCatalog.Element::key).collect(Collectors.toSet());
 		assertThat(keys).hasSameSizeAs(this.catalog.list());
 		for (NotationCatalog.Element element : this.catalog.list()) {
 			assertThat(element.key().length()).as(element.key()).isBetween(1, 100);
-			assertThat(element.defaultWidth()).as(element.key()).isBetween(1, 2000);
-			assertThat(element.defaultHeight()).as(element.key()).isBetween(1, 2000);
 			assertThat(element.label()).isNotBlank();
 		}
 	}

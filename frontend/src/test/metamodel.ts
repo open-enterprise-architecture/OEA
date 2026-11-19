@@ -56,10 +56,10 @@ const STARTER_WITH_LAYERS = { packageId: 'oea-starter-togaf-classic', version: '
 
 type NotationElement = components['schemas']['NotationElement']
 
-function catalogEntry(key: string, label: string, kind: NotationElement['kind'], width = 120, height = 55): NotationElement {
+function catalogEntry(key: string, label: string, kind: NotationElement['kind']): NotationElement {
   const prefix = key.split(':')[0]!
   const notation = ({ archimate: 'archimate3', uml: 'uml', bpmn: 'bpmn2', generic: 'generic' } as const)[prefix as 'archimate']
-  return { key, notation, label, kind, defaultWidth: width, defaultHeight: height }
+  return { key, notation, label, kind }
 }
 
 /** An excerpt of the shipped element catalog (design D2 of us-091-viewpoint-notations). */
@@ -68,13 +68,13 @@ export const NOTATION_ELEMENTS: NotationElement[] = [
   catalogEntry('archimate:ApplicationService', 'Application Service', 'element'),
   catalogEntry('archimate:BusinessActor', 'Business Actor', 'element'),
   catalogEntry('archimate:DataObject', 'Data Object', 'element'),
-  catalogEntry('archimate:Flow', 'Flow', 'relationship', 80, 20),
-  catalogEntry('archimate:Serving', 'Serving', 'relationship', 80, 20),
-  catalogEntry('bpmn:SequenceFlow', 'Sequence Flow', 'relationship', 80, 20),
-  catalogEntry('bpmn:Task', 'Task', 'element', 100, 80),
-  catalogEntry('generic:Arrow', 'Arrow', 'relationship', 80, 20),
+  catalogEntry('archimate:Flow', 'Flow', 'relationship'),
+  catalogEntry('archimate:Serving', 'Serving', 'relationship'),
+  catalogEntry('bpmn:SequenceFlow', 'Sequence Flow', 'relationship'),
+  catalogEntry('bpmn:Task', 'Task', 'element'),
+  catalogEntry('generic:Arrow', 'Arrow', 'relationship'),
   catalogEntry('generic:Box', 'Box', 'element'),
-  catalogEntry('uml:Association', 'Association', 'relationship', 80, 20),
+  catalogEntry('uml:Association', 'Association', 'relationship'),
   catalogEntry('uml:Component', 'Component', 'element'),
 ]
 
@@ -116,6 +116,8 @@ export interface MetamodelApiOptions {
   restrictedOwner?: boolean
   /** Every viewpoint write with a mapping is rejected with 422 naming `mappings` (us-091-viewpoint-notations). */
   rejectMappings?: boolean
+  /** Every viewpoint write with a size is rejected with 422 naming `sizes` (s17-viewpoint-default-sizes). */
+  rejectSizes?: boolean
   /** The instance has no system-defined viewpoints (no package with viewpoints installed). */
   noSystemViewpoints?: boolean
 }
@@ -159,11 +161,15 @@ function seed(): Stored {
         notation: 'archimate3',
         viewpointType: 'user-defined',
         sourcePackage: null,
-        mappings: [{ metatypeId: IDS.component, notationElement: 'archimate:ApplicationComponent', defaultWidth: 140, defaultHeight: 60, visualHint: '#1a2b3c' }],
+        mappings: [{ metatypeId: IDS.component, notationElement: 'archimate:ApplicationComponent', visualHint: '#1a2b3c' }],
+        sizes: [
+          { metatypeId: IDS.component, width: 105, height: 45, length: null },
+          { metatypeId: IDS.dataFlow, width: null, height: null, length: 120 },
+        ],
         effectiveMappings: [
-          { metatypeId: IDS.component, notationElement: 'archimate:ApplicationComponent', defaultWidth: 140, defaultHeight: 60, visualHint: '#1a2b3c', fallback: false },
-          { metatypeId: IDS.service, notationElement: 'generic:Box', defaultWidth: 120, defaultHeight: 55, visualHint: null, fallback: true },
-          { metatypeId: IDS.dataFlow, notationElement: 'generic:Arrow', defaultWidth: 80, defaultHeight: 20, visualHint: null, fallback: true },
+          { metatypeId: IDS.component, notationElement: 'archimate:ApplicationComponent', width: 105, height: 45, length: null, sizeStored: true, visualHint: '#1a2b3c', fallback: false },
+          { metatypeId: IDS.service, notationElement: 'generic:Box', width: 90, height: 30, length: null, sizeStored: false, visualHint: null, fallback: true },
+          { metatypeId: IDS.dataFlow, notationElement: 'generic:Arrow', width: null, height: null, length: 120, sizeStored: true, visualHint: null, fallback: true },
         ],
         allowedMetatypes: [
           { id: IDS.component, name: 'Application Component', abbreviation: 'AC' },
@@ -181,8 +187,9 @@ function seed(): Stored {
         notation: 'archimate3',
         viewpointType: 'system-defined',
         sourcePackage: STARTER_WITH_VIEWPOINTS,
-        mappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', defaultWidth: null, defaultHeight: null, visualHint: null }],
-        effectiveMappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', defaultWidth: 120, defaultHeight: 55, visualHint: null, fallback: false }],
+        mappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', visualHint: null }],
+        sizes: [],
+        effectiveMappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', width: 90, height: 30, length: null, sizeStored: false, visualHint: null, fallback: false }],
         allowedMetatypes: [{ id: IDS.zone, name: 'Network Zone', abbreviation: 'NZ' }],
         allowedRelations: [],
         version: 1,
@@ -458,6 +465,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       }
       // the notation mapping of a write (US-091 AC2): allowed types only, one element per type, of the notation or generic, of the shape of the type
       const checkMappings = () => {
+        if (options.rejectSizes && ((body?.sizes ?? []) as unknown[]).length > 0) {
+          return problem(422, 'validation-failed', { invalidFields: ['sizes'], detail: 'The size does not fit the metatype.' })
+        }
         if (options.rejectMappings && ((body?.mappings ?? []) as unknown[]).length > 0) {
           return problem(422, 'validation-failed', { invalidFields: ['mappings'], detail: 'The mapping does not fit the notation.' })
         }
@@ -487,24 +497,32 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         return checkMappings()
       }
       const fields = () => {
-        const mappings = ((body?.mappings ?? []) as { metatypeId: string; notationElement: string; defaultWidth?: number | null; defaultHeight?: number | null; visualHint?: string | null }[]).map(
-          (mapping) => ({ defaultWidth: null, defaultHeight: null, visualHint: null, ...mapping }),
-        )
+        const mappings = ((body?.mappings ?? []) as { metatypeId: string; notationElement: string; visualHint?: string | null }[]).map((mapping) => ({ visualHint: null, ...mapping }))
+        const sizes = ((body?.sizes ?? []) as { metatypeId: string; width?: number | null; height?: number | null; length?: number | null }[]).map((size) => ({
+          width: null,
+          height: null,
+          length: null,
+          ...size,
+        }))
         const allowed = [...((body?.metatypeIds ?? []) as string[]), ...((body?.connectionTypeIds ?? []) as string[])]
         return {
           name: String(body?.name).trim(),
           description: (body?.description as string | null | undefined) ?? null,
           notation: (body?.notation ?? 'generic') as Viewpoint['notation'],
           mappings,
+          sizes,
           effectiveMappings: allowed.map((id) => {
             const mapped = mappings.find((mapping) => mapping.metatypeId === id)
-            const connection = state.metatypes.find((metatype) => metatype.id === id)?.isConnection
+            const size = sizes.find((candidate) => candidate.metatypeId === id)
+            const connection = Boolean(state.metatypes.find((metatype) => metatype.id === id)?.isConnection)
             const element = NOTATION_ELEMENTS.find((candidate) => candidate.key === (mapped?.notationElement ?? (connection ? 'generic:Arrow' : 'generic:Box')))!
             return {
               metatypeId: id,
               notationElement: element.key,
-              defaultWidth: mapped?.defaultWidth ?? element.defaultWidth,
-              defaultHeight: mapped?.defaultHeight ?? element.defaultHeight,
+              width: connection ? null : (size?.width ?? 90),
+              height: connection ? null : (size?.height ?? 30),
+              length: connection ? (size?.length ?? 90) : null,
+              sizeStored: Boolean(size),
               visualHint: mapped?.visualHint ?? null,
               fallback: !mapped,
             }

@@ -109,16 +109,77 @@ Feature: Viewpoints
     Then the viewpoint answer is 201
 
   @AC2 @US-091 @REQ-091
+  Scenario: A size in a mapping is ignored
+    When the architect maps "VP Application" to "archimate:ApplicationComponent" with the width 0 and height 2001 in the new "archimate3" viewpoint "Old Size View"
+    Then the viewpoint answer is 201
+    And the viewpoint stores no size
+
+  # Requirement: Default sizes per metatype
+
+  @UC-10 @UC-12 @US-091 @REQ-091
+  Scenario: Size of an element metatype
+    When the architect stores the width 120 and height 40 for "VP Application" in the new viewpoint "Sized View"
+    Then the viewpoint answer is 201
+    And the effective size of "VP Application" is 120 x 40 pt and stored
+
+  @UC-10 @UC-12 @US-091 @REQ-091
+  Scenario: Length of a connection metatype
+    When the architect stores the length 150 for "VP Data Flow" in the new viewpoint "Length View"
+    Then the viewpoint answer is 201
+    And the effective length of "VP Data Flow" is 150 pt and stored
+
+  @UC-10 @UC-12 @US-091 @REQ-091
+  Scenario: No stored size
+    When the architect creates the viewpoint "Default Size View" with "VP Application" and "VP Data Object" and the connection type "VP Data Flow"
+    Then the viewpoint answer is 201
+    And the effective size of "VP Application" is 90 x 30 pt and not stored
+    And the effective length of "VP Data Flow" is 90 pt and not stored
+
+  @UC-10 @UC-12 @US-091 @REQ-091
   Scenario Outline: Size boundaries
-    When the architect maps "VP Application" to "archimate:ApplicationComponent" with the width <width> and height <height> in the new "archimate3" viewpoint "<name>"
+    When the architect stores the width <width> and height <height> for "VP Application" in the new viewpoint "<name>"
     Then the viewpoint answer is <status>
 
     Examples:
-      | name       | width | height | status |
-      | Size Low  | 1     | 1      | 201    |
-      | Size High  | 2000  | 2000   | 201    |
-      | Size Zero  | 0     | 80     | 400    |
-      | Size Over  | 2001  | 80     | 400    |
+      | name        | width | height | status |
+      | Size Low    | 1     | 1      | 201    |
+      | Size High   | 2000  | 2000   | 201    |
+      | Size Zero   | 0     | 80     | 400    |
+      | Height Zero | 80    | 0      | 400    |
+      | Size Over   | 2001  | 80     | 400    |
+      | Height Over | 80    | 2001   | 400    |
+
+  @UC-10 @UC-12 @US-091 @REQ-091
+  Scenario Outline: Length boundaries
+    When the architect stores the length <length> for "VP Data Flow" in the new viewpoint "<name>"
+    Then the viewpoint answer is <status>
+
+    Examples:
+      | name        | length | status |
+      | Length Low  | 1      | 201    |
+      | Length High | 2000   | 201    |
+      | Length Zero | 0      | 400    |
+      | Length Over | 2001   | 400    |
+
+  @UC-10 @UC-12 @US-091 @REQ-091
+  Scenario Outline: Wrong kind of size
+    When the architect creates the viewpoint "<name>" with the wrong size "<kind>"
+    Then the viewpoint answer is 422 naming "sizes"
+
+    Examples:
+      | name             | kind                  |
+      | Length On Box    | length on element     |
+      | Width On Flow    | width on connection   |
+      | Width Only       | width without height  |
+      | Size Not Allowed | metatype not allowed  |
+      | Size Twice       | two sizes             |
+
+  @UC-10 @UC-12 @US-091 @REQ-091
+  Scenario: Metatype no longer allowed
+    Given the viewpoint "Shrinking View" allows "VP Application" and "VP Data Object" with the size 120 x 40 each
+    When the architect removes "VP Application" from "Shrinking View"
+    Then the viewpoint answer is 200
+    And the viewpoint stores no size for "VP Application"
 
   # Requirement: Fallback rendering
 
@@ -126,6 +187,7 @@ Feature: Viewpoints
   Scenario: Unmapped entity type
     When the architect creates the viewpoint "Fallback View" with the notation "archimate3" and "VP Application"
     Then the effective element of "VP Application" is "generic:Box" as a fallback
+    And the effective size of "VP Application" is 90 x 30 pt and not stored
 
   # Requirement: Element catalog
 

@@ -52,8 +52,11 @@ final class MetamodelPackages {
 				list(viewpoint.getConnectionTypeIds()),
 				list(viewpoint.getMappings()).stream()
 					.map((mapping) -> new PackageDefinition.ViewpointMapping(mapping.getMetatypeId(),
-							mapping.getNotationElement(), mapping.getDefaultWidth(), mapping.getDefaultHeight(),
-							mapping.getVisualHint()))
+							mapping.getNotationElement(), mapping.getVisualHint()))
+					.toList(),
+				list(viewpoint.getSizes()).stream()
+					.map((size) -> new PackageDefinition.ViewpointSize(size.getMetatypeId(), size.getWidth(),
+							size.getHeight(), size.getLength()))
 					.toList());
 	}
 

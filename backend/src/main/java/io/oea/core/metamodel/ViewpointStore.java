@@ -38,9 +38,15 @@ public class ViewpointStore {
 	public record TypeRow(UUID id, String name, String abbreviation) {
 	}
 
-	/** The mapping of an allowed metatype to a notation element; size and hint may be {@code null}. */
-	public record MappingRow(UUID metatypeId, String notationElement, Integer defaultWidth, Integer defaultHeight,
-			String visualHint) {
+	/** The mapping of an allowed metatype to a notation element; the hint may be {@code null}. */
+	public record MappingRow(UUID metatypeId, String notationElement, String visualHint) {
+	}
+
+	/**
+	 * The default size in pt of an allowed metatype: width and height for an element metatype, the
+	 * length for a connection metatype; the other values are {@code null}.
+	 */
+	public record SizeRow(UUID metatypeId, Integer width, Integer height, Integer length) {
 	}
 
 	/**
@@ -50,7 +56,7 @@ public class ViewpointStore {
 	public record ViewpointRow(UUID id, String name, String description, int version, Instant createdAt,
 			long createdById, String createdByName, String notation, String viewpointType, String sourcePackageId,
 			String sourcePackageVersion, List<TypeRow> metatypes, List<TypeRow> connectionTypes,
-			List<MappingRow> mappings) {
+			List<MappingRow> mappings, List<SizeRow> sizes) {
 	}
 
 	/** The origin of a viewpoint that has the ID or the name of an imported one. */
@@ -63,7 +69,7 @@ public class ViewpointStore {
 
 	/** The fields a write sets. */
 	public record Fields(String name, String description, String notation, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds, List<MappingRow> mappings) {
+			List<UUID> connectionTypeIds, List<MappingRow> mappings, List<SizeRow> sizes) {
 	}
 
 	/** All viewpoints, ordered by name case-insensitively. */
@@ -177,6 +183,7 @@ public class ViewpointStore {
 		this.jdbc.update("DELETE FROM viewpoint_metatypes WHERE viewpoint_id = ?", id);
 		this.jdbc.update("DELETE FROM viewpoint_connection_types WHERE viewpoint_id = ?", id);
 		this.jdbc.update("DELETE FROM viewpoint_mappings WHERE viewpoint_id = ?", id);
+		this.jdbc.update("DELETE FROM viewpoint_sizes WHERE viewpoint_id = ?", id);
 		links(id, fields);
 	}
 
@@ -205,9 +212,14 @@ public class ViewpointStore {
 		}
 		for (MappingRow mapping : fields.mappings()) {
 			this.jdbc.update("""
-					INSERT INTO viewpoint_mappings (viewpoint_id, metatype_id, notation_element, default_width,
-					    default_height, visual_hint) VALUES (?, ?, ?, ?, ?, ?)""", id, mapping.metatypeId(),
-					mapping.notationElement(), mapping.defaultWidth(), mapping.defaultHeight(), mapping.visualHint());
+					INSERT INTO viewpoint_mappings (viewpoint_id, metatype_id, notation_element, visual_hint)
+					VALUES (?, ?, ?, ?)""", id, mapping.metatypeId(), mapping.notationElement(),
+					mapping.visualHint());
+		}
+		for (SizeRow size : fields.sizes()) {
+			this.jdbc.update("""
+					INSERT INTO viewpoint_sizes (viewpoint_id, metatype_id, width_pt, height_pt, length_pt)
+					VALUES (?, ?, ?, ?, ?)""", id, size.metatypeId(), size.width(), size.height(), size.length());
 		}
 	}
 
@@ -219,12 +231,14 @@ public class ViewpointStore {
 		Map<UUID, List<TypeRow>> metatypes = types("viewpoint_metatypes", rows);
 		Map<UUID, List<TypeRow>> connections = types("viewpoint_connection_types", rows);
 		Map<UUID, List<MappingRow>> mappings = mappings(rows);
+		Map<UUID, List<SizeRow>> sizes = sizes(rows);
 		List<ViewpointRow> complete = new ArrayList<>();
 		for (ViewpointRow row : rows) {
 			complete.add(new ViewpointRow(row.id(), row.name(), row.description(), row.version(), row.createdAt(),
 					row.createdById(), row.createdByName(), row.notation(), row.viewpointType(),
 					row.sourcePackageId(), row.sourcePackageVersion(), metatypes.getOrDefault(row.id(), List.of()),
-					connections.getOrDefault(row.id(), List.of()), mappings.getOrDefault(row.id(), List.of())));
+					connections.getOrDefault(row.id(), List.of()), mappings.getOrDefault(row.id(), List.of()),
+					sizes.getOrDefault(row.id(), List.of())));
 		}
 		return complete;
 	}
@@ -232,15 +246,26 @@ public class ViewpointStore {
 	private Map<UUID, List<MappingRow>> mappings(List<ViewpointRow> rows) {
 		Map<UUID, List<MappingRow>> mappings = new LinkedHashMap<>();
 		this.jdbc.query("""
-				SELECT l.viewpoint_id, l.metatype_id, l.notation_element, l.default_width, l.default_height,
-				       l.visual_hint
+				SELECT l.viewpoint_id, l.metatype_id, l.notation_element, l.visual_hint
 				FROM viewpoint_mappings l JOIN metatypes m ON m.id = l.metatype_id
 				WHERE l.viewpoint_id = ANY (?::uuid[]) ORDER BY lower(m.name), m.id""", (ResultSet rs) -> {
 					mappings.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>())
-						.add(new MappingRow(rs.getObject(2, UUID.class), rs.getString(3), (Integer) rs.getObject(4),
-								(Integer) rs.getObject(5), rs.getString(6)));
+						.add(new MappingRow(rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4)));
 				}, array(rows.stream().map(ViewpointRow::id).toList()));
 		return mappings;
+	}
+
+	private Map<UUID, List<SizeRow>> sizes(List<ViewpointRow> rows) {
+		Map<UUID, List<SizeRow>> sizes = new LinkedHashMap<>();
+		this.jdbc.query("""
+				SELECT l.viewpoint_id, l.metatype_id, l.width_pt, l.height_pt, l.length_pt
+				FROM viewpoint_sizes l JOIN metatypes m ON m.id = l.metatype_id
+				WHERE l.viewpoint_id = ANY (?::uuid[]) ORDER BY lower(m.name), m.id""", (ResultSet rs) -> {
+					sizes.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>())
+						.add(new SizeRow(rs.getObject(2, UUID.class), (Integer) rs.getObject(3),
+								(Integer) rs.getObject(4), (Integer) rs.getObject(5)));
+				}, array(rows.stream().map(ViewpointRow::id).toList()));
+		return sizes;
 	}
 
 	private Map<UUID, List<TypeRow>> types(String table, List<ViewpointRow> rows) {
@@ -261,7 +286,7 @@ public class ViewpointStore {
 	private static ViewpointRow row(ResultSet rs, int row) throws SQLException {
 		return new ViewpointRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getInt(4),
 				rs.getTimestamp(5).toInstant(), rs.getLong(6), rs.getString(7), rs.getString(8), rs.getString(9),
-				rs.getString(10), rs.getString(11), List.of(), List.of(), List.of());
+				rs.getString(10), rs.getString(11), List.of(), List.of(), List.of(), List.of());
 	}
 
 }

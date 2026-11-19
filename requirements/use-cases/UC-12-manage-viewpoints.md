@@ -125,7 +125,7 @@ A viewpoint defines: which entity and connection types may appear in diagrams of
 7. **Kurt**: selects EntityTypes and ConnectionTypes and clicks "Next"
 8. **System**: shows the notation mapping page for each selected EntityType:
    - Per type: dropdown for `notationElement` (filtered by selected notation; shows only matching prefix elements)
-   - Fields for `defaultWidth` and `defaultHeight` (prefilled with recommended values)
+   - Fields for the default size in pt: width and height per EntityType, a length per connection type (empty: 90 × 30 pt and 90 pt)
    - Optional: `visualHint` (color or icon override)
    - System-defined types already have default mappings prefilled; custom types receive a fallback mapping
 9. **Kurt**: reviews and adjusts mappings
@@ -228,7 +228,7 @@ Exported format (example):
 | 2 | Viewpoint list (id, name, notation, viewpointType) | System → Kurt | Two groups: system-defined, user-defined |
 | 4–5 | Name, description, notation | Kurt → System | Basic fields |
 | 6–7 | allowedEntityTypes[], allowedConnectionTypes[] | Kurt → System | Checkbox selection from MetamodelConfiguration |
-| 8–9 | notationMappings[] (entityTypeId, notationElement, defaultWidth, defaultHeight) | Kurt → System | Per selected EntityType |
+| 8–9 | notationMappings[] (entityTypeId, notationElement, visualHint), sizes[] (metatypeId, width and height or length, in pt) | Kurt → System | Per selected EntityType |
 | 11 | ViewpointDefinition (complete) | System internal | Persisted in MetamodelConfiguration |
 | A3 | JSON export (viewpoint definitions) | System → File | Download |
 | A4 | JSON import + validation report | File → System | No partial import on validation error |
@@ -245,7 +245,7 @@ Exported format (example):
 ## Acceptance Criteria
 
 - [ ] User-defined viewpoint can be created with name, notation, allowedEntityTypes, allowedConnectionTypes
-- [ ] Notation mappings configurable per EntityType (notationElement, defaultWidth, defaultHeight)
+- [ ] Notation mappings configurable per EntityType (notationElement, visualHint) and default sizes in pt per EntityType and connection type
 - [ ] Dropdown for notationElement shows only elements of the selected notation (BR-07)
 - [ ] E1: Duplicate name is rejected with an inline error (BR-01)
 - [ ] System-defined viewpoints are neither editable nor deletable (BR-02); buttons disabled
@@ -263,6 +263,8 @@ Exported format (example):
 - **Extending notation elements**: the notation element catalog (ArchiMate 3, UML, BPMN 2.0) is fixed in v1.0; extension is a v2.0 topic
 
 ## Realignment
+
+- 2026-11-19, OpenSpec change `s17-viewpoint-default-sizes` (owner decisions 2026-11-19): step 8 – the default size no longer belongs to the notation mapping. A viewpoint stores per allowed metatype an optional default size in pt (width and height for an EntityType, a length for a connection type), also without a mapping; without one an element shape is 90 × 30 pt and a connection 90 pt, whatever the notation element. SCR-031 offers the size fields in an own table with these values as placeholders; the sizes of the element catalog are no longer defaults.
 
 - 2026-11-17, OpenSpec change `us-090-viewpoints` (owner decisions 2026-11-17): viewpoints are generic for now – the basic flow and A1, A2 without the notation steps (steps 4 notation, 8, 9): a viewpoint names the allowed element and connection metatypes of the instance; it needs `viewpoint:manage`, and the metamodel lock does not apply; the section "Viewpoints" of the metamodel page is SCR-031 at `/metamodel/viewpoints`. Notations, notation mappings, system-defined viewpoints and the diagram counts follow with the diagrams; export and import (A3, A4) are not implemented yet.
 - 2026-11-17, OpenSpec change `us-091-viewpoint-notations` (owner decisions 2026-11-17, later the same day): the notation steps follow before the diagrams. Step 4 offers the notations `generic`, `archimate3`, `uml` and `bpmn2`; `generic` is the default, and viewpoints created before have it. Steps 8–9: the notation mapping is optional – per allowed entity or connection type an element of the shipped catalog (`listNotationElements`: ArchiMate 3.2, the UML component and class elements, the BPMN 2.0 core elements, and `generic:Box` and `generic:Arrow`, which fit every notation), a default size of 1–2000 and a visual hint `#rrggbb`; an unmapped type renders as the generic element. Keys carry the prefix `archimate:`, `uml:` or `bpmn:`. E3: a key of another notation, an unknown key or a shape of the wrong kind is rejected with 422 naming `mappings`, and changing the notation clears the elements that no longer fit. Step 2, E4: system-defined viewpoints come from metamodel packages (the starter package carries "Application Landscape" and "Technology Landscape"), are imported with `metamodel:write` alone and are read-only (422 `read-only-viewpoint`); SCR-031 shows them in their own group without "Edit" and "Delete". A4 is realized only as the package section `viewpoints` of the metamodel package import (UC-04): a re-import updates and deletes only the viewpoints of the same package, and an ID or name of an organization viewpoint or of another package is a conflict (409). The export (A3) and the import of viewpoint files outside packages are not implemented; the diagram counts (A1 step 3, A2 step 2) and the revalidation of diagrams (BR-05) follow with the diagrams.

@@ -56,8 +56,8 @@ A package can bring architecture layers in `architectureLayers`: each with a sta
 
 ## Viewpoints in packages {#viewpoints-in-packages}
 
-A package can bring viewpoints in `viewpoints`: each with a stable `id`, `name`, optional `description`, `notation`, the allowed `metatypeIds` and `connectionTypeIds` (types of the package or of the instance) and optional `mappings`. The import installs them as system-defined, read-only viewpoints with the package as origin (see [Viewpoints](./metamodel-editing#viewpoints)).
+A package can bring viewpoints in `viewpoints`: each with a stable `id`, `name`, optional `description`, `notation`, the allowed `metatypeIds` and `connectionTypeIds` (types of the package or of the instance), optional `mappings` and optional default `sizes` in pt (`metatypeId` with `width` and `height`, or `length`; see [Viewpoints](./metamodel-editing#viewpoints)). The import installs them as system-defined, read-only viewpoints with the package as origin (see [Viewpoints](./metamodel-editing#viewpoints)).
 
-- A viewpoint has the same limits as one of your own: name up to 255 characters, description up to 1000, at most 500 entity types, 500 connection types and 1000 mappings, sizes 1 to 2000 and colors as `#rrggbb`. A violation or an unknown type is rejected with `422` naming the viewpoint.
+- A viewpoint has the same limits as one of your own: name up to 255 characters, description up to 1000, at most 500 entity types, 500 connection types, 1000 mappings and 1000 sizes, sizes of 1 to 2000 pt and colors as `#rrggbb`. A violation or an unknown type is rejected with `422` naming the viewpoint, a faulty size also `sizes`. `defaultWidth` and `defaultHeight` in a mapping are ignored.
 - Importing the same package again updates its viewpoints, also when one was renamed, and deletes those the package no longer contains. Viewpoints of your organization or of another package are never overwritten: the same ID or name answers `409`.
 - The import result counts the created, updated and deleted viewpoints.

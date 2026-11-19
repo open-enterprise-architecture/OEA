@@ -399,6 +399,8 @@ export type Viewpoint = components['schemas']['ViewpointConfig']
 export type ViewpointWrite = components['schemas']['ViewpointWrite']
 export type ViewpointNotation = components['schemas']['ViewpointNotation']
 export type ViewpointMapping = components['schemas']['ViewpointMapping']
+/** A default size in pt: width and height of an element type, the length of a connection type. */
+export type ViewpointSize = components['schemas']['ViewpointSize']
 export type NotationElement = components['schemas']['NotationElement']
 
 /** The notations of a viewpoint in the order the dialog offers them. */
@@ -410,6 +412,10 @@ export const NOTATION_PREFIX: Record<ViewpointNotation, string> = { generic: 'ge
 /** The size limits of a mapping, in pixels (REQ-091). */
 export const MAPPING_SIZE_MIN = 1
 export const MAPPING_SIZE_MAX = 2000
+/** The size in pt of a shape without a stored size: 90 x 30 for an element, a length of 90 for a connection. */
+export const DEFAULT_WIDTH = 90
+export const DEFAULT_HEIGHT = 30
+export const DEFAULT_LENGTH = 90
 
 const VIEWPOINTS = '/api/v1/admin/viewpoints'
 

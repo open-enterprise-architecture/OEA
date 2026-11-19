@@ -21,7 +21,7 @@ Feature: REQ-059 – Import and export viewpoint
   Scenario: AC1 – Export single viewpoint – user-defined viewpoint `cloud-security-view...
     Given user-defined viewpoint `cloud-security-view` with 4 allowedEntityTypes, 3 notationMappings
     When  Kurt exports this viewpoint as YAML
-    Then  YAML contains all fields incl. notationMappings with defaultWidth/defaultHeight; ID `cloud-security-view` is included
+    Then  YAML contains all fields incl. notationMappings and default sizes in pt; ID `cloud-security-view` is included
 
   @AC2
   Scenario: AC2 – Roundtrip – Kurt imports the exported YAML file into another instanc...

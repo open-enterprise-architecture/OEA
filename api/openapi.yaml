@@ -3045,6 +3045,11 @@ components:
           type: array
           maxItems: 1000
           items: { $ref: '#/components/schemas/ViewpointMapping' }
+        sizes:
+          type: array
+          maxItems: 1000
+          description: Default sizes in pt per allowed metatype; same checks as in `ViewpointWrite`
+          items: { $ref: '#/components/schemas/ViewpointSize' }
 
     ViewpointNotation:
       type: string
@@ -3062,27 +3067,43 @@ components:
       properties:
         metatypeId:      { type: string, format: uuid }
         notationElement: { type: string, minLength: 1, maxLength: 100, description: "Key of the element catalog, e.g. `archimate:ApplicationComponent`", example: "archimate:ApplicationComponent" }
-        defaultWidth:    { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "null: the size of the catalog" }
-        defaultHeight:   { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "null: the size of the catalog" }
         visualHint:      { type: [string, 'null'], pattern: '^#[0-9a-fA-F]{6}$', description: "Optional color `#rrggbb`" }
+
+    ViewpointSize:
+      type: object
+      required: [metatypeId]
+      description: |
+        The default size in pt of a shape of an allowed metatype of the viewpoint: `width` and
+        `height` for an element metatype, `length` for a connection metatype (the distance at
+        which a connected new element is placed from its source). At most one size per metatype.
+        The combination is checked by the service (422 naming `sizes`).
+      properties:
+        metatypeId: { type: string, format: uuid }
+        width:      { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "Width in pt; element metatype only, together with `height`" }
+        height:     { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "Height in pt; element metatype only, together with `width`" }
+        length:     { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "Length in pt; connection metatype only" }
 
     EffectiveViewpointMapping:
       type: object
-      required: [metatypeId, notationElement, defaultWidth, defaultHeight, visualHint, fallback]
+      required: [metatypeId, notationElement, width, height, length, sizeStored, visualHint, fallback]
       description: |
         The element an allowed metatype is rendered with: its mapping, or `generic:Box`
-        (`generic:Arrow` for a connection metatype) with the size of the catalog (fallback)
+        (`generic:Arrow` for a connection metatype) (fallback), and its effective default size in
+        pt: the stored one, or 90 x 30 for an element metatype and a length of 90 for a connection
+        metatype
       properties:
         metatypeId:      { type: string, format: uuid }
         notationElement: { type: string }
-        defaultWidth:    { type: integer, minimum: 1, maximum: 2000 }
-        defaultHeight:   { type: integer, minimum: 1, maximum: 2000 }
+        width:           { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "Width in pt; null for a connection metatype" }
+        height:          { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "Height in pt; null for a connection metatype" }
+        length:          { type: [integer, 'null'], minimum: 1, maximum: 2000, description: "Length in pt; null for an element metatype" }
+        sizeStored:      { type: boolean, description: "True if the viewpoint stores the size; false for the default" }
         visualHint:      { type: [string, 'null'] }
         fallback:        { type: boolean, description: "True if the metatype has no mapping" }
 
     NotationElement:
       type: object
-      required: [key, notation, label, kind, defaultWidth, defaultHeight]
+      required: [key, notation, label, kind]
       description: An element of the shipped element catalog (US-091 AC1, REQ-091)
       properties:
         key:           { type: string, maxLength: 100, example: "archimate:ApplicationComponent" }
@@ -3092,12 +3113,10 @@ components:
           type: string
           enum: [element, relationship]
           description: Shape for an element metatype or for a connection metatype
-        defaultWidth:  { type: integer, minimum: 1, maximum: 2000 }
-        defaultHeight: { type: integer, minimum: 1, maximum: 2000 }
 
     ViewpointConfig:
       type: object
-      required: [id, name, description, notation, viewpointType, sourcePackage, allowedMetatypes, allowedRelations, mappings, effectiveMappings, version, createdAt, createdBy]
+      required: [id, name, description, notation, viewpointType, sourcePackage, allowedMetatypes, allowedRelations, mappings, sizes, effectiveMappings, version, createdAt, createdBy]
       description: |
         A viewpoint (US-090, US-091, US-092, UC-12): the element metatypes and connection
         metatypes of a view, its notation and the optional notation mapping. A system-defined
@@ -3120,6 +3139,10 @@ components:
           type: array
           description: The stored notation mapping
           items: { $ref: '#/components/schemas/ViewpointMapping' }
+        sizes:
+          type: array
+          description: The stored default sizes in pt
+          items: { $ref: '#/components/schemas/ViewpointSize' }
         effectiveMappings:
           type: array
           description: One entry per allowed metatype and connection type, with the generic fallback
@@ -3165,6 +3188,13 @@ components:
             origin (`viewpointType`, `sourcePackage`) is set only by the package import; a write
             through the API always stores a user-defined viewpoint.
           items: { $ref: '#/components/schemas/ViewpointMapping' }
+        sizes:
+          type: array
+          maxItems: 1000
+          description: |
+            Optional default sizes in pt, at most one per allowed metatype or connection type;
+            omitted sizes store none (defaults 90 x 30 pt and a length of 90 pt).
+          items: { $ref: '#/components/schemas/ViewpointSize' }
 
     # ── Admin – Property visibility (REQ-124, REQ-128, REQ-161) ───────────────
     PropertyVisibility:

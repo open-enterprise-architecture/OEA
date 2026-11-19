@@ -5,6 +5,9 @@ import {
   createViewpoint,
   elementFits,
   INSTANCE_CONFIGURATION,
+  DEFAULT_HEIGHT,
+  DEFAULT_LENGTH,
+  DEFAULT_WIDTH,
   MAPPING_SIZE_MAX,
   MAPPING_SIZE_MIN,
   updateViewpoint,
@@ -13,6 +16,7 @@ import {
   type Viewpoint,
   type ViewpointMapping,
   type ViewpointNotation,
+  type ViewpointSize,
 } from '../../api/metamodel'
 import { label, labelKeys } from '../../i18n/labels'
 import { metamodel } from '../../metamodel/store'
@@ -22,8 +26,9 @@ import { rejectionMessage } from './messages'
 // Creating and changing a viewpoint in SCR-031 (US-090, US-091; design D4 of us-090-viewpoints, D6
 // of us-091-viewpoint-notations): name, description, the notation, the element and connection
 // metatypes of the instance as checkboxes, and per selected type the optional notation mapping
-// (element of the notation or a generic one, size, color). Changing the notation clears the
-// elements that no longer fit. A stale version shows the collision warning with the current state.
+// (element of the notation or a generic one, color) and the optional default size in pt (design D5 of
+// s17-viewpoint-default-sizes): width and height for an element type, a length for a connection
+// type. Changing the notation clears the elements that no longer fit, not the sizes. A stale version shows the collision warning with the current state.
 const props = defineProps<{ viewpoint?: Viewpoint; current?: Viewpoint; catalog: NotationElement[]; catalogFailed?: boolean; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ saved: []; cancel: []; stale: [] }>()
 const { t } = useI18n()
@@ -39,11 +44,9 @@ const form = reactive({
   notation: (props.viewpoint?.notation ?? 'generic') as ViewpointNotation,
 })
 
-/** The mapping of one type as typed: the element key, the sizes as text and the color. */
+/** The mapping of one type as typed: the element key and the color. */
 interface MappingRow {
   element?: string
-  width: string
-  height: string
   hint?: string
 }
 const NONE = 'none'
@@ -51,17 +54,34 @@ const rows = reactive<Record<string, MappingRow>>(
   Object.fromEntries(
     (props.viewpoint?.mappings ?? []).map((mapping) => [
       mapping.metatypeId,
-      { element: mapping.notationElement, width: mapping.defaultWidth?.toString() ?? '', height: mapping.defaultHeight?.toString() ?? '', hint: mapping.visualHint ?? undefined },
+      { element: mapping.notationElement, hint: mapping.visualHint ?? undefined },
     ]),
   ),
 )
-const BLANK: MappingRow = { width: '', height: '' }
+const BLANK: MappingRow = {}
+
+/** The default size of one type as typed, in pt: width and height of an element, the length of a connection. */
+interface SizeRow {
+  width: string
+  height: string
+  length: string
+}
+const sizes = reactive<Record<string, SizeRow>>(
+  Object.fromEntries(
+    (props.viewpoint?.sizes ?? []).map((size) => [size.metatypeId, { width: size.width?.toString() ?? '', height: size.height?.toString() ?? '', length: size.length?.toString() ?? '' }]),
+  ),
+)
+const EMPTY_SIZE: SizeRow = { width: '', height: '', length: '' }
+const sizeOf = (id: string): SizeRow => sizes[id] ?? EMPTY_SIZE
+function patchSize(id: string, change: Partial<SizeRow>) {
+  sizes[id] = { ...sizeOf(id), ...change }
+}
 const rowOf = (id: string): MappingRow => rows[id] ?? BLANK
 function patch(id: string, change: Partial<MappingRow>) {
   rows[id] = { ...rowOf(id), ...change }
 }
 
-// changing the notation clears the elements that no longer fit, with their size and color (US-091 AC3)
+// changing the notation clears the elements that no longer fit, with their color (US-091 AC3); sizes stay
 watch(
   () => form.notation,
   (notation) => {
@@ -105,20 +125,35 @@ const selected = computed(() => [
   ...connections.value.filter((item) => form.connectionTypeIds.includes(item.value)).map((item) => ({ id: item.value, label: item.label, connection: true })),
 ])
 
-/** A size is empty (the catalog's) or a whole number from 1 to 2000. */
+// removing a type removes its size fields and their values
+watch(selected, (types) => {
+  const ids = new Set(types.map((type) => type.id))
+  for (const id of Object.keys(sizes)) {
+    if (!ids.has(id)) delete sizes[id]
+  }
+})
+
+/** A size is empty (the default applies) or a whole number from 1 to 2000 pt. */
 function sizeValid(text: string): boolean {
   if (text.trim() === '') return true
   const value = Number(text)
   return Number.isInteger(value) && value >= MAPPING_SIZE_MIN && value <= MAPPING_SIZE_MAX
 }
-const sizesValid = computed(() => selected.value.every((type) => !rows[type.id]?.element || (sizeValid(rows[type.id]!.width) && sizeValid(rows[type.id]!.height))))
+const filled = (text: string) => text.trim() !== ''
+/** Width and height are filled together or left empty together. */
+const pairValid = (id: string) => filled(sizeOf(id).width) === filled(sizeOf(id).height)
+const sizesValid = computed(() =>
+  selected.value.every((type) => (type.connection ? sizeValid(sizeOf(type.id).length) : sizeValid(sizeOf(type.id).width) && sizeValid(sizeOf(type.id).height))),
+)
+const pairsValid = computed(() => selected.value.every((type) => type.connection || pairValid(type.id)))
 const valid = computed(
   () =>
     form.name.trim().length > 0 &&
     form.name.trim().length <= NAME_MAX &&
     form.description.length <= DESCRIPTION_MAX &&
     form.metatypeIds.length > 0 &&
-    sizesValid.value,
+    sizesValid.value &&
+    pairsValid.value,
 )
 
 /** The mappings of the selected types that have an element, as the request carries them. */
@@ -130,11 +165,18 @@ function mappings(): ViewpointMapping[] {
       {
         metatypeId: type.id,
         notationElement: mapping.element,
-        defaultWidth: mapping.width.trim() === '' ? null : Number(mapping.width),
-        defaultHeight: mapping.height.trim() === '' ? null : Number(mapping.height),
         visualHint: mapping.hint ?? null,
       },
     ]
+  })
+}
+
+/** The sizes of the selected types that have one, as the request carries them. */
+function sizeList(): ViewpointSize[] {
+  return selected.value.flatMap((type): ViewpointSize[] => {
+    const size = sizeOf(type.id)
+    if (type.connection) return filled(size.length) ? [{ metatypeId: type.id, length: Number(size.length) }] : []
+    return filled(size.width) && filled(size.height) ? [{ metatypeId: type.id, width: Number(size.width), height: Number(size.height) }] : []
   })
 }
 
@@ -152,6 +194,7 @@ async function submit(version = props.viewpoint?.version) {
     connectionTypeIds: form.connectionTypeIds,
     notation: form.notation,
     mappings: mappings(),
+    sizes: sizeList(),
   }
   try {
     const outcome = props.viewpoint
@@ -218,8 +261,6 @@ async function submit(version = props.viewpoint?.version) {
           <tr>
             <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.mappingType') }}</th>
             <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.element') }}</th>
-            <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.width') }}</th>
-            <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.height') }}</th>
             <th class="py-1 text-start font-medium">{{ t('metamodel.viewpoint.color') }}</th>
           </tr>
         </thead>
@@ -234,36 +275,6 @@ async function submit(version = props.viewpoint?.version) {
                 :aria-label="t('metamodel.viewpoint.elementOf', { name: type.label })"
                 class="w-52"
                 @update:model-value="(value: string) => patch(type.id, { element: value === NONE ? undefined : value })"
-              />
-            </td>
-            <td class="py-1 pe-2 align-top">
-              <UInput
-                :model-value="rowOf(type.id).width"
-                @update:model-value="(value: string | number) => patch(type.id, { width: String(value ?? '') })"
-                :data-testid="`mapping-width-${type.id}`"
-                type="number"
-                :min="MAPPING_SIZE_MIN"
-                :max="MAPPING_SIZE_MAX"
-                :disabled="!rowOf(type.id).element"
-                :color="sizeValid(rowOf(type.id).width) ? undefined : 'error'"
-                :aria-label="`${t('metamodel.viewpoint.width')}: ${type.label}`"
-                :aria-invalid="!sizeValid(rowOf(type.id).width)"
-                class="w-24"
-              />
-            </td>
-            <td class="py-1 pe-2 align-top">
-              <UInput
-                :model-value="rowOf(type.id).height"
-                @update:model-value="(value: string | number) => patch(type.id, { height: String(value ?? '') })"
-                :data-testid="`mapping-height-${type.id}`"
-                type="number"
-                :min="MAPPING_SIZE_MIN"
-                :max="MAPPING_SIZE_MAX"
-                :disabled="!rowOf(type.id).element"
-                :color="sizeValid(rowOf(type.id).height) ? undefined : 'error'"
-                :aria-label="`${t('metamodel.viewpoint.height')}: ${type.label}`"
-                :aria-invalid="!sizeValid(rowOf(type.id).height)"
-                class="w-24"
               />
             </td>
             <td class="py-1 align-top">
@@ -292,9 +303,85 @@ async function submit(version = props.viewpoint?.version) {
           </tr>
         </tbody>
       </table>
-      <p v-if="!sizesValid" data-testid="mapping-size-error" class="mt-1 text-sm text-error">
+    </UFormField>
+    <UFormField
+      v-if="selected.length > 0"
+      :label="t('metamodel.viewpoint.sizes')"
+      name="sizes"
+      :error="errors.sizes"
+      :help="t('metamodel.viewpoint.sizesHint')"
+    >
+      <table class="w-full text-sm" data-testid="viewpoint-sizes">
+        <thead class="text-start text-muted">
+          <tr>
+            <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.mappingType') }}</th>
+            <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.width') }}</th>
+            <th class="py-1 pe-2 text-start font-medium">{{ t('metamodel.viewpoint.height') }}</th>
+            <th class="py-1 text-start font-medium">{{ t('metamodel.viewpoint.length') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="type in selected" :key="type.id" data-testid="size-row" :data-metatype-id="type.id">
+            <td class="py-1 pe-2 align-top">{{ type.label }}</td>
+            <template v-if="!type.connection">
+              <td class="py-1 pe-2 align-top">
+                <UInput
+                  :model-value="sizeOf(type.id).width"
+                  @update:model-value="(value: string | number) => patchSize(type.id, { width: String(value ?? '') })"
+                  :data-testid="`size-width-${type.id}`"
+                  type="number"
+                  :min="MAPPING_SIZE_MIN"
+                  :max="MAPPING_SIZE_MAX"
+                  :placeholder="String(DEFAULT_WIDTH)"
+                  :color="sizeValid(sizeOf(type.id).width) && pairValid(type.id) ? undefined : 'error'"
+                  :aria-label="`${t('metamodel.viewpoint.width')}: ${type.label}`"
+                  :aria-invalid="!sizeValid(sizeOf(type.id).width) || !pairValid(type.id)"
+                  class="w-24"
+                />
+              </td>
+              <td class="py-1 pe-2 align-top">
+                <UInput
+                  :model-value="sizeOf(type.id).height"
+                  @update:model-value="(value: string | number) => patchSize(type.id, { height: String(value ?? '') })"
+                  :data-testid="`size-height-${type.id}`"
+                  type="number"
+                  :min="MAPPING_SIZE_MIN"
+                  :max="MAPPING_SIZE_MAX"
+                  :placeholder="String(DEFAULT_HEIGHT)"
+                  :color="sizeValid(sizeOf(type.id).height) && pairValid(type.id) ? undefined : 'error'"
+                  :aria-label="`${t('metamodel.viewpoint.height')}: ${type.label}`"
+                  :aria-invalid="!sizeValid(sizeOf(type.id).height) || !pairValid(type.id)"
+                  class="w-24"
+                />
+              </td>
+              <td class="py-1 align-top"></td>
+            </template>
+            <template v-else>
+              <td class="py-1 pe-2 align-top"></td>
+              <td class="py-1 pe-2 align-top"></td>
+              <td class="py-1 align-top">
+                <UInput
+                  :model-value="sizeOf(type.id).length"
+                  @update:model-value="(value: string | number) => patchSize(type.id, { length: String(value ?? '') })"
+                  :data-testid="`size-length-${type.id}`"
+                  type="number"
+                  :min="MAPPING_SIZE_MIN"
+                  :max="MAPPING_SIZE_MAX"
+                  :placeholder="String(DEFAULT_LENGTH)"
+                  :color="sizeValid(sizeOf(type.id).length) ? undefined : 'error'"
+                  :aria-label="`${t('metamodel.viewpoint.length')}: ${type.label}`"
+                  :aria-invalid="!sizeValid(sizeOf(type.id).length)"
+                  class="w-24"
+                />
+              </td>
+            </template>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="!sizesValid" data-testid="size-error" class="mt-1 text-sm text-error">
         {{ t('metamodel.viewpoint.sizeInvalid', { min: MAPPING_SIZE_MIN, max: MAPPING_SIZE_MAX }) }}
       </p>
+      <p v-if="!pairsValid" data-testid="size-pair-error" class="mt-1 text-sm text-error">{{ t('metamodel.viewpoint.sizePairInvalid') }}</p>
     </UFormField>
     <div v-if="!stale" class="flex justify-end gap-2">
       <UButton data-testid="viewpoint-cancel" color="neutral" variant="ghost" :label="t('common.cancel')" @click="emit('cancel')" />

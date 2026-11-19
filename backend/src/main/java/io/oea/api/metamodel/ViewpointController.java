@@ -6,6 +6,7 @@ import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.api.generated.model.NotationElement;
 import io.oea.api.generated.model.ViewpointNotation;
+import io.oea.api.generated.model.ViewpointSize;
 import io.oea.api.generated.model.SourcePackage;
 import io.oea.api.generated.model.ViewpointConfig;
 import io.oea.api.generated.model.ViewpointMapping;
@@ -50,9 +51,7 @@ public class ViewpointController implements ViewpointsApi {
 			.map((element) -> new NotationElement().key(element.key())
 				.notation(ViewpointNotation.fromValue(element.notation()))
 				.label(element.label())
-				.kind(element.relationship() ? NotationElement.KindEnum.RELATIONSHIP : NotationElement.KindEnum.ELEMENT)
-				.defaultWidth(element.defaultWidth())
-				.defaultHeight(element.defaultHeight()))
+				.kind(element.relationship() ? NotationElement.KindEnum.RELATIONSHIP : NotationElement.KindEnum.ELEMENT))
 			.toList());
 	}
 
@@ -89,8 +88,14 @@ public class ViewpointController implements ViewpointsApi {
 				request.getMappings()
 					.stream()
 					.map((mapping) -> new Viewpoints.Mapping(mapping.getMetatypeId(), mapping.getNotationElement(),
-							mapping.getDefaultWidth(), mapping.getDefaultHeight(), mapping.getVisualHint()))
-					.toList());
+							mapping.getVisualHint()))
+					.toList(),
+				(request.getSizes() == null) ? List.of()
+						: request.getSizes()
+							.stream()
+							.map((size) -> new Viewpoints.Size(size.getMetatypeId(), size.getWidth(), size.getHeight(),
+									size.getLength()))
+							.toList());
 	}
 
 	private static ViewpointConfig viewpoint(Viewpoints.Viewpoint row) {
@@ -105,14 +110,19 @@ public class ViewpointController implements ViewpointsApi {
 			.mappings(row.mappings()
 				.stream()
 				.map((mapping) -> new ViewpointMapping(mapping.metatypeId(), mapping.notationElement())
-					.defaultWidth(mapping.defaultWidth())
-					.defaultHeight(mapping.defaultHeight())
 					.visualHint(mapping.visualHint()))
+				.toList())
+			.sizes(row.sizes()
+				.stream()
+				.map((size) -> new ViewpointSize(size.metatypeId()).width(size.width())
+					.height(size.height())
+					.length(size.length()))
 				.toList())
 			.effectiveMappings(row.effectiveMappings()
 				.stream()
 				.map((mapping) -> new EffectiveViewpointMapping(mapping.metatypeId(), mapping.notationElement(),
-						mapping.defaultWidth(), mapping.defaultHeight(), mapping.visualHint(), mapping.fallback()))
+						mapping.width(), mapping.height(), mapping.length(), mapping.sizeStored(),
+						mapping.visualHint(), mapping.fallback()))
 				.toList())
 			.allowedMetatypes(row.metatypes().stream().map(ViewpointController::summary).toList())
 			.allowedRelations(row.connectionTypes().stream().map(ViewpointController::summary).toList())
