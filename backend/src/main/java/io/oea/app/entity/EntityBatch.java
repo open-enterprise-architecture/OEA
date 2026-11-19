@@ -5,8 +5,10 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.audit.AuditEvent;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
+import io.oea.core.entity.MetatypeRuleStore;
 import io.oea.core.entity.TypedValue;
 import io.oea.core.metamodel.BuiltInMetatypes;
+import io.oea.core.metamodel.MetatypeStore;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -32,7 +33,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class EntityBatch {
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeRuleStore ruleStore;
+
+	private final MetatypeStore metatypes;
 
 	private final EntityStore store;
 
@@ -48,12 +51,13 @@ public class EntityBatch {
 
 	private final EntityBlocks blocks;
 
-	public EntityBatch(JdbcTemplate jdbc, EntityStore store, EntityWriter writer, Clock clock,
+	public EntityBatch(MetatypeRuleStore ruleStore, MetatypeStore metatypes, EntityStore store, EntityWriter writer, Clock clock,
 			EntityBatchProperties properties, PlatformTransactionManager transactionManager, PropertyWriteAccess writeAccess,
 			EntityBlocks blocks) {
 		this.blocks = blocks;
 		this.writeAccess = writeAccess;
-		this.jdbc = jdbc;
+		this.ruleStore = ruleStore;
+		this.metatypes = metatypes;
 		this.store = store;
 		this.writer = writer;
 		this.clock = clock;
@@ -145,7 +149,7 @@ public class EntityBatch {
 		Map<Integer, ItemResult> duplicates = duplicates(request.entities());
 		Map<Integer, ItemResult> connectionDuplicates = duplicates(
 				request.connections().stream().map(ConnectionInput::entity).toList());
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).forWriter(PropertyWriteAccess.writer(access));
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock)).forWriter(PropertyWriteAccess.writer(access));
 		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), request.agent());
 		List<ItemResult> results = request.atomic()
 				? writeAtomically(principal, request, rules, duplicates, connectionDuplicates, context)
@@ -202,7 +206,7 @@ public class EntityBatch {
 	 */
 	public ItemResult createConnection(OeaPrincipal principal, ConnectionInput input, AuditEvent.Agent agent) {
 		PropertyAccess.Snapshot access = this.writeAccess.require(principal, List.of(input.entity()));
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).forWriter(PropertyWriteAccess.writer(access));
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock)).forWriter(PropertyWriteAccess.writer(access));
 		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), agent);
 		try {
 			return this.transaction.execute((status) -> {
@@ -362,8 +366,8 @@ public class EntityBatch {
 	}
 
 	private MetatypeName metatypeName(UUID id) {
-		return this.jdbc.queryForObject("SELECT name, abbreviation FROM metatypes WHERE id = ?",
-				(rs, n) -> new MetatypeName(id, rs.getString(1), rs.getString(2)), id);
+		MetatypeStore.NameRow row = this.metatypes.nameAndAbbreviation(id);
+		return new MetatypeName(id, row.name(), row.abbreviation());
 	}
 
 	/** An entity of an atomic batch that is valid and not yet written: a possible endpoint. */

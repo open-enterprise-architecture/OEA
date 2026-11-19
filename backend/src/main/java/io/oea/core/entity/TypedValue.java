@@ -1,5 +1,8 @@
 package io.oea.core.entity;
 
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 
 /**
@@ -51,6 +54,17 @@ public record TypedValue(String text, Long integer, Boolean bool, LocalDate date
 			return this.reference.toString();
 		}
 		return this.enumValue;
+	}
+
+	/**
+	 * The value in the six typed columns from {@code first} (text, integer, boolean, date,
+	 * reference, enumeration), in the order of {@code entity_property_values}.
+	 */
+	public static TypedValue read(ResultSet rs, int first) throws SQLException {
+		Date date = rs.getDate(first + 3);
+		return new TypedValue(rs.getString(first), rs.getObject(first + 1, Long.class),
+				rs.getObject(first + 2, Boolean.class), (date != null) ? date.toLocalDate() : null,
+				rs.getObject(first + 4, Integer.class), rs.getString(first + 5));
 	}
 
 }

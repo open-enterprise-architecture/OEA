@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiPredicate;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * The metamodel rules for writing entities, loaded once per batch (design D2): metatypes with
@@ -136,11 +135,6 @@ public final class MetatypeRules {
 			case "connection-scoped" -> entityId != null && this.restrictedWritable.test(definition.id(), entityId);
 			default -> false;
 		};
-	}
-
-	/** Loads the rules that apply on the given date. */
-	public static MetatypeRules load(JdbcTemplate jdbc, LocalDate date) {
-		return load(new MetatypeRuleStore(jdbc), date);
 	}
 
 	/** Loads the rules that apply on the given date from the store of core (ADR-051). */

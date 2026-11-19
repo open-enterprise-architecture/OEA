@@ -38,6 +38,19 @@ public class CatalogQueryStore {
 	}
 
 	/**
+	 * Whether the database cancelled the statement behind {@code ex} ({@code 57014 query_canceled}),
+	 * e.g. by its time limit; the cause chain is searched.
+	 */
+	public static boolean cancelled(Throwable ex) {
+		for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SQLException sql && "57014".equals(sql.getSQLState())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * A property shown as a column, with its data type ({@code string}, {@code integer},
 	 * {@code boolean}, {@code enum}, {@code reference}, {@code date}, {@code url} or {@code text}).
 	 */

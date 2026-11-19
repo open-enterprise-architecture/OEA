@@ -2,7 +2,11 @@ package io.oea.core.entity;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +25,39 @@ public class PropertyValueStore {
 
 	public PropertyValueStore(JdbcTemplate jdbc) {
 		this.jdbc = jdbc;
+	}
+
+	/**
+	 * A value of an entity with its property's name and data type and the label of its reference
+	 * target; the value is as stored, never redacted.
+	 */
+	public record NamedValue(UUID propertyDefId, String propertyName, String dataType, LabeledValue value) {
+	}
+
+	/**
+	 * The current values of the entities with property name, data type and reference target (the
+	 * read shared by the baseline and the diff of a solution), per entity ordered by property name
+	 * regardless of case, then by property ID; an entity without values has no key.
+	 */
+	public Map<Integer, List<NamedValue>> labeledValues(Collection<Integer> entityIds) {
+		Map<Integer, List<NamedValue>> values = new LinkedHashMap<>();
+		if (entityIds.isEmpty()) {
+			return values;
+		}
+		this.jdbc.query("""
+				SELECT v.entity_id, p.id, p.name, p.data_type, v.value_text, v.value_int, v.value_bool, v.value_date,
+				       v.value_ref, v.value_enum, r.name, rm.abbreviation
+				FROM entity_property_values v
+				JOIN property_definitions p ON p.id = v.property_def_id
+				LEFT JOIN entities r ON r.id = v.value_ref
+				LEFT JOIN metatypes rm ON rm.id = r.metatype_id
+				WHERE v.entity_id = ANY(?) ORDER BY lower(p.name), p.id""", (rs) -> {
+			TypedValue value = TypedValue.read(rs, 5);
+			values.computeIfAbsent(rs.getInt(1), (entity) -> new ArrayList<>())
+				.add(new NamedValue(rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4),
+						new LabeledValue(value, rs.getString(11), rs.getString(12))));
+		}, (Object) entityIds.toArray(Integer[]::new));
+		return values;
 	}
 
 	/**
