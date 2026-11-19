@@ -4,7 +4,7 @@
 **Story Points**: 3
 **Status**: done
 **Sprint**: S15
-**Implementation**: OpenSpec change `us-091-viewpoint-notations` – the shipped element catalog (`listNotationElements`) with the prefixes `archimate:`, `uml:` and `bpmn:` and the generic elements; the element select of the dialog on SCR-031 shows the elements of the notation and the generic ones (AC1); an element of another notation is rejected with 422 naming `mappings` (AC2); changing the notation clears the elements that no longer fit (AC3)
+**Implementation**: OpenSpec change `us-091-viewpoint-notations` – the shipped element catalog (`listNotationElements`) with the prefixes `archimate:`, `uml:` and `bpmn:` and the generic elements; the element select of the dialog on SCR-031 shows the elements of the notation and the generic ones (AC1); an element of another notation is rejected with 422 naming `mappings` (AC2); changing the notation clears the elements that no longer fit (AC3) Realigned by `s17-viewpoint-default-sizes` (owner decisions 2026-11-19): the default size in pt is stored per allowed metatype apart from the mapping (90 × 30 pt and 90 pt without one).
 
 ## Story
 

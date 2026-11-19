@@ -20,8 +20,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Migration db/migration/V41__viewpoint_notations.sql (us-091-viewpoint-notations D1): existing
- * viewpoints become generic and user-defined, the checks of notation and origin, the size and
- * hint checks of a mapping, and the cascade on a deleted metatype.
+ * viewpoints become generic and user-defined, the checks of notation and origin, the hint
+ * check of a mapping, and the cascade on a deleted metatype.
  */
 class ViewpointNotationsMigrationTests {
 
@@ -110,29 +110,12 @@ class ViewpointNotationsMigrationTests {
 	}
 
 	@ParameterizedTest
-	@CsvSource({ "1, 1, true", "2000, 2000, true", "0, 80, false", "80, 0, false", "2001, 80, false",
-			"80, 2001, false" })
-	void theSizeBoundaries(int width, int height, boolean accepted) throws SQLException {
-		String type = metatype("Size " + UUID.randomUUID());
-		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {
-			String sql = mapping(type, "archimate:Node", width, height, null);
-			if (accepted) {
-				statement.executeUpdate(sql);
-			}
-			else {
-				assertThatExceptionOfType(SQLException.class).isThrownBy(() -> statement.executeUpdate(sql))
-					.withMessageContaining("default_");
-			}
-		}
-	}
-
-	@ParameterizedTest
 	@CsvSource({ "#1a2B3c, true", "#000000, true", "red, false", "#1a2b3, false", "#1a2b3c4, false",
 			"#1a2b3g, false" })
 	void theVisualHintPattern(String hint, boolean accepted) throws SQLException {
 		String type = metatype("Hint " + UUID.randomUUID());
 		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {
-			String sql = mapping(type, "archimate:Node", null, null, hint);
+			String sql = mapping(type, "archimate:Node", hint);
 			if (accepted) {
 				statement.executeUpdate(sql);
 			}
@@ -147,9 +130,9 @@ class ViewpointNotationsMigrationTests {
 	void aMetatypeIsMappedOncePerViewpoint() throws SQLException {
 		String type = metatype("Once " + UUID.randomUUID());
 		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {
-			statement.executeUpdate(mapping(type, "archimate:Node", null, null, null));
+			statement.executeUpdate(mapping(type, "archimate:Node", null));
 			assertThatExceptionOfType(SQLException.class)
-				.isThrownBy(() -> statement.executeUpdate(mapping(type, "archimate:Device", null, null, null)))
+				.isThrownBy(() -> statement.executeUpdate(mapping(type, "archimate:Device", null)))
 				.withMessageContaining("viewpoint_mappings_pkey");
 		}
 	}
@@ -173,11 +156,10 @@ class ViewpointNotationsMigrationTests {
 				+ "'")).isEqualTo("0");
 	}
 
-	private static String mapping(String type, String element, Integer width, Integer height, String hint) {
-		return "INSERT INTO viewpoint_mappings (viewpoint_id, metatype_id, notation_element, default_width, "
-				+ "default_height, visual_hint) VALUES ('" + viewpointId + "', '" + type + "', '" + element + "', "
-				+ ((width != null) ? width : "NULL") + ", " + ((height != null) ? height : "NULL") + ", "
-				+ ((hint != null) ? "'" + hint + "'" : "NULL") + ")";
+	private static String mapping(String type, String element, String hint) {
+		return "INSERT INTO viewpoint_mappings (viewpoint_id, metatype_id, notation_element, visual_hint) VALUES ('"
+				+ viewpointId + "', '" + type + "', '" + element + "', " + ((hint != null) ? "'" + hint + "'" : "NULL")
+				+ ")";
 	}
 
 	private static String metatype(String name) throws SQLException {

@@ -39,7 +39,7 @@ Viewpoints encapsulate visual knowledge (which types, which representation, whic
 
 ## Context
 
-- Exported viewpoints contain all fields of the ViewpointDefinition including `notationMappings` with `defaultWidth`, `defaultHeight` and `notationElement`.
+- Exported viewpoints contain all fields of the ViewpointDefinition including `notationMappings` with `notationElement` and `visualHint` and the default `sizes` in pt (`width` and `height`, or `length`; since `s17-viewpoint-default-sizes`).
 - System-defined viewpoints CAN be exported but NOT imported (built-ins already exist in the target instance).
 - An imported viewpoint receives a new UUID on import if its ID already exists in the target instance (conflict handling: the user chooses cancel or rename).
 - The import path does not check the semantics of the `notationElement` values; it only ensures structural correctness (BR-07 from viewpoint.md) and ID existence.

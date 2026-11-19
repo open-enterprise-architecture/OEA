@@ -40,6 +40,8 @@ public class Viewpoints {
 
 	private static final String NOTATION = "notation";
 
+	private static final String SIZES = "sizes";
+
 	private final ViewpointStore store;
 
 	private final NotationCatalog catalog;
@@ -59,25 +61,39 @@ public class Viewpoints {
 	public record Type(UUID id, String name, String abbreviation) {
 	}
 
-	/** The notation element of an allowed metatype; size and hint may be {@code null}. */
-	public record Mapping(UUID metatypeId, String notationElement, Integer defaultWidth, Integer defaultHeight,
-			String visualHint) {
+	/** The notation element of an allowed metatype; the hint may be {@code null}. */
+	public record Mapping(UUID metatypeId, String notationElement, String visualHint) {
 
 		static Mapping of(ViewpointStore.MappingRow row) {
-			return new Mapping(row.metatypeId(), row.notationElement(), row.defaultWidth(), row.defaultHeight(),
-					row.visualHint());
+			return new Mapping(row.metatypeId(), row.notationElement(), row.visualHint());
 		}
 
 		ViewpointStore.MappingRow row() {
-			return new ViewpointStore.MappingRow(this.metatypeId, this.notationElement, this.defaultWidth,
-					this.defaultHeight, this.visualHint);
+			return new ViewpointStore.MappingRow(this.metatypeId, this.notationElement, this.visualHint);
 		}
 
 	}
 
-	/** The element an allowed metatype is rendered as: its mapping, or the generic fallback. */
-	public record EffectiveMapping(UUID metatypeId, String notationElement, int defaultWidth, int defaultHeight,
-			String visualHint, boolean fallback) {
+	/** A default size in pt: width and height of an element metatype, or the length of a connection metatype. */
+	public record Size(UUID metatypeId, Integer width, Integer height, Integer length) {
+
+		static Size of(ViewpointStore.SizeRow row) {
+			return new Size(row.metatypeId(), row.width(), row.height(), row.length());
+		}
+
+		ViewpointStore.SizeRow row() {
+			return new ViewpointStore.SizeRow(this.metatypeId, this.width, this.height, this.length);
+		}
+
+	}
+
+	/**
+	 * The element an allowed metatype is rendered as: its mapping, or the generic fallback, and its
+	 * effective size in pt: width and height of an element, the length of a connection (the other
+	 * values are {@code null}); {@code sizeStored} is false for the default.
+	 */
+	public record EffectiveMapping(UUID metatypeId, String notationElement, Integer width, Integer height,
+			Integer length, boolean sizeStored, String visualHint, boolean fallback) {
 	}
 
 	/** The package a system-defined viewpoint comes from. */
@@ -91,34 +107,39 @@ public class Viewpoints {
 	public record Viewpoint(UUID id, String name, String description, String notation, boolean systemDefined,
 			SourcePackage sourcePackage, int version, java.time.Instant createdAt, long createdById,
 			String createdByName, List<Type> metatypes, List<Type> connectionTypes, List<Mapping> mappings,
-			List<EffectiveMapping> effectiveMappings) {
+			List<Size> sizes, List<EffectiveMapping> effectiveMappings) {
 
 		static Viewpoint of(ViewpointRow row, NotationCatalog catalog) {
 			List<Mapping> mappings = row.mappings().stream().map(Mapping::of).toList();
+			List<Size> sizes = row.sizes().stream().map(Size::of).toList();
 			List<Type> metatypes = types(row.metatypes());
 			List<Type> connections = types(row.connectionTypes());
 			List<EffectiveMapping> effective = new ArrayList<>();
-			metatypes.forEach((type) -> effective.add(effective(type, mappings, catalog, false)));
-			connections.forEach((type) -> effective.add(effective(type, mappings, catalog, true)));
+			metatypes.forEach((type) -> effective.add(effective(type, mappings, sizes, false)));
+			connections.forEach((type) -> effective.add(effective(type, mappings, sizes, true)));
 			return new Viewpoint(row.id(), row.name(), row.description(), row.notation(),
 					"system-defined".equals(row.viewpointType()),
 					(row.sourcePackageId() != null) ? new SourcePackage(row.sourcePackageId(), row.sourcePackageVersion())
 							: null,
 					row.version(), row.createdAt(), row.createdById(), row.createdByName(), metatypes, connections,
-					mappings, List.copyOf(effective));
+					mappings, sizes, List.copyOf(effective));
 		}
 
-		private static EffectiveMapping effective(Type type, List<Mapping> mappings, NotationCatalog catalog,
+		private static EffectiveMapping effective(Type type, List<Mapping> mappings, List<Size> sizes,
 				boolean connection) {
 			Mapping mapping = mappings.stream().filter((m) -> m.metatypeId().equals(type.id())).findFirst().orElse(null);
+			Size size = sizes.stream().filter((s) -> s.metatypeId().equals(type.id())).findFirst().orElse(null);
 			String key = (mapping != null) ? mapping.notationElement()
 					: connection ? NotationCatalog.GENERIC_ARROW : NotationCatalog.GENERIC_BOX;
-			NotationCatalog.Element element = catalog.element(key).orElseThrow();
-			return new EffectiveMapping(type.id(), key,
-					(mapping != null && mapping.defaultWidth() != null) ? mapping.defaultWidth() : element.defaultWidth(),
-					(mapping != null && mapping.defaultHeight() != null) ? mapping.defaultHeight()
-							: element.defaultHeight(),
-					(mapping != null) ? mapping.visualHint() : null, mapping == null);
+			String hint = (mapping != null) ? mapping.visualHint() : null;
+			if (connection) {
+				return new EffectiveMapping(type.id(), key, null, null,
+						(size != null) ? size.length() : ViewpointSizes.DEFAULT_LENGTH, size != null, hint,
+						mapping == null);
+			}
+			return new EffectiveMapping(type.id(), key, (size != null) ? size.width() : ViewpointSizes.DEFAULT_WIDTH,
+					(size != null) ? size.height() : ViewpointSizes.DEFAULT_HEIGHT, null, size != null, hint,
+					mapping == null);
 		}
 
 		private static List<Type> types(List<ViewpointStore.TypeRow> rows) {
@@ -129,7 +150,7 @@ public class Viewpoints {
 
 	/** The input of a write; the contract checks the lengths and the origin is never taken from it. */
 	public record ViewpointInput(String name, String description, String notation, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds, List<Mapping> mappings) {
+			List<UUID> connectionTypeIds, List<Mapping> mappings, List<Size> sizes) {
 	}
 
 	/** All viewpoints, ordered by name. */
@@ -196,6 +217,9 @@ public class Viewpoints {
 		}
 		if (!new LinkedHashSet<>(current.mappings()).equals(new LinkedHashSet<>(fields.mappings()))) {
 			changed.add(MAPPINGS);
+		}
+		if (!new LinkedHashSet<>(current.sizes()).equals(new LinkedHashSet<>(fields.sizes()))) {
+			changed.add(SIZES);
 		}
 		this.store.update(id, fields, person, this.clock.instant());
 		audit(principal, "viewpoint.updated", id,
@@ -272,9 +296,14 @@ public class Viewpoints {
 			.ifPresent((problem) -> {
 				throw MetamodelChangeException.invalid(MAPPINGS, problem);
 			});
+		List<ViewpointStore.SizeRow> sizes = (input.sizes() == null) ? List.of()
+				: input.sizes().stream().map(Size::row).toList();
+		ViewpointSizes.problem(Set.copyOf(metatypes), Set.copyOf(connections), sizes).ifPresent((problem) -> {
+			throw MetamodelChangeException.invalid(SIZES, problem);
+		});
 		String description = (input.description() != null && !input.description().isBlank()) ? input.description()
 				: null;
-		return new ViewpointStore.Fields(name, description, notation, metatypes, connections, mappings);
+		return new ViewpointStore.Fields(name, description, notation, metatypes, connections, mappings, sizes);
 	}
 
 	private ViewpointRow row(UUID id) {

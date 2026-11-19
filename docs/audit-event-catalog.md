@@ -855,7 +855,7 @@ A viewpoint was created, edited or deleted ([US-090](../requirements/user-storie
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person with `viewpoint:manage` |
 | Target | `viewpoint`, ID of the viewpoint |
-| Details | `name` and `notation` (`generic`, `archimate3`, `uml` or `bpmn2`); for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `notation`, `metatypeIds`, `connectionTypeIds` and `mappings`. Mapping values (notation elements, sizes, visual hints) are not copied ([US-091](../requirements/user-stories/US-091-viewpoint-notation-mapping.md), [REQ-091](../requirements/req/REQ-091-viewpoint-notation-mapping.md); change us-091-viewpoint-notations D8) |
+| Details | `name` and `notation` (`generic`, `archimate3`, `uml` or `bpmn2`); for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `notation`, `metatypeIds`, `connectionTypeIds`, `mappings` and `sizes`. Mapping values (notation elements, sizes, visual hints) are not copied ([US-091](../requirements/user-stories/US-091-viewpoint-notation-mapping.md), [REQ-091](../requirements/req/REQ-091-viewpoint-notation-mapping.md); change us-091-viewpoint-notations D8) |
 
 ### `plateau.created` / `plateau.updated`
 

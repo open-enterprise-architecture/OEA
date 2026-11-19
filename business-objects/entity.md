@@ -59,7 +59,7 @@ The `entityTypeId` determines:
 
 - which **properties** the entity can and must have (PropertyDefinitions with validationMode)
 - which **notation element** is used (NotationMapping in viewpoints)
-- which **default size** applies on the canvas (NotationMapping.defaultWidth / defaultHeight)
+- which **default size** in pt applies on the canvas (ViewpointSize of the viewpoint; 90 × 30 pt for an element shape, a length of 90 pt for a connection, without a stored size)
 - whether it appears as a **node or edge** in the diagram (`isConnection`)
 - which **architecture layer** it belongs to (via `architectureLayerId` of the EntityTypeDefinition)
 

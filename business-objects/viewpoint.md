@@ -31,7 +31,7 @@ A viewpoint answers three questions:
 
 1. **What may appear in this view?** – Selection from the EntityTypes and connection types defined in the metamodel (referenced via ID)
 2. **How is it displayed?** – Choice of a notation: generic, ArchiMate 3, UML, or BPMN 2.0; per EntityType a concrete notation element (e.g. `archimate:ApplicationComponent`, `bpmn:UserTask`), else the generic fallback
-3. **In which default size?** – per EntityType a default width and height in pixels, which the canvas editor uses when inserting new elements
+3. **In which default size?** – per allowed metatype a default size in pt, which the diagram editor uses when inserting new elements: width and height for an EntityType, a length for a connection type (the distance at which a connected new element is placed from its source); without a stored size an element shape is 90 × 30 pt and a connection 90 pt long
 
 Every instance of an OEA [MetamodelConfiguration](./metamodel-configuration.md) contains a set of viewpoints, analogous to the EntityTypes and stereotypes. Some viewpoints are **system-defined** (installed by a metamodel package, read-only); others are added by the architecture team as **user-defined**.
 
@@ -94,8 +94,8 @@ MetamodelConfiguration (scope=instance)
         ├── [built-in] Application Architecture View (archimate3)
         │     allowedEntityTypes: [application-component, application-service, interface, ...]
         │     allowedConnectionTypes: [data-flow, ...]
-        │     notationMappings: [{entityTypeId: application-component, notationElement: archimate:ApplicationComponent,
-        │                          defaultWidth: 120, defaultHeight: 55}, ...]
+        │     notationMappings: [{entityTypeId: application-component, notationElement: archimate:ApplicationComponent}, ...]
+        │     sizes: [{metatypeId: application-component, width: 120, height: 45}, ...]
         ├── [built-in] Process View (bpmn2)
         │     allowedEntityTypes: [business-process, task, start-event, ...]
         │     allowedConnectionTypes: [sequence-flow, message-flow, ...]
@@ -110,9 +110,9 @@ A diagram in OEA always references exactly one viewpoint. Entities and connectio
 
 ### Notation Mappings and Default Sizes
 
-For each EntityType there is a **default mapping table** (system-defined) that maps the OEA type to the corresponding notation element and the usual default dimensions:
+For each EntityType there is a **default mapping table** (system-defined) that maps the OEA type to the corresponding notation element; the usual dimensions are recommendations only (see "Default Sizes" below):
 
-| OEA EntityType (ID) | ArchiMate 3 | UML | BPMN 2.0 | Default W×H (px) |
+| OEA EntityType (ID) | ArchiMate 3 | UML | BPMN 2.0 | Usual W×H (pt) |
 |---|---|---|---|---|
 | `application-component` | `archimate:ApplicationComponent` | `uml:Component` | – | 120 × 55 |
 | `business-process` | `archimate:BusinessProcess` | `uml:Activity` | `bpmn:Process` | 120 × 55 |
@@ -121,15 +121,19 @@ For each EntityType there is a **default mapping table** (system-defined) that m
 | `sequence-flow` (connection) | `archimate:TriggeringRelationship` | – | `bpmn:SequenceFlow` | – |
 | Custom EntityType | `archimate:ApplicationComponent` (fallback) | `uml:Class` (fallback) | `bpmn:Task` (fallback) | 120 × 55 |
 
-User-defined viewpoints can optionally store their own notation mappings for their custom EntityTypes to override the default rendering (e.g. specific ArchiMate symbols for custom types, deviating default sizes).
+User-defined viewpoints can optionally store their own notation mappings for their custom EntityTypes to override the default rendering (e.g. specific ArchiMate symbols for custom types).
 
-As implemented (us-091-viewpoint-notations), a viewpoint stores at most one mapping per allowed metatype. An allowed metatype without a mapping is rendered with the **generic fallback**: `generic:Box` for an element metatype, `generic:Arrow` for a connection metatype, with the default size of the catalog element. Reading a viewpoint returns the **effective element** per allowed metatype (the mapping or the fallback, marked as such) together with its size.
+As implemented (us-091-viewpoint-notations), a viewpoint stores at most one mapping per allowed metatype. An allowed metatype without a mapping is rendered with the **generic fallback**: `generic:Box` for an element metatype, `generic:Arrow` for a connection metatype, . Reading a viewpoint returns the **effective element** per allowed metatype (the mapping or the fallback, marked as such) together with its **effective default size** (see "Default Sizes").
+
+### Default Sizes
+
+Since `s17-viewpoint-default-sizes` (owner decisions 2026-11-19) the size is independent of the notation mapping and the element catalog. A viewpoint stores per allowed metatype an optional **ViewpointSize** in **pt**: `width` and `height` (1–2000 each, together) for an element metatype, a `length` (1–2000) for a connection metatype. Without a stored size an element shape is **90 × 30 pt** and a connection **90 pt** long, for every notation element. The effective size is returned per allowed metatype together with `sizeStored`. The sizes the element catalog used to carry are no longer defaults. Removing a metatype from the viewpoint removes its size. The migration V45 converted the sizes stored in mappings from canvas units (px at 96 dpi) to pt by `round(px × 0.75)`, at least 1.
 
 ## Notation Element Catalog
 
 Valid values for `NotationMapping.notationElement`, organized by notation standard. The prefix determines the standard (`archimate:`, `uml:`, `bpmn:`, `generic:`). The viewpoint may only use elements of its own notation or generic elements.
 
-The binding catalog is shipped with the software as the resource `notations/catalog.json` and read through `listNotationElements`; each entry has a key (at most 100 characters), the notation, a label, the kind (`element` or `relationship`) and a default width and height. It contains all elements and the eleven relationships of ArchiMate 3.2, the component and class elements of UML, the core elements of BPMN 2.0, and the generic elements. The lists below are the business overview; where they differ, the shipped catalog applies.
+The binding catalog is shipped with the software as the resource `notations/catalog.json` and read through `listNotationElements`; each entry has a key (at most 100 characters), the notation, a label and the kind (`element` or `relationship`); it carries no sizes. It contains all elements and the eleven relationships of ArchiMate 3.2, the component and class elements of UML, the core elements of BPMN 2.0, and the generic elements. The lists below are the business overview; where they differ, the shipped catalog applies.
 
 ### ArchiMate 3 – Elements (prefix `archimate:`)
 
@@ -171,9 +175,11 @@ The generic elements fit every notation and are the only elements of the notatio
 
 ---
 
-### Recommended Default Sizes by Notation Element
+### Recommended Sizes by Notation Element
 
-| Category | Example Elements | Recommendation W×H (px) |
+These sizes are recommendations for viewpoints that store sizes; they are not applied by the software (the default is 90 × 30 pt, see "Default Sizes").
+
+| Category | Example Elements | Recommendation W×H (pt) |
 |---|---|---|
 | ArchiMate box (layer elements) | `archimate:ApplicationComponent`, `archimate:BusinessProcess` | 120 × 55 |
 | ArchiMate node / device | `archimate:Node`, `archimate:Device` | 120 × 70 |
@@ -186,7 +192,7 @@ The generic elements fit every notation and are the only elements of the notatio
 | BPMN pool | `bpmn:Pool` | 600 × 150 |
 | BPMN lane | `bpmn:Lane` | 600 × 120 |
 
-The values are recommendations; every user-defined viewpoint can store deviating values per EntityType in `NotationMapping.defaultWidth`/`defaultHeight`.
+The values are recommendations; every user-defined viewpoint can store its own values per EntityType and connection type as `ViewpointSize`.
 
 ---
 
@@ -204,8 +210,9 @@ The values are recommendations; every user-defined viewpoint can store deviating
 | sourcePackage | PackageRef | optional | null | `{id, version}` of the metamodel package; set exactly when `viewpointType = system-defined` | Origin package of a system-defined viewpoint |
 | allowedEntityTypes | reference[] | required | [] | element metatypes of the instance configuration, at most 500 | EntityTypes that may be used in diagrams of this viewpoint |
 | allowedConnectionTypes | reference[] | required | [] | connection metatypes (`isConnection=true`) of the instance configuration, at most 500 | Connection types allowed as edges in diagrams of this viewpoint |
-| notationMappings | NotationMapping[] | optional | [] | at most one per allowed metatype, at most 1000 (BR-09) | Notation element, default size and visual hint per allowed metatype |
-| effectiveMappings | EffectiveMapping[] | derived | | read only; one entry per allowed metatype | The mapping, or the generic fallback with the catalog size |
+| notationMappings | NotationMapping[] | optional | [] | at most one per allowed metatype, at most 1000 (BR-09) | Notation element and visual hint per allowed metatype |
+| sizes | ViewpointSize[] | optional | [] | at most one per allowed metatype, at most 1000 (BR-09, BR-13); omitted on a write = none stored | Default size in pt per allowed metatype |
+| effectiveMappings | EffectiveMapping[] | derived | | read only; one entry per allowed metatype | The mapping, or the generic fallback, with the effective size in pt |
 | version | integer | required | 1 | >= 1; optimistic locking (`If-Match`) | Change counter |
 | createdBy | reference | required | | target: person; for a package viewpoint the importing person | Creating person |
 | createdAt | datetime | required | | ISO 8601, UTC | Time of creation |
@@ -218,9 +225,16 @@ The values are recommendations; every user-defined viewpoint can store deviating
 |---|---|---|---|
 | entityTypeId | reference | required | ID of the allowed metatype (element or connection) to which the mapping applies (`metatypeId` in the API) |
 | notationElement | string | required | Key of an element of the catalog (e.g. `archimate:ApplicationFunction`, `uml:Interface`, `bpmn:SubProcess`), at most 100 characters; prefix must match the viewpoint's `notation` or be `generic:`; an element shape for an element metatype, a relationship shape for a connection metatype |
-| defaultWidth | integer | optional | Default width in pixels that the canvas editor uses on insertion, 1–2000; empty = size of the catalog element |
-| defaultHeight | integer | optional | Default height in pixels that the canvas editor uses on insertion, 1–2000; empty = size of the catalog element |
 | visualHint | string | optional | Fill color in the form `#rrggbb` (pattern `^#[0-9a-fA-F]{6}$`); other style overrides are not supported |
+
+### ViewpointSize (value object)
+
+| Attribute | Type | Optional | Description |
+|---|---|---|---|
+| metatypeId | reference | required | ID of the allowed metatype (element or connection) the size applies to |
+| width | integer | optional | Default width in pt, 1–2000; element metatype only, together with `height` |
+| height | integer | optional | Default height in pt, 1–2000; element metatype only, together with `width` |
+| length | integer | optional | Default length in pt, 1–2000; connection metatype only: the distance at which a connected new element is placed from its source |
 
 ### EffectiveMapping (derived value object)
 
@@ -228,8 +242,10 @@ The values are recommendations; every user-defined viewpoint can store deviating
 |---|---|---|---|
 | metatypeId | reference | required | Allowed metatype |
 | notationElement | string | required | Mapped element, or `generic:Box` / `generic:Arrow` |
-| defaultWidth | integer | required | Size of the mapping, else of the catalog element |
-| defaultHeight | integer | required | Size of the mapping, else of the catalog element |
+| width | integer | optional | Effective width in pt (element metatype): the stored one, else 90 |
+| height | integer | optional | Effective height in pt (element metatype): the stored one, else 30 |
+| length | integer | optional | Effective length in pt (connection metatype): the stored one, else 90 |
+| sizeStored | boolean | required | true when the viewpoint stores the size, false for the default |
 | visualHint | string | optional | Visual hint of the mapping |
 | fallback | boolean | required | true when no mapping exists and the generic fallback applies |
 
@@ -241,6 +257,7 @@ The values are recommendations; every user-defined viewpoint can store deviating
 | allowsEntityTypes | EntityTypeDefinition (via id) | n:n | no | Which types may appear in this viewpoint |
 | allowsConnectionTypes | EntityTypeDefinition (isConnection=true, via id) | n:n | no | Which connection types may appear as edges |
 | mapsMetatypes | EntityTypeDefinition (via id) | 1:0..1000 | yes | Notation mappings per allowed metatype; removed with the viewpoint or the metatype |
+| sizesMetatypes | EntityTypeDefinition (via id) | 1:0..1000 | yes | Default sizes per allowed metatype; removed with the viewpoint or the metatype |
 | installedBy | metamodel package (via id and version) | n:0..1 | yes | Origin package of a system-defined viewpoint |
 | usedBy | Diagram[] | 1:n | yes | Diagrams that use this viewpoint |
 
@@ -256,10 +273,11 @@ The values are recommendations; every user-defined viewpoint can store deviating
 | BR-06 | A `NotationMapping.entityTypeId` MUST be contained in `allowedEntityTypes` or `allowedConnectionTypes` of this viewpoint | onCreate, onUpdate | – |
 | BR-07 | `NotationMapping.notationElement` MUST be an element of the catalog and match the prefix of the viewpoint's `notation` (archimate3 → `archimate:*`, uml → `uml:*`, bpmn2 → `bpmn:*`, generic → none) or be generic (`generic:Box` / `generic:Arrow`); an element metatype MUST map to an element shape, a connection metatype to a relationship shape | onCreate, onUpdate | – |
 | BR-08 | When importing a viewpoint, all IDs in `allowedEntityTypes` and `allowedConnectionTypes` MUST be metatypes of the package or of the instance configuration; unknown IDs are reported as validation errors (no partial import) | onImport | – |
-| BR-09 | A viewpoint MUST hold at most one mapping per metatype and at most 1000 mappings; sizes MUST be 1–2000 and a visual hint of the form `#rrggbb` | onCreate, onUpdate, onImport | – |
+| BR-09 | A viewpoint MUST hold at most one mapping per metatype and at most 1000 mappings; a visual hint MUST be of the form `#rrggbb` | onCreate, onUpdate, onImport | – |
 | BR-10 | Only the package import MUST make a viewpoint `system-defined` and set its `sourcePackage`; a viewpoint created or updated through the API is always `user-defined` without a package | onCreate, onUpdate | – |
-| BR-11 | An allowed metatype without a mapping MUST be rendered as `generic:Box` (element) or `generic:Arrow` (connection) with the default size of the catalog | onRead | – |
+| BR-11 | An allowed metatype without a mapping MUST be rendered as `generic:Box` (element) or `generic:Arrow` (connection) | onRead | – |
 | BR-12 | A package viewpoint whose ID or name (regardless of case) belongs to an organization viewpoint or to a viewpoint of another package MUST be rejected as a conflict (409); a re-import MUST only replace or remove viewpoints of the same package | onImport | – |
+| BR-13 | A `ViewpointSize` MUST name an allowed metatype once; an element metatype MUST have `width` and `height` and no `length`, a connection metatype a `length` and neither; every value MUST be 1–2000 pt; without a stored size an element metatype MUST get 90 × 30 pt and a connection metatype 90 pt, whatever the notation element | onCreate, onUpdate, onImport, onRead | – |
 
 ## Lifecycle
 
@@ -288,17 +306,21 @@ viewpoint:
   notationMappings:
     - entityTypeId: security-zone
       notationElement: archimate:TechnologyComponent
-      defaultWidth: 140
-      defaultHeight: 70
       visualHint: "#ffcccc"
     - entityTypeId: application-component
       notationElement: archimate:ApplicationComponent
-      defaultWidth: 120
-      defaultHeight: 55
     - entityTypeId: technology-component
       notationElement: archimate:TechnologyComponent
-      defaultWidth: 120
-      defaultHeight: 55
+  sizes:                   # in pt; without a size: 90 x 30 (element) or length 90 (connection)
+    - metatypeId: security-zone
+      width: 105
+      height: 53
+    - metatypeId: application-component
+      width: 90
+      height: 41
+    - metatypeId: technology-component
+      width: 90
+      height: 41
 ```
 
 **System-defined viewpoint – Application Architecture View (ArchiMate 3)**:
@@ -322,16 +344,20 @@ viewpoint:
   notationMappings:
     - entityTypeId: application-component
       notationElement: archimate:ApplicationComponent
-      defaultWidth: 120
-      defaultHeight: 55
     - entityTypeId: application-service
       notationElement: archimate:ApplicationService
-      defaultWidth: 120
-      defaultHeight: 55
     - entityTypeId: interface
       notationElement: archimate:ApplicationInterface
-      defaultWidth: 100
-      defaultHeight: 55
+  sizes:                   # in pt; without a size: 90 x 30 (element) or length 90 (connection)
+    - metatypeId: application-component
+      width: 90
+      height: 41
+    - metatypeId: application-service
+      width: 90
+      height: 41
+    - metatypeId: interface
+      width: 75
+      height: 41
 ```
 
 **BPMN viewpoint – Process View**:
@@ -359,24 +385,30 @@ viewpoint:
   notationMappings:
     - entityTypeId: user-task
       notationElement: bpmn:UserTask
-      defaultWidth: 100
-      defaultHeight: 80
     - entityTypeId: start-event
       notationElement: bpmn:StartEvent
-      defaultWidth: 36
-      defaultHeight: 36
     - entityTypeId: end-event
       notationElement: bpmn:EndEvent
-      defaultWidth: 36
-      defaultHeight: 36
     - entityTypeId: exclusive-gateway
       notationElement: bpmn:ExclusiveGateway
-      defaultWidth: 50
-      defaultHeight: 50
     - entityTypeId: pool
       notationElement: bpmn:Pool
-      defaultWidth: 600
-      defaultHeight: 150
+  sizes:                   # in pt; without a size: 90 x 30 (element) or length 90 (connection)
+    - metatypeId: user-task
+      width: 75
+      height: 60
+    - metatypeId: start-event
+      width: 27
+      height: 27
+    - metatypeId: end-event
+      width: 27
+      height: 27
+    - metatypeId: exclusive-gateway
+      width: 38
+      height: 38
+    - metatypeId: pool
+      width: 450
+      height: 113
 ```
 
 ## Delimitation
@@ -404,6 +436,7 @@ viewpoint:
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.5.0 | 2026-11-19 | Change s17-viewpoint-default-sizes | `ViewpointSize` added: a default size in pt per allowed metatype (width and height, or a length for a connection), also without a mapping, defaults 90 × 30 pt and 90 pt; the size left `NotationMapping` and the element catalog; `EffectiveMapping` carries `width`, `height`, `length` and `sizeStored`; BR-09, BR-11 revised, BR-13 added (V45) |
 | 0.4.0 | 2026-11-17 | Change us-091-viewpoint-notations | Notation `generic` added as the default; `viewpointType` and `sourcePackage` set only by the package import; notation mappings with sizes 1–2000, visual hint `#rrggbb`, at most one per metatype and 1000 per viewpoint; generic fallback and effective mappings; element catalog shipped as a resource; BR-02, BR-06 to BR-08 revised, BR-09 to BR-12 added (V41) |
 | 0.3.0 | 2026-11-17 | Change us-090-viewpoints | Generic viewpoints implemented as the table `viewpoints` with link tables to the allowed element and connection metatypes of the instance (V39), UUID IDs, `version` for optimistic locking, name unique case-insensitively, at least one metatype; `notation`, `viewpointType`, `notationMappings` and the diagram references follow with the diagrams (owner decision 2026-11-17) |
 | 0.2.0 | 2026-06-26 | Business Engineer | ID-based references (entityTypeId instead of name); defaultWidth/defaultHeight in NotationMapping; notation element catalog (ArchiMate 3, UML, BPMN 2.0); BR-07/BR-08 (prefix consistency, import validation); import/export basis through REQ-058–060 |

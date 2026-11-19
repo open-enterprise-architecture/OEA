@@ -9,7 +9,7 @@ import { ME_ARCHITECT, ME_READER, metamodelApi } from '../test/metamodel'
 // us-091-viewpoint-notations): the section "Viewpoints" of the metamodel page with the viewpoints in
 // the groups "System-defined" (read-only, from packages) and "Organization", their notations and
 // allowed entity and connection types, and the dialog to create or edit one with the notation and
-// the mapping of each type to an element (docs/screens/SCREENS.md). The first story is the screen
+// the mapping of each type to an element and the default sizes in pt (docs/screens/SCREENS.md). The first story is the screen
 // image.
 function page(me: unknown, prepare?: (api: ReturnType<typeof metamodelApi>) => void): Story {
   return {
@@ -90,7 +90,28 @@ export const NotationChange: Story = {
     const table = within(await body.findByTestId('viewpoint-mappings'))
     // the select closes and the dialog is hidden from assistive technology for a moment
     await expect(await table.findByRole('combobox', { name: 'Element of Application Component' })).toHaveTextContent('None (generic)')
-    await expect(table.getByLabelText('Width: Application Component')).toBeDisabled()
+    // the default size stays when the notation changes
+    await expect(within(await body.findByTestId('viewpoint-sizes')).getByLabelText('Width (pt): Application Component')).toHaveValue(105)
+  },
+}
+
+/** The default sizes in pt: width and height per entity type, a length per connection type, the defaults as placeholders. */
+export const DefaultSizes: Story = {
+  ...page(ME_ARCHITECT),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Edit' }))
+    const body = within(canvasElement.ownerDocument.body)
+    const table = within(await body.findByTestId('viewpoint-sizes'))
+    await expect(table.getByLabelText('Width (pt): Application Component')).toHaveValue(105)
+    await expect(table.getByLabelText('Height (pt): Application Component')).toHaveValue(45)
+    await expect(table.getByLabelText('Width (pt): Application Service')).toHaveAttribute('placeholder', '90')
+    await expect(table.getByLabelText('Height (pt): Application Service')).toHaveAttribute('placeholder', '30')
+    await expect(table.getByLabelText('Length (pt): Data Flow')).toHaveValue(120)
+    // a width without a height is marked
+    await userEvent.type(table.getByLabelText('Width (pt): Application Service'), '100')
+    await expect(await body.findByText('Enter width and height together or leave both empty.')).toBeInTheDocument()
+    await expect(body.getByRole('button', { name: 'Save' })).toBeDisabled()
   },
 }
 

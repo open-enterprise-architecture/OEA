@@ -358,7 +358,11 @@ public class PackageImporter {
 					viewpoint.mappings()
 						.stream()
 						.map((m) -> new ViewpointStore.MappingRow(m.metatypeId(), m.notationElement(),
-								m.defaultWidth(), m.defaultHeight(), m.visualHint()))
+								m.visualHint()))
+						.toList(),
+					viewpoint.sizes()
+						.stream()
+						.map((s) -> new ViewpointStore.SizeRow(s.metatypeId(), s.width(), s.height(), s.length()))
 						.toList());
 			if (this.viewpointStore.upsertSystemDefined(viewpoint.id(), fields, definition.packageId(),
 					definition.version(), principal.personId(), now)) {

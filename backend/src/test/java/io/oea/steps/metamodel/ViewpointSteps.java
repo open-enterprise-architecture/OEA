@@ -254,6 +254,108 @@ public class ViewpointSteps {
 		assertThat(json().path("sourcePackage").isNull()).isTrue();
 	}
 
+	// s17-viewpoint-default-sizes
+
+	@When("the architect stores the width {int} and height {int} for {string} in the new viewpoint {string}")
+	public void storeSize(int width, int height, String metatype, String name) throws Exception {
+		ObjectNode body = body(name + this.suffix, List.of(this.metatypes.get(metatype)), List.of());
+		body.putArray("sizes").addObject().put("metatypeId", this.metatypes.get(metatype)).put("width", width).put(
+				"height", height);
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+	}
+
+	@When("the architect stores the length {int} for {string} in the new viewpoint {string}")
+	public void storeLength(int length, String connection, String name) throws Exception {
+		ObjectNode body = body(name + this.suffix, List.of(this.metatypes.get("VP Application")),
+				List.of(this.metatypes.get(connection)));
+		body.putArray("sizes").addObject().put("metatypeId", this.metatypes.get(connection)).put("length", length);
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+	}
+
+	@When("the architect creates the viewpoint {string} with the wrong size {string}")
+	public void wrongSize(String name, String kind) throws Exception {
+		String element = this.metatypes.get("VP Application");
+		String other = this.metatypes.get("VP Data Object");
+		String flow = this.metatypes.get("VP Data Flow");
+		ObjectNode body = body(name + this.suffix, List.of(element), List.of(flow));
+		ArrayNode sizes = body.putArray("sizes");
+		switch (kind) {
+			case "length on element" -> sizes.addObject().put("metatypeId", element).put("length", 100);
+			case "width on connection" -> sizes.addObject().put("metatypeId", flow).put("width", 100);
+			case "width without height" -> sizes.addObject().put("metatypeId", element).put("width", 100);
+			case "metatype not allowed" -> sizes.addObject().put("metatypeId", other).put("width", 100).put("height", 50);
+			case "two sizes" -> {
+				sizes.addObject().put("metatypeId", element).put("width", 100).put("height", 50);
+				sizes.addObject().put("metatypeId", element).put("width", 110).put("height", 60);
+			}
+			default -> throw new IllegalArgumentException(kind);
+		}
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+	}
+
+	@Given("the viewpoint {string} allows {string} and {string} with the size {int} x {int} each")
+	public void viewpointWithSizes(String name, String first, String second, int width, int height) throws Exception {
+		ObjectNode body = body(name + this.suffix, List.of(this.metatypes.get(first), this.metatypes.get(second)),
+				List.of());
+		ArrayNode sizes = body.putArray("sizes");
+		for (String type : List.of(first, second)) {
+			sizes.addObject().put("metatypeId", this.metatypes.get(type)).put("width", width).put("height", height);
+		}
+		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(201);
+		this.viewpoints.put(name, json());
+	}
+
+	@When("the architect removes {string} from {string}")
+	public void remove(String metatype, String name) throws Exception {
+		JsonNode viewpoint = this.viewpoints.get(name);
+		List<String> types = new ArrayList<>();
+		viewpoint.path("allowedMetatypes").forEach((type) -> types.add(type.path("id").asString()));
+		types.remove(this.metatypes.get(metatype));
+		ObjectNode body = body(viewpoint.path("name").asString(), types, List.of());
+		this.response = instance().send("PUT", VIEWPOINTS + "/" + viewpoint.path("id").asString(), body.toString(),
+				architect(), Map.of("If-Match", "\"" + viewpoint.path("version").asInt() + "\""));
+	}
+
+	@Then("^the effective size of \"([^\"]*)\" is (\\d+) x (\\d+) pt and (not )?stored$")
+	public void effectiveSize(String metatype, int width, int height, String not) throws Exception {
+		JsonNode effective = effectiveOf(metatype);
+		assertThat(effective.path("width").asInt()).isEqualTo(width);
+		assertThat(effective.path("height").asInt()).isEqualTo(height);
+		assertThat(effective.path("length").isNull()).isTrue();
+		assertThat(effective.path("sizeStored").asBoolean()).isEqualTo(not == null);
+	}
+
+	@Then("^the effective length of \"([^\"]*)\" is (\\d+) pt and (not )?stored$")
+	public void effectiveLength(String metatype, int length, String not) throws Exception {
+		JsonNode effective = effectiveOf(metatype);
+		assertThat(effective.path("length").asInt()).isEqualTo(length);
+		assertThat(effective.path("width").isNull()).isTrue();
+		assertThat(effective.path("height").isNull()).isTrue();
+		assertThat(effective.path("sizeStored").asBoolean()).isEqualTo(not == null);
+	}
+
+	@Then("the viewpoint stores no size")
+	public void noSize() throws Exception {
+		assertThat(json().path("sizes")).isEmpty();
+	}
+
+	@Then("the viewpoint stores no size for {string}")
+	public void noSizeFor(String metatype) throws Exception {
+		for (JsonNode size : json().path("sizes")) {
+			assertThat(size.path("metatypeId").asString()).isNotEqualTo(this.metatypes.get(metatype));
+		}
+	}
+
+	private JsonNode effectiveOf(String metatype) throws Exception {
+		for (JsonNode mapping : json().path("effectiveMappings")) {
+			if (mapping.path("metatypeId").asString().equals(this.metatypes.get(metatype))) {
+				return mapping;
+			}
+		}
+		throw new AssertionError("no effective element of " + metatype);
+	}
+
 	private void catalogEntry(String key, String notation, String kind) throws Exception {
 		status(200);
 		for (JsonNode element : json()) {
@@ -275,6 +377,7 @@ public class ViewpointSteps {
 			.put("metatypeId", this.metatypes.get(metatype))
 			.put("notationElement", element);
 		if (width != null) {
+			// the size moved out of the mapping: the API ignores it as an unknown property
 			mapping.put("defaultWidth", width).put("defaultHeight", height);
 		}
 		this.response = instance().send("POST", VIEWPOINTS, body.toString(), architect());

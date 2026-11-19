@@ -40,8 +40,19 @@ public final class PackageValidator {
 			List<io.oea.core.metamodel.ViewpointStore.MappingRow> mappings = viewpoint.mappings()
 				.stream()
 				.map((m) -> new io.oea.core.metamodel.ViewpointStore.MappingRow(m.metatypeId(), m.notationElement(),
-						m.defaultWidth(), m.defaultHeight(), m.visualHint()))
+						m.visualHint()))
 				.toList();
+			List<io.oea.core.metamodel.ViewpointStore.SizeRow> sizes = viewpoint.sizes()
+				.stream()
+				.map((s) -> new io.oea.core.metamodel.ViewpointStore.SizeRow(s.metatypeId(), s.width(), s.height(),
+						s.length()))
+				.toList();
+			ViewpointSizes
+				.problem(Set.copyOf(viewpoint.metatypeIds()), Set.copyOf(viewpoint.connectionTypeIds()), sizes)
+				.ifPresent((problem) -> {
+					throw new InvalidPackageException("invalid-package",
+							"/viewpoints/" + index(definition, viewpoint) + "/sizes", problem);
+				});
 			ViewpointMappings
 				.problem(catalog, viewpoint.notation(), Set.copyOf(viewpoint.metatypeIds()),
 						Set.copyOf(viewpoint.connectionTypeIds()), mappings)
@@ -208,16 +219,14 @@ public final class PackageValidator {
 				require(mapping.metatypeId() != null && notBlank(mapping.notationElement())
 						&& mapping.notationElement().length() <= 100, pointer + "/mappings",
 						"A mapping needs a metatype and an element key of at most 100 characters.");
-				require(inRange(mapping.defaultWidth()) && inRange(mapping.defaultHeight()), pointer + "/mappings",
-						"A default size is between 1 and 2000.");
 				require(mapping.visualHint() == null || VISUAL_HINT.matcher(mapping.visualHint()).matches(),
 						pointer + "/mappings", "The visual hint is not of the form #rrggbb.");
 			}
+			require(viewpoint.sizes().size() <= 1000, pointer + "/sizes", "A viewpoint has at most 1000 sizes.");
+			for (PackageDefinition.ViewpointSize size : viewpoint.sizes()) {
+				require(size.metatypeId() != null, pointer + "/sizes", "A size needs a metatype.");
+			}
 		}
-	}
-
-	private static boolean inRange(Integer size) {
-		return size == null || (size >= 1 && size <= 2000);
 	}
 
 	/** Labels name only elements of the package, in a supported locale (us-140-dynamic-labels D5). */

@@ -42,7 +42,7 @@ The export contains all configurable elements of MetamodelConfiguration v0.6.0:
 - EntityTypeDefinitions (built-in + custom)
 - Stereotypes
 - ConstraintRules
-- Viewpoints (including NotationMappings with defaultWidth/defaultHeight; cf. REQ-059)
+- Viewpoints (including NotationMappings and the default sizes in pt; cf. REQ-059)
 - ArchitectureLayerDefinitions
 - ArchitectureDomainDefinitions
 - MandatoryConnectionConstraints
@@ -81,7 +81,7 @@ The exported format is the same as the import format from REQ-033, so that expor
 
 - Given: Kurt has metamodel editor permission; instance has 5 custom EntityTypes, 2 ArchitectureLayers, 3 viewpoints
 - When: Kurt exports as YAML
-- Then: Download starts; YAML contains all 5 custom EntityTypes, 2 ArchitectureLayers, 3 viewpoints with notationMappings including defaultWidth/defaultHeight
+- Then: Download starts; YAML contains all 5 custom EntityTypes, 2 ArchitectureLayers, 3 viewpoints with notationMappings and default sizes
 
 **AC2** (Export as JSON):
 

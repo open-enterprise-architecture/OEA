@@ -28,11 +28,14 @@ public record PackageDefinition(String packageId, String version, String publish
 	 * us-091-viewpoint-notations); {@code id} is its stable identity within the package.
 	 */
 	public record Viewpoint(UUID id, String name, String description, String notation, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds, List<ViewpointMapping> mappings) {
+			List<UUID> connectionTypeIds, List<ViewpointMapping> mappings, List<ViewpointSize> sizes) {
 	}
 
-	public record ViewpointMapping(UUID metatypeId, String notationElement, Integer defaultWidth,
-			Integer defaultHeight, String visualHint) {
+	public record ViewpointMapping(UUID metatypeId, String notationElement, String visualHint) {
+	}
+
+	/** The default size in pt of an allowed metatype: width and height, or the length of a connection. */
+	public record ViewpointSize(UUID metatypeId, Integer width, Integer height, Integer length) {
 	}
 
 	public record Category(UUID id, String name, String description, int sortOrder) {

@@ -2026,13 +2026,25 @@ package "Navigation & Presentation" #EDE7F6 {
     .. key of the element catalog (resource notations/catalog.json), at most 100 characters; ..
     .. prefix of the notation or generic:, element shape for an element metatype, ..
     .. relationship shape for a connection metatype (service) ..
-    + default_width    : INTEGER
-    + default_height   : INTEGER
-    .. CHECK BETWEEN 1 AND 2000; NULL = size of the catalog element ..
     + visual_hint      : TEXT
     .. CHECK visual_hint ~ '^#[0-9a-fA-F]{6}$' ..
     .. at most 1000 per viewpoint (contract); an unmapped allowed type is rendered as ..
-    .. generic:Box (element) or generic:Arrow (connection) with the catalog size ..
+    .. generic:Box (element) or generic:Arrow (connection) ..
+    .. V45: the sizes left the mapping for viewpoint_sizes ..
+  }
+
+  class viewpoint_sizes <<Table>> #D1C4E9 {
+    + viewpoint_id : UUID     {PK} {FK→viewpoints.id ON DELETE CASCADE}
+    + metatype_id  : UUID     {PK} {FK→metatypes.id ON DELETE CASCADE}
+    .. an allowed element or connection metatype of the viewpoint (service); ..
+    .. at most 1000 per viewpoint (contract) ..
+    --
+    + width_pt     : INTEGER
+    + height_pt    : INTEGER
+    + length_pt    : INTEGER
+    .. each CHECK BETWEEN 1 AND 2000; element metatype: width_pt and height_pt, ..
+    .. connection metatype: length_pt (table CHECK: both or the length) ..
+    .. without a row: 90 x 30 pt (element) or 90 pt (connection) (service) ..
   }
 
   class viewpoint_metatypes <<Table>> #D1C4E9 {
@@ -2228,6 +2240,8 @@ package "Navigation & Presentation" #EDE7F6 {
   viewpoints      "1"    --o{ "0..*" viewpoint_connection_types : allows
   viewpoints      "1"    --o{ "0..*" viewpoint_mappings         : maps
   metatypes       "1"    --o{ "0..*" viewpoint_mappings         : mapped to notation element
+  viewpoints      "1"    --o{ "0..*" viewpoint_sizes            : default size
+  metatypes       "1"    --o{ "0..*" viewpoint_sizes            : sized in pt
   metamodel_configurations "1" --o{ "0..*" viewpoint_shape_assignments : scoped to
   metatypes       "1"    --o{ "0..*" viewpoint_shape_assignments        : shape for
 
@@ -2389,6 +2403,13 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   unique index per folder and entity, index on entity_id; sort_order of
 '   folders and entries is the manual order, numbered once by name.
 '   Reason: US-094 to US-097, REQ-094 to REQ-097; owner decisions 2026-11-17.
+' 2026-11-19 (s17-viewpoint-default-sizes):
+'   V45: new viewpoint_sizes (default size per allowed metatype in pt: width_pt
+'   and height_pt for an element metatype, length_pt for a connection metatype,
+'   each 1–2000, cascading with viewpoint and metatype); the sizes stored in
+'   viewpoint_mappings (px) moved there as round(px * 0.75) and the columns
+'   default_width and default_height are dropped.
+'   Reason: UC-10, UC-12, US-091, REQ-091; owner decisions 2026-11-19.
 ' 2026-11-17 (us-091-viewpoint-notations):
 '   V41 (planned in design D1; the migration file did not exist yet when
 '   modeled): viewpoints.notation (default generic), viewpoint_type (default
