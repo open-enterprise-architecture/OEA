@@ -1451,7 +1451,9 @@
       "taller": "Eine Zeile höher",
       "error": {
         "catalog-not-found": "Katalog nicht gefunden",
-        "view-not-found": "Gespeicherte Ansicht nicht gefunden"
+        "view-not-found": "Gespeicherte Ansicht nicht gefunden",
+        "restricted": "Die Werte dieser Eigenschaft sind nicht für alle Elemente lesbar, daher wird kein Aggregat angezeigt.",
+        "invalid-configuration": "Das Widget passt nicht mehr zum Metamodell. Bearbeite oder entferne es."
       },
       "noData": "Keine Daten",
       "noRows": "Keine Zeilen",
@@ -1459,7 +1461,26 @@
       "restrictedColumn": "Du darfst die Werte dieser Spalte nicht sehen.",
       "loadingPage": "Lädt …",
       "pageFailed": "Die Seite konnte nicht geladen werden.",
-      "tableRegion": "Tabellenzeilen"
+      "tableRegion": "Tabellenzeilen",
+      "kpi": {
+        "noData": "– (keine Daten)",
+        "target": "Ziel: {target}",
+        "above": "{difference} über dem Ziel",
+        "below": "{difference} unter dem Ziel",
+        "onTarget": "Ziel erreicht",
+        "summary": "{title}: {value}"
+      },
+      "chart": {
+        "none": "(keine)",
+        "other": "Andere",
+        "yes": "Ja",
+        "no": "Nein",
+        "region": "Diagramm {title}",
+        "tableCaption": "Daten des Diagramms {title}",
+        "group": "Gruppe",
+        "value": "Wert",
+        "noGroups": "Keine Gruppen anzuzeigen"
+      }
     },
     "shareRejected": "Ein Dashboard mit einem Widget auf einem persönlichen Katalog kann nicht geteilt werden."
   },
@@ -1491,10 +1512,60 @@
       "catalogId": "Wähle einen Katalog.",
       "savedViewId": "Die gespeicherte Ansicht gehört nicht zum Katalog.",
       "pageSize": "Die Seitengröße muss 5 bis 100 betragen.",
-      "type": "Dieser Widget-Typ wird noch nicht unterstützt.",
+      "type": "Dieser Widget-Typ kann hier nicht verwendet werden.",
       "widgets": "Ein Dashboard hat höchstens 50 Widgets.",
       "position": "Das Widget passt nicht in das Raster.",
-      "width": "Das Widget überschreitet die Rasterbreite"
-    }
+      "width": "Das Widget überschreitet die Rasterbreite",
+      "metatypeId": "Wähle einen Elementtyp, oder alle Elementtypen für eine Anzahl.",
+      "propertyDefId": "Wähle eine Eigenschaft, die zur Funktion passt.",
+      "function": "Die Funktion braucht eine Zahleneigenschaft.",
+      "groupBy": "Wähle eine Gruppierung, die zum Elementtyp passt.",
+      "unit": "Die Einheit darf höchstens 20 Zeichen haben.",
+      "targetValue": "Gib einen Zielwert ein.",
+      "chartType": "Wähle einen Diagrammtyp.",
+      "comparison": "Dieser Vergleich wird nicht unterstützt.",
+      "aggregation": "Vervollständige die Aggregation."
+    },
+    "kpi": "KPI",
+    "kpiHint": "Ein aggregierter Wert",
+    "chart": "Diagramm",
+    "chartHint": "Eine Aggregation als Balken, Linien oder Segmente",
+    "metatype": "Elementtyp",
+    "allElementTypes": "Alle Elementtypen",
+    "metatypePlaceholder": "Elementtyp wählen",
+    "function": "Funktion",
+    "functions": {
+      "count": "Anzahl",
+      "sum": "Summe",
+      "avg": "Durchschnitt",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "property": "Eigenschaft",
+    "noProperty": "Die Elemente selbst",
+    "propertyHelp": "Summe, Durchschnitt, Minimum und Maximum brauchen eine Zahleneigenschaft",
+    "groupBy": "Gruppieren nach",
+    "groupMetatype": "Elementtyp",
+    "groupLayer": "Architekturebene",
+    "groupPlaceholder": "Gruppierung wählen",
+    "groupProperty": "Eigenschaft: {name}",
+    "unit": "Einheit",
+    "unitHelp": "Optional, bis zu 20 Zeichen",
+    "comparison": "Vergleich",
+    "comparisonNone": "Keiner",
+    "comparisonTarget": "Mit Zielwert",
+    "targetValue": "Zielwert",
+    "chartType": "Diagrammtyp",
+    "chartTypes": {
+      "bar": "Balken",
+      "line": "Linie",
+      "area": "Fläche",
+      "pie": "Kreis",
+      "donut": "Ring",
+      "treemap": "Treemap"
+    },
+    "showLegend": "Legende anzeigen",
+    "showDataLabels": "Datenbeschriftungen anzeigen",
+    "metamodelFailed": "Die Elementtypen konnten nicht geladen werden."
   }
 }

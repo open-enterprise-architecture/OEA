@@ -4,16 +4,17 @@
 
 OEA ships the third-party components listed below. Each component remains under its own license, which grants its rights directly to every recipient; neither the AGPL-3.0 nor the Enterprise license of OEA extends to them (see [NOTICE](NOTICE)). Only permissive licenses and weak-copyleft licenses of unmodified libraries are allowed for distributed components ([ADR-043](adrs/ADR-043-third-party-license-policy.md)); for a component offered under several licenses, OEA uses it under the license named in the column *License*.
 
-License texts and notices: the backend jar contains the license and notice files of its libraries (`BOOT-INF/lib`); the frontend ships the license texts of its bundled packages as `third-party-licenses.txt`. The source code of the weak-copyleft components is available from the projects listed.
+License texts and notices: the backend jar contains the license and notice files of its libraries (`BOOT-INF/lib`); the frontend ships the license texts and the `NOTICE` files of its bundled packages as `third-party-licenses.txt`. The source code of the weak-copyleft components is available from the projects listed.
 
 ## Summary
 
 | License | Components |
 |---|---|
 | MIT | 43 |
-| Apache-2.0 | 97 |
-| BSD-3-Clause | 10 |
+| Apache-2.0 | 98 |
+| BSD-3-Clause | 11 |
 | BSD-2-Clause | 3 |
+| 0BSD | 1 |
 | EPL-2.0 | 5 |
 
 ## Backend Runtime Libraries (116)
@@ -137,7 +138,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (42)
+## Frontend Bundle (45)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -166,6 +167,7 @@ License texts and notices: the backend jar contains the license and notice files
 | aria-hidden (`aria-hidden`) | 1.2.6 | MIT | – | <https://github.com/theKashey/aria-hidden> |
 | defu (`defu`) | 6.1.7 | MIT | – | unjs/defu |
 | dompurify (`dompurify`) | 3.4.18 | Apache-2.0 | MPL-2.0 | git://github.com/cure53/DOMPurify |
+| echarts (`echarts`) | 6.1.0 | Apache-2.0 | – | <https://github.com/apache/echarts> |
 | entities (`entities`) | 8.1.0 | BSD-2-Clause | – | <https://github.com/fb55/entities> |
 | hookable (`hookable`) | 6.1.2 | MIT | – | unjs/hookable |
 | linkify-it (`linkify-it`) | 6.1.0 | MIT | – | <https://github.com/markdown-it/linkify-it> |
@@ -177,12 +179,14 @@ License texts and notices: the backend jar contains the license and notice files
 | scule (`scule`) | 1.3.0 | MIT | – | unjs/scule |
 | tailwind-variants (`tailwind-variants`) | 3.3.1 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
 | tailwindcss (`tailwindcss`) | 4.3.5 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
+| tslib (`tslib`) | 2.3.0 | 0BSD | – | <https://github.com/Microsoft/tslib> |
 | uc.micro (`uc.micro`) | 3.0.0 | MIT | – | markdown-it/uc.micro |
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
 | vue-i18n (`vue-i18n`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | vue-router (`vue-router`) | 5.5.1 | MIT | – | <https://github.com/vuejs/router> |
+| zrender (`zrender`) | 6.1.0 | BSD-3-Clause | – | <https://github.com/ecomfe/zrender> |
 
 ## Runtime Environment (Container Base Images)
 

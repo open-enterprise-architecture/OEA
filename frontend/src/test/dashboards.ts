@@ -1,4 +1,5 @@
-import type { DashboardConfig, DashboardSummary, WidgetConfig, WidgetData, WidgetWrite } from '../api/dashboards'
+import type { DashboardConfig, DashboardSummary, WidgetConfig, WidgetData, WidgetSeriesEntry, WidgetWrite } from '../api/dashboards'
+import type { MetatypeDetail, PropertyDefinitionDetail } from '../api/metamodel'
 import { CATALOG, CATALOGS, COMPACT_VIEW } from './catalogs'
 import type { RecordedRequest } from './fetch'
 
@@ -56,6 +57,194 @@ export const BROKEN_WIDGET: WidgetConfig = {
   config: { catalogId: 'c0000000-0000-4000-8000-0000000000ff', pageSize: PAGE_SIZE },
 }
 
+export const APPLICATION_ID = 'e0000000-0000-4000-8000-000000000001'
+export const INVESTMENT_ID = 'f0000000-0000-4000-8000-000000000001'
+export const PLATEAU_ID = 'f0000000-0000-4000-8000-000000000002'
+export const VENDOR_ID = 'f0000000-0000-4000-8000-000000000003'
+export const GO_LIVE_ID = 'f0000000-0000-4000-8000-000000000004'
+export const CRITICAL_ID = 'f0000000-0000-4000-8000-000000000005'
+const P1_ID = '10000000-0000-4000-8000-000000000001'
+const P2_ID = '10000000-0000-4000-8000-000000000002'
+const P3_ID = '10000000-0000-4000-8000-000000000003'
+
+function property(id: string, name: string, dataType: PropertyDefinitionDetail['dataType'], extra: Partial<PropertyDefinitionDetail> = {}): PropertyDefinitionDetail {
+  return { id, name, dataType, ...extra }
+}
+
+const PROPERTIES: PropertyDefinitionDetail[] = [
+  property(INVESTMENT_ID, 'Investment', 'integer'),
+  property(PLATEAU_ID, 'Plateau', 'enum', {
+    enumValues: [
+      { id: P1_ID, value: 'P1', sortOrder: 1 },
+      { id: P2_ID, value: 'P2', sortOrder: 2 },
+      { id: P3_ID, value: 'P3', sortOrder: 3 },
+    ],
+  }),
+  property(VENDOR_ID, 'Vendor', 'string'),
+  property(GO_LIVE_ID, 'Go live', 'date'),
+  property(CRITICAL_ID, 'Critical', 'boolean'),
+]
+
+/** The element types of the fake metamodel: applications with five mapped properties, a data object, and a connection type. */
+export const METATYPES: MetatypeDetail[] = [
+  {
+    id: APPLICATION_ID,
+    name: 'Application Component',
+    abbreviation: 'AC',
+    isConnection: false,
+    propertyMappings: PROPERTIES.map((propertyDefinition, index) => ({
+      id: `20000000-0000-4000-8000-00000000000${index + 1}`,
+      propertyDefinition,
+      necessity: 'optional' as const,
+      validFrom: '2026-01-01',
+      sortOrder: index,
+    })),
+  },
+  { id: 'e0000000-0000-4000-8000-000000000002', name: 'Data Object', abbreviation: 'DO', isConnection: false, propertyMappings: [] },
+  { id: 'e0000000-0000-4000-8000-000000000003', name: 'Information Flow', abbreviation: 'IF', isConnection: true, propertyMappings: [] },
+]
+
+const AGGREGATION_SUM = { metatypeId: APPLICATION_ID, propertyDefId: INVESTMENT_ID, function: 'sum' as const }
+
+export const KPI_WIDGET: WidgetConfig = {
+  id: 'a0000000-0000-4000-8000-000000000011',
+  type: 'kpi',
+  title: 'Total Investment',
+  position: position(1, 1, 4, 2),
+  config: { dataSource: 'property-aggregation', aggregation: AGGREGATION_SUM, unit: 'CHF', comparison: 'vs-target', targetValue: 50000000 },
+}
+
+export const KPI_NO_DATA_WIDGET: WidgetConfig = {
+  id: 'a0000000-0000-4000-8000-000000000012',
+  type: 'kpi',
+  title: 'Average Investment',
+  position: position(5, 1, 4, 2),
+  config: { dataSource: 'property-aggregation', aggregation: { ...AGGREGATION_SUM, function: 'avg' }, unit: 'CHF', comparison: 'none' },
+}
+
+export const BAR_WIDGET: WidgetConfig = {
+  id: 'a0000000-0000-4000-8000-000000000013',
+  type: 'chart',
+  title: 'Investment per Plateau',
+  position: position(1, 3, 6, 3),
+  config: {
+    dataSource: 'property-aggregation',
+    aggregation: { ...AGGREGATION_SUM, groupBy: { kind: 'property', propertyDefId: PLATEAU_ID } },
+    chartType: 'bar',
+    unit: 'CHF',
+    showLegend: true,
+    showDataLabels: true,
+  },
+}
+
+export const PIE_WIDGET: WidgetConfig = {
+  id: 'a0000000-0000-4000-8000-000000000014',
+  type: 'chart',
+  title: 'Entities per Layer',
+  position: position(7, 3, 6, 3),
+  config: {
+    dataSource: 'property-aggregation',
+    aggregation: { metatypeId: null, propertyDefId: null, function: 'count', groupBy: { kind: 'layer' } },
+    chartType: 'pie',
+    showLegend: true,
+    showDataLabels: false,
+  },
+}
+
+export const TREEMAP_WIDGET: WidgetConfig = {
+  ...PIE_WIDGET,
+  id: 'a0000000-0000-4000-8000-000000000015',
+  title: 'Applications per Vendor',
+  config: {
+    dataSource: 'property-aggregation',
+    aggregation: { metatypeId: APPLICATION_ID, propertyDefId: null, function: 'count', groupBy: { kind: 'property', propertyDefId: VENDOR_ID } },
+    chartType: 'treemap',
+    showLegend: false,
+    showDataLabels: true,
+  },
+}
+
+export const DONUT_WIDGET: WidgetConfig = {
+  ...PIE_WIDGET,
+  id: 'a0000000-0000-4000-8000-000000000016',
+  title: 'Critical Applications',
+  config: {
+    dataSource: 'property-aggregation',
+    aggregation: { metatypeId: APPLICATION_ID, propertyDefId: null, function: 'count', groupBy: { kind: 'property', propertyDefId: CRITICAL_ID } },
+    chartType: 'donut',
+    showLegend: true,
+    showDataLabels: true,
+  },
+}
+
+export const RESTRICTED_WIDGET: WidgetConfig = {
+  ...KPI_WIDGET,
+  id: 'a0000000-0000-4000-8000-000000000017',
+  title: 'Investment (restricted)',
+  position: position(9, 1, 4, 2),
+  config: { ...KPI_WIDGET.config, comparison: 'none' },
+}
+
+export const INVALID_WIDGET: WidgetConfig = {
+  ...BAR_WIDGET,
+  id: 'a0000000-0000-4000-8000-000000000018',
+  title: 'Investment per Vendor',
+  position: position(1, 6, 6, 3),
+}
+
+const PLATEAU_SERIES: WidgetSeriesEntry[] = [
+  { kind: 'value', key: 'P3', label: 'P3', labelKey: `enum-value.${P3_ID}.label`, value: 25000000 },
+  { kind: 'value', key: 'P2', label: 'P2', labelKey: `enum-value.${P2_ID}.label`, value: 12000000 },
+  { kind: 'value', key: 'P1', label: 'P1', labelKey: `enum-value.${P1_ID}.label`, value: 5000000 },
+  { kind: 'none', value: 1000000 },
+]
+
+const LAYER_SERIES: WidgetSeriesEntry[] = [
+  { kind: 'value', key: 'l1', label: 'Application', labelKey: 'architecture-layer.l1.name', value: 20 },
+  { kind: 'value', key: 'l2', label: 'Business', labelKey: 'architecture-layer.l2.name', value: 20 },
+  { kind: 'value', key: 'l3', label: 'Technology', labelKey: 'architecture-layer.l3.name', value: 10 },
+]
+
+const VENDOR_SERIES: WidgetSeriesEntry[] = [
+  { kind: 'value', key: 'SAP', label: 'SAP', value: 9 },
+  { kind: 'value', key: 'Oracle', label: 'Oracle', value: 6 },
+  { kind: 'value', key: 'Microsoft', label: 'Microsoft', value: 4 },
+  { kind: 'none', value: 3 },
+  { kind: 'other', value: 2 },
+]
+
+const CRITICAL_SERIES: WidgetSeriesEntry[] = [
+  { kind: 'true', value: 7 },
+  { kind: 'false', value: 15 },
+]
+
+/** The data of a KPI or chart widget of the fakes; `restricted` shows the error of a property the reader may not aggregate. */
+function aggregationData(widget: WidgetConfig, restricted: boolean): WidgetData {
+  const base = { widgetId: widget.id, type: widget.type }
+  if (widget.id === INVALID_WIDGET.id) {
+    return { ...base, status: 'error', error: { code: 'invalid-configuration', message: 'The configuration no longer fits the metamodel' } }
+  }
+  if (widget.id === RESTRICTED_WIDGET.id || (restricted && widget.config.aggregation?.propertyDefId === INVESTMENT_ID)) {
+    return { ...base, status: 'error', error: { code: 'restricted', message: 'The values are not readable for every entity' } }
+  }
+  switch (widget.id) {
+    case KPI_WIDGET.id:
+      return { ...base, status: 'ok', value: 42000000, target: 50000000 }
+    case KPI_NO_DATA_WIDGET.id:
+      return { ...base, status: 'ok', value: null }
+    case BAR_WIDGET.id:
+      return { ...base, status: 'ok', series: PLATEAU_SERIES }
+    case PIE_WIDGET.id:
+      return { ...base, status: 'ok', series: LAYER_SERIES }
+    case TREEMAP_WIDGET.id:
+      return { ...base, status: 'ok', series: VENDOR_SERIES }
+    case DONUT_WIDGET.id:
+      return { ...base, status: 'ok', series: CRITICAL_SERIES }
+    default:
+      return widget.type === 'kpi' ? { ...base, status: 'ok', value: 0 } : { ...base, status: 'ok', series: [] }
+  }
+}
+
 export function dashboard(overrides: Partial<DashboardConfig> = {}): DashboardConfig {
   return {
     id: GRID_DASHBOARD_ID,
@@ -76,6 +265,19 @@ export const DASHBOARD_WITH_ERROR = dashboard({ version: 5, widgets: [TEXT_WIDGE
 export const OVERLAPPING_DASHBOARD = dashboard({
   version: 6,
   widgets: [TEXT_WIDGET, { ...TABLE_WIDGET, position: position(3, 1, 8, 3) }],
+})
+export const KPI_AND_CHARTS_DASHBOARD = dashboard({
+  version: 8,
+  widgets: [
+    KPI_WIDGET,
+    KPI_NO_DATA_WIDGET,
+    RESTRICTED_WIDGET,
+    BAR_WIDGET,
+    PIE_WIDGET,
+    { ...TREEMAP_WIDGET, position: position(1, 6, 6, 3) },
+    { ...DONUT_WIDGET, position: position(7, 6, 6, 3) },
+    { ...INVALID_WIDGET, position: position(1, 9, 6, 2) },
+  ],
 })
 export const PERSONAL_DASHBOARD = dashboard({
   id: 'd0000000-0000-4000-8000-000000000002',
@@ -125,6 +327,9 @@ export function tablePage(page: number, restricted = false): WidgetData['table']
 export function widgetData(widget: WidgetConfig, page = 0, restricted = false): WidgetData {
   if (widget.type === 'text') {
     return { widgetId: widget.id, type: 'text', status: 'static' }
+  }
+  if (widget.type === 'kpi' || widget.type === 'chart') {
+    return aggregationData(widget, restricted)
   }
   if (widget.id === BROKEN_WIDGET.id) {
     return { widgetId: widget.id, type: 'table', status: 'error', error: { code: 'catalog-not-found', message: 'Catalog not found' } }
@@ -184,6 +389,9 @@ export function dashboardApi(options: DashboardApiOptions): typeof fetch & { sta
 
     if (path === '/api/v1/me') {
       return respond(200, options.me)
+    }
+    if (path === '/api/v1/metamodel/metatypes' && method === 'GET') {
+      return respond(200, METATYPES)
     }
     if (path === '/api/v1/catalogs' && method === 'GET') {
       return respond(200, CATALOGS)

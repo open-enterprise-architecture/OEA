@@ -9,7 +9,9 @@ import {
   dashboardApi,
   DASHBOARD_WITH_ERROR,
   EMPTY_DASHBOARD,
+  APPLICATION_ID,
   FILLED_DASHBOARD,
+  KPI_AND_CHARTS_DASHBOARD,
   ME_ADMIN,
   ME_MANAGER,
   ME_READER,
@@ -22,6 +24,12 @@ import {
 import type { RecordedRequest } from '../test/fetch'
 import { testRouter } from '../test/router'
 import DashboardPage from './DashboardPage.vue'
+
+// ECharts draws in the browser; the stories show the charts. Here only what the page hands over.
+vi.mock('../dashboard/chartRuntime', () => ({
+  createChart: () => ({ setOption: () => undefined, resize: () => undefined, dispose: () => undefined }),
+  encodeHTML: (text: string) => text,
+}))
 
 async function mountPage(me: unknown, config: DashboardConfig, options: Partial<DashboardApiOptions> = {}) {
   const router = testRouter()
@@ -261,6 +269,59 @@ describe('DashboardPage', () => {
     ])
     expect(wrapper.text()).toContain('Roadmap notes')
     expect(wrapper.findComponent(WidgetDialog).exists()).toBe(false)
+  })
+
+  // spec dashboard/widgets "KPI widget", "Chart widget", "Aggregates respect visibility" (US-056, US-057)
+  it('shows KPI and chart widgets with their data, and the errors of a widget that cannot be shown', async () => {
+    const { wrapper } = await mountPage(ME_READER, { ...KPI_AND_CHARTS_DASHBOARD, canEdit: false })
+    const section = (title: string) => wrapper.get(`[data-widget-title="${title}"]`)
+    expect(section('Total Investment').get('[data-testid="kpi-value"]').text()).toBe('42,000,000 CHF')
+    expect(section('Total Investment').get('[data-testid="kpi-trend"]').text()).toBe('8,000,000 CHF below the target')
+    expect(section('Average Investment').get('[data-testid="kpi-no-data"]').text()).toBe('– (no data)')
+    expect(section('Investment (restricted)').get('[data-testid="widget-error"]').text()).toContain('not readable for every entity')
+    expect(section('Investment per Vendor').get('[data-testid="widget-error"]').text()).toContain('no longer fits the metamodel')
+    const cells = (title: string) =>
+      section(title)
+        .findAll('[data-testid="chart-table"] tbody tr')
+        .map((row) => row.findAll('td').map((cell) => cell.text()))
+    expect(cells('Investment per Plateau')).toEqual([
+      ['P3', '25,000,000 CHF'],
+      ['P2', '12,000,000 CHF'],
+      ['P1', '5,000,000 CHF'],
+      ['(none)', '1,000,000 CHF'],
+    ])
+    expect(cells('Critical Applications')).toEqual([
+      ['Yes', '7'],
+      ['No', '15'],
+    ])
+  })
+
+  it.each([
+    ['kpi', { width: 4, height: 2 }],
+    ['chart', { width: 6, height: 3 }],
+  ] as const)('places a new %s widget with its own size', async (kind, size) => {
+    const { wrapper, recorded } = await mountPage(ME_MANAGER, FILLED_DASHBOARD)
+    await edit(wrapper)
+    await wrapper.get('[data-testid="add-widget"]').trigger('click')
+    await flushPromises()
+    const dialog = wrapper.findComponent(WidgetDialog)
+    await dialog.get(`[data-testid="widget-type"] [value="${kind}"]`).trigger('click')
+    await flushPromises()
+    await dialog.get('input[data-testid="widget-title"]').setValue('Figures')
+    const choose = async (testid: string, value: string) => {
+      dialog.findAllComponents({ name: 'Select' }).find((component) => component.vm.$attrs['data-testid'] === testid)!.vm.$emit('update:modelValue', value)
+      await flushPromises()
+    }
+    await choose('widget-metatype', APPLICATION_ID)
+    if (kind === 'chart') {
+      await choose('widget-group-by', 'metatype')
+    }
+    await dialog.get('form').trigger('submit')
+    await flushPromises()
+    const posted = writes(recorded)[0]!
+    expect(posted.method).toBe('POST')
+    expect(posted.body.type).toBe(kind)
+    expect(posted.body.position).toEqual({ col: 1, row: 4, ...size })
   })
 
   it('keeps the widget dialog open and names the field of a rejection', async () => {

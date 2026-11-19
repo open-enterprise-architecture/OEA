@@ -157,6 +157,17 @@ public class PropertyAccess {
 			return this.override || allowed(propertyDefId, false);
 		}
 
+		/**
+		 * Whether the principal may read the values of the property for every entity, as an
+		 * aggregate needs it (design D4 of us-056-kpi-and-chart-widgets): the property is public,
+		 * or role-restricted with a read role. A {@code connection-scoped} property is never
+		 * readable completely, with an account link or not, and an override role does not change
+		 * that, because an aggregate is no audited read of values.
+		 */
+		public boolean readableCompletely(UUID propertyDefId) {
+			return allowed(propertyDefId, false);
+		}
+
 		/** Whether the principal may write the values of the property. */
 		public boolean writable(UUID propertyDefId) {
 			return allowed(propertyDefId, true);

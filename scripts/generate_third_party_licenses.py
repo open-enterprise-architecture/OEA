@@ -125,13 +125,14 @@ def backend_components(report: Path) -> list[Component]:
 
 
 def frontend_components(manifest: Path) -> list[Component]:
-    components = []
+    components = {}
     for package in json.loads(manifest.read_text(encoding="utf-8")):
         expression = package["license"].strip("()")
         licenses = tuple(spdx(part) for part in re.split(r"\s+OR\s+", expression))
-        components.append(Component(package["name"], package["name"], package["version"], licenses,
-                                    package.get("repository", "")))
-    return sorted(components, key=lambda c: (c.coordinates, c.version))
+        # one package can be installed in several places of node_modules; it is listed once per version
+        components[(package["name"], package["version"])] = Component(
+            package["name"], package["name"], package["version"], licenses, package.get("repository", ""))
+    return sorted(components.values(), key=lambda c: (c.coordinates, c.version))
 
 
 def base_images() -> list[tuple[str, str, str]]:
@@ -175,8 +176,8 @@ def render(backend: list[Component], frontend: list[Component], images: list[tup
         " licenses, OEA uses it under the license named in the column *License*.",
         "",
         "License texts and notices: the backend jar contains the license and notice files of its libraries"
-        " (`BOOT-INF/lib`); the frontend ships the license texts of its bundled packages as"
-        " `third-party-licenses.txt`. The source code of the weak-copyleft components is available from the"
+        " (`BOOT-INF/lib`); the frontend ships the license texts and the `NOTICE` files of its bundled"
+        " packages as `third-party-licenses.txt`. The source code of the weak-copyleft components is available from the"
         " projects listed.",
         "",
         "## Summary",

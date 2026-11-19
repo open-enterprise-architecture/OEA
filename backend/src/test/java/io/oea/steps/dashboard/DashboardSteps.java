@@ -416,6 +416,136 @@ public class DashboardSteps {
 		assertThat(found).isTrue();
 	}
 
+	// ---- KPI and chart widgets (us-056-kpi-and-chart-widgets)
+
+	/**
+	 * Adds a KPI or chart widget described by one row: {@code type}, {@code title}, {@code metatype},
+	 * {@code property}, {@code function}, {@code groupBy} ({@code property:Name}, {@code metatype} or
+	 * {@code layer}), {@code unit}, {@code comparison}, {@code target} and {@code chartType}; an empty
+	 * cell leaves the field out.
+	 */
+	@When("the {role} adds this widget to the dashboard {string}:")
+	public void addAggregation(Session session, String dashboard, DataTable table) throws Exception {
+		Map<String, String> row = table.asMaps().get(0);
+		boolean chart = "chart".equals(row.get("type"));
+		ObjectNode body = JsonMapper.shared().createObjectNode().put("type", row.get("type")).put("title", row.get("title"));
+		body.putObject("position").put("col", 1).put("row", nextRow(dashboard)).put("width", 6).put("height", 2);
+		ObjectNode config = body.putObject("config");
+		ObjectNode aggregation = config.putObject("aggregation").put("function", row.get("function"));
+		put(aggregation, "metatypeId", lookup("metatypes", row.get("metatype")));
+		put(aggregation, "propertyDefId", lookup("property_definitions", row.get("property")));
+		String groupBy = row.get("groupBy");
+		if (groupBy != null && !groupBy.isEmpty()) {
+			String[] parts = groupBy.split(":", 2);
+			ObjectNode group = aggregation.putObject("groupBy").put("kind", parts[0]);
+			if (parts.length > 1) {
+				put(group, "propertyDefId", lookup("property_definitions", parts[1]));
+			}
+		}
+		if (row.get("unit") != null && !row.get("unit").isEmpty()) {
+			config.put("unit", row.get("unit"));
+		}
+		if (row.get("comparison") != null && !row.get("comparison").isEmpty()) {
+			config.put("comparison", row.get("comparison"));
+		}
+		if (row.get("target") != null && !row.get("target").isEmpty()) {
+			config.put("targetValue", Double.parseDouble(row.get("target")));
+		}
+		if (chart || (row.get("chartType") != null && !row.get("chartType").isEmpty())) {
+			config.put("chartType", row.get("chartType"));
+		}
+		this.response = post(session, dashboard, body);
+	}
+
+	@Then("the widget {string} of the dashboard {string} has the unit {string}")
+	public void hasUnit(String title, String dashboard, String unit) throws Exception {
+		JsonNode reloaded = JsonMapper.shared()
+			.readTree(instance().oidc().get(VIEWS + "/" + id(dashboard), instance().architect().token()).body());
+		for (JsonNode widget : reloaded.path("widgets")) {
+			if (widget.path("title").asString().equals(title)) {
+				assertThat(widget.path("config").path("unit").asString()).isEqualTo(unit);
+				return;
+			}
+		}
+		throw new AssertionError("no widget " + title);
+	}
+
+	@Then("the widget {string} has the value {double}")
+	public void value(String title, double value) throws Exception {
+		assertThat(widgetData(title).path("status").asString()).isEqualTo("ok");
+		assertThat(widgetData(title).path("value").asDouble()).isEqualTo(value);
+	}
+
+	@Then("the widget {string} has no value")
+	public void noValue(String title) throws Exception {
+		assertThat(widgetData(title).path("status").asString()).isEqualTo("ok");
+		assertThat(widgetData(title).path("value").isNull()).isTrue();
+	}
+
+	@Then("the widget {string} has the target {double}")
+	public void target(String title, double target) throws Exception {
+		assertThat(widgetData(title).path("target").asDouble()).isEqualTo(target);
+	}
+
+	/** The groups in order; the names of {@code none}, {@code other}, {@code true} and {@code false} are those of the client. */
+	@Then("the widget {string} shows the groups:")
+	public void groups(String title, DataTable table) throws Exception {
+		List<String> expected = new ArrayList<>();
+		table.asMaps().forEach((row) -> expected.add(row.get("label") + "=" + row.get("value")));
+		assertThat(groupsOf(title)).containsExactlyElementsOf(expected);
+	}
+
+	@Then("the widget {string} shows {int} groups, the last one named {string} with the value {int}")
+	public void lastGroup(String title, int count, String name, int value) throws Exception {
+		List<String> groups = groupsOf(title);
+		assertThat(groups).hasSize(count);
+		assertThat(groups.get(count - 1)).isEqualTo(name + "=" + value);
+	}
+
+	@Then("the widget {string} shows {int} groups without {string}")
+	public void groupCount(String title, int count, String name) throws Exception {
+		List<String> groups = groupsOf(title);
+		assertThat(groups).hasSize(count);
+		assertThat(groups).noneMatch((group) -> group.startsWith(name + "="));
+	}
+
+	@Then("the widget {string} has no error")
+	public void noError(String title) throws Exception {
+		assertThat(widgetData(title).path("status").asString()).isEqualTo("ok");
+		assertThat(widgetData(title).path("error").isMissingNode() || widgetData(title).path("error").isNull())
+			.isTrue();
+	}
+
+	private List<String> groupsOf(String title) throws Exception {
+		List<String> groups = new ArrayList<>();
+		for (JsonNode entry : widgetData(title).path("series")) {
+			String name = switch (entry.path("kind").asString()) {
+				case "none" -> "(none)";
+				case "other" -> "Other";
+				case "true" -> "Yes";
+				case "false" -> "No";
+				default -> entry.path("label").asString();
+			};
+			groups.add(name + "=" + Math.round(entry.path("value").asDouble()));
+		}
+		return groups;
+	}
+
+	private static void put(ObjectNode node, String field, String value) {
+		if (value != null) {
+			node.put(field, value);
+		}
+	}
+
+	private static String lookup(String table, String name) throws Exception {
+		if (name == null || name.isEmpty()) {
+			return null;
+		}
+		String id = instance().oidc().single("SELECT id::text FROM " + table + " WHERE name = '" + name.replace("'", "''") + "'");
+		assertThat(id).as(table + " " + name).isNotNull();
+		return id;
+	}
+
 	// ---- helpers
 
 	private JsonNode widgetData(String title) throws Exception {

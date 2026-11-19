@@ -2,22 +2,33 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, within } from 'storybook/test'
 import DashboardPage from '../pages/DashboardPage.vue'
 import {
+  BAR_WIDGET,
+  dashboard,
   DASHBOARD_WITH_ERROR,
   dashboardApi,
+  DONUT_WIDGET,
   EMPTY_DASHBOARD,
   FILLED_DASHBOARD,
+  INVALID_WIDGET,
+  KPI_AND_CHARTS_DASHBOARD,
+  KPI_NO_DATA_WIDGET,
+  KPI_WIDGET,
   ME_ADMIN,
   ME_MANAGER,
   ME_READER,
   OVERLAPPING_DASHBOARD,
   PERSONAL_DASHBOARD,
+  PIE_WIDGET,
+  position,
+  RESTRICTED_WIDGET,
   TEXT_WIDGET,
+  TREEMAP_WIDGET,
 } from '../test/dashboards'
-import type { DashboardConfig } from '../api/dashboards'
+import type { DashboardConfig, WidgetConfig } from '../api/dashboards'
 
-// SCR-024 Dashboard editor (UC-07, US-055, US-058 to US-060): a dashboard with its widgets in the
-// 12-column grid; the editor of a holder of `dashboard:manage` moves and resizes them
-// (docs/screens/SCREENS.md). The first story is the screen image.
+// SCR-024 Dashboard editor (UC-07, US-055, US-056, US-057, US-058 to US-060): a dashboard with its
+// widgets in the 12-column grid; the editor of a holder of `dashboard:manage` moves and resizes
+// them (docs/screens/SCREENS.md). The first story is the screen image.
 function page(me: unknown, config: DashboardConfig, options: { restricted?: boolean } = {}): Story {
   return {
     render: () => ({
@@ -88,5 +99,93 @@ export const AddWidget: Story = {
     const canvas = within(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Add widget' }))
     await expect(await within(document.body).findByRole('dialog')).toBeInTheDocument()
+  },
+}
+
+/** A dashboard with one widget at the top left, for the stories of single widgets. */
+function single(widget: WidgetConfig, width = 6, height = 3): DashboardConfig {
+  return dashboard({ version: 9, canEdit: false, widgets: [{ ...widget, position: position(1, 1, width, height) }] })
+}
+
+// ---- KPI and chart widgets (US-056, US-057; us-056-kpi-and-chart-widgets)
+
+/** KPI and chart widgets in one dashboard, with the widgets that cannot be shown. */
+export const KpiAndCharts: Story = page(ME_READER, { ...KPI_AND_CHARTS_DASHBOARD, canEdit: false })
+
+/** A KPI with the unit, the target, the difference and the trend as icon and text. */
+export const KpiWithTarget: Story = {
+  ...page(ME_READER, single(KPI_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('42,000,000 CHF')).toBeInTheDocument()
+    await expect(canvas.getByText('8,000,000 CHF below the target')).toBeInTheDocument()
+  },
+}
+
+/** A KPI without a value shows "– (no data)", not an error. */
+export const KpiWithoutData: Story = {
+  ...page(ME_READER, single(KPI_NO_DATA_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText('– (no data)')).toBeInTheDocument()
+  },
+}
+
+/** Bars with data labels and the legend: the investment per plateau, "(none)" for entities without one. */
+export const BarChart: Story = {
+  ...page(ME_READER, single(BAR_WIDGET)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByRole('img', { name: 'Chart Investment per Plateau' })).toBeInTheDocument()
+  },
+}
+
+/** A pie of the entities per architecture layer. */
+export const PieChart: Story = page(ME_READER, single(PIE_WIDGET))
+
+/** A donut of a boolean property: "Yes" and "No" are named by the client. */
+export const DonutChart: Story = page(ME_READER, single(DONUT_WIDGET))
+
+/** A treemap with "(none)" and "Other". */
+export const TreemapChart: Story = page(ME_READER, single(TREEMAP_WIDGET))
+
+/** The reader may not read the values of the property for every entity: no aggregate is shown. */
+export const RestrictedWidget: Story = {
+  ...page(ME_READER, single(RESTRICTED_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText(/not readable for every entity/)).toBeInTheDocument()
+  },
+}
+
+/** A widget whose property was unmapped later: the message for this widget, the others stay. */
+export const InvalidConfiguration: Story = {
+  ...page(ME_READER, dashboard({ canEdit: false, widgets: [{ ...KPI_WIDGET, position: position(1, 1, 4, 2) }, { ...INVALID_WIDGET, position: position(5, 1, 8, 3) }] })),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText(/no longer fits the metamodel/)).toBeInTheDocument()
+    await expect(canvas.getByText('42,000,000 CHF')).toBeInTheDocument()
+  },
+}
+
+/** The dialog "Add widget" for a KPI: element type, function, property, unit and comparison. */
+export const AddKpiWidget: Story = {
+  ...page(ME_MANAGER, EMPTY_DASHBOARD),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(await within(canvasElement).findByRole('button', { name: 'Add widget' }))
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await userEvent.click(await dialog.findByRole('radio', { name: /KPI/ }))
+    await expect(await dialog.findByText('Function')).toBeInTheDocument()
+    await expect(dialog.getByText('Comparison')).toBeInTheDocument()
+  },
+}
+
+/** The dialog "Add widget" for a chart: grouping, chart type, legend and data labels. */
+export const AddChartWidget: Story = {
+  ...page(ME_MANAGER, EMPTY_DASHBOARD),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(await within(canvasElement).findByRole('button', { name: 'Add widget' }))
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await userEvent.click(await dialog.findByRole('radio', { name: /Chart/ }))
+    await expect(await dialog.findByText('Group by')).toBeInTheDocument()
+    await expect(dialog.getByText('Chart type')).toBeInTheDocument()
+    await expect(dialog.getByText('Show legend')).toBeInTheDocument()
   },
 }

@@ -1923,7 +1923,7 @@ package "Navigation & Presentation" #EDE7F6 {
     --
     + dashboard_id : UUID         {NN} {FK→dashboards.id ON DELETE CASCADE}
     + type         : TEXT         {NN}
-    .. CHECK IN (kpi, chart, table, text); only table and text are accepted by the service until S17 ..
+    .. CHECK IN (kpi, chart, table, text); all four types are accepted by the service ..
     + title        : TEXT         {NN}
     .. stored trimmed, 1–150 characters ..
     + col          : INTEGER      {NN}
@@ -1936,7 +1936,9 @@ package "Navigation & Presentation" #EDE7F6 {
     .. CHECK 1–6 ..
     + config       : JSONB        {NN}
     .. text: {content} (max. 10 000 characters, Markdown); table: {catalogId, savedViewId?, pageSize 5–100} ..
-    .. validated by the service; a deleted catalog or view is shown as an error widget, not blocked ..
+    .. kpi: {dataSource, aggregation, unit?, comparison, targetValue?}; chart: {dataSource, aggregation, unit?, chartType, showLegend, showDataLabels} ..
+    .. aggregation: {metatypeId?, propertyDefId?, function count|sum|avg|min|max, groupBy? {kind property|metatype|layer, propertyDefId?}} (IDs are soft references) ..
+    .. validated by the service; a deleted catalog or view, or a metatype or property that no longer fits, is shown as an error widget, not blocked ..
     + created_at   : TIMESTAMPTZ  {NN} DEFAULT NOW()
     + created_by   : BIGINT       {NN} {FK→persons.id}
     .. at most 50 widgets per dashboard (service rule); index (dashboard_id) ..
@@ -2453,6 +2455,13 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   saved view a table widget names is a soft reference without a foreign key.
 '   Reason: US-055, US-058 to US-060, US-062, REQ-051 to REQ-057;
 '   owner decisions 2026-11-18, ADR-032 amendment 2026-11-18.
+' 2026-11-19 (us-056-kpi-and-chart-widgets):
+'   no schema change. The JSONB configuration of the widget types kpi and chart
+'   holds the property aggregation (metatype, property, function, grouping by
+'   property, metatype or layer), the unit, the comparison and target of a
+'   kpi, and the chart type, legend and data labels of a chart; IDs of the
+'   metamodel are soft references, checked at write and on each read.
+'   Reason: US-056, US-057, REQ-053; owner decisions 2026-11-18.
 ' ─────────────────────────────────────────────────────
 
 @enduml

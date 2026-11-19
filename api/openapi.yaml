@@ -1792,20 +1792,58 @@ components:
     WidgetType:
       type: string
       enum: [kpi, chart, table, text]
-      description: '`text` and `table` are supported; `kpi` and `chart` answer 422 naming `type` until they are'
+      description: 'All four types are supported; the type of a widget does not change after creation'
+
+    WidgetGroupBy:
+      type: object
+      required: [kind]
+      description: 'The grouping of a chart: by a property of the metatype, by the metatype itself, or by the architecture layer of the metatypes'
+      properties:
+        kind:          { type: string, enum: [property, metatype, layer] }
+        propertyDefId: { type: [string, 'null'], format: uuid, description: 'The grouping property for `kind=property`: a property mapped to the metatype of type enum, string, boolean or reference' }
+
+    WidgetAggregation:
+      type: object
+      required: [function]
+      description: |
+        The property aggregation of a KPI or chart widget (REQ-053). It aggregates the entities of
+        the element metatype and its subtypes that are not deleted. Without `metatypeId`, `count`
+        counts all element entities. Without `propertyDefId`, `count` counts the entities; the
+        functions `sum`, `avg`, `min` and `max` need a property of type `integer` (422 "sum
+        requires an integer property").
+      properties:
+        metatypeId:    { type: [string, 'null'], format: uuid, description: 'An element metatype of the instance metamodel; null only for `count` without a property' }
+        propertyDefId: { type: [string, 'null'], format: uuid, description: 'A property mapped to the metatype; null counts the entities' }
+        function:      { type: string, enum: [count, sum, avg, min, max] }
+        groupBy:
+          description: 'Charts only (required there); a KPI widget rejects it'
+          oneOf:
+            - $ref: '#/components/schemas/WidgetGroupBy'
+            - type: 'null'
 
     WidgetSettings:
       type: object
       description: |
         The configuration of a widget by its `type`. Text widget: `content`. Table widget:
-        `catalogId`, `savedViewId` and `pageSize`. `dataSource` is `catalog-query` (the default)
-        for a table widget; any other value is rejected (US-058 AC5).
+        `catalogId`, `savedViewId` and `pageSize`; `dataSource` is `catalog-query` (the default),
+        any other value is rejected (US-058 AC5). KPI widget: `aggregation` (without `groupBy`),
+        `unit`, `comparison` and `targetValue`. Chart widget: `aggregation` with `groupBy`,
+        `chartType`, `unit`, `showLegend` and `showDataLabels`. `dataSource` is
+        `property-aggregation` (the default) for KPI and chart widgets. A field that does not
+        belong to the type of the widget is rejected with 422 naming the field.
       properties:
         content:     { type: string, maxLength: 10000, description: "Markdown of a text widget, 0 to 10 000 characters; rendered as sanitized HTML by the client" }
         catalogId:   { type: string, format: uuid, description: 'Catalog of a table widget: visible to the writer, and a shared catalog on a shared dashboard' }
         savedViewId: { type: [string, 'null'], format: uuid, description: 'A saved view of that catalog; without it the default columns apply' }
         pageSize:    { type: integer, minimum: 5, maximum: 100, description: 'Rows per page of a table widget, 10 if omitted' }
-        dataSource:  { type: string, enum: [catalog-query, property-aggregation], description: '`catalog-query` if omitted' }
+        dataSource:  { type: string, enum: [catalog-query, property-aggregation], description: '`catalog-query` for a table widget (the default), `property-aggregation` for a KPI or chart widget (the default)' }
+        aggregation: { $ref: '#/components/schemas/WidgetAggregation' }
+        unit:        { type: [string, 'null'], maxLength: 20, description: 'Unit shown after the value, up to 20 characters (KPI and chart)' }
+        comparison:  { type: string, enum: [none, vs-target, vs-previous-value], description: 'KPI only, `none` if omitted. `vs-target` needs `targetValue`; `vs-previous-value` is rejected with 422 until it is supported' }
+        targetValue: { type: [number, 'null'], format: double, description: 'The target of a KPI widget with `comparison=vs-target`' }
+        chartType:   { type: string, enum: [bar, line, area, pie, donut, treemap], description: 'Chart only, required there' }
+        showLegend:  { type: [boolean, 'null'], description: 'Chart only, true if omitted' }
+        showDataLabels: { type: [boolean, 'null'], description: 'Chart only, false if omitted' }
 
     WidgetWrite:
       type: object
@@ -1865,7 +1903,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code:    { type: string, enum: [catalog-not-found, view-not-found] }
+        code:    { type: string, enum: [catalog-not-found, view-not-found, restricted, invalid-configuration] }
         message: { type: string }
 
     WidgetData:
@@ -1877,12 +1915,42 @@ components:
         status:
           type: string
           enum: [ok, static, error]
-          description: '`static` for a text widget, `error` if the catalog or view of a table widget is gone or not visible'
+          description: '`static` for a text widget, `error` if the catalog or view of a table widget is gone or not visible, or if a KPI or chart widget is `restricted` or has an `invalid-configuration`'
         error:    { $ref: '#/components/schemas/WidgetDataError' }
+        value:
+          type: [number, 'null']
+          format: double
+          description: 'The aggregated value of a KPI widget; null for `sum`, `avg`, `min` and `max` over no values ("– (no data)"), 0 for `count` over no entities'
+        target:
+          type: [number, 'null']
+          format: double
+          description: 'The target of a KPI widget with `comparison=vs-target`'
+        series:
+          type: array
+          maxItems: 51
+          description: 'The groups of a chart widget, by value descending and then by label; at most 50 groups and "Other"'
+          items: { $ref: '#/components/schemas/WidgetSeriesEntry' }
         table:
           description: The page of a table widget, computed with the reader's visibility and property redaction
           allOf:
             - $ref: '#/components/schemas/CatalogQueryResult'
+
+    WidgetSeriesEntry:
+      type: object
+      required: [kind, value]
+      description: |
+        One group of a chart. `kind=value`: `key` is the enumeration value, the string value, the
+        ID of the referenced entity, the metatype ID or the layer ID; `label` is the name in the
+        corporate language and `labelKey` the key of the label bundle (`enum-value.{id}.label`,
+        `metatype.{id}.name`, `architecture-layer.{id}.name`), which the client translates with
+        the name as fallback. `none`, `other`, `true` and `false` have no `key` and `label` and
+        are named by the client ("(none)", "Other", "Yes", "No").
+      properties:
+        kind:     { type: string, enum: [value, none, other, 'true', 'false'] }
+        key:      { type: [string, 'null'] }
+        label:    { type: [string, 'null'] }
+        labelKey: { type: [string, 'null'] }
+        value:    { type: number, format: double, description: 'The aggregate of the group; a group always has at least one entity' }
 
     DashboardData:
       type: object
@@ -7686,8 +7754,10 @@ paths:
       operationId: addDashboardWidget
       summary: Add a widget (US-058, US-059, REQ-052)
       description: |
-        Adds a text or table widget, up to 50 per dashboard. `kpi` and `chart` answer 422 naming
-        `type` until they are supported. A table widget needs a catalog visible to the writer (403
+        Adds a text, table, KPI or chart widget, up to 50 per dashboard. A KPI or chart widget
+        needs a valid property `aggregation` (422 naming `metatypeId`, `propertyDefId`, `function`
+        or `groupBy`); fields of another widget type are rejected with 422 naming the field. A
+        table widget needs a catalog visible to the writer (403
         otherwise, also for an unknown catalog), on a shared dashboard a shared catalog (422 naming
         `catalogId`), and a saved view of that catalog (422 naming `savedViewId`). Rights as
         `updateDashboard`. Needs `If-Match`; writes `dashboard.updated`.

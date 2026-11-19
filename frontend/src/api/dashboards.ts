@@ -11,6 +11,10 @@ export type WidgetData = components['schemas']['WidgetData']
 export type WidgetWrite = components['schemas']['WidgetWrite']
 export type WidgetType = components['schemas']['WidgetType']
 export type WidgetSettings = components['schemas']['WidgetSettings']
+export type WidgetAggregation = components['schemas']['WidgetAggregation']
+export type WidgetGroupBy = components['schemas']['WidgetGroupBy']
+export type WidgetSeriesEntry = components['schemas']['WidgetSeriesEntry']
+export type ChartType = NonNullable<WidgetSettings['chartType']>
 export type GridPosition = components['schemas']['GridPosition']
 export type LayoutPosition = components['schemas']['LayoutPosition']
 
@@ -21,7 +25,7 @@ export const MAX_ROW = 500
 /** The tallest widget, in rows. */
 export const MAX_HEIGHT = 6
 /** The input limits of the contract (design D6 of us-055-dashboards). */
-export const LIMITS = { name: 200, description: 1000, title: 150, content: 10000, minPageSize: 5, maxPageSize: 100, defaultPageSize: 10 }
+export const LIMITS = { name: 200, description: 1000, title: 150, content: 10000, minPageSize: 5, maxPageSize: 100, defaultPageSize: 10, unit: 20, maxGroups: 50 }
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 

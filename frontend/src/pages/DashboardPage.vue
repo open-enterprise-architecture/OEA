@@ -23,7 +23,9 @@ import {
 } from '../api/dashboards'
 import { rateLimitMessage, RequestRejected, type Rejection } from '../api/problem'
 import type { Outcome } from '../api/session'
+import ChartWidget from '../components/dashboard/ChartWidget.vue'
 import DashboardGrid from '../components/dashboard/DashboardGrid.vue'
+import KpiWidget from '../components/dashboard/KpiWidget.vue'
 import TableWidget from '../components/dashboard/TableWidget.vue'
 import TextWidget from '../components/dashboard/TextWidget.vue'
 import WidgetDialog from '../components/dashboard/WidgetDialog.vue'
@@ -34,6 +36,14 @@ import { refreshSession, session } from '../session/store'
 // drag and drop or buttons, rename, share and delete the dashboard. Every write sends the version
 // that was read as If-Match; a 412 reloads the dashboard (design D4 of us-055-dashboards).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
+
+/** The size of a new widget by its type: width in columns and height in rows. */
+const NEW_SIZES: Record<WidgetConfig['type'], { width: number; height: number }> = {
+  text: { width: 12, height: 2 },
+  table: { width: 12, height: 3 },
+  kpi: { width: 4, height: 2 },
+  chart: { width: 6, height: 3 },
+}
 const router = useRouter()
 const { t } = useI18n()
 
@@ -159,7 +169,8 @@ function openEdit(widget: WidgetConfig) {
 
 async function onWidgetSubmit(widget: WidgetWrite) {
   const existing = widgetDialog.value?.widget
-  const positioned = existing ? widget : { ...widget, position: { ...widget.position, height: widget.type === 'table' ? 3 : 2 } }
+  const size = NEW_SIZES[widget.type]
+  const positioned = existing ? widget : { ...widget, position: { ...widget.position, ...size } }
   const rejection = await write(
     (version) =>
       existing
@@ -322,6 +333,8 @@ async function share() {
       <DashboardGrid v-else :widgets="config.widgets" :editing="editing" @layout="onLayout" @invalid="onInvalid" @edit="openEdit" @remove="(widget) => (confirming = { kind: 'widget', widget })">
         <template #widget="{ widget }">
           <TextWidget v-if="widget.type === 'text'" :content="widget.config.content ?? ''" />
+          <KpiWidget v-else-if="widget.type === 'kpi'" :data="dataOf.get(widget.id)" :config="widget.config" />
+          <ChartWidget v-else-if="widget.type === 'chart'" :data="dataOf.get(widget.id)" :config="widget.config" :title="widget.title" />
           <TableWidget
             v-else-if="widget.type === 'table'"
             :dashboard-id="config.id"

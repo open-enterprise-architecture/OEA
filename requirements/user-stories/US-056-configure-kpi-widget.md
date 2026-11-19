@@ -2,8 +2,9 @@
 
 **ID**: US-056
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S17
+**Implementation**: OpenSpec change `us-056-kpi-and-chart-widgets` – KPI widgets with the property aggregation (`count`, `sum`, `avg`, `min`, `max`), the unit, the comparison `vs-target`, the display "– (no data)" and the error `restricted` for properties the reader may not read for every entity; the comparison with the value 30 days ago (`vs-previous-value`, owner decision 2026-11-18) follows in the change `us-056-kpi-previous-value`, which completes the story
 
 ## Story
 
@@ -19,37 +20,37 @@ As a Lead Enterprise Architect, I want to add a KPI widget to a dashboard that d
 
 **AC1** (create widget with sum):
 
-- Given: MetamodelConfiguration contains EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5,000,000, 12,000,000, 25,000,000
-- When: Kurt creates KPI widget: title="Total Investment Forecast", entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum, unit="CHF"
+- Given: the element type "Application Component" with the integer property "Investment" mapped; 3 applications with values 5,000,000, 12,000,000, 25,000,000 (and deleted ones, which are not counted)
+- When: Kurt creates KPI widget: title="Total Investment Forecast", element type, property "Investment", function=sum, unit="CHF"
 - Then: Widget saved; on data retrieval the widget shows "42,000,000 CHF"
 
 **AC2** (count aggregation):
 
-- Given: 15 plateau instances in the repository
-- When: Kurt creates KPI widget: propertyName=id, aggregationFn=count, unit="Plateaus"
-- Then: Widget shows "15 Plateaus"
+- Given: 15 applications in the repository
+- When: Kurt creates KPI widget: the element type, function=count without a property, unit="Applications"
+- Then: Widget shows "15 Applications"
 
 **AC3** (invalid aggregation: varchar property with sum):
 
-- When: Kurt selects propertyName=name (kind=varchar), aggregationFn=sum
+- When: Kurt selects a property of type text and function=sum
 - Then: Error message "sum requires an integer property"; widget not saved
 
 **AC4** (no data → null display):
 
-- Given: EntityType `plateau` has no instances with a populated property
+- Given: no entity has a value of the property
 - When: Retrieve data
 - Then: Widget shows "– (no data)" instead of a number; no error status
 
 **AC5** (comparisonMode=vs-target without targetValue):
 
-- When: Kurt sets comparisonMode=vs-target without targetValue
-- Then: Error "targetValue is mandatory for comparisonMode=vs-target"
+- When: Kurt sets the comparison `vs-target` without a target value
+- Then: HTTP 422 naming `targetValue`; the comparison `vs-previous-value` follows in the change `us-056-kpi-previous-value` and answers 422 until then
 
 ## Technical Notes
 
-- Widget type: `kpi`; DataSource must be `PropertyAggregation` (CatalogQuery → 422)
-- Number display: numberFormat from widget configuration; default: locale-sensitive format without decimal places
-- `value=null` on empty data: frontend renders "–" instead of 0
+- Widget type: `kpi`; DataSource must be `property-aggregation` (CatalogQuery → 422 naming `dataSource`)
+- Number display: the number format of the user interface language, up to two decimals (a configurable `numberFormat` is not implemented); the trend against the target is an icon plus text
+- `value=null` on empty data: frontend renders "– (no data)" instead of 0; `count` over no entities is 0
 
 ## Definition of Done
 
