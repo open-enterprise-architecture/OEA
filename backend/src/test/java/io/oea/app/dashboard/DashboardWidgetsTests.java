@@ -382,6 +382,17 @@ class DashboardWidgetsTests {
 	}
 
 	@Test
+	void aChartRejectsTheComparisonWithThePreviousValue() {
+		Model model = model();
+		Reply dashboard = shared();
+		ObjectNode widget = DashboardTestSupport.chartWidget("Chart",
+				count(model.type, null, DashboardTestSupport.groupBy("metatype", null)), "bar", pos(1, 1, 3, 1));
+		DashboardTestSupport.config(widget).put("comparison", "vs-previous-value");
+		assertRejected(add(this.kurt, dashboard, widget), dashboard, "comparison");
+		assertThat(widgetCount(dashboard)).isZero();
+	}
+
+	@Test
 	void aChartNeedsGroupingAndChartTypeAndRejectsComparisonFields() {
 		Model model = model();
 		Reply dashboard = shared();
@@ -489,8 +500,8 @@ class DashboardWidgetsTests {
 	/** comparison, target, accepted, rejected field */
 	@ParameterizedTest
 	@CsvSource(value = { "vs-target, 50, true, ", "vs-target, 0, true, ", "vs-target, -2.5, true, ",
-			"vs-target, , false, targetValue", "vs-previous-value, 50, false, comparison",
-			"vs-previous-value, , false, comparison", "none, , true, ", "none, 50, true, ", ", , true, " })
+			"vs-target, , false, targetValue", "vs-previous-value, 50, true, ",
+			"vs-previous-value, , true, ", "none, , true, ", "none, 50, true, ", ", , true, " })
 	void theComparisonOfAKpi(String comparison, Double target, boolean accepted, String field) {
 		Model model = model();
 		Reply dashboard = shared();

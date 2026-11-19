@@ -11,7 +11,12 @@ import {
   FILLED_DASHBOARD,
   INVALID_WIDGET,
   KPI_AND_CHARTS_DASHBOARD,
+  KPI_DECREASED_WIDGET,
+  KPI_EQUAL_WIDGET,
+  KPI_INCREASED_WIDGET,
+  KPI_NO_COMPARISON_WIDGET,
   KPI_NO_DATA_WIDGET,
+  KPI_PREVIOUS_ZERO_WIDGET,
   KPI_WIDGET,
   ME_ADMIN,
   ME_MANAGER,
@@ -127,6 +132,48 @@ export const KpiWithoutData: Story = {
   ...page(ME_READER, single(KPI_NO_DATA_WIDGET, 4, 2)),
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('– (no data)')).toBeInTheDocument()
+  },
+}
+
+/** Compared with 30 days ago, increased: the previous value, the signed difference with the percentage, an arrow up. */
+export const KpiIncreased: Story = {
+  ...page(ME_READER, single(KPI_INCREASED_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('30 days ago: 35,000,000 CHF')).toBeInTheDocument()
+    await expect(canvas.getByText('Increase: +7,000,000 CHF (+20%)')).toBeInTheDocument()
+  },
+}
+
+/** Compared with 30 days ago, decreased: an arrow down. */
+export const KpiDecreased: Story = {
+  ...page(ME_READER, single(KPI_DECREASED_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText('Decrease: -8,000,000 CHF (-16%)')).toBeInTheDocument()
+  },
+}
+
+/** Compared with 30 days ago, unchanged: the equal sign. */
+export const KpiEqual: Story = {
+  ...page(ME_READER, single(KPI_EQUAL_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText('Unchanged')).toBeInTheDocument()
+  },
+}
+
+/** No entity had a value 30 days ago: "No comparison value". */
+export const KpiWithoutComparisonValue: Story = {
+  ...page(ME_READER, single(KPI_NO_COMPARISON_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText('No comparison value')).toBeInTheDocument()
+  },
+}
+
+/** A previous value of 0 has no percentage. */
+export const KpiFromZero: Story = {
+  ...page(ME_READER, single(KPI_PREVIOUS_ZERO_WIDGET, 4, 2)),
+  play: async ({ canvasElement }) => {
+    await expect(await within(canvasElement).findByText('Increase: +42,000,000 CHF')).toBeInTheDocument()
   },
 }
 

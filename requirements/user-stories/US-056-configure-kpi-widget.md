@@ -2,9 +2,9 @@
 
 **ID**: US-056
 **Story Points**: 5
-**Status**: in-progress
+**Status**: done
 **Sprint**: S17
-**Implementation**: OpenSpec change `us-056-kpi-and-chart-widgets` – KPI widgets with the property aggregation (`count`, `sum`, `avg`, `min`, `max`), the unit, the comparison `vs-target`, the display "– (no data)" and the error `restricted` for properties the reader may not read for every entity; the comparison with the value 30 days ago (`vs-previous-value`, owner decision 2026-11-18) follows in the change `us-056-kpi-previous-value`, which completes the story
+**Implementation**: OpenSpec change `us-056-kpi-and-chart-widgets` – KPI widgets with the property aggregation (`count`, `sum`, `avg`, `min`, `max`), the unit, the comparison `vs-target`, the display "– (no data)" and the error `restricted` for properties the reader may not read for every entity; and, in the change `us-056-kpi-previous-value`, the comparison with the value 30 days ago (`vs-previous-value`, owner decision 2026-11-18, computed from the entity history), which completes the story
 
 ## Story
 
@@ -44,7 +44,13 @@ As a Lead Enterprise Architect, I want to add a KPI widget to a dashboard that d
 **AC5** (comparisonMode=vs-target without targetValue):
 
 - When: Kurt sets the comparison `vs-target` without a target value
-- Then: HTTP 422 naming `targetValue`; the comparison `vs-previous-value` follows in the change `us-056-kpi-previous-value` and answers 422 until then
+- Then: HTTP 422 naming `targetValue`
+
+**AC6** (comparisonMode=vs-previous-value):
+
+- Given: 12 applications existed 30 days ago; 3 were created and 1 was deleted since
+- When: Franz opens a KPI that counts applications with the comparison `vs-previous-value`
+- Then: the KPI shows 14, the previous value 12 labelled "30 days ago", the difference +2 and an arrow up; without any value 30 days ago a sum shows "No comparison value"
 
 ## Technical Notes
 
@@ -54,7 +60,7 @@ As a Lead Enterprise Architect, I want to add a KPI widget to a dashboard that d
 
 ## Definition of Done
 
-- [ ] AC1–AC5 met
+- [ ] AC1–AC6 met
 - [ ] Tests: sum, count, invalid aggregation, null data, missing targetValue
 - [ ] Code review
 - [ ] Linter and type checks green

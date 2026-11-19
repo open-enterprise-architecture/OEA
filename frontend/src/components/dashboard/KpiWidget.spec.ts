@@ -71,6 +71,82 @@ describe('KpiWidget', () => {
     expect(wrapper.find('[data-testid="kpi-value"]').exists()).toBe(false)
   })
 
+  describe('comparison with the value 30 days ago', () => {
+    const PREVIOUS: WidgetSettings = { comparison: 'vs-previous-value', unit: 'CHF' }
+    const AT = '2026-10-20T12:00:00Z'
+
+    function compared(value: number | null, previousValue: number | null) {
+      return mountKpi({ data: data({ value, target: undefined, previousValue, previousAt: AT }), config: PREVIOUS })
+    }
+
+    it.each([
+      [42, 35, 'Increase: +7 CHF (+20%)', 'i-lucide-trending-up'],
+      [42, 50, 'Decrease: -8 CHF (-16%)', 'i-lucide-trending-down'],
+      [42, 42, 'Unchanged', 'i-lucide-equal'],
+      [42, 0, 'Increase: +42 CHF', 'i-lucide-trending-up'],
+      [0, 5, 'Decrease: -5 CHF (-100%)', 'i-lucide-trending-down'],
+      [-3, -4, 'Increase: +1 CHF (+25%)', 'i-lucide-trending-up'],
+      [0, 0, 'Unchanged', 'i-lucide-equal'],
+    ])('value %d against the previous value %d: "%s"', (value, previous, text) => {
+      setLanguage('en')
+      const wrapper = compared(value, previous)
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe(`30 days ago: ${previous} CHF`)
+      const trend = wrapper.get('[data-testid="kpi-trend"]')
+      expect(trend.text()).toBe(text)
+      // the arrow is an icon plus text, not color alone
+      expect(trend.find('svg[aria-hidden="true"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="kpi-no-comparison"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="kpi-target"]').exists()).toBe(false)
+    })
+
+    it('uses a different icon for up, down and equal', () => {
+      const icon = (value: number, previous: number) => compared(value, previous).get('[data-testid="kpi-trend"] svg').html()
+      expect(new Set([icon(42, 35), icon(42, 50), icon(42, 42)]).size).toBe(3)
+    })
+
+    it('shows the date of the previous value as the tooltip', () => {
+      setLanguage('en')
+      expect(compared(42, 35).get('[data-testid="kpi-previous"]').attributes('title')).toBe('Oct 20, 2026')
+    })
+
+    it('formats the numbers and the percentage in the language', () => {
+      setLanguage('de')
+      const wrapper = mountKpi({ data: data({ value: 42000000, previousValue: 35000000, previousAt: AT }), config: PREVIOUS })
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('Vor 30 Tagen: 35.000.000 CHF')
+      expect(wrapper.get('[data-testid="kpi-trend"]').text()).toContain('+7.000.000 CHF')
+      expect(wrapper.get('[data-testid="kpi-trend"]').text()).toMatch(/\+20\s?%/)
+      setLanguage('en')
+    })
+
+    it('shows "No comparison value" without a previous value, and no trend', () => {
+      setLanguage('en')
+      const wrapper = compared(42, null)
+      expect(wrapper.get('[data-testid="kpi-no-comparison"]').text()).toBe('No comparison value')
+      expect(wrapper.get('[data-testid="kpi-value"]').text()).toBe('42 CHF')
+      expect(wrapper.find('[data-testid="kpi-previous"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="kpi-trend"]').exists()).toBe(false)
+    })
+
+    it('shows the previous value but no trend when the current value has no data', () => {
+      const wrapper = compared(null, 5)
+      expect(wrapper.find('[data-testid="kpi-no-data"]').exists()).toBe(true)
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('30 days ago: 5 CHF')
+      expect(wrapper.find('[data-testid="kpi-trend"]').exists()).toBe(false)
+    })
+
+    it('shows nothing of the comparison for another comparison', () => {
+      const wrapper = mountKpi({ data: data({ previousValue: 35, previousAt: AT }), config: { comparison: 'none' } })
+      expect(wrapper.find('[data-testid="kpi-previous"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="kpi-no-comparison"]').exists()).toBe(false)
+    })
+
+    it('shows the error and no comparison for a restricted property', () => {
+      const wrapper = mountKpi({ data: { widgetId: 'w1', type: 'kpi', status: 'error', error: { code: 'restricted', message: 'x' } }, config: PREVIOUS })
+      expect(wrapper.find('[data-testid="widget-error"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="kpi-no-comparison"]').exists()).toBe(false)
+    })
+  })
+
   it('shows a note while the data is missing', () => {
     expect(mountKpi({}).get('[data-testid="widget-no-data"]').text()).toBe('No data')
   })

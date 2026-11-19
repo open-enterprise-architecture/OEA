@@ -421,3 +421,76 @@ Feature: Dashboard widgets
     When the viewer reads the data of the dashboard "Dash Later"
     Then the widget "Investment" shows the error "invalid-configuration"
     And the widget "Still Fine" has the status "static"
+
+  # ---- comparison with the value 30 days ago (us-056-kpi-previous-value)
+  # The scenario "Boundary of the period" needs exact instants, which a running instance cannot give;
+  # it is covered by EntityAggregationStoreTests and DashboardAggregationTests with a fixed clock.
+
+  @US-056 @AC1 @REQ-053 @dashboard-aggregation
+  Scenario: Count grew
+    Given the element type "Dash Grown Application"
+    And 11 entities of the element type "Dash Grown Application" named "Dash Grown Old "
+    And the entities named "Dash Grown Old " were created 40 days ago
+    And the entity "Dash Grown Removed" of the element type "Dash Grown Application"
+    And the entity "Dash Grown Removed" was created 40 days ago
+    And the entity "Dash Grown Removed" was soft-deleted 5 days ago
+    And 3 entities of the element type "Dash Grown Application" named "Dash Grown New "
+    And the enterprise architect has created the dashboard "Dash Grown" with scope "instance"
+    When the enterprise architect adds this widget to the dashboard "Dash Grown":
+      | type | title    | metatype               | function | comparison        |
+      | kpi  | Programs | Dash Grown Application | count    | vs-previous-value |
+    Then the dashboard request is accepted
+    When the viewer reads the data of the dashboard "Dash Grown"
+    Then the widget "Programs" has the value 14
+    And the widget "Programs" has the previous value 12
+    And the widget "Programs" compares with the point in time 30 days ago
+
+  @US-056 @AC1 @REQ-053 @dashboard-aggregation
+  Scenario: Value changed since
+    Given the element type "Dash Changed Application"
+    And the property "Dash Changed Investment" of type "integer" is mapped to the element type "Dash Changed Application"
+    And the entity "Dash Changed 1" of the element type "Dash Changed Application" with the "Dash Changed Investment" "7000000"
+    And the entity "Dash Changed 2" of the element type "Dash Changed Application" with the "Dash Changed Investment" "12000000"
+    And the entity "Dash Changed 3" of the element type "Dash Changed Application" with the "Dash Changed Investment" "25000000"
+    And the entities named "Dash Changed " were created 40 days ago
+    And the "Dash Changed Investment" of the entity "Dash Changed 1" was changed 10 days ago from "5000000"
+    And the enterprise architect has created the dashboard "Dash Changed" with scope "instance"
+    When the enterprise architect adds this widget to the dashboard "Dash Changed":
+      | type | title      | metatype                 | property                | function | comparison        |
+      | kpi  | Investment | Dash Changed Application | Dash Changed Investment | sum      | vs-previous-value |
+    Then the dashboard request is accepted
+    When the viewer reads the data of the dashboard "Dash Changed"
+    Then the widget "Investment" has the value 44000000
+    And the widget "Investment" has the previous value 42000000
+
+  @US-056 @AC4 @REQ-053 @dashboard-aggregation
+  Scenario: No data 30 days ago
+    Given the element type "Dash Recent Application"
+    And the property "Dash Recent Investment" of type "integer" is mapped to the element type "Dash Recent Application"
+    And the entity "Dash Recent 1" of the element type "Dash Recent Application" with the "Dash Recent Investment" "9000000"
+    And the enterprise architect has created the dashboard "Dash Recent" with scope "instance"
+    When the enterprise architect adds this widget to the dashboard "Dash Recent":
+      | type | title      | metatype                | property               | function | comparison        |
+      | kpi  | Investment | Dash Recent Application | Dash Recent Investment | sum      | vs-previous-value |
+    Then the dashboard request is accepted
+    When the viewer reads the data of the dashboard "Dash Recent"
+    Then the widget "Investment" has the value 9000000
+    And the widget "Investment" has no previous value
+
+  @US-056 @REQ-056 @dashboard-aggregation
+  Scenario: Restricted property with a comparison
+    Given the element type "Dash Cmp Restricted Application"
+    And the property "Dash Cmp Restricted Investment" of type "integer" is mapped to the element type "Dash Cmp Restricted Application"
+    And the aggregated property "Dash Cmp Restricted Investment" is readable only by the role "enterprise-architect"
+    And the entity "Dash Cmp Restricted 1" of the element type "Dash Cmp Restricted Application" with the "Dash Cmp Restricted Investment" "100"
+    And the entity "Dash Cmp Restricted 1" was created 40 days ago
+    And the enterprise architect has created the dashboard "Dash Cmp Restricted Sum" with scope "instance"
+    When the enterprise architect adds this widget to the dashboard "Dash Cmp Restricted Sum":
+      | type | title      | metatype                        | property                        | function | comparison        |
+      | kpi  | Investment | Dash Cmp Restricted Application | Dash Cmp Restricted Investment | sum      | vs-previous-value |
+    Then the dashboard request is accepted
+    When the viewer reads the data of the dashboard "Dash Cmp Restricted Sum"
+    Then the widget "Investment" shows the error "restricted"
+    And the widget "Investment" has no previous value
+    When the enterprise architect reads the data of the dashboard "Dash Cmp Restricted Sum"
+    Then the widget "Investment" has the previous value 100

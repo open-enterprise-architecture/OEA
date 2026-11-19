@@ -495,9 +495,6 @@ public class Dashboards {
 			return;
 		}
 		String comparison = (config.comparison() != null) ? config.comparison() : "none";
-		if ("vs-previous-value".equals(comparison)) {
-			throw InvalidDashboardException.invalid("comparison", "The comparison vs-previous-value is not supported yet.");
-		}
 		if ("vs-target".equals(comparison)) {
 			if (config.targetValue() == null || !Double.isFinite(config.targetValue())) {
 				throw InvalidDashboardException.invalid("targetValue", "The comparison vs-target needs a target value.");

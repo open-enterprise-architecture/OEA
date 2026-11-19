@@ -33,7 +33,7 @@ Dashboards primarily target C-level decision makers (CIO, division heads) who do
 
 **Implemented in change us-055-dashboards**: the dashboard, the widget types `text` and `table`, the data source `CatalogQueryDataSource` without `additionalFilters`, and the grid.
 
-**Implemented in change us-056-kpi-and-chart-widgets**: the widget types `kpi` (comparison `none` and `vs-target`) and `chart`, and the `PropertyAggregationDataSource` as described under "PropertyAggregationDataSource" below, with metamodel IDs instead of names, grouping by property, metatype or architecture layer, at most 50 groups, and the visibility rules of the aggregate. The comparison `vs-previous-value`, `globalFilters`, `filters` of a data source, architecture domains and the column overrides follow later.
+**Implemented in change us-056-kpi-and-chart-widgets**: the widget types `kpi` (comparison `none`, `vs-target` and, from change us-056-kpi-previous-value, `vs-previous-value`) and `chart`, and the `PropertyAggregationDataSource` as described under "PropertyAggregationDataSource" below, with metamodel IDs instead of names, grouping by property, metatype or architecture layer, at most 50 groups, and the visibility rules of the aggregate. `globalFilters`, `filters` of a data source, architecture domains and the column overrides follow later.
 
 ## Attributes
 
@@ -68,7 +68,7 @@ Displays a single metric prominently (number + unit, optionally with a compariso
 |---|---|---|---|---|---|
 | dataSource | PropertyAggregationDataSource | required | | | Data source (`aggregation` in the contract); `groupBy` must be empty |
 | unit | string | optional | | max. 20 characters | Unit (e.g. "CHF", "EUR m", "%") |
-| comparisonMode | enum | optional | `none` | `[none, vs-previous-value, vs-target]` | Comparison mode for the trend (arrow icon and text); `vs-previous-value` is rejected (422) until it is implemented |
+| comparisonMode | enum | optional | `none` | `[none, vs-previous-value, vs-target]` | Comparison mode for the trend (arrow icon and text); `vs-previous-value` compares with the value of the same aggregation 30 days ago (change us-056-kpi-previous-value) |
 | targetValue | decimal | conditional | | only if comparisonMode=vs-target | Target value |
 | numberFormat | string | optional | | e.g. "#,##0" | Number format (locale-sensitive); not implemented, the value is shown in the number format of the user interface language |
 
@@ -219,6 +219,7 @@ dashboard:
 
 ## Notes
 
+- 2026-11-19 (us-056-kpi-previous-value): no schema change; the comparison `vs-previous-value` is computed on each request from the entity history (`entity_property_value_history`, `entities.created_at` and `deleted_at`) and adds `previousValue` and `previousAt` to the widget data; nothing is stored in the dashboard.
 - 2026-11-19 (us-056-kpi-and-chart-widgets): no schema change; the JSONB configuration of `kpi` is `{dataSource, aggregation, unit?, comparison, targetValue?}` and that of `chart` is `{dataSource, aggregation, unit?, chartType, showLegend, showDataLabels}` (aggregation as above). The metamodel IDs are soft references, checked at write and on each read.
 - 2026-11-18 (us-055-dashboards): `docs/data-model.puml` has the tables `dashboards` and `dashboard_widgets` (V43). The configuration of a widget is stored as JSONB (`text`: `{content}`; `table`: `{catalogId, savedViewId?, pageSize}`) and checked by the service; the grid checks (BR-07 and the limits of `GridPosition`) also hold in the database. `owner` replaces `createdBy` (one person, the creator).
 

@@ -192,7 +192,8 @@ public class DashboardController implements DashboardsApi, ViewsEditorsApi {
 		if (result.table() != null) {
 			widget.table(CatalogQueryMapping.result(result.table(), this.blocks));
 		}
-		widget.value(result.value()).target(result.target());
+		widget.value(result.value()).target(result.target()).previousValue(result.previousValue());
+		widget.previousAt((result.previousAt() != null) ? result.previousAt().atOffset(ZoneOffset.UTC) : null);
 		widget.series((result.series() != null) ? result.series()
 			.stream()
 			.map((entry) -> new WidgetSeriesEntry(WidgetSeriesEntry.KindEnum.fromValue(entry.kind()), entry.value())

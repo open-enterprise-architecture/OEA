@@ -18,6 +18,7 @@ import io.oea.core.metamodel.ArchitectureLayerStore;
 import io.oea.core.metamodel.MetatypeStore;
 import io.oea.core.metamodel.PropertyDefinitionStore;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,6 +45,9 @@ public class DashboardData {
 	private static final String VIEW_NOT_FOUND = "view-not-found";
 
 	private static final String RESTRICTED = "restricted";
+
+	/** The period of the comparison {@code vs-previous-value}: exactly 30 days of 24 hours. */
+	static final Duration PREVIOUS_PERIOD = Duration.ofHours(30 * 24);
 
 	private static final String INVALID_CONFIGURATION = "invalid-configuration";
 
@@ -108,13 +112,15 @@ public class DashboardData {
 	/**
 	 * The data of one widget; {@code table} is set for a table widget with status {@code ok},
 	 * {@code value} and {@code target} for a KPI widget ({@code value} is {@code null} without
-	 * data), {@code series} for a chart widget.
+	 * data), {@code series} for a chart widget. {@code previousValue} (without data {@code null}) and
+	 * {@code previousAt} are set for a KPI widget with the comparison {@code vs-previous-value}.
 	 */
 	public record WidgetResult(UUID widgetId, WidgetType type, Status status, Error error,
-			CatalogQueries.Result table, Double value, Double target, List<Series> series) {
+			CatalogQueries.Result table, Double value, Double target, List<Series> series, Double previousValue,
+			Instant previousAt) {
 
 		WidgetResult(UUID widgetId, WidgetType type, Status status, Error error, CatalogQueries.Result table) {
-			this(widgetId, type, status, error, table, null, null, null);
+			this(widgetId, type, status, error, table, null, null, null, null, null);
 		}
 
 	}
@@ -195,10 +201,18 @@ public class DashboardData {
 					Grouping.none());
 			Partial total = rows.isEmpty() ? new Partial(0, null, null, null) : partial(rows.get(0));
 			Double target = "vs-target".equals(config.comparison()) ? config.targetValue() : null;
+			Double previousValue = null;
+			Instant previousAt = null;
+			if ("vs-previous-value".equals(config.comparison())) {
+				previousAt = this.clock.instant().minus(PREVIOUS_PERIOD);
+				previousValue = partial(this.aggregationStore.aggregateAt(resolved.metatypeIds(),
+						resolved.propertyDefId(), previousAt))
+					.value(resolved.function());
+			}
 			return new WidgetResult(widget.id(), type, Status.OK, null, null, total.value(resolved.function()),
-					target, null);
+					target, null, previousValue, previousAt);
 		}
-		return new WidgetResult(widget.id(), type, Status.OK, null, null, null, null, series(resolved));
+		return new WidgetResult(widget.id(), type, Status.OK, null, null, null, null, series(resolved), null, null);
 	}
 
 	private static WidgetResult failed(StoredWidget widget, WidgetType type, String code, String message) {

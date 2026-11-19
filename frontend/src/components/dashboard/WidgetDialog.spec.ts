@@ -9,6 +9,7 @@ import {
   dashboardApi,
   GO_LIVE_ID,
   INVESTMENT_ID,
+  KPI_INCREASED_WIDGET,
   KPI_WIDGET,
   ME_MANAGER,
   PLATEAU_ID,
@@ -237,6 +238,21 @@ describe('WidgetDialog', () => {
     })
   })
 
+  it('adds a KPI compared with the value 30 days ago, without a target value', async () => {
+    const wrapper = await mountDialog()
+    await kpi(wrapper)
+    await choose(wrapper, 'widget-metatype', APPLICATION_ID)
+    expect(items(wrapper, 'widget-comparison').map((item) => item.value)).toEqual(['none', 'vs-target', 'vs-previous-value'])
+    await choose(wrapper, 'widget-comparison', 'vs-previous-value')
+    expect(wrapper.find('input[data-testid="widget-target"]').exists()).toBe(false)
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({
+      type: 'kpi',
+      config: { comparison: 'vs-previous-value' },
+    })
+    expect((wrapper.emitted('submit')?.[0]?.[0] as { config: Record<string, unknown> }).config).not.toHaveProperty('targetValue')
+  })
+
   it('needs a target value for the comparison with a target', async () => {
     const wrapper = await mountDialog()
     await kpi(wrapper)
@@ -367,6 +383,14 @@ describe('WidgetDialog', () => {
         targetValue: 50000000,
       },
     })
+  })
+
+  it('edits a KPI compared with the value 30 days ago and keeps the mode', async () => {
+    const wrapper = await mountDialog({ widget: KPI_INCREASED_WIDGET })
+    await flushPromises()
+    expect(wrapper.find('input[data-testid="widget-target"]').exists()).toBe(false)
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({ config: { comparison: 'vs-previous-value' } })
   })
 
   it('edits a chart with its settings', async () => {
