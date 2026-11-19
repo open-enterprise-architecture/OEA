@@ -2,6 +2,7 @@ package io.oea.app.navigation;
 
 import io.oea.app.security.OeaPrincipal;
 import io.oea.core.catalog.CatalogStore;
+import io.oea.core.diagram.DiagramStore;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.solution.PlateauStore;
 import io.oea.core.solution.PlateauStore.PlateauRow;
@@ -36,6 +37,8 @@ public class Browser {
 
 	public static final String CATALOGS = "catalogs";
 
+	public static final String DIAGRAMS = "diagrams";
+
 	private static final long NO_PERSON = -1;
 
 	private static final Set<String> PLATEAU_STATUS = Set.of("transition", "target");
@@ -44,11 +47,15 @@ public class Browser {
 
 	private final CatalogStore catalogs;
 
+	private final DiagramStore diagrams;
+
 	private final PlateauStore plateaus;
 
 	private final SolutionBrowseStore solutions;
 
-	Browser(EntityStore entities, CatalogStore catalogs, PlateauStore plateaus, SolutionBrowseStore solutions) {
+	Browser(EntityStore entities, CatalogStore catalogs, DiagramStore diagrams, PlateauStore plateaus,
+			SolutionBrowseStore solutions) {
+		this.diagrams = diagrams;
 		this.entities = entities;
 		this.catalogs = catalogs;
 		this.plateaus = plateaus;
@@ -64,7 +71,7 @@ public class Browser {
 	}
 
 	/** The counts of "Current state". */
-	public record CurrentState(int components, int connections, int catalogs) {
+	public record CurrentState(int components, int connections, int catalogs, int diagrams) {
 	}
 
 	/** The top level of the browser. */
@@ -72,25 +79,31 @@ public class Browser {
 	}
 
 	/**
-	 * An object of a category; {@code kind} is {@code entity}, {@code catalog} or {@code delta}. An
+	 * An object of a category; {@code kind} is {@code entity}, {@code catalog}, {@code diagram} or {@code delta}. An
 	 * entity carries the number of its children, whether it is a structuring aid and its version
 	 * (US-135, US-136); catalogs and deltas have none of them.
 	 */
 	public record Item(String kind, String id, String name, String metatypeAbbreviation, Integer entityId,
-			UUID solutionId, String deltaType, int childCount, boolean structuringAid, int version) {
+			UUID solutionId, String deltaType, String notation, int childCount, boolean structuringAid,
+			int version) {
 
 		static Item catalog(String id, String name) {
-			return new Item("catalog", id, name, null, null, null, null, 0, false, 0);
+			return new Item("catalog", id, name, null, null, null, null, null, 0, false, 0);
+		}
+
+		static Item diagram(DiagramStore.Row row) {
+			return new Item("diagram", row.id().toString(), row.name(), null, null, null, null,
+					row.viewpointNotation(), 0, false, 0);
 		}
 
 		static Item delta(String id, String name, String abbreviation, Integer entityId, UUID solutionId,
 				String deltaType) {
-			return new Item("delta", id, name, abbreviation, entityId, solutionId, deltaType, 0, false, 0);
+			return new Item("delta", id, name, abbreviation, entityId, solutionId, deltaType, null, 0, false, 0);
 		}
 
 		static Item entity(EntityStore.BrowseRow row) {
 			return new Item("entity", String.valueOf(row.id()), row.name(), row.abbreviation(), null, null, null,
-					row.childCount(), row.structuringAid(), row.version());
+					null, row.childCount(), row.structuringAid(), row.version());
 		}
 
 	}
@@ -104,7 +117,7 @@ public class Browser {
 	public Top top(OeaPrincipal principal) {
 		long personId = person(principal);
 		CurrentState current = new CurrentState(this.entities.countActive(false), this.entities.countActive(true),
-				this.catalogs.countVisible(personId));
+				this.catalogs.countVisible(personId), this.diagrams.countActive());
 		List<ActiveSolution> active = this.solutions.activeSolutions();
 		List<PlateauNode> nodes = new ArrayList<>();
 		for (PlateauRow plateau : this.plateaus.list()) {
@@ -135,7 +148,7 @@ public class Browser {
 		if (!CURRENT_STATE.equals(scope) && !SOLUTION.equals(scope)) {
 			throw InvalidBrowserQueryException.unknownValue("scope", scope);
 		}
-		if (!Set.of(COMPONENTS, CONNECTIONS, CATALOGS).contains(category)) {
+		if (!Set.of(COMPONENTS, CONNECTIONS, CATALOGS, DIAGRAMS).contains(category)) {
 			throw InvalidBrowserQueryException.unknownValue("category", category);
 		}
 		boolean solution = SOLUTION.equals(scope);
@@ -168,6 +181,11 @@ public class Browser {
 				.stream()
 				.map((row) -> Item.catalog(row.id().toString(), row.name()))
 				.toList(), page, pageSize, this.catalogs.countVisible(personId));
+			case DIAGRAMS -> page(this.diagrams
+				.page(new DiagramStore.Query(false, null, null, null, pageSize, offset))
+				.stream()
+				.map(Item::diagram)
+				.toList(), page, pageSize, this.diagrams.countActive());
 			case CONNECTIONS -> page(this.entities.pageActive(true, pageSize, offset)
 				.stream()
 				.map(Item::entity)

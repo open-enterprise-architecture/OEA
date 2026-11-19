@@ -58,6 +58,7 @@ function itemMenu(item: TreeNodeItem) {
 function itemIcon(item: TreeNodeItem): string {
   if (item.itemType === 'entity') return 'i-lucide-box'
   if (item.itemType === 'solution') return 'i-lucide-milestone'
+  if (item.itemType === 'diagram') return 'i-lucide-workflow'
   return item.scope === 'personal' ? 'i-lucide-user-round' : 'i-lucide-table-2'
 }
 

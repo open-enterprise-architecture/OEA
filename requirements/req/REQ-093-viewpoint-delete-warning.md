@@ -25,7 +25,7 @@ superseded_by: []
 
 ## Statement
 
-When deleting a user-defined viewpoint, the system MUST check whether diagrams reference this viewpoint and display a warning with the number of affected diagrams. Deletion is not blocked; after deletion, affected diagrams no longer reference a valid viewpoint and receive a corresponding note in the UI.
+When deleting a user-defined viewpoint, the system MUST check whether diagrams reference this viewpoint and display a warning with the number of diagrams that will be deleted with it. Deletion is not blocked; after the confirmation the viewpoint and its diagrams are deleted in one transaction and the entities stay.
 
 ## Rationale
 
@@ -36,7 +36,7 @@ Viewpoints may be used by many diagrams in production. A silent deletion without
 **AC1** (Warning for a used viewpoint):
 
 - When: a viewpoint that is used by 5 diagrams is deleted
-- Then: the system shows the warning "5 diagrams will be affected"; after confirmation it is deleted
+- Then: the system shows the warning "5 diagrams will be deleted"; after confirmation the viewpoint and its diagrams are deleted
 
 **AC2** (No warning for an unused viewpoint):
 
@@ -46,11 +46,12 @@ Viewpoints may be used by many diagrams in production. A silent deletion without
 ## Dependencies
 
 - **Prerequisites**: REQ-090 (viewpoint management)
-- **Downstream effects**: affected diagrams show a note about the missing viewpoint
+- **Downstream effects**: the diagrams of the viewpoint are deleted for good (each audited as `diagram.deleted` with the cause `viewpoint-deleted`), the entities stay
 
 ## Implementation Notes
 
-- Realigned by the OpenSpec change `us-090-viewpoints`: until diagrams exist, deleting a viewpoint asks for a plain confirmation (AC2); the count of affected diagrams (AC1) follows with the diagrams
+- Realigned by the OpenSpec change `us-090-viewpoints`: until diagrams exist, deleting a viewpoint asks for a plain confirmation (AC2); the count of diagrams (AC1) follows with the diagrams
+- Realigned by the OpenSpec change `us-074-diagrams` (owner decision 2026-11-19): `diagramCount` on the viewpoint, the warning "N diagrams will be deleted" (instead of "will be affected"), and the deletion of the diagrams with the viewpoint
 
 - Pre-delete check: COUNT of diagrams referencing this viewpoint ID
 - Affected diagrams receive `viewpointId=null` after deletion; UI shows a notice banner

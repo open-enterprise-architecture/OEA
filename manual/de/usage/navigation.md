@@ -7,23 +7,23 @@ covers:
 
 # Navigationsbaum
 
-Der Navigationsbaum ordnet Kataloge, Entitäten und Lösungen in Ordnern, zum Beispiel *IT Landscape > Application Inventory*, damit du findest, was du für deine Aufgabe brauchst, ohne zu suchen. Alle mit der Berechtigung `entity:read` (zum Beispiel die Rolle `viewer`) sehen den Baum. Ändern lässt er sich mit den Berechtigungen `viewpoint:manage` und `entity:read` (Rolle `enterprise-architect`).
+Der Navigationsbaum ordnet Kataloge, Entitäten, Lösungen und Diagramme in Ordnern, zum Beispiel *IT Landscape > Application Inventory*, damit du findest, was du für deine Aufgabe brauchst, ohne zu suchen. Alle mit der Berechtigung `entity:read` (zum Beispiel die Rolle `viewer`) sehen den Baum. Ändern lässt er sich mit den Berechtigungen `viewpoint:manage` und `entity:read` (Rolle `enterprise-architect`).
 
 ## Die Seitenleiste
 
 Nach der Anmeldung hat die Seitenleiste links auf jeder Seite zwei Tabs: *Browser* und *Navigationsbaum*. *Browser* ist beim Anmelden aktiv; der gewählte Tab bleibt aktiv, während du zwischen den Seiten wechselst (siehe [Browser](#browser)). *Navigationsbaum* zeigt den folgenden Baum. Er beginnt beim Ordner *Repository*.
 
 - **Ordner auf- und zuklappen:** Wähle den Pfeil oder den Namen des Ordners. Die Seitenleiste merkt sich die offenen Ordner, bis du den Browser-Tab schliesst.
-- **Eintrag öffnen:** Wähle ihn. Ein Katalog öffnet sich mit seiner Standardansicht, falls er eine hat (siehe [Ansichten](./catalogs#views)); eine Entität öffnet ihre Seite, eine Lösung ihre Lösungsseite.
+- **Eintrag öffnen:** Wähle ihn. Ein Katalog öffnet sich mit seiner Standardansicht, falls er eine hat (siehe [Ansichten](./catalogs#views)); eine Entität öffnet ihre Seite, eine Lösung ihre Lösungsseite, ein Diagramm seine Seite.
 - **Schmale Bildschirme:** Die Seitenleiste ist ausgeblendet; die Menü-Schaltfläche links in der Kopfzeile öffnet sie. Wählst du einen Eintrag, schliesst sie sich wieder.
 
-Ordner und Einträge behalten die Reihenfolge, in der du sie anordnest (siehe [Baum umorganisieren](#reorganize-the-tree)); neue Ordner und Einträge kommen ans Ende. Ein Eintrag zeigt seinen Anzeigenamen, falls er einen hat, sonst den Namen des Katalogs, der Entität oder der Lösung. Ein Symbol zeigt die Art des Eintrags, ein Personen-Symbol kennzeichnet einen persönlichen Katalog.
+Ordner und Einträge behalten die Reihenfolge, in der du sie anordnest (siehe [Baum umorganisieren](#reorganize-the-tree)); neue Ordner und Einträge kommen ans Ende. Ein Eintrag zeigt seinen Anzeigenamen, falls er einen hat, sonst den Namen des Katalogs, der Entität, der Lösung oder des Diagramms. Ein Symbol zeigt die Art des Eintrags, ein Personen-Symbol kennzeichnet einen persönlichen Katalog.
 
 ## Browser {#browser}
 
 Der Tab *Browser* braucht keine Handarbeit: Er listet auf, was das Repository enthält, geordnet nach Lösungen. Alle mit der Berechtigung `entity:read` sehen ihn. Von oben nach unten zeigt er:
 
-1. **Ist-Zustand:** die Objekte des Repositorys, wie sie jetzt sind, in den Kategorien *Komponenten* (Entitäten, die keine Verbindungen und nicht gelöscht sind), *Verbindungen* und *Kataloge* (die Kataloge, die du siehst: gemeinsame und deine eigenen persönlichen).
+1. **Ist-Zustand:** die Objekte des Repositorys, wie sie jetzt sind, in den Kategorien *Komponenten* (Entitäten, die keine Verbindungen und nicht gelöscht sind), *Verbindungen*, *Kataloge* (die Kataloge, die du siehst: gemeinsame und deine eigenen persönlichen) und *Diagramme* (alle [Diagramme](./diagrams), die nicht gelöscht sind).
 2. **Plateaus:** ein Knoten für jedes Plateau im Status *transition* oder *target*, geordnet nach dem Datum, ab dem es gilt, dann nach Name. Das Baseline-Plateau und realisierte Plateaus haben keinen Knoten. Unter einem Plateau stehen die Lösungen, die es als Ziel haben, nach Name sortiert.
 3. **Projekte:** die Lösungen ohne Plateaus, nach Name sortiert.
 
@@ -34,10 +34,11 @@ Jede Lösung hat die Kategorie *Komponenten*: ihre Änderungen am Repository, ge
 - **Knoten aufklappen:** Wähle den Pfeil oder den Namen. Eine Kategorie lädt ihre Objekte, wenn du sie zum ersten Mal aufklappst; sie listet sie nach Name, je 50. Mit *Mehr laden* folgen die nächsten 50.
 - **Objekt öffnen:** Eine Entität öffnet ihre Änderungshistorie, ein Katalog seine Seite, eine Änderung einer Lösung (und das Link-Symbol neben einer Lösung) die Lösungsseite.
 - **Metatyp:** Ein kleines Label neben einer Entität zeigt die Abkürzung ihres Metatyps, falls er eine hat.
+- **Notation:** Ein kleines Label neben einem Diagramm zeigt die Notation seines Viewpoints, zum Beispiel *bpmn2*. *Diagramme* listet sie nach Name, unabhängig von Gross- und Kleinschreibung, je 50; eine Lösung hat keine Kategorie *Diagramme*.
 
 *Komponenten* des *Ist-Zustands* listet die oberste Ebene: die Entitäten ohne Eltern. Eine Entität mit Kindern zeigt einen Pfeil und klappt zu ihnen auf, nach Name, je 50. Wie du eine Komponente unter eine andere einordnest, steht unter [Komponenten anordnen](#arrange-components). Komponenten einer Lösung bleiben eine flache Liste.
 
-Die Ordner des Baums ordnest du im Tab *Navigationsbaum*. Funktionale und Lösungs-Bausteine sowie Diagramme folgen mit ihren Inhalten.
+Die Ordner des Baums ordnest du im Tab *Navigationsbaum*. Funktionale und Lösungs-Bausteine folgen mit ihren Inhalten.
 
 ## Komponenten anordnen {#arrange-components}
 
@@ -67,17 +68,18 @@ Mit den Berechtigungen zum Ändern des Baums bietet die Schaltfläche *…* nebe
 
 Ein Ordnername hat 1 bis 255 Zeichen und ist in seinem Ordner eindeutig, unabhängig von Gross- und Kleinschreibung; sonst meldet der Dialog *Ein Ordner mit diesem Namen existiert bereits*. Der Baum hat höchstens 10 Ebenen unter *Repository* und höchstens 500 Ordner.
 
-## Katalog, Entität oder Lösung einordnen
+## Katalog, Entität, Lösung oder Diagramm einordnen {#place-a-diagram}
 
 1. Wähle *In Navigation einordnen*:
    - für einen Katalog auf der Seite des Katalogs;
    - für eine Entität in ihrer Zeile eines Katalogs (nicht in Katalogen von Verbindungen);
-   - für eine Lösung in der Kopfzeile der Lösungsseite.
+   - für eine Lösung in der Kopfzeile der Lösungsseite;
+   - für ein Diagramm in der Kopfzeile der Seite des Diagramms.
 2. Wähle unter *Ordner* den Ordner über seinen Pfad, zum Beispiel *Repository / IT Landscape*.
 3. Gib bei Bedarf einen *Anzeigenamen* ein. Der Baum zeigt ihn dann statt des Namens, zum Beispiel *System Inventory* für *Application Inventory*. Katalog, Entität oder Lösung behalten ihren Namen.
 4. Wähle *Einordnen*.
 
-Jedes davon kann in mehreren Ordnern stehen, aber nur einmal pro Ordner. Ein Ordner hat höchstens 200 Einträge. Enthält der Ordner es bereits oder ist er voll, meldet der Dialog das, zum Beispiel *Der Katalog ist bereits in diesem Ordner, oder der Ordner ist voll*.
+Jedes davon kann in mehreren Ordnern stehen, aber nur einmal pro Ordner. Ein Ordner hat höchstens 200 Einträge. Enthält der Ordner es bereits oder ist er voll, meldet der Dialog das, zum Beispiel *Der Katalog ist bereits in diesem Ordner, oder der Ordner ist voll*. Ein gelöschtes Diagramm lässt sich nicht einordnen; seine Einträge im Baum bleiben verborgen, bis das Diagramm [wiederhergestellt](./diagrams#diagramm-wiederherstellen) wird.
 
 ## Baum umorganisieren {#reorganize-the-tree}
 
@@ -104,9 +106,9 @@ Jede Änderung des Baums, auch jede Verschiebung, wird im Audit-Trail festgehalt
 
 ## Über die API
 
-- `GET /views/browser` liefert die oberste Ebene des Browsers: `currentState` mit den Zahlen `components`, `connections` und `catalogs`, `plateaus` (jedes mit seinen `solutions`) und `projects`; eine Lösung hat `id`, `name`, `status` und die Zahl ihrer Änderungen in `components`.
-- `GET /views/browser/items` liefert eine Seite einer Kategorie, nach Name geordnet: `scope` (`current-state` oder `solution`), `category` (`components`, `connections` oder `catalogs`; eine Lösung hat nur `components`), `solutionId` für eine Lösung sowie `page` und `pageSize` (1 bis 200, Standard 50). Eine `pageSize` ausserhalb von 1 bis 200 wird mit 400 abgewiesen; eine Kategorie, die der Bereich nicht hat, oder eine `solutionId`, die nicht zum Bereich passt, mit 422 und dem Namen `category` oder `solutionId`; eine unbekannte Lösung mit 404.
-- `GET /views/explorer` liefert den Baum ab der Wurzel so, wie du ihn siehst, in seiner manuellen Reihenfolge: jeden Ordner mit `id`, `name`, `parentId`, `sortOrder`, `items` und `children`; jeden Eintrag mit `itemType` (`catalog`, `entity` oder `solution`), `referenceId` (Katalog- oder Lösungs-ID) oder `entityId`, `displayLabel`, `name`, `scope` und `deleted`.
+- `GET /views/browser` liefert die oberste Ebene des Browsers: `currentState` mit den Zahlen `components`, `connections`, `catalogs` und `diagrams`, `plateaus` (jedes mit seinen `solutions`) und `projects`; eine Lösung hat `id`, `name`, `status` und die Zahl ihrer Änderungen in `components`.
+- `GET /views/browser/items` liefert eine Seite einer Kategorie, nach Name geordnet: `scope` (`current-state` oder `solution`), `category` (`components`, `connections`, `catalogs` oder `diagrams`; eine Lösung hat nur `components`; ein Eintrag eines Diagramms hat die `notation` seines Viewpoints), `solutionId` für eine Lösung sowie `page` und `pageSize` (1 bis 200, Standard 50). Eine `pageSize` ausserhalb von 1 bis 200 wird mit 400 abgewiesen; eine Kategorie, die der Bereich nicht hat, oder eine `solutionId`, die nicht zum Bereich passt, mit 422 und dem Namen `category` oder `solutionId`; eine unbekannte Lösung mit 404.
+- `GET /views/explorer` liefert den Baum ab der Wurzel so, wie du ihn siehst, in seiner manuellen Reihenfolge: jeden Ordner mit `id`, `name`, `parentId`, `sortOrder`, `items` und `children`; jeden Eintrag mit `itemType` (`catalog`, `entity`, `solution` oder `diagram`), `referenceId` (Katalog-, Lösungs- oder Diagramm-ID) oder `entityId`, `displayLabel`, `name`, `scope` und `deleted`.
 - `POST /tree-nodes` mit `name` und `parentId` legt einen Ordner an; `PATCH /tree-nodes/{nodeId}` mit `name` benennt ihn um; `DELETE /tree-nodes/{nodeId}` löscht ihn.
 - `POST /tree-nodes/{nodeId}/items` mit `itemType`, `referenceId` oder `entityId` und einem optionalen `displayLabel` ordnet einen Eintrag ein; `DELETE /tree-nodes/{nodeId}/items/{itemId}` entfernt ihn.
 - `PUT /tree-nodes/{nodeId}/position` mit `parentId` und `position` verschiebt einen Ordner; `PUT /tree-nodes/{nodeId}/items/{itemId}/position` mit `nodeId` und `position` verschiebt einen Eintrag. Die Position zählt die Einträge, die du siehst, ab 0.

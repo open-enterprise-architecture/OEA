@@ -214,7 +214,8 @@ public class NavigationTree {
 				: placement.referenceId() == null;
 		boolean otherSet = NavigationTreeStore.ENTITY.equals(itemType) ? placement.referenceId() != null
 				: placement.entityId() != null;
-		if (!List.of(NavigationTreeStore.CATALOG, NavigationTreeStore.ENTITY, NavigationTreeStore.SOLUTION)
+		if (!List.of(NavigationTreeStore.CATALOG, NavigationTreeStore.ENTITY, NavigationTreeStore.SOLUTION,
+				NavigationTreeStore.DIAGRAM)
 			.contains(itemType)) {
 			throw InvalidTreeException.invalid("itemType", "The item type is not supported.");
 		}
@@ -229,6 +230,11 @@ public class NavigationTree {
 			case NavigationTreeStore.CATALOG -> {
 				if (this.catalogs.findVisible(placement.referenceId(), personId).isEmpty()) {
 					throw InvalidTreeException.invalid(field, "The catalog does not exist.");
+				}
+			}
+			case NavigationTreeStore.DIAGRAM -> {
+				if (!this.store.existsDiagram(placement.referenceId())) {
+					throw InvalidTreeException.invalid(field, "The diagram does not exist.");
 				}
 			}
 			case NavigationTreeStore.SOLUTION -> {

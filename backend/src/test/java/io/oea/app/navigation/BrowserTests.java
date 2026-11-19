@@ -370,7 +370,7 @@ class BrowserTests {
 
 	@ParameterizedTest
 	@ValueSource(strings = { "?category=components", "?scope=current-state", "?scope=all&category=components",
-			"?scope=current-state&category=diagrams" })
+			"?scope=current-state&category=building-blocks" })
 	void missingOrUnknownEnumValue(String query) {
 		assertThat(get(ITEMS + query, this.kurt)).hasStatus(HttpStatus.BAD_REQUEST);
 	}

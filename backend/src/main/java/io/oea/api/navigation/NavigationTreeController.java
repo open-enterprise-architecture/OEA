@@ -12,6 +12,7 @@ import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PlateauStatus;
 import io.oea.api.generated.model.SolutionDeltaType;
 import io.oea.api.generated.model.SolutionStatus;
+import io.oea.api.generated.model.ViewpointNotation;
 import io.oea.api.generated.model.TreeNode;
 import io.oea.api.generated.model.TreeNodeCreate;
 import io.oea.api.generated.model.TreeNodeItem;
@@ -56,7 +57,7 @@ public class NavigationTreeController implements ViewsNavigationApi {
 		Browser.Top top = this.browser.top(principal());
 		return ResponseEntity.ok(new io.oea.api.generated.model.Browser(
 				new BrowserCurrentState(top.currentState().components(), top.currentState().connections(),
-						top.currentState().catalogs()),
+						top.currentState().catalogs(), top.currentState().diagrams()),
 				top.plateaus()
 					.stream()
 					.map((plateau) -> new BrowserPlateau(plateau.id(), plateau.name(),
@@ -74,7 +75,8 @@ public class NavigationTreeController implements ViewsNavigationApi {
 		return ResponseEntity.ok(new BrowserItemPage(result.items().stream().map((item) -> new BrowserItem(
 				BrowserItem.KindEnum.fromValue(item.kind()), item.id(), item.name(), item.metatypeAbbreviation(),
 				item.entityId(), item.solutionId(),
-				(item.deltaType() != null) ? SolutionDeltaType.fromValue(item.deltaType()) : null, item.childCount(),
+				(item.deltaType() != null) ? SolutionDeltaType.fromValue(item.deltaType()) : null,
+				(item.notation() != null) ? ViewpointNotation.fromValue(item.notation()) : null, item.childCount(),
 				item.structuringAid(), item.version())).toList(),
 				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
 						result.totalPages())));

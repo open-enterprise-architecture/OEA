@@ -36,20 +36,25 @@ public class NavigationTreeStore {
 	/** Item type of a solution entry. */
 	public static final String SOLUTION = "solution";
 
+	/** Item type of a diagram entry. */
+	public static final String DIAGRAM = "diagram";
+
 	/**
 	 * The entries a person sees: catalogs that exist and are instance catalogs or the person's own
 	 * personal catalogs, entities that exist (deleted ones included) and solutions that exist.
 	 */
 	private static final String VISIBLE_ITEMS = """
 			SELECT i.id, i.tree_node_id, i.item_type, i.reference_id, i.entity_id, i.display_label, i.sort_order,
-			       coalesce(c.name, e.name, s.name), c.scope, e.deleted_at IS NOT NULL
+			       coalesce(c.name, e.name, s.name, g.name), c.scope, e.deleted_at IS NOT NULL
 			FROM tree_node_items i
 			LEFT JOIN catalogs c ON i.item_type = 'catalog' AND c.id = i.reference_id
 			LEFT JOIN entities e ON i.item_type = 'entity' AND e.id = i.entity_id
 			LEFT JOIN solutions s ON i.item_type = 'solution' AND s.id = i.reference_id
+			LEFT JOIN diagrams g ON i.item_type = 'diagram' AND g.id = i.reference_id AND g.deleted_at IS NULL
 			WHERE ((i.item_type = 'catalog' AND (c.scope = 'instance' OR c.created_by = ?))
 			    OR (i.item_type = 'entity' AND e.id IS NOT NULL)
-			    OR (i.item_type = 'solution' AND s.id IS NOT NULL))""";
+			    OR (i.item_type = 'solution' AND s.id IS NOT NULL)
+			    OR (i.item_type = 'diagram' AND g.id IS NOT NULL))""";
 
 	private final JdbcTemplate jdbc;
 
@@ -259,6 +264,14 @@ public class NavigationTreeStore {
 				SELECT EXISTS (SELECT 1 FROM entities e JOIN metatypes m ON m.id = e.metatype_id
 				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection)""", Boolean.class,
 				entityId);
+		return Boolean.TRUE.equals(exists);
+	}
+
+	/** True if a diagram that is not deleted exists. */
+	public boolean existsDiagram(UUID diagramId) {
+		Boolean exists = this.jdbc.queryForObject(
+				"SELECT EXISTS (SELECT 1 FROM diagrams WHERE id = ? AND deleted_at IS NULL)", Boolean.class,
+				diagramId);
 		return Boolean.TRUE.equals(exists);
 	}
 

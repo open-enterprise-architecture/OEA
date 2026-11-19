@@ -10,14 +10,15 @@ export type BrowserPlateau = components['schemas']['BrowserPlateau']
 export type BrowserSolution = components['schemas']['BrowserSolution']
 export type BrowserItem = components['schemas']['BrowserItem']
 export type BrowserItemPage = components['schemas']['BrowserItemPage']
-export type BrowserCategory = 'components' | 'connections' | 'catalogs'
+export type BrowserCategory = 'components' | 'connections' | 'catalogs' | 'diagrams'
 export type EntityParentResult = components['schemas']['EntityParentResult']
 export type StructuringAid = components['schemas']['StructuringAid']
 
-/** What "Place in navigation" places (US-054, US-095): a catalog, an element entity or a solution. */
+/** What "Place in navigation" places (US-054, US-095): a catalog, an element entity, a solution or a diagram. */
 export type Placement =
   | { itemType: 'catalog'; referenceId: string; name: string }
   | { itemType: 'solution'; referenceId: string; name: string }
+  | { itemType: 'diagram'; referenceId: string; name: string }
   | { itemType: 'entity'; entityId: number; name: string }
 
 /** A folder with its path from the root, e.g. "Repository / IT Landscape". */
@@ -124,6 +125,9 @@ export function browserItemRoute(item: BrowserItem): string | undefined {
   if (item.kind === 'catalog') {
     return `/catalogs/${encodeURIComponent(item.id)}`
   }
+  if (item.kind === 'diagram') {
+    return `/diagrams/${encodeURIComponent(item.id)}`
+  }
   return item.solutionId ? `/solutions/${encodeURIComponent(item.solutionId)}` : undefined
 }
 
@@ -222,6 +226,9 @@ export function itemRoute(item: TreeNodeItem): string | undefined {
   }
   if (!item.referenceId) {
     return undefined
+  }
+  if (item.itemType === 'diagram') {
+    return `/diagrams/${encodeURIComponent(item.referenceId)}`
   }
   return item.itemType === 'solution' ? `/solutions/${encodeURIComponent(item.referenceId)}` : `/catalogs/${encodeURIComponent(item.referenceId)}`
 }

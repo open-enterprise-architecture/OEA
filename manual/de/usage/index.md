@@ -14,6 +14,7 @@ covers:
 - [Portal](./portal): die geteilten Kataloge lesen, zum Beispiel mit der Rolle `portal-reader`
 - [Lösungen](./solutions): eine Lösung für ein Veränderungsvorhaben anlegen und ihre Architekturvision beschreiben
 - [Dashboards](./dashboards): Text und Katalogtabellen in einem Raster anordnen, für dich selbst oder für alle
+- [Diagramme](./diagrams): Diagramme anlegen, finden, umbenennen, löschen und wiederherstellen
 - [Entitäten im Batch schreiben](./entities-batch): Entitäten aus einem Quellsystem über die API anlegen und aktualisieren
 
 Was du siehst und tun darfst, hängt von deinen Rollen ab. Sagt dir eine Seite, dass du keinen Zugriff hast, bitte eine Administratorin oder einen Administrator um eine Rolle (siehe [Rollen und Berechtigungen](../administration/roles-and-permissions)).

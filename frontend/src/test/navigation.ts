@@ -56,6 +56,11 @@ export function solutionItem(id: string, solution: (typeof SOLUTIONS)[number], d
   return { ...NO_TARGET, id, itemType: 'solution', referenceId: solution.id, displayLabel, name: solution.name }
 }
 
+/** A diagram entry (us-074-diagrams). */
+export function diagramItem(id: string, diagramId: string, name: string, displayLabel: string | null = null): TreeNodeItem {
+  return { ...NO_TARGET, id, itemType: 'diagram', referenceId: diagramId, displayLabel, name }
+}
+
 export function folder(id: string, name: string, parentId: string | null, items: TreeNodeItem[] = [], children: TreeNode[] = []): TreeNode {
   return { id, name, parentId, sortOrder: 0, items, children }
 }
@@ -95,7 +100,7 @@ export const BROWSER_SOLUTION_ID = SOLUTIONS[0]!.id
  * (three deltas), the empty target plateau "TO-BE 2030", and the project solution "ERP Consolidation" without deltas.
  */
 export const BROWSER: Browser = {
-  currentState: { components: 3, connections: 1, catalogs: 2 },
+  currentState: { components: 3, connections: 1, catalogs: 2, diagrams: 2 },
   plateaus: [
     { id: PLATEAU_2027_ID, name: '2027', status: 'transition', solutions: [{ id: SOLUTIONS[0]!.id, name: 'Cloud Migration', status: 'draft', components: 3 }] },
     { id: PLATEAU_2030_ID, name: 'TO-BE 2030', status: 'target', solutions: [] },
@@ -105,7 +110,7 @@ export const BROWSER: Browser = {
 
 /** The top level without plateau mode: no plateaus, an empty "Projects" and nothing in the repository yet. */
 export const BROWSER_WITHOUT_PLATEAUS: Browser = {
-  currentState: { components: 3, connections: 0, catalogs: 2 },
+  currentState: { components: 3, connections: 0, catalogs: 2, diagrams: 0 },
   plateaus: [],
   projects: [],
 }
@@ -119,6 +124,7 @@ function entityRow(entity: (typeof ENTITIES)[number], abbreviation: string | nul
     entityId: null,
     solutionId: null,
     deltaType: null,
+    notation: null,
     childCount: 0,
     structuringAid: false,
     version: 1,
@@ -126,7 +132,7 @@ function entityRow(entity: (typeof ENTITIES)[number], abbreviation: string | nul
 }
 
 function deltaRow(id: string, name: string, deltaType: 'new' | 'modified' | 'retiring', entityId: number | null): BrowserItem {
-  return { kind: 'delta', id, name, metatypeAbbreviation: 'APP', entityId, solutionId: BROWSER_SOLUTION_ID, deltaType, childCount: 0, structuringAid: false, version: 0 }
+  return { kind: 'delta', id, name, metatypeAbbreviation: 'APP', entityId, solutionId: BROWSER_SOLUTION_ID, deltaType, notation: null, childCount: 0, structuringAid: false, version: 0 }
 }
 
 /** The objects of the categories of BROWSER, by category key (`current-state:components`, `solution:<id>:components`), in the order of the backend. */
@@ -141,10 +147,16 @@ export const BROWSER_ITEMS: Record<string, BrowserItem[]> = {
     entityId: null,
     solutionId: null,
     deltaType: null,
+    notation: null,
     childCount: 0,
     structuringAid: false,
     version: 0,
   })),
+  // two diagrams by name, with the notation of their viewpoint (us-074-diagrams)
+  'current-state:diagrams': [
+    { kind: 'diagram', id: 'a1000000-0000-4000-8000-000000000001', name: 'Order to Cash', metatypeAbbreviation: null, entityId: null, solutionId: null, deltaType: null, notation: 'archimate3', childCount: 0, structuringAid: false, version: 0 },
+    { kind: 'diagram', id: 'a1000000-0000-4000-8000-000000000002', name: 'Procure to Pay', metatypeAbbreviation: null, entityId: null, solutionId: null, deltaType: null, notation: 'bpmn2', childCount: 0, structuringAid: false, version: 0 },
+  ],
   [`solution:${BROWSER_SOLUTION_ID}:components`]: [
     deltaRow('c1000000-0000-4000-8000-000000000001', 'CRM Cloud', 'new', null),
     deltaRow('c1000000-0000-4000-8000-000000000002', 'Legacy CRM', 'retiring', 9103),
@@ -237,6 +249,7 @@ export function navigationApi(
     entityId: null,
     solutionId: null,
     deltaType: null,
+    notation: null,
     childCount: childrenOf(component.id).length,
     structuringAid: component.structuringAid ?? false,
     version: component.version,

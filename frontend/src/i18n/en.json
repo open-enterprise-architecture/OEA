@@ -717,7 +717,9 @@
       "elementOf": "Element of {name}",
       "sizeInvalid": "{min} to {max} pt.",
       "catalogFailed": "The notation elements could not be loaded.",
-      "readOnly": "System-defined viewpoints are read-only."
+      "readOnly": "System-defined viewpoints are read-only.",
+      "deleteDiagrams": "{count} diagrams will be deleted with the viewpoint. The entities stay. | {count} diagram will be deleted with the viewpoint. The entities stay. | {count} diagrams will be deleted with the viewpoint. The entities stay.",
+      "diagramsAffected": "{count} diagram affected | {count} diagram affected | {count} diagrams affected"
     }
   },
   "navigation": {
@@ -757,7 +759,8 @@
     "alreadyPlaced": {
       "catalog": "The catalog is already in this folder, or the folder is full.",
       "entity": "The entity is already in this folder, cannot be placed, or the folder is full.",
-      "solution": "The solution is already in this folder, or the folder is full."
+      "solution": "The solution is already in this folder, or the folder is full.",
+      "diagram": "The diagram is already in this folder, no longer exists, or the folder is full."
     },
     "placed": "Placed in {path}.",
     "deleted": "Deleted",
@@ -815,7 +818,8 @@
     "moveBlocked": "The component has open issues of a solution and cannot be changed.",
     "stale": "The component was changed meanwhile. The list is up to date now; try again.",
     "changeFailed": "The change could not be saved.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "diagrams": "Diagrams"
   },
   "portal": {
     "title": "Portal",
@@ -1386,6 +1390,54 @@
       "forbidden": "You may not take plateaus live.",
       "failed": "The go-live failed; nothing was changed.",
       "loadFailed": "The go-live preview could not be loaded."
+    }
+  },
+  "diagrams": {
+    "title": "Diagrams",
+    "new": "Create diagram",
+    "newHint": "A diagram models a business process with the notation of its viewpoint.",
+    "empty": "No diagrams yet.",
+    "emptyHint": "Create a diagram to model a business process.",
+    "noneDeleted": "No deleted diagrams.",
+    "filter": "Filter by name",
+    "loadMore": "Load more",
+    "loadFailed": "The diagrams could not be loaded.",
+    "noAccess": "You have no access to diagrams. Ask an administrator for a role.",
+    "name": "Name",
+    "description": "Description",
+    "descriptionHelp": "Optional, up to 2000 characters",
+    "viewpoint": "Viewpoint",
+    "viewpointHelp": "Fixed after the creation. The notation of the viewpoint is used for the diagram.",
+    "viewpointsFailed": "The viewpoints could not be loaded.",
+    "createSubmit": "Create",
+    "renameSubmit": "Save",
+    "renameTitle": "Rename diagram",
+    "rename": "Rename {name}",
+    "renameAction": "Rename",
+    "delete": "Delete diagram",
+    "deleteAction": "Delete {name}",
+    "deleteHint": "Delete “{name}”? The diagram can be restored by a person with the permission to restore. The entities stay.",
+    "nameTaken": "A diagram with this name already exists.",
+    "stale": "The diagram was changed meanwhile. Reload the page and try again.",
+    "gone": "The diagram does not exist or was deleted.",
+    "forbidden": "You may not change diagrams.",
+    "failed": "The change could not be saved.",
+    "updated": "Changed {date}",
+    "showDeleted": "Show deleted",
+    "deletedBy": "Deleted by {name}, {date}",
+    "restore": "Restore",
+    "restoreAction": "Restore {name}",
+    "restoreNameTaken": "“{name}” cannot be restored: another diagram has this name.",
+    "restoreStale": "The diagram was changed meanwhile. The list is reloaded.",
+    "back": "All diagrams",
+    "createdBy": "Created by",
+    "lastChange": "Last change",
+    "noDescription": "No description",
+    "canvasFollows": "The canvas with the shapes of the diagram follows in a later version.",
+    "field": {
+      "name": "Enter a name of 1 to 200 characters that no other diagram has.",
+      "description": "The description has at most 2000 characters.",
+      "viewpointId": "Choose a viewpoint."
     }
   },
   "dashboards": {

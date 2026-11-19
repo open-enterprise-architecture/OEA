@@ -717,7 +717,9 @@
       "elementOf": "Element von {name}",
       "sizeInvalid": "{min} bis {max} pt.",
       "catalogFailed": "Die Notationselemente konnten nicht geladen werden.",
-      "readOnly": "Systemdefinierte Viewpoints sind schreibgeschützt."
+      "readOnly": "Systemdefinierte Viewpoints sind schreibgeschützt.",
+      "deleteDiagrams": "{count} Diagramme werden mit dem Viewpoint gelöscht. Die Entitäten bleiben. | {count} Diagramm wird mit dem Viewpoint gelöscht. Die Entitäten bleiben. | {count} Diagramme werden mit dem Viewpoint gelöscht. Die Entitäten bleiben.",
+      "diagramsAffected": "{count} Diagramm betroffen | {count} Diagramm betroffen | {count} Diagramme betroffen"
     }
   },
   "navigation": {
@@ -757,7 +759,8 @@
     "alreadyPlaced": {
       "catalog": "Der Katalog ist bereits in diesem Ordner, oder der Ordner ist voll.",
       "entity": "Die Entität ist bereits in diesem Ordner, kann nicht eingeordnet werden, oder der Ordner ist voll.",
-      "solution": "Die Lösung ist bereits in diesem Ordner, oder der Ordner ist voll."
+      "solution": "Die Lösung ist bereits in diesem Ordner, oder der Ordner ist voll.",
+      "diagram": "Das Diagramm ist schon in diesem Ordner, existiert nicht mehr, oder der Ordner ist voll."
     },
     "placed": "Eingeordnet in {path}.",
     "deleted": "Gelöscht",
@@ -815,7 +818,8 @@
     "moveBlocked": "Die Komponente hat offene Probleme einer Lösung und kann nicht geändert werden.",
     "stale": "Die Komponente wurde zwischenzeitlich geändert. Die Liste ist jetzt aktuell; versuche es erneut.",
     "changeFailed": "Die Änderung konnte nicht gespeichert werden.",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "diagrams": "Diagramme"
   },
   "portal": {
     "title": "Portal",
@@ -1386,6 +1390,54 @@
       "forbidden": "Du darfst Plateaus nicht live schalten.",
       "failed": "Das Go-live ist fehlgeschlagen; nichts wurde geändert.",
       "loadFailed": "Die Vorschau des Go-lives konnte nicht geladen werden."
+    }
+  },
+  "diagrams": {
+    "title": "Diagramme",
+    "new": "Diagramm anlegen",
+    "newHint": "Ein Diagramm modelliert einen Geschäftsprozess mit der Notation seines Viewpoints.",
+    "empty": "Noch keine Diagramme.",
+    "emptyHint": "Lege ein Diagramm an, um einen Geschäftsprozess zu modellieren.",
+    "noneDeleted": "Keine gelöschten Diagramme.",
+    "filter": "Nach Name filtern",
+    "loadMore": "Mehr laden",
+    "loadFailed": "Die Diagramme konnten nicht geladen werden.",
+    "noAccess": "Du hast keinen Zugriff auf Diagramme. Bitte eine Administratorin oder einen Administrator um eine Rolle.",
+    "name": "Name",
+    "description": "Beschreibung",
+    "descriptionHelp": "Optional, bis zu 2000 Zeichen",
+    "viewpoint": "Viewpoint",
+    "viewpointHelp": "Nach dem Anlegen fest. Die Notation des Viewpoints gilt für das Diagramm.",
+    "viewpointsFailed": "Die Viewpoints konnten nicht geladen werden.",
+    "createSubmit": "Anlegen",
+    "renameSubmit": "Speichern",
+    "renameTitle": "Diagramm umbenennen",
+    "rename": "{name} umbenennen",
+    "renameAction": "Umbenennen",
+    "delete": "Diagramm löschen",
+    "deleteAction": "{name} löschen",
+    "deleteHint": "„{name}“ löschen? Eine Person mit dem Recht zum Wiederherstellen kann das Diagramm wiederherstellen. Die Entitäten bleiben.",
+    "nameTaken": "Ein Diagramm mit diesem Namen gibt es schon.",
+    "stale": "Das Diagramm wurde zwischenzeitlich geändert. Lade die Seite neu und versuche es erneut.",
+    "gone": "Das Diagramm existiert nicht oder wurde gelöscht.",
+    "forbidden": "Du darfst Diagramme nicht ändern.",
+    "failed": "Die Änderung konnte nicht gespeichert werden.",
+    "updated": "Geändert {date}",
+    "showDeleted": "Gelöschte anzeigen",
+    "deletedBy": "Gelöscht von {name}, {date}",
+    "restore": "Wiederherstellen",
+    "restoreAction": "{name} wiederherstellen",
+    "restoreNameTaken": "„{name}“ lässt sich nicht wiederherstellen: ein anderes Diagramm hat diesen Namen.",
+    "restoreStale": "Das Diagramm wurde zwischenzeitlich geändert. Die Liste wird neu geladen.",
+    "back": "Alle Diagramme",
+    "createdBy": "Angelegt von",
+    "lastChange": "Letzte Änderung",
+    "noDescription": "Keine Beschreibung",
+    "canvasFollows": "Die Zeichenfläche mit den Formen des Diagramms folgt in einer späteren Version.",
+    "field": {
+      "name": "Gib einen Namen mit 1 bis 200 Zeichen an, den kein anderes Diagramm hat.",
+      "description": "Die Beschreibung hat höchstens 2000 Zeichen.",
+      "viewpointId": "Wähle einen Viewpoint."
     }
   },
   "dashboards": {

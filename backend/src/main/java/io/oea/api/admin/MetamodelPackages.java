@@ -80,6 +80,7 @@ final class MetamodelPackages {
 			.viewpointsCreated(outcome.viewpointsCreated())
 			.viewpointsUpdated(outcome.viewpointsUpdated())
 			.viewpointsDeleted(outcome.viewpointsDeleted())
+			.diagramsDeleted(outcome.diagramsDeleted())
 			.layersCreated(outcome.layersCreated())
 			.layersUpdated(outcome.layersUpdated())
 			.layersDeleted(outcome.layersDeleted())

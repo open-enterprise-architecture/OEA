@@ -497,7 +497,7 @@ A metamodel package was imported ([US-033](../requirements/user-stories/US-033-i
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the importing principal |
 | Target | `metamodel-package`, package identifier |
-| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049); for a metamodel package also `viewpointsCreated` and `viewpointsUpdated` (the numbers of system-defined viewpoints of the package created and changed) and `viewpointsDeleted` (the IDs of the viewpoints of the package a re-import deleted because the package no longer carries them; [US-092](../requirements/user-stories/US-092-system-viewpoint-readonly.md), change us-091-viewpoint-notations D8); also `architectureLayersCreated`, `architectureLayersUpdated` and `architectureLayersDeleted` (the numbers of architecture layers of the package created, renamed and deleted by a re-import) and `layerAssignmentsCleared` (the number of metatypes, of the package or of the organization, that had a layer the re-import deleted and lost it; change s17-architecture-layers). A layer written by an import has no event of its own |
+| Details | `packageId`, `version`, `batchId`, `metatypesCreated`, `metatypesUpdated`, `labels` (package labels stored from `i18nBundles`, US-140), `entitiesWithRemovedValues`, `entitiesMarked`, `skippedPackageEntries` (IDs of package entries not stored because an organization entry has the same date, ADR-049); for a metamodel package also `viewpointsCreated` and `viewpointsUpdated` (the numbers of system-defined viewpoints of the package created and changed) and `viewpointsDeleted` (the IDs of the viewpoints of the package a re-import deleted because the package no longer carries them; [US-092](../requirements/user-stories/US-092-system-viewpoint-readonly.md), change us-091-viewpoint-notations D8); also `diagramsDeleted` (the number of diagrams that were not deleted before and were removed with the deleted viewpoints; change us-074-diagrams); also `architectureLayersCreated`, `architectureLayersUpdated` and `architectureLayersDeleted` (the numbers of architecture layers of the package created, renamed and deleted by a re-import) and `layerAssignmentsCleared` (the number of metatypes, of the package or of the organization, that had a layer the re-import deleted and lost it; change s17-architecture-layers). A layer written by an import has no event of its own |
 
 ### `metamodel.metatype-imported`
 
@@ -824,14 +824,14 @@ A folder of the navigation tree was created, renamed or deleted ([US-054](../req
 
 ### `tree-node.item-added`, `tree-node.item-removed`
 
-A catalog, an element entity or a solution was placed in a folder of the navigation tree, or its entry removed ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [US-095](../requirements/user-stories/US-095-navigation-tree-item-soft-reference.md), [REQ-050](../requirements/req/REQ-050-catalog-navigation-tree.md), [REQ-095](../requirements/req/REQ-095-navigation-tree-item-soft-reference.md); change us-095-navigation-tree-items). The target itself does not change.
+A catalog, an element entity, a solution or a diagram was placed in a folder of the navigation tree, or its entry removed ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [US-095](../requirements/user-stories/US-095-navigation-tree-item-soft-reference.md), [REQ-050](../requirements/req/REQ-050-catalog-navigation-tree.md), [REQ-095](../requirements/req/REQ-095-navigation-tree-item-soft-reference.md); change us-095-navigation-tree-items). The target itself does not change.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person with `viewpoint:manage` and `entity:read` |
 | Target | `tree-node`, ID of the folder |
-| Details | `itemId`, `itemType` (`catalog`, `entity` or `solution`) and the target ID: `entityId` for an entity, `referenceId` (the ID of the catalog or solution) otherwise |
+| Details | `itemId`, `itemType` (`catalog`, `entity`, `solution` or `diagram`) and the target ID: `entityId` for an entity, `referenceId` (the ID of the catalog, solution or diagram) otherwise |
 
 ### `tree-node.moved`, `tree-node.item-moved`
 
@@ -856,6 +856,17 @@ A viewpoint was created, edited or deleted ([US-090](../requirements/user-storie
 | Actor | the person with `viewpoint:manage` |
 | Target | `viewpoint`, ID of the viewpoint |
 | Details | `name` and `notation` (`generic`, `archimate3`, `uml` or `bpmn2`); for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `notation`, `metatypeIds`, `connectionTypeIds`, `mappings` and `sizes`. Mapping values (notation elements, sizes, visual hints) are not copied ([US-091](../requirements/user-stories/US-091-viewpoint-notation-mapping.md), [REQ-091](../requirements/req/REQ-091-viewpoint-notation-mapping.md); change us-091-viewpoint-notations D8) |
+
+### `diagram.created` / `diagram.updated` / `diagram.deleted` / `diagram.restored`
+
+A diagram was created, renamed or its description changed, deleted or restored ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md); change us-074-diagrams, business object [Diagram](../business-objects/diagram.md)). Rejected writes (validation error, taken name, stale or missing version, missing permission, a diagram that is not deleted) are not audited. A deletion is the marking as deleted; a diagram removed together with its viewpoint (a viewpoint deletion or a package re-import that drops it) is audited as `diagram.deleted` with the cause, once for every diagram, the deleted ones included.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person or service account with `entity:write` (`diagram.restored`: with `entity:restore`); for a diagram removed with its viewpoint the person with `viewpoint:manage` or `metamodel:write` |
+| Target | `diagram`, ID of the diagram |
+| Details | `name` and `viewpointId`; for `diagram.updated` also `fields`, the changed fields among `name` and `description` (empty when nothing changed); for `diagram.deleted` by a viewpoint deletion or a package re-import also `cause` `viewpoint-deleted` and, for a diagram that was deleted before, `wasDeleted` `true` |
 
 ### `plateau.created` / `plateau.updated`
 

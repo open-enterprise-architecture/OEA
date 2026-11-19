@@ -1485,21 +1485,21 @@ components:
       type: object
       description: |
         An entry of a folder (US-054, US-095, US-097, REQ-050, REQ-095; business object
-        `tree-node`): a soft reference to a catalog, an element entity or a solution. The entry
+        `tree-node`): a soft reference to a catalog, an element entity, a solution or a diagram. The entry
         never changes or protects its target.
       required: [id, itemType, referenceId, entityId, displayLabel, sortOrder, name, scope, deleted]
       properties:
         id:           { type: string, format: uuid }
         itemType:
           type: string
-          enum: [catalog, entity, solution]
-        referenceId:  { type: [string, 'null'], format: uuid, description: "ID of the catalog or solution; null for an entity" }
-        entityId:     { type: [integer, 'null'], format: int32, description: "ID of the entity; null for a catalog or solution" }
+          enum: [catalog, entity, solution, diagram]
+        referenceId:  { type: [string, 'null'], format: uuid, description: "ID of the catalog, solution or diagram; null for an entity" }
+        entityId:     { type: [integer, 'null'], format: int32, description: "ID of the entity; null for a catalog, solution or diagram" }
         displayLabel: { type: [string, 'null'], description: "Shown instead of the target's name if set" }
         sortOrder:    { type: integer, minimum: 0, description: "Manual position among the entries of the folder (REQ-096); entries are returned in this order" }
         name:         { type: string, description: "The current name of the target" }
         scope:
-          description: Scope of the catalog; null for an entity or solution
+          description: Scope of the catalog; null for an entity, solution or diagram
           oneOf:
             - $ref: '#/components/schemas/CatalogScope'
             - type: 'null'
@@ -1546,11 +1546,12 @@ components:
 
     BrowserCurrentState:
       type: object
-      required: [components, connections, catalogs]
+      required: [components, connections, catalogs, diagrams]
       properties:
         components:  { type: integer, minimum: 0, description: Element entities that are not deleted }
         connections: { type: integer, minimum: 0, description: Connection entities that are not deleted }
         catalogs:    { type: integer, minimum: 0, description: Instance catalogs and the caller's own personal catalogs }
+        diagrams:    { type: integer, minimum: 0, description: Diagrams that are not deleted }
 
     BrowserPlateau:
       type: object
@@ -1584,13 +1585,13 @@ components:
 
     BrowserItem:
       type: object
-      description: An element entity, a connection entity, a catalog or a delta of a solution
-      required: [kind, id, name, metatypeAbbreviation, entityId, solutionId, deltaType, childCount, structuringAid, version]
+      description: An element entity, a connection entity, a catalog, a diagram or a delta of a solution
+      required: [kind, id, name, metatypeAbbreviation, entityId, solutionId, deltaType, notation, childCount, structuringAid, version]
       properties:
         kind:
           type: string
-          enum: [entity, catalog, delta]
-        id:   { type: string, description: "Entity ID, catalog UUID or delta UUID" }
+          enum: [entity, catalog, delta, diagram]
+        id:   { type: string, description: "Entity ID, catalog UUID, delta UUID or diagram UUID" }
         name: { type: string }
         metatypeAbbreviation: { type: [string, 'null'], description: "Entities and deltas; null where the metatype has no abbreviation" }
         entityId:   { type: [integer, 'null'], description: "Deltas with an entity (`modified`, `retiring`, and `new` after the go-live)" }
@@ -1599,9 +1600,14 @@ components:
           oneOf:
             - { $ref: '#/components/schemas/SolutionDeltaType' }
             - { type: 'null' }
-        childCount:     { type: integer, minimum: 0, description: "Element entities with this entity as parent that are not deleted (US-135); 0 for connections, catalogs and deltas" }
+        notation:
+          oneOf:
+            - { $ref: '#/components/schemas/ViewpointNotation' }
+            - { type: 'null' }
+          description: "The notation of the viewpoint of a diagram; null for everything else"
+        childCount:     { type: integer, minimum: 0, description: "Element entities with this entity as parent that are not deleted (US-135); 0 for connections, catalogs, diagrams and deltas" }
         structuringAid: { type: boolean, description: "The entity is a structuring aid (US-136); false for everything else" }
-        version:        { type: integer, minimum: 0, description: "The version of an entity, the `If-Match` of `setEntityParent` and `deleteStructuringAid`; 0 for catalogs and deltas" }
+        version:        { type: integer, minimum: 0, description: "The version of an entity, the `If-Match` of `setEntityParent` and `deleteStructuringAid`; 0 for catalogs, diagrams and deltas" }
 
     TreeNodeCreate:
       type: object
@@ -1620,14 +1626,14 @@ components:
     TreeNodeItemCreate:
       type: object
       description: |
-        A catalog, an element entity or a solution placed in a folder (US-054, US-095, US-097,
-        REQ-050, REQ-097; tree-node BR-04, BR-06). `entityId` is required for `entity` and
-        `referenceId` for `catalog` and `solution`; a missing fitting field, or the field of the
+        A catalog, an element entity, a solution or a diagram placed in a folder (US-054, US-095,
+        US-097, REQ-050, REQ-097; tree-node BR-04, BR-06). `entityId` is required for `entity` and
+        `referenceId` for `catalog`, `solution` and `diagram`; a missing fitting field, or the field of the
         other kind, is rejected with 422 naming that field.
       required: [itemType]
       properties:
-        itemType:     { type: string, enum: [catalog, entity, solution] }
-        referenceId:  { type: [string, 'null'], format: uuid, description: "ID of a catalog visible to the caller, or of a solution" }
+        itemType:     { type: string, enum: [catalog, entity, solution, diagram] }
+        referenceId:  { type: [string, 'null'], format: uuid, description: "ID of a catalog visible to the caller, of a solution or of a diagram" }
         entityId:     { type: [integer, 'null'], format: int32, minimum: 1, description: "ID of an element entity that is not deleted" }
         displayLabel: { type: [string, 'null'], maxLength: 255, description: "Trimmed; empty means none" }
 
@@ -1656,6 +1662,93 @@ components:
           description: |
             0-based position among the entries of the target folder that the caller sees; a
             position past the end places the entry last
+
+    # ── Diagram objects (US-074, UC-10; change us-074-diagrams) ──────────────
+    DiagramViewpoint:
+      type: object
+      description: The viewpoint of a diagram, fixed at its creation
+      required: [id, name, notation]
+      properties:
+        id:       { type: string, format: uuid }
+        name:     { type: string }
+        notation: { $ref: '#/components/schemas/ViewpointNotation' }
+
+    Diagram:
+      type: object
+      description: |
+        A diagram as an object (US-074, UC-10): name, description and viewpoint. The shapes and
+        connections follow with the canvas (`getDiagramView`, planned).
+      required: [id, name, description, viewpoint, version, createdBy, createdAt, updatedAt]
+      properties:
+        id:          { type: string, format: uuid }
+        name:        { type: string }
+        description: { type: [string, 'null'] }
+        viewpoint:   { $ref: '#/components/schemas/DiagramViewpoint' }
+        version:     { type: integer, minimum: 1 }
+        createdBy:   { $ref: '#/components/schemas/PrincipalRef' }
+        createdAt:   { type: string, format: date-time }
+        updatedAt:   { type: string, format: date-time }
+
+    DiagramCreate:
+      type: object
+      required: [name, viewpointId]
+      properties:
+        name:        { type: string, minLength: 1, maxLength: 200, description: "1 to 200 characters after trimming; unique among the diagrams, ignoring case; stored trimmed" }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        viewpointId: { type: string, format: uuid, description: "An existing viewpoint; it does not change afterwards" }
+
+    DiagramUpdate:
+      type: object
+      description: Replaces name and description; the viewpoint is fixed (a `viewpointId` in the body is an unknown field and changes nothing)
+      required: [name]
+      properties:
+        name:        { type: string, minLength: 1, maxLength: 200 }
+        description: { type: [string, 'null'], maxLength: 2000 }
+
+    DeletedDiagram:
+      description: A deleted diagram with the time and the actor of its deletion; it can be restored
+      allOf:
+        - $ref: '#/components/schemas/Diagram'
+        - type: object
+          required: [deletedAt, deletedBy]
+          properties:
+            deletedAt: { type: string, format: date-time }
+            deletedBy: { $ref: '#/components/schemas/PrincipalRef' }
+
+    DeletedDiagramPage:
+      type: object
+      required: [items, page, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/DeletedDiagram' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+        nextCursor:
+          type: [string, 'null']
+          description: Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null` on the last page
+
+    DiagramPage:
+      type: object
+      required: [items, page, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Diagram' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+        nextCursor:
+          type: [string, 'null']
+          description: Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null` on the last page
+
+    DiagramValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [invalidFields]
+          properties:
+            invalidFields:
+              type: array
+              description: The rejected fields (`name`, `description` or `viewpointId`)
+              items: { type: string }
 
     # ── Diagram ──────────────────────────────────────────────────────────────
     DiagramShape:
@@ -3116,7 +3209,7 @@ components:
 
     ViewpointConfig:
       type: object
-      required: [id, name, description, notation, viewpointType, sourcePackage, allowedMetatypes, allowedRelations, mappings, sizes, effectiveMappings, version, createdAt, createdBy]
+      required: [id, name, description, notation, viewpointType, sourcePackage, allowedMetatypes, allowedRelations, mappings, sizes, effectiveMappings, diagramCount, version, createdAt, createdBy]
       description: |
         A viewpoint (US-090, US-091, US-092, UC-12): the element metatypes and connection
         metatypes of a view, its notation and the optional notation mapping. A system-defined
@@ -3155,6 +3248,7 @@ components:
           type: array
           description: Connection metatypes, ordered by name
           items: { $ref: '#/components/schemas/MetatypeSummary' }
+        diagramCount: { type: integer, minimum: 0, description: "The number of diagrams that use the viewpoint and are not deleted (US-090 AC2, US-093 AC1)" }
         version:     { type: integer, minimum: 1 }
         createdAt:   { type: string, format: date-time }
         createdBy:   { $ref: '#/components/schemas/EntityHistoryActor' }
@@ -5057,6 +5151,9 @@ components:
         viewpointsDeleted:
           type: [integer, 'null']
           description: Viewpoints of the package a re-import deleted because the package no longer carries them; null for other imports
+        diagramsDeleted:
+          type: [integer, 'null']
+          description: Diagrams deleted with the viewpoints a re-import deleted (US-093 AC1); null for other imports
         layersCreated:
           type: [integer, 'null']
           description: Architecture layers a metamodel package import created; null for other imports
@@ -7255,15 +7352,16 @@ paths:
         One page of one category of the browser, ordered by name (case-insensitive), then by ID.
         `scope` `current-state` takes `solutionId` never and the categories `components` (element
         entities that are not deleted), `connections` (connection entities that are not deleted)
-        and `catalogs` (the catalogs the caller sees); `scope` `solution` needs `solutionId` and
+        `catalogs` (the catalogs the caller sees) and `diagrams` (the diagrams that are not deleted, with the notation of
+        their viewpoint as `notation`); `scope` `solution` needs `solutionId` and
         has the category `components` only, which lists the deltas of the solution (`new`,
         `modified`, `retiring`), also for an `implemented` or `archived` solution. A delta
         `modified` or `retiring` shows name and metatype of its entity, a delta `new` those of the
         delta. A `pageSize` outside 1–200, a `page` below 0, a missing or unknown `scope` or
         `category` and a `solutionId` that is no UUID answer 400. Answers 422 (problem type
         `urn:oea:problem:validation-failed`) with `invalidFields` `solutionId` when it is missing
-        for `solution` or given for `current-state`, and `category` for `connections` or
-        `catalogs` with `solution`; 404 for an unknown solution. Read only, not audited.
+        for `solution` or given for `current-state`, and `category` for `connections`,
+        `catalogs` or `diagrams` with `solution`; 404 for an unknown solution. Read only, not audited.
 
         "Components" of `current-state` list the root level: the element entities without a
         parent, or whose parent is deleted (US-135). With `parentEntityId` the page lists the
@@ -7287,8 +7385,8 @@ paths:
         - name: category
           in: query
           required: true
-          schema: { type: string, enum: [components, connections, catalogs] }
-          description: Fixed base structure of the browser (REQ-139); building blocks and diagrams follow with their content
+          schema: { type: string, enum: [components, connections, catalogs, diagrams] }
+          description: Fixed base structure of the browser (REQ-139); building blocks follow with their content
         - name: parentEntityId
           in: query
           required: false
@@ -7413,12 +7511,12 @@ paths:
   /tree-nodes/{nodeId}/items:
     post:
       operationId: addTreeNodeItem
-      summary: Place a catalog, an entity or a solution in a folder (US-054, US-095, US-097, REQ-050, REQ-097)
+      summary: Place a catalog, an entity, a solution or a diagram in a folder (US-054, US-095, US-097, REQ-050, REQ-097)
       description: |
-        Places a catalog, an element entity or a solution in the folder as its last entry, with
+        Places a catalog, an element entity, a solution or a diagram in the folder as its last entry, with
         an optional display label of at most 255 characters; the target does not change. A target
         may be placed in several folders, but only once per folder (BR-06). A second entry in the
-        same folder, a catalog the caller cannot see, an unknown solution and a full folder
+        same folder, a catalog the caller cannot see, an unknown solution, an unknown diagram and a full folder
         (200 entries) answer 422 with `invalidFields` `referenceId`; a connection, an unknown or a
         deleted entity, a second entry of it in the folder and a full folder answer 422 with
         `entityId`. An unknown folder answers 404. Writes the audit event `tree-node.item-added`
@@ -7556,6 +7654,237 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /diagrams:
+    get:
+      operationId: listDiagrams
+      summary: List diagrams (US-074, UC-10, SCR-067)
+      description: |
+        The diagrams that are not deleted, ordered by name (case-insensitive), then by ID, in
+        pages of 1 to 200 (default 50). `q` keeps the diagrams whose name contains it, case-insensitively and
+        literally (`%` and `_` are no wildcards). A `pageSize` outside 1-200, a `page` below 0, a
+        `q` over 200 characters, and a cursor of another query, a changed cursor or one without
+        `page` answer 400, the last naming `cursor`. Read only, not audited.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - name: q
+          in: query
+          description: Part of the diagram name, compared case-insensitively; blank means no filter
+          schema: { type: string, maxLength: 200 }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: One page of diagrams
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DiagramPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    post:
+      operationId: createDiagram
+      summary: Create a diagram (US-074, UC-10 step 1)
+      description: |
+        Creates an empty diagram with version 1 for an existing viewpoint. The name is trimmed,
+        has 1 to 200 characters and is unique among the diagrams, ignoring case
+        (`urn:oea:problem:diagram-name-taken`, 422 naming `name`); the description has at most
+        2000 characters. An unknown or missing viewpoint, a blank or over-long name and an
+        over-long description answer 422 naming the field. Persons and service accounts with
+        `entity:write` create diagrams and are their creator; the local system admin account has
+        no person and gets 403. Writes the audit event `diagram.created`.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiagramCreate' }
+      responses:
+        '201':
+          description: Diagram created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the diagram
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagram' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or a name that is
+            already taken (`urn:oea:problem:diagram-name-taken`); `invalidFields` names the rejected
+            fields. Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DiagramValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /diagrams/deleted:
+    get:
+      operationId: listDeletedDiagrams
+      summary: List deleted diagrams (US-074, SCR-067)
+      description: |
+        The deleted diagrams with the time and actor of their deletion, ordered by name
+        (case-insensitive), then by ID, with the paging and the name filter of `listDiagrams`.
+        Read only, not audited.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:restore"]}
+      parameters:
+        - name: q
+          in: query
+          description: Part of the diagram name, compared case-insensitively; blank means no filter
+          schema: { type: string, maxLength: 200 }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: One page of deleted diagrams
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedDiagramPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /diagrams/{id}/restore:
+    post:
+      operationId: restoreDiagram
+      summary: Restore a deleted diagram (US-074, SCR-067)
+      description: |
+        Clears the deletion of the diagram and raises the version; it is listed again and its
+        navigation tree entries show again. Needs `If-Match` with the version of the deleted
+        diagram (428 without, 412 when stale). An unknown diagram answers 404, one that is not
+        deleted 409 (`urn:oea:problem:diagram-not-deleted`), and a name that an active diagram has meanwhile
+        422 `urn:oea:problem:diagram-name-taken` naming `name`. Writes `diagram.restored`.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:restore"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '200':
+          description: Diagram restored
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagram' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The diagram is not deleted (problem type `urn:oea:problem:diagram-not-deleted`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '422':
+          description: A diagram that is not deleted has the name (`urn:oea:problem:diagram-name-taken`, `invalidFields` `name`); the diagram stays deleted
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DiagramValidationProblem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /diagrams/{id}:
+    get:
+      operationId: getDiagram
+      summary: Read a diagram (US-074, SCR-067)
+      description: Name, description, viewpoint with its notation, version and creator of one diagram. An unknown or deleted diagram answers 404.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      responses:
+        '200':
+          description: The diagram
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagram' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateDiagram
+      summary: Rename a diagram and change its description (US-074)
+      description: |
+        Replaces name and description with the checks of `createDiagram`; the viewpoint does not
+        change. Needs `If-Match` with the version read (428 without, 412 when stale) and raises
+        the version. Writes `diagram.updated` with the changed fields; a rejected write is not
+        audited. The principal rules of `createDiagram` apply.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DiagramUpdate' }
+      responses:
+        '200':
+          description: Diagram changed
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Diagram' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422':
+          description: |
+            Invalid input (problem type `urn:oea:problem:validation-failed`) or a name that is
+            already taken (`urn:oea:problem:diagram-name-taken`); `invalidFields` names the rejected
+            fields. Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DiagramValidationProblem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    delete:
+      operationId: deleteDiagram
+      summary: Delete a diagram (US-074)
+      description: |
+        Marks the diagram as deleted (US-074, owner decision 2026-11-19): it is no longer listed,
+        counted or readable (404), its name is free again, and its entries in the navigation tree
+        are left out until it is restored with `restoreDiagram`. The entities of the repository
+        stay. Needs `If-Match`; raises the version. Writes `diagram.deleted`. Deleting a viewpoint
+        removes its diagrams for good, the deleted ones included.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '204': { description: Diagram deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
@@ -9472,8 +9801,10 @@ paths:
       summary: Delete a viewpoint (US-090 AC3, US-093, UC-12 A2)
       description: |
         Requires `If-Match` with the version read. A system-defined viewpoint is read-only (422
-        `urn:oea:problem:read-only-viewpoint`, US-092 AC1). Writes `viewpoint.deleted` with the
-        notation.
+        `urn:oea:problem:read-only-viewpoint`, US-092 AC1). The diagrams of the viewpoint are
+        removed for good in the same transaction, the deleted ones included, each audited as
+        `diagram.deleted` with the cause `viewpoint-deleted`; the entities stay. A rejected deletion deletes no diagram. Writes
+        `viewpoint.deleted` with the notation.
       tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       parameters:
@@ -12307,8 +12638,11 @@ paths:
         The section `viewpoints` installs system-defined, read-only viewpoints of the package
         (US-092, REQ-059), identified by their ID; a re-import updates them and deletes those
         the package no longer carries. An ID or a name of an organization viewpoint or of another
-        package's viewpoint is a conflict (409). `metamodel.package-imported` carries
-        `viewpointsCreated`, `viewpointsUpdated` and `viewpointsDeleted` (the IDs).
+        package's viewpoint is a conflict (409). A viewpoint the re-import deletes takes its
+        diagrams with it for good, the deleted ones included, in the same transaction; the entities stay, and the result names the
+        number as `diagramsDeleted`. `metamodel.package-imported` carries
+        `viewpointsCreated`, `viewpointsUpdated` and `viewpointsDeleted` (the IDs) and
+        `diagramsDeleted`.
         `shapeAssignments` are not supported (422).
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
@@ -12790,6 +13124,8 @@ paths:
 # TAGS
 # ═════════════════════════════════════════════════════════════════════════════
 tags:
+  - name: Diagrams
+    description: Diagrams as objects – create, list, read, rename and delete them (UC-10, US-074); the canvas follows with the diagram editor (`getDiagramView`)
   - name: Dashboards
     description: Dashboards and their widgets – create, list, change and arrange them (UC-07, US-055, US-058 to US-060, US-062); the reads are in Views – Editors
   - name: Catalogs

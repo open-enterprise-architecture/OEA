@@ -1,5 +1,6 @@
 package io.oea.app.metamodel;
 
+import io.oea.app.diagram.Diagrams;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.Sessions;
@@ -46,13 +47,16 @@ public class Viewpoints {
 
 	private final NotationCatalog catalog;
 
+	private final Diagrams diagrams;
+
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	Viewpoints(ViewpointStore store, NotationCatalog catalog, AuditWriter audit, Clock clock) {
+	Viewpoints(ViewpointStore store, NotationCatalog catalog, Diagrams diagrams, AuditWriter audit, Clock clock) {
 		this.store = store;
 		this.catalog = catalog;
+		this.diagrams = diagrams;
 		this.audit = audit;
 		this.clock = clock;
 	}
@@ -107,9 +111,9 @@ public class Viewpoints {
 	public record Viewpoint(UUID id, String name, String description, String notation, boolean systemDefined,
 			SourcePackage sourcePackage, int version, java.time.Instant createdAt, long createdById,
 			String createdByName, List<Type> metatypes, List<Type> connectionTypes, List<Mapping> mappings,
-			List<Size> sizes, List<EffectiveMapping> effectiveMappings) {
+			List<Size> sizes, List<EffectiveMapping> effectiveMappings, int diagramCount) {
 
-		static Viewpoint of(ViewpointRow row, NotationCatalog catalog) {
+		static Viewpoint of(ViewpointRow row, NotationCatalog catalog, int diagramCount) {
 			List<Mapping> mappings = row.mappings().stream().map(Mapping::of).toList();
 			List<Size> sizes = row.sizes().stream().map(Size::of).toList();
 			List<Type> metatypes = types(row.metatypes());
@@ -122,7 +126,7 @@ public class Viewpoints {
 					(row.sourcePackageId() != null) ? new SourcePackage(row.sourcePackageId(), row.sourcePackageVersion())
 							: null,
 					row.version(), row.createdAt(), row.createdById(), row.createdByName(), metatypes, connections,
-					mappings, sizes, List.copyOf(effective));
+					mappings, sizes, List.copyOf(effective), diagramCount);
 		}
 
 		private static EffectiveMapping effective(Type type, List<Mapping> mappings, List<Size> sizes,
@@ -156,7 +160,11 @@ public class Viewpoints {
 	/** All viewpoints, ordered by name. */
 	@Transactional(readOnly = true)
 	public List<Viewpoint> list() {
-		return this.store.list().stream().map((row) -> Viewpoint.of(row, this.catalog)).toList();
+		Map<UUID, Integer> counts = this.diagrams.countsPerViewpoint();
+		return this.store.list()
+			.stream()
+			.map((row) -> Viewpoint.of(row, this.catalog, counts.getOrDefault(row.id(), 0)))
+			.toList();
 	}
 
 	/**
@@ -166,7 +174,7 @@ public class Viewpoints {
 	 */
 	@Transactional(readOnly = true)
 	public Viewpoint get(UUID id) {
-		return Viewpoint.of(row(id), this.catalog);
+		return Viewpoint.of(row(id), this.catalog, this.diagrams.countsPerViewpoint().getOrDefault(id, 0));
 	}
 
 	/**
@@ -238,6 +246,8 @@ public class Viewpoints {
 	public void delete(OeaPrincipal principal, UUID id, Long expectedVersion) {
 		person(principal);
 		ViewpointRow current = locked(id, expectedVersion);
+		// the diagrams go first, so that the foreign key never blocks the deletion (design D4 of us-074-diagrams)
+		this.diagrams.removeOfViewpoint(principal, id);
 		this.store.delete(id);
 		audit(principal, "viewpoint.deleted", id, Map.of(NAME, current.name(), NOTATION, current.notation()));
 	}

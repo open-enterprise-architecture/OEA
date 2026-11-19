@@ -92,6 +92,19 @@ export const BrowserTab: Story = {
   },
 }
 
+/** The category Diagrams of "Current state": the diagrams by name, each with the notation of its viewpoint, linked to its page. */
+export const BrowserDiagrams: Story = {
+  ...shell(ME_TREE_READER, undefined, undefined, { tab: 'browser' }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Expand Current state' }))
+    await userEvent.click(await canvas.findByRole('button', { name: /^Expand Diagrams/ }))
+    await expect(await canvas.findByRole('link', { name: 'Order to Cash' })).toHaveAttribute('href', '/diagrams/a1000000-0000-4000-8000-000000000001')
+    await expect(canvas.getByText('archimate3')).toBeVisible()
+    await expect(canvas.getByText('bpmn2')).toBeVisible()
+  },
+}
+
 export const BrowserWithoutPlateaus: Story = {
   ...shell(ME_TREE_READER, undefined, undefined, { tab: 'browser', browser: BROWSER_WITHOUT_PLATEAUS }),
   play: async ({ canvasElement }) => {
@@ -103,7 +116,7 @@ export const BrowserWithoutPlateaus: Story = {
 }
 
 export const BrowserEmptyCategory: Story = {
-  ...shell(ME_TREE_READER, undefined, undefined, { tab: 'browser', browser: { ...BROWSER, currentState: { components: 3, connections: 0, catalogs: 2 } } }),
+  ...shell(ME_TREE_READER, undefined, undefined, { tab: 'browser', browser: { ...BROWSER, currentState: { components: 3, connections: 0, catalogs: 2, diagrams: 0 } } }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Expand Current state' }))

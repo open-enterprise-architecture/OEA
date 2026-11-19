@@ -126,6 +126,7 @@ public class ViewpointController implements ViewpointsApi {
 				.toList())
 			.allowedMetatypes(row.metatypes().stream().map(ViewpointController::summary).toList())
 			.allowedRelations(row.connectionTypes().stream().map(ViewpointController::summary).toList())
+			.diagramCount(row.diagramCount())
 			.version(row.version())
 			.createdAt(row.createdAt().atOffset(ZoneOffset.UTC))
 			.createdBy(new EntityHistoryActor(row.createdById(), row.createdByName()));

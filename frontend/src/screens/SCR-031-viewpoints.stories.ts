@@ -135,6 +135,35 @@ export const MappingRejected: Story = {
   },
 }
 
+/** Deleting a viewpoint that diagrams use warns with their number (US-093 AC1). */
+export const DeleteWithDiagrams: Story = {
+  ...page(ME_ARCHITECT, (api) => {
+    api.state.viewpoints[0]!.diagramCount = 5
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Delete' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText(/5 diagrams will be deleted with the viewpoint/)).toBeInTheDocument()
+  },
+}
+
+/** Removing an allowed type from a viewpoint that diagrams use warns without blocking (US-090 AC2). */
+export const EditAffectsDiagrams: Story = {
+  ...page(ME_ARCHITECT, (api) => {
+    api.state.viewpoints[0]!.diagramCount = 5
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Edit' }))
+    const body = within(canvasElement.ownerDocument.body)
+    const metatypes = within(await body.findByTestId('viewpoint-metatypes'))
+    await userEvent.click(metatypes.getByRole('checkbox', { name: /Application Service/ }))
+    await expect(await body.findByText('5 diagrams affected')).toBeInTheDocument()
+    await expect(body.getByRole('button', { name: 'Save' })).toBeEnabled()
+  },
+}
+
 export const Reader: Story = {
   ...page(ME_READER),
   play: async ({ canvasElement }) => {

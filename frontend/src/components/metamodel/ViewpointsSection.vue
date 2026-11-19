@@ -126,6 +126,7 @@ async function saved() {
       :open="deleting !== undefined"
       :title="t('metamodel.viewpoint.delete')"
       :description="deleting ? t('metamodel.viewpoint.deleteHint', { name: deleting.name }) : ''"
+      :warning="deleting && deleting.diagramCount > 0 ? t('metamodel.viewpoint.deleteDiagrams', { count: deleting.diagramCount }, deleting.diagramCount) : undefined"
       :version="deleting?.version"
       :run="(version) => deleteViewpoint(deleting!.id, version, fetchFn)"
       @update:open="(open: boolean) => !open && (deleting = undefined)"

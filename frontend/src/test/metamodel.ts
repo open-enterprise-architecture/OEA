@@ -120,6 +120,8 @@ export interface MetamodelApiOptions {
   rejectSizes?: boolean
   /** The instance has no system-defined viewpoints (no package with viewpoints installed). */
   noSystemViewpoints?: boolean
+  /** The number of diagrams that use the first viewpoint, "Application Landscape" (us-074-diagrams). */
+  diagramCount?: number
 }
 
 /** A request the fake received, with the headers that matter for the metamodel writes. */
@@ -176,6 +178,7 @@ function seed(): Stored {
           { id: IDS.service, name: 'Application Service', abbreviation: 'AS' },
         ],
         allowedRelations: [{ id: IDS.dataFlow, name: 'Data Flow', abbreviation: 'DF' }],
+        diagramCount: 0,
         version: 1,
         createdAt: '2026-11-17T09:00:00Z',
         createdBy: { id: 1, name: 'Kurt' },
@@ -192,6 +195,7 @@ function seed(): Stored {
         effectiveMappings: [{ metatypeId: IDS.zone, notationElement: 'archimate:ApplicationService', width: 90, height: 30, length: null, sizeStored: false, visualHint: null, fallback: false }],
         allowedMetatypes: [{ id: IDS.zone, name: 'Network Zone', abbreviation: 'NZ' }],
         allowedRelations: [],
+        diagramCount: 0,
         version: 1,
         createdAt: '2026-11-17T09:00:00Z',
         createdBy: { id: 1, name: 'Kurt' },
@@ -329,6 +333,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   }
   if (options.noSystemViewpoints) {
     state.viewpoints = state.viewpoints.filter((viewpoint) => viewpoint.viewpointType !== 'system-defined')
+  }
+  if (options.diagramCount !== undefined) {
+    state.viewpoints[0]!.diagramCount = options.diagramCount
   }
   const requests: MetamodelRequest[] = []
   const today = new Date().toISOString().slice(0, 10)
@@ -538,7 +545,7 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         if (method === 'GET') return json([...state.viewpoints].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())))
         const rejected = validate()
         if (rejected) return rejected
-        const created = { id: newId(), viewpointType: 'user-defined' as const, sourcePackage: null, ...fields(), version: 1, createdAt: '2026-11-17T10:00:00Z', createdBy: { id: 1, name: 'Kurt' } }
+        const created = { id: newId(), viewpointType: 'user-defined' as const, sourcePackage: null, ...fields(), diagramCount: 0, version: 1, createdAt: '2026-11-17T10:00:00Z', createdBy: { id: 1, name: 'Kurt' } }
         state.viewpoints.push(created)
         return json(created, 201, 1)
       }
