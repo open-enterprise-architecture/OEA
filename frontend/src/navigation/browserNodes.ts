@@ -37,7 +37,7 @@ function solutionNode(solution: BrowserSolution, t: Translate): BrowserNode {
 }
 
 /**
- * The top level of the browser (US-132, REQ-138): "Current state" first with its three categories, then the plateaus of the
+ * The top level of the browser (US-132, REQ-138): "Current state" first with its four categories, then the plateaus of the
  * transition and target stage in the order the backend answers, then "Projects". Empty groups stay (REQ-140).
  */
 export function browserNodes(view: Browser, t: Translate): BrowserNode[] {
@@ -58,6 +58,7 @@ export function browserNodes(view: Browser, t: Translate): BrowserNode[] {
         category('components', view.currentState.components),
         category('connections', view.currentState.connections),
         category('catalogs', view.currentState.catalogs),
+        category('diagrams', view.currentState.diagrams),
       ],
     },
     ...view.plateaus.map<BrowserNode>((plateau) => ({

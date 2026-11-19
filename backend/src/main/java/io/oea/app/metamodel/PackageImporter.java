@@ -1,5 +1,6 @@
 package io.oea.app.metamodel;
 
+import io.oea.app.diagram.Diagrams;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
@@ -77,12 +78,15 @@ public class PackageImporter {
 
 	private final NotationCatalog catalog;
 
+	private final Diagrams diagrams;
+
 	public PackageImporter(MetamodelConfigurationStore configurationStore, MetatypeStore metatypeStore,
 			PropertyDefinitionStore definitionStore, PropertyMappingStore mappingStore,
 			ConnectionConstraintStore constraintStore, PackageImportStore importStore, CompositionStore composition,
 			ArchitectureLayerStore layerStore, AuditWriter audit, Clock clock, MetamodelEffects effects,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions,
-			ViewpointStore viewpointStore, NotationCatalog catalog) {
+			ViewpointStore viewpointStore, NotationCatalog catalog, Diagrams diagrams) {
+		this.diagrams = diagrams;
 		this.configurationStore = configurationStore;
 		this.metatypeStore = metatypeStore;
 		this.definitionStore = definitionStore;
@@ -108,7 +112,7 @@ public class PackageImporter {
 	 * architecture layers ({@code layerAssignmentsCleared}: metatypes that lost a deleted layer).
 	 */
 	public record Outcome(UUID batchId, int created, int updated, int labels, int viewpointsCreated,
-			int viewpointsUpdated, int viewpointsDeleted, int layersCreated, int layersUpdated, int layersDeleted,
+			int viewpointsUpdated, int viewpointsDeleted, int diagramsDeleted, int layersCreated, int layersUpdated, int layersDeleted,
 			int layerAssignmentsCleared) {
 	}
 
@@ -223,6 +227,7 @@ public class PackageImporter {
 		details.put("viewpointsCreated", viewpoints.created());
 		details.put("viewpointsUpdated", viewpoints.updated());
 		details.put("viewpointsDeleted", viewpoints.deleted().stream().map(UUID::toString).toList());
+		details.put("diagramsDeleted", viewpoints.diagramsDeleted());
 		details.put("architectureLayersCreated", layerImport.created());
 		details.put("architectureLayersUpdated", layerImport.updated());
 		details.put("architectureLayersDeleted", layerImport.dropped().size());
@@ -240,8 +245,8 @@ public class PackageImporter {
 			}
 		}
 		return new Outcome(batchId, created, updated, labelCount, viewpoints.created(), viewpoints.updated(),
-				viewpoints.deleted().size(), layerImport.created(), layerImport.updated(), layerImport.dropped().size(),
-				cleared);
+				viewpoints.deleted().size(), viewpoints.diagramsDeleted(), layerImport.created(), layerImport.updated(),
+				layerImport.dropped().size(), cleared);
 	}
 
 	/** What the import did to the layers of the package; {@code dropped} holds the IDs the package no longer has. */
@@ -307,7 +312,7 @@ public class PackageImporter {
 	}
 
 	/** What the import did to the viewpoints of the package; {@code deleted} holds the IDs. */
-	private record ViewpointImport(int created, int updated, List<UUID> deleted) {
+	private record ViewpointImport(int created, int updated, List<UUID> deleted, int diagramsDeleted) {
 	}
 
 	/**
@@ -320,13 +325,6 @@ public class PackageImporter {
 	private ViewpointImport importViewpoints(OeaPrincipal principal, PackageDefinition definition, Instant now) {
 		Set<UUID> wanted = new HashSet<>();
 		definition.viewpoints().forEach((viewpoint) -> wanted.add(viewpoint.id()));
-		List<UUID> deleted = new ArrayList<>();
-		for (UUID id : this.viewpointStore.packageViewpointIds(definition.packageId())) {
-			if (!wanted.contains(id)) {
-				this.viewpointStore.deletePackageViewpoint(id, definition.packageId());
-				deleted.add(id);
-			}
-		}
 		for (int i = 0; i < definition.viewpoints().size(); i++) {
 			PackageDefinition.Viewpoint viewpoint = definition.viewpoints().get(i);
 			List<UUID> all = new ArrayList<>(viewpoint.metatypeIds());
@@ -343,6 +341,18 @@ public class PackageImporter {
 				fail(kind == null || !kind.connection() || !kind.instance(), principal, definition,
 						"/viewpoints/" + i + "/connectionTypeIds", "A connection type of the viewpoint is not a "
 								+ "connection metatype of the instance or of the package.");
+			}
+		}
+		List<UUID> deleted = new ArrayList<>();
+		int diagramsDeleted = 0;
+		for (UUID id : this.viewpointStore.packageViewpointIds(definition.packageId())) {
+			if (!wanted.contains(id)) {
+				// after the checks: a rejection is audited in another transaction and must not wait for the
+				// audit chain this one holds; lock the viewpoint first, then remove its diagrams, the deleted ones included (design D4 of us-074-diagrams)
+				this.viewpointStore.lockVersion(id);
+				diagramsDeleted += this.diagrams.removeOfViewpoint(principal, id);
+				this.viewpointStore.deletePackageViewpoint(id, definition.packageId());
+				deleted.add(id);
 			}
 		}
 		// the names of the package's viewpoints are free again, so that a rename or swap cannot collide
@@ -372,7 +382,7 @@ public class PackageImporter {
 				updated++;
 			}
 		}
-		return new ViewpointImport(created, updated, List.copyOf(deleted));
+		return new ViewpointImport(created, updated, List.copyOf(deleted), diagramsDeleted);
 	}
 
 	private void fail(boolean condition, OeaPrincipal principal, PackageDefinition definition, String pointer,

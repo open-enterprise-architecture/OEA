@@ -175,6 +175,10 @@ The business analyst persona can model business processes directly in the OEA to
 - §9 Process Architecture: BPMN as adapter module, process as ArchitectureEntity
 - §6 Core Entity Types: OrganizationalUnit as configurable EntityType
 
+## Realignment
+
+- 2026-11-19, OpenSpec change `us-074-diagrams` (owner decisions 2026-11-19): step 1 creates a diagram as an object – a name (1–200 characters, unique ignoring case), an optional description and a viewpoint that is fixed afterwards – with `entity:write` (persons and service accounts); reading needs `entity:read`. Diagrams are found on the page "Diagrams" (SCR-067), in the category "Diagrams" of the browser and in the navigation tree. Deleting a diagram marks it as deleted and keeps it restorable with `entity:restore`; the entities stay. The canvas with the palette, the layout and saving ("Save" when working alone, immediately when collaborating) follow with `us-074-diagram-canvas`; the plateau of a diagram is not part of this change.
+
 ## Change History
 
 | Version | Date | Author | Change |

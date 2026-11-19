@@ -3,7 +3,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { clearTree } from '../navigation/store'
 import { CATALOGS } from '../test/catalogs'
-import { COMPLIANCE_ID, LANDSCAPE_ID, navigationApi, ROOT_ID, type TreeRequest } from '../test/navigation'
+import { COMPLIANCE_ID, diagramItem, folder, LANDSCAPE_ID, navigationApi, ROOT_ID, type TreeRequest } from '../test/navigation'
 import { testRouter } from '../test/router'
 import NavigationTree from './NavigationTree.vue'
 
@@ -100,6 +100,21 @@ describe('NavigationTree', () => {
     await flushPromises()
     expect(router.currentRoute.value.path).toBe(`/catalogs/${CATALOGS[0]!.id}`)
     expect(router.currentRoute.value.query).toEqual({})
+  })
+
+  // spec navigation/navigation-tree "Place a diagram": choosing the entry opens the diagram
+  it('shows a diagram entry with its name and opens the diagram', async () => {
+    const processes = 'f0000000-0000-4000-8000-000000000009'
+    const { router } = await tree(false, {
+      tree: folder(ROOT_ID, 'Repository', null, [], [
+        folder(processes, 'Processes', ROOT_ID, [diagramItem('f1000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'Order to Cash')]),
+      ]),
+    })
+    await expand(processes)
+    expect(labels()).toEqual(['Order to Cash'])
+    document.querySelector<HTMLAnchorElement>('[data-testid="tree-item-link"]')!.click()
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/diagrams/a1000000-0000-4000-8000-000000000001')
   })
 
   // "Reader without the right sees no actions"

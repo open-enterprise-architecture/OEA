@@ -304,6 +304,69 @@ class PackageViewpointImportTests {
 	}
 
 	@Test
+	void aReimportThatDropsAViewpointRemovesItsDiagramsForGoodAndCountsThem() {
+		ObjectNode first = pkg("reimport-diagrams");
+		ObjectNode keep = viewpoint(first, "Diagrams Kept", List.of(typeId(first, 0)));
+		ObjectNode drop = viewpoint(first, "Diagrams Dropped", List.of(typeId(first, 1)));
+		assertThat(post(first)).hasStatus(HttpStatus.OK);
+		String keepId = keep.path("id").asString();
+		String dropId = drop.path("id").asString();
+		diagram(keepId, "Kept 1", false);
+		diagram(keepId, "Kept 2", false);
+		String first1 = diagram(dropId, "Dropped 1", false);
+		String second1 = diagram(dropId, "Dropped 2", false);
+		diagram(dropId, "Dropped 3", true);
+
+		// a rejected re-import (unknown metatype) deletes nothing
+		ObjectNode broken = pkg("reimport-diagrams");
+		viewpoint(broken, "Diagrams Kept", List.of(UUID.randomUUID().toString())).put("id", keepId);
+		assertThat(post(broken)).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagrams WHERE viewpoint_id = ?::uuid",
+				Integer.class, dropId)).isEqualTo(3);
+
+		// a re-import that keeps the viewpoint keeps its diagrams
+		ObjectNode kept = pkg("reimport-diagrams");
+		kept.put("packageVersion", "1.0.1");
+		viewpointWithId(kept, keepId, "Diagrams Kept", List.of(typeId(kept, 0)));
+		viewpointWithId(kept, dropId, "Diagrams Dropped", List.of(typeId(kept, 1)));
+		MvcTestResult unchanged = post(kept);
+		assertThat(unchanged).as(() -> content(unchanged)).hasStatus(HttpStatus.OK);
+		assertThat(body(unchanged).path("diagramsDeleted").asInt()).isZero();
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagrams", Integer.class)).isEqualTo(5);
+
+		// a re-import without the viewpoint removes its diagrams, the deleted one included
+		ObjectNode second = pkg("reimport-diagrams");
+		second.put("packageVersion", "1.1.0");
+		viewpointWithId(second, keepId, "Diagrams Kept", List.of(typeId(second, 0)));
+		MvcTestResult dropped = post(second);
+		assertThat(dropped).as(() -> content(dropped)).hasStatus(HttpStatus.OK);
+		assertThat(body(dropped).path("diagramsDeleted").asInt()).isEqualTo(2);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagrams WHERE viewpoint_id = ?::uuid",
+				Integer.class, dropId)).isZero();
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagrams WHERE viewpoint_id = ?::uuid",
+				Integer.class, keepId)).isEqualTo(2);
+		for (String id : List.of(first1, second1)) {
+			assertThat(this.jdbc.queryForObject("""
+					SELECT details ->> 'cause' FROM audit.events
+					WHERE event_type = 'diagram.deleted' AND target_id = ?""", String.class, id))
+				.isEqualTo("viewpoint-deleted");
+		}
+		assertThat(this.jdbc.queryForObject("""
+				SELECT details ->> 'diagramsDeleted' FROM audit.events
+				WHERE event_type = 'metamodel.package-imported' AND target_id = 'reimport-diagrams'
+				ORDER BY id DESC LIMIT 1""", String.class)).isEqualTo("2");
+	}
+
+	private String diagram(String viewpointId, String name, boolean deleted) {
+		Long person = this.jdbc.queryForObject("SELECT min(id) FROM persons", Long.class);
+		return this.jdbc.queryForObject("""
+				INSERT INTO diagrams (name, viewpoint_id, created_by, updated_by, deleted_at, deleted_by)
+				VALUES (?, ?::uuid, ?, ?, CASE WHEN ? THEN now() END, CASE WHEN ? THEN ?::bigint END) RETURNING id::text""",
+				String.class, name + " " + viewpointId.substring(0, 8), viewpointId, person, person, deleted, deleted,
+				person);
+	}
+
+	@Test
 	void twoViewpointsMaySwapTheirNamesAtAReimport() {
 		ObjectNode first = pkg("swap");
 		viewpoint(first, "Alpha", List.of(typeId(first, 0)));

@@ -2,7 +2,7 @@
 identifier: diagram
 name_de: Diagramm
 name_en: Diagram
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -35,15 +35,18 @@ Until this object was modeled, the [TreeNode](./tree-node.md) referred to diagra
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | id | string (UUID) | required | generated | immutable | Stable identity |
-| name | string | required | – | 1–200 characters; unique within the instance, case-insensitive | Display name |
+| name | string | required | – | 1–200 characters after trimming (stored trimmed); unique among the diagrams that are not deleted, case-insensitive | Display name |
 | description | string | optional | – | max 2000 characters | Purpose of the diagram |
-| viewpointId | reference | required | – | target: viewpoint | Viewpoint the diagram is an instance of |
-| plateauId | reference | optional | – | target: plateau | Plateau (time slice) the diagram shows; empty = current state |
-| layout | composite | required | empty | see DiagramLayout | Positions and sizes of the shapes |
+| viewpointId | reference | required | – | target: viewpoint; fixed at the creation | Viewpoint the diagram is an instance of |
+| plateauId | reference | optional | – | target: plateau; **later** (not in change us-074-diagrams, which shows the current state) | Plateau (time slice) the diagram shows; empty = current state |
+| layout | composite | required | empty | see DiagramLayout; **later** (change us-074-diagram-canvas) | Positions and sizes of the shapes |
 | version | integer | required | 1 | increases with every new version (see Versions and Checkpoints) | Current version number of the diagram |
-| createdBy | reference | required | – | target: person | Creator |
+| createdBy | reference | required | – | target: person or service account (a row of persons) | Creator |
 | createdAt | datetime | required | now | immutable | Creation time |
 | updatedAt | datetime | required | now | – | Time of the last saved change |
+| updatedBy | reference | required | – | target: person or service account | Author of the last saved change |
+| deletedAt | datetime | optional | – | set while the diagram is deleted | Time of the deletion |
+| deletedBy | reference | optional | – | target: person or service account; set exactly when deletedAt is | Actor of the deletion |
 
 ### DiagramLayout (composite)
 
@@ -108,7 +111,8 @@ active → deleted (soft delete, restorable)
 ```
 
 - `active`: visible and editable for persons with the permissions of the viewpoint's entity types
-- `deleted`: hidden; its notes and comment threads are hidden with it; shown entities are not affected
+- `deleted`: hidden and not readable (404); it is neither listed nor counted, its name is free again and its entries in the navigation tree are left out; its notes and comment threads are hidden with it; shown entities are not affected. A person with `entity:restore` lists the deleted diagrams and restores one (`deleted → active`, version + 1); the restore is refused when a diagram that is not deleted has the name meanwhile.
+- A diagram cannot exist without its viewpoint: deleting a viewpoint, or a package re-import that drops a system-defined one, removes its diagrams for good, the deleted ones included (change us-074-diagrams, owner decision 2026-11-19).
 
 ## Business Rules
 
@@ -120,6 +124,7 @@ active → deleted (soft delete, restorable)
 | BR-DG-04 | A participant MUST NOT receive properties of shown entities that are hidden from them (property-level authorization, §21.8) | onRead, onCollaborate | REQ-126 |
 | BR-DG-05 | A version MUST contain the operations of exactly one author; it closes after the configured idle time (default 2 minutes), the configured maximum duration (default 15 minutes) or when the author leaves or disconnects | onUpdate | REQ-199 |
 | BR-DG-06 | Naming a checkpoint requires the permission to edit the diagram; a checkpoint is immutable except for its name and is recorded in the audit trail | onCreate, onUpdate | REQ-204 |
+| BR-DG-07 | Creating and changing a diagram needs `entity:write`, reading it `entity:read`, restoring it `entity:restore`; service accounts with these permissions act like persons and are recorded as the actor; every change is audited (`diagram.created`, `diagram.updated`, `diagram.deleted`, `diagram.restored`) | onCreate, onUpdate, onDelete | ADR-032, ADR-033 |
 
 ## Examples
 
@@ -163,3 +168,4 @@ Modeled on 2026-10-28 because sticky notes and comment threads (UC-24) need an o
 |---|---|---|---|
 | 0.1.0 | 2026-10-28 | Business Engineer | Initial draft (UC-24) |
 | 0.2.0 | 2026-10-28 | Business Engineer | Versions per author and time window, operation log, checkpoints (ADR-047 accepted) |
+| 0.3.0 | 2026-11-19 | Fullstack Engineer | Diagrams as objects (change us-074-diagrams): trimmed name unique among the diagrams that are not deleted, fixed viewpoint, creator and actor may be a service account, restorable deletion, plateau and layout marked as later |

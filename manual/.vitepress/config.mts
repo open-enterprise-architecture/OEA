@@ -61,6 +61,7 @@ const chapters: Chapter[] = [
       { path: 'solutions', title: { en: 'Solutions', de: 'Lösungen' } },
       { path: 'plateaus', title: { en: 'Plateaus', de: 'Plateaus' } },
       { path: 'dashboards', title: { en: 'Dashboards', de: 'Dashboards' } },
+      { path: 'diagrams', title: { en: 'Diagrams', de: 'Diagramme' } },
       { path: 'entities-batch', title: { en: 'Writing entities in batch', de: 'Entitäten im Batch schreiben' } },
     ],
   },

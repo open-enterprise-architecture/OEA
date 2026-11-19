@@ -59,6 +59,7 @@ const NODE_ICONS: Record<BrowserNode['kind'], string> = {
   components: 'i-lucide-box',
   connections: 'i-lucide-cable',
   catalogs: 'i-lucide-table-2',
+  diagrams: 'i-lucide-workflow',
 }
 
 const DELTA_COLORS = { new: 'success', modified: 'warning', retiring: 'error' } as const
@@ -68,6 +69,7 @@ function deltaLabel(item: BrowserItem): string {
 }
 
 function itemIcon(item: BrowserItem): string {
+  if (item.kind === 'diagram') return 'i-lucide-workflow'
   return item.kind === 'catalog' ? 'i-lucide-table-2' : item.kind === 'delta' ? 'i-lucide-git-compare' : 'i-lucide-box'
 }
 </script>
@@ -151,6 +153,7 @@ function itemIcon(item: BrowserItem): string {
               {{ item.name }}
             </RouterLink>
             <span v-else class="min-w-0 flex-1 truncate py-1 text-sm text-muted">{{ item.name }}</span>
+            <UBadge v-if="item.notation" data-testid="browser-item-notation" color="neutral" variant="outline" size="sm" :label="item.notation" />
             <UBadge v-if="item.metatypeAbbreviation" data-testid="browser-item-abbreviation" color="neutral" variant="outline" size="sm" :label="item.metatypeAbbreviation" />
             <UBadge
               v-if="item.deltaType"

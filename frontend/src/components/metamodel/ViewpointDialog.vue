@@ -44,6 +44,22 @@ const form = reactive({
   notation: (props.viewpoint?.notation ?? 'generic') as ViewpointNotation,
 })
 
+/**
+ * The warning "N diagrams affected" (US-090 AC2): an allowed entity type or connection type is removed from a viewpoint
+ * that diagrams use. Until diagrams have shapes every diagram of the viewpoint counts (design D6 of us-074-diagrams);
+ * the warning does not block saving.
+ */
+const affectedDiagrams = computed(() => {
+  const viewpoint = props.viewpoint
+  if (!viewpoint || viewpoint.diagramCount === 0) {
+    return 0
+  }
+  const removed =
+    viewpoint.allowedMetatypes.some((type) => !form.metatypeIds.includes(type.id)) ||
+    viewpoint.allowedRelations.some((type) => !form.connectionTypeIds.includes(type.id))
+  return removed ? viewpoint.diagramCount : 0
+})
+
 /** The mapping of one type as typed: the element key and the color. */
 interface MappingRow {
   element?: string
@@ -224,6 +240,13 @@ async function submit(version = props.viewpoint?.version) {
 <template>
   <form class="flex flex-col gap-4" novalidate data-testid="viewpoint-form" @submit.prevent="submit()">
     <UAlert v-if="failure" data-testid="viewpoint-failure" color="error" variant="subtle" :description="failure" />
+    <UAlert
+      v-if="affectedDiagrams > 0"
+      data-testid="viewpoint-diagrams-affected"
+      color="warning"
+      variant="subtle"
+      :description="t('metamodel.viewpoint.diagramsAffected', { count: affectedDiagrams }, affectedDiagrams)"
+    />
     <CollisionWarning v-if="stale" @overwrite="submit(props.current?.version)" @discard="emit('cancel')">
       <p v-if="props.current">{{ props.current.name }}<span v-if="props.current.description"> – {{ props.current.description }}</span></p>
       <p v-else>{{ t('metamodel.collision.deleted') }}</p>

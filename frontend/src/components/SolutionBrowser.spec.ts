@@ -64,6 +64,7 @@ function manyEntities(count: number): BrowserItem[] {
     entityId: null,
     solutionId: null,
     deltaType: null,
+    notation: null,
     childCount: 0,
     structuringAid: false,
     version: 1,
@@ -124,11 +125,11 @@ describe('SolutionBrowser', () => {
 
   describe('categories', () => {
     it('shows the counts of the current state and greys out an empty category', async () => {
-      await browser({ browser: { ...BROWSER, currentState: { components: 4, connections: 2, catalogs: 0 } } })
+      await browser({ browser: { ...BROWSER, currentState: { components: 4, connections: 2, catalogs: 0, diagrams: 0 } } })
       await expand('current-state')
-      const labels = ['components', 'connections', 'catalogs'].map((name) => row(`current-state:${name}`)!.querySelector('[data-testid="browser-label"]')!)
-      expect(labels.map((label) => label.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Components (4)', 'Connections (2)', 'Catalogs (0)'])
-      expect(labels.map((label) => label.getAttribute('data-empty'))).toEqual([null, null, 'true'])
+      const labels = ['components', 'connections', 'catalogs', 'diagrams'].map((name) => row(`current-state:${name}`)!.querySelector('[data-testid="browser-label"]')!)
+      expect(labels.map((label) => label.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Components (4)', 'Connections (2)', 'Catalogs (0)', 'Diagrams (0)'])
+      expect(labels.map((label) => label.getAttribute('data-empty'))).toEqual([null, null, 'true', 'true'])
     })
 
     it('has the category Components only under a solution, with its number of deltas', async () => {
@@ -190,6 +191,21 @@ describe('SolutionBrowser', () => {
       await expand('current-state:catalogs')
       const links = [...row('current-state:catalogs')!.querySelectorAll<HTMLAnchorElement>('[data-testid="browser-item-link"]')]
       expect(links.map((link) => link.getAttribute('href'))).toEqual(['/catalogs/c0000000-0000-4000-8000-000000000001', '/catalogs/c0000000-0000-4000-8000-000000000002'])
+    })
+
+    // spec navigation/solution-browser "Diagrams in the browser"
+    it('lists the diagrams with the notation of their viewpoint and links them to their page', async () => {
+      await browser()
+      await expand('current-state')
+      expect(row('current-state:diagrams')!.querySelector('[data-testid="browser-label"]')!.textContent?.replace(/\s+/g, ' ').trim()).toBe('Diagrams (2)')
+      await expand('current-state:diagrams')
+      const items = [...row('current-state:diagrams')!.querySelectorAll<HTMLElement>('[data-testid="browser-item"]')]
+      expect(items.map((item) => item.querySelector('[data-testid="browser-item-link"]')!.textContent?.trim())).toEqual(['Order to Cash', 'Procure to Pay'])
+      expect(items.map((item) => item.querySelector('[data-testid="browser-item-notation"]')!.textContent?.trim())).toEqual(['archimate3', 'bpmn2'])
+      expect(items.map((item) => item.querySelector('[data-testid="browser-item-link"]')!.getAttribute('href'))).toEqual([
+        '/diagrams/a1000000-0000-4000-8000-000000000001',
+        '/diagrams/a1000000-0000-4000-8000-000000000002',
+      ])
     })
 
     it('links a delta to its solution and a solution to its page, with a badge for each delta type', async () => {
@@ -257,7 +273,7 @@ describe('SolutionBrowser', () => {
     ])('offers "Load more" only while fewer than the total are loaded (total $total)', async ({ total, loaded, more }) => {
       const items = manyEntities(total)
       await browser({
-        browser: { ...BROWSER, currentState: { components: total, connections: 0, catalogs: 0 } },
+        browser: { ...BROWSER, currentState: { components: total, connections: 0, catalogs: 0, diagrams: 0 } },
         browserItems: { 'current-state:components': items },
       })
       await expand('current-state')
@@ -268,7 +284,7 @@ describe('SolutionBrowser', () => {
 
     it('loads the second page and then no more', async () => {
       const { recorded } = await browser({
-        browser: { ...BROWSER, currentState: { components: 51, connections: 0, catalogs: 0 } },
+        browser: { ...BROWSER, currentState: { components: 51, connections: 0, catalogs: 0, diagrams: 0 } },
         browserItems: { 'current-state:components': manyEntities(51) },
       })
       await expand('current-state')

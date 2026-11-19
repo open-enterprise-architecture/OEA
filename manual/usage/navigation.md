@@ -7,23 +7,23 @@ covers:
 
 # Navigation tree
 
-The navigation tree arranges catalogs, entities and solutions in folders, for example *IT Landscape > Application Inventory*, so that you find what you need for your task without searching. Everybody with the permission `entity:read` (for example the role `viewer`) sees the tree. Changing it needs the permissions `viewpoint:manage` and `entity:read` (role `enterprise-architect`).
+The navigation tree arranges catalogs, entities, solutions and diagrams in folders, for example *IT Landscape > Application Inventory*, so that you find what you need for your task without searching. Everybody with the permission `entity:read` (for example the role `viewer`) sees the tree. Changing it needs the permissions `viewpoint:manage` and `entity:read` (role `enterprise-architect`).
 
 ## The sidebar
 
 After login, the sidebar on the left of every page has two tabs: *Browser* and *Navigation tree*. *Browser* is active when you log in; the tab you choose stays active while you move between pages (see [Browser](#browser)). *Navigation tree* shows the tree below. It starts at the folder *Repository*.
 
 - **Open and close a folder:** choose the arrow or the name of the folder. The sidebar remembers which folders are open until you close the browser tab.
-- **Open an entry:** choose it. A catalog opens with its default view, if it has one (see [Views](./catalogs#views)); an entity opens its page, a solution its solution page.
+- **Open an entry:** choose it. A catalog opens with its default view, if it has one (see [Views](./catalogs#views)); an entity opens its page, a solution its solution page, a diagram its page.
 - **Narrow screens:** the sidebar is hidden; the menu button at the left of the header opens it. Choosing an entry closes it again.
 
-Folders and entries keep the order in which you arrange them (see [Reorganize the tree](#reorganize-the-tree)); new folders and entries go to the end. An entry shows its display label if it has one, otherwise the name of the catalog, entity or solution. An icon shows the kind of entry, and a person icon marks a personal catalog.
+Folders and entries keep the order in which you arrange them (see [Reorganize the tree](#reorganize-the-tree)); new folders and entries go to the end. An entry shows its display label if it has one, otherwise the name of the catalog, entity, solution or diagram. An icon shows the kind of entry, and a person icon marks a personal catalog.
 
 ## Browser {#browser}
 
 The tab *Browser* needs no manual work: it lists what the repository holds, ordered by solution. Everybody with the permission `entity:read` sees it. It shows, from top to bottom:
 
-1. **Current state:** the objects of the repository as they are now, in the categories *Components* (entities that are not connections and not deleted), *Connections* and *Catalogs* (the catalogs you see: shared ones and your own personal ones).
+1. **Current state:** the objects of the repository as they are now, in the categories *Components* (entities that are not connections and not deleted), *Connections*, *Catalogs* (the catalogs you see: shared ones and your own personal ones) and *Diagrams* (all [diagrams](./diagrams) that are not deleted).
 2. **Plateaus:** one node for each plateau in the status *transition* or *target*, ordered by the date from which it is valid, then by name. The baseline and realized plateaus have no node. Under a plateau you find the solutions that target it, sorted by name.
 3. **Projects:** the solutions without plateaus, sorted by name.
 
@@ -32,12 +32,13 @@ Only active solutions appear: a solution with the status *implemented* or *archi
 Each solution has the category *Components*: its changes to the repository, marked *New*, *Modified* or *Retiring*. Every category shows how many objects it holds. An empty category is greyed out, not hidden.
 
 - **Expand a node:** choose the arrow or the name. A category loads its objects when you expand it first; it lists them by name, 50 at a time. Choose *Load more* for the next 50.
-- **Open an object:** an entity opens its change history, a catalog its page, and a change of a solution (and the link symbol next to a solution) the solution page.
+- **Open an object:** an entity opens its change history, a catalog its page, a diagram its page, and a change of a solution (and the link symbol next to a solution) the solution page.
 - **Metatype:** a small label next to an entity shows the abbreviation of its metatype, if it has one.
+- **Notation:** a small label next to a diagram shows the notation of its viewpoint, for example *bpmn2*. *Diagrams* lists them by name, regardless of upper and lower case, 50 at a time; a solution has no category *Diagrams*.
 
 *Components* of *Current state* lists the root level: the entities without a parent. An entity with children shows an arrow and expands to them, by name, 50 at a time. See [Arrange components](#arrange-components) to place a component under another one. Components of a solution stay a flat list.
 
-Arrange the folders of the tree in the tab *Navigation tree*. Functional and solution building blocks and diagrams follow with their content.
+Arrange the folders of the tree in the tab *Navigation tree*. Functional and solution building blocks follow with their content.
 
 ## Arrange components {#arrange-components}
 
@@ -67,17 +68,18 @@ With the permissions to change the tree, the button *…* next to a folder offer
 
 A folder name has 1 to 255 characters and is unique within its folder, regardless of upper and lower case; otherwise the dialog says *A folder with this name already exists*. The tree has at most 10 levels below *Repository* and at most 500 folders.
 
-## Place a catalog, an entity or a solution
+## Place a catalog, an entity, a solution or a diagram {#place-a-diagram}
 
 1. Choose *Place in navigation*:
    - for a catalog, on the page of the catalog;
    - for an entity, in its row of a catalog (not offered in catalogs of connections);
-   - for a solution, in the header of the solution page.
+   - for a solution, in the header of the solution page;
+   - for a diagram, in the header of the page of the diagram.
 2. Under *Folder*, choose the folder by its path, for example *Repository / IT Landscape*.
 3. Optionally, enter a *Display label*. The tree then shows it instead of the name, for example *System Inventory* for *Application Inventory*. The catalog, entity or solution keeps its name.
 4. Choose *Place*.
 
-Each of them can be placed in several folders, but only once per folder. A folder has at most 200 entries. If the folder already holds it or is full, the dialog says so, for example *The catalog is already in this folder, or the folder is full*.
+Each of them can be placed in several folders, but only once per folder. A folder has at most 200 entries. If the folder already holds it or is full, the dialog says so, for example *The catalog is already in this folder, or the folder is full*. A diagram that has been deleted cannot be placed; its entries in the tree are hidden until the diagram is [restored](./diagrams#restore-a-diagram).
 
 ## Reorganize the tree {#reorganize-the-tree}
 
@@ -104,9 +106,9 @@ Every change of the tree, moves included, is recorded in the audit trail.
 
 ## Through the API
 
-- `GET /views/browser` returns the top level of the browser: `currentState` with the counts `components`, `connections` and `catalogs`, `plateaus` (each with its `solutions`) and `projects`; a solution has `id`, `name`, `status` and the number of its changes in `components`.
-- `GET /views/browser/items` returns one page of a category, ordered by name: `scope` (`current-state` or `solution`), `category` (`components`, `connections` or `catalogs`; a solution has `components` only), `solutionId` for a solution, and `page` and `pageSize` (1 to 200, default 50). A `pageSize` outside 1 to 200 is rejected with 400; a category that the scope does not have, or a `solutionId` that does not match the scope, with 422 naming `category` or `solutionId`; an unknown solution with 404.
-- `GET /views/explorer` returns the tree from the root as you see it, in its manual order: each folder with `id`, `name`, `parentId`, `sortOrder`, `items` and `children`; each entry with `itemType` (`catalog`, `entity` or `solution`), `referenceId` (catalog or solution ID) or `entityId`, `displayLabel`, `name`, `scope` and `deleted`.
+- `GET /views/browser` returns the top level of the browser: `currentState` with the counts `components`, `connections`, `catalogs` and `diagrams`, `plateaus` (each with its `solutions`) and `projects`; a solution has `id`, `name`, `status` and the number of its changes in `components`.
+- `GET /views/browser/items` returns one page of a category, ordered by name: `scope` (`current-state` or `solution`), `category` (`components`, `connections`, `catalogs` or `diagrams`; a solution has `components` only; an item of a diagram has the `notation` of its viewpoint), `solutionId` for a solution, and `page` and `pageSize` (1 to 200, default 50). A `pageSize` outside 1 to 200 is rejected with 400; a category that the scope does not have, or a `solutionId` that does not match the scope, with 422 naming `category` or `solutionId`; an unknown solution with 404.
+- `GET /views/explorer` returns the tree from the root as you see it, in its manual order: each folder with `id`, `name`, `parentId`, `sortOrder`, `items` and `children`; each entry with `itemType` (`catalog`, `entity`, `solution` or `diagram`), `referenceId` (catalog, solution or diagram ID) or `entityId`, `displayLabel`, `name`, `scope` and `deleted`.
 - `POST /tree-nodes` with `name` and `parentId` creates a folder; `PATCH /tree-nodes/{nodeId}` with `name` renames it; `DELETE /tree-nodes/{nodeId}` deletes it.
 - `POST /tree-nodes/{nodeId}/items` with `itemType`, `referenceId` or `entityId` and an optional `displayLabel` places an entry; `DELETE /tree-nodes/{nodeId}/items/{itemId}` removes it.
 - `PUT /tree-nodes/{nodeId}/position` with `parentId` and `position` moves a folder; `PUT /tree-nodes/{nodeId}/items/{itemId}/position` with `nodeId` and `position` moves an entry. The position counts the entries you see, from 0.

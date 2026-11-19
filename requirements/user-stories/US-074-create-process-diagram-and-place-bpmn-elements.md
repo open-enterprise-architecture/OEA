@@ -4,7 +4,7 @@ title: Create a Process Diagram and Place BPMN Elements
 use_case: UC-10
 requirement: REQ-076
 priority: must
-status: proposed
+status: in-progress
 story_points: 8
 created: 2026-06-26
 ---
@@ -14,6 +14,10 @@ created: 2026-06-26
 **As** a Business Analyst (Anna, SH-08)  
 **I want** to create a new diagram with the viewpoint "Process Model (BPMN 2.0)" and place pools, lanes, tasks, events, and gateways on the canvas,  
 **so that** I can model business processes directly in the EA repository without needing a separate tool.
+
+## Implementation
+
+OpenSpec change `us-074-diagrams` (S17) – creating a diagram: a person or service account with `entity:write` creates a diagram with a name, a description and a viewpoint (`createDiagram`, V46), and finds, renames, deletes and restores it on the page "Diagrams" (SCR-067), in the browser of the sidebar and in the navigation tree. The canvas, the palette and the BPMN elements of the criteria below follow with the changes `us-074-diagram-canvas` and `us-074-bpmn-process-diagrams`.
 
 ## Acceptance Criteria
 

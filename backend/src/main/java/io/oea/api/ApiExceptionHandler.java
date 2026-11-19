@@ -19,6 +19,7 @@ import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.dashboard.InvalidDashboardException;
+import io.oea.app.diagram.DiagramChangeException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.entity.ConnectionRejectedException;
@@ -683,6 +684,32 @@ public class ApiExceptionHandler {
 		return ex.isNameTaken()
 				? catalogProblem("dashboard-name-taken", "Dashboard name taken", ex.getMessage(), ex.getInvalidFields())
 				: catalogProblem("validation-failed", "Invalid dashboard", ex.getMessage(), ex.getInvalidFields());
+	}
+
+	/** A diagram write or query that cannot be applied (design D2, D3 and D8 of us-074-diagrams). */
+	@ExceptionHandler(DiagramChangeException.class)
+	ResponseEntity<ProblemDetail> diagramChange(DiagramChangeException ex) {
+		return switch (ex.getReason()) {
+			case INVALID -> catalogProblem("validation-failed", "Invalid diagram", ex.getMessage(),
+					ex.getInvalidFields());
+			case NAME_TAKEN -> catalogProblem("diagram-name-taken", "Diagram name taken", ex.getMessage(),
+					ex.getInvalidFields());
+			case STALE_VERSION -> {
+				ProblemDetail problem = problem(HttpStatus.PRECONDITION_FAILED, "stale-version", "Changed meanwhile",
+						ex.getMessage());
+				problem.setProperty("currentVersion", ex.getCurrentVersion());
+				yield ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(problem);
+			}
+			case PRECONDITION_REQUIRED -> preconditionRequired(new PreconditionRequiredException(ex.getMessage()));
+			case NOT_DELETED -> ResponseEntity.status(HttpStatus.CONFLICT)
+				.body(problem(HttpStatus.CONFLICT, "diagram-not-deleted", "Diagram not deleted", ex.getMessage()));
+			case INVALID_QUERY -> {
+				ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "validation-failed", "Invalid query",
+						ex.getMessage());
+				problem.setProperty("invalidFields", ex.getInvalidFields());
+				yield ResponseEntity.badRequest().body(problem);
+			}
+		};
 	}
 
 	@ExceptionHandler(InvalidTreeException.class)

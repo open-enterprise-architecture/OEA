@@ -75,6 +75,16 @@ describe('AppHeader', () => {
     expect((await header(ME_NO_ACCESS)).find('[data-testid="header-dashboards"]').exists()).toBe(false)
   })
 
+  // spec diagram/diagrams "Diagrams page": a header entry for readers with entity:read
+  it('links the diagrams for entity:read', async () => {
+    const wrapper = await header(ME_READER)
+    expect(wrapper.get('[data-testid="header-diagrams"]').text()).toBe('Diagrams')
+    expect(wrapper.get('[data-testid="header-diagrams"]').attributes('href')).toBe('/diagrams')
+    session.me = undefined
+    session.loaded = false
+    expect((await header(ME_NO_ACCESS)).find('[data-testid="header-diagrams"]').exists()).toBe(false)
+  })
+
   it('shows the portal as the only entry to a portal reader', async () => {
     const wrapper = await header(ME_PORTAL_READER)
     expect(wrapper.find('[data-testid="header-portal"]').exists()).toBe(true)

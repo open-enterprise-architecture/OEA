@@ -101,4 +101,58 @@ describe('ViewpointsSection', () => {
     // the system-defined viewpoint stays
     expect(wrapper.findAll('[data-testid="viewpoint-list-system"] [data-testid="viewpoint-row"]')).toHaveLength(1)
   })
+
+  // spec "Section Viewpoints" (US-093 AC1): the deletion warns with the number of diagrams that will be deleted
+  it.each([
+    [5, '5 diagrams will be deleted with the viewpoint'],
+    [1, '1 diagram will be deleted with the viewpoint'],
+  ])('warns before deleting a viewpoint with %i diagram(s)', async (count, text) => {
+    const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: count })
+    await wrapper.find('[data-testid="viewpoint-delete"]').trigger('click')
+    await flushPromises()
+    expect(el('delete-warning')!.textContent).toContain(text)
+  })
+
+  it('shows no warning about diagrams when deleting an unused viewpoint', async () => {
+    const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 0 })
+    await wrapper.find('[data-testid="viewpoint-delete"]').trigger('click')
+    await flushPromises()
+    expect(el('delete-dialog')).not.toBeNull()
+    expect(el('delete-warning')).toBeNull()
+  })
+
+  // spec "Section Viewpoints" (US-090 AC2): removing an allowed type from a used viewpoint warns without blocking
+  it('warns "5 diagrams affected" when a type is removed from a used viewpoint, and still saves', async () => {
+    const { wrapper, api } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5 })
+    await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    expect(el('viewpoint-diagrams-affected')).toBeNull()
+    await check('viewpoint-metatypes', IDS.service)
+    expect(el('viewpoint-diagrams-affected')!.textContent).toContain('5 diagrams affected')
+    el<HTMLButtonElement>('viewpoint-submit')!.click()
+    await flushPromises()
+    expect(api.requests.find((request) => request.method === 'PUT')).toBeDefined()
+  })
+
+  it('warns "1 diagram affected" in the singular', async () => {
+    const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 1 })
+    await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await check('viewpoint-connections', IDS.dataFlow)
+    expect(el('viewpoint-diagrams-affected')!.textContent).toContain('1 diagram affected')
+  })
+
+  it('warns about no diagrams when a viewpoint is unused, and when a type is only added', async () => {
+    const unused = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 0 })
+    await unused.wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await check('viewpoint-metatypes', IDS.service)
+    expect(el('viewpoint-diagrams-affected')).toBeNull()
+    document.body.innerHTML = ''
+    const used = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5 })
+    await used.wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await check('viewpoint-metatypes', IDS.zone)
+    expect(el('viewpoint-diagrams-affected')).toBeNull()
+  })
 })
