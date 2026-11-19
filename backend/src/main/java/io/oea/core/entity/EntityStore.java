@@ -237,6 +237,35 @@ public class EntityStore {
 				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection)""", Boolean.class, id));
 	}
 
+	/**
+	 * Whether an element entity that is not deleted and not a structuring aid has this ID: an
+	 * entity of the baseline of a solution.
+	 */
+	public boolean isBaselineElement(int id) {
+		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
+				SELECT EXISTS (SELECT 1 FROM entities e JOIN metatypes m ON m.id = e.metatype_id
+				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection AND m.id <> ?)""",
+				Boolean.class, id, BuiltInMetatypes.STRUCTURING_AID));
+	}
+
+	/** The name and description of an entity. */
+	public record NameRow(String name, String description) {
+	}
+
+	/** The name and description of the element entities among {@code ids} that are not deleted. */
+	public Map<Integer, NameRow> activeElementNames(java.util.Collection<Integer> ids) {
+		Map<Integer, NameRow> names = new HashMap<>();
+		if (ids.isEmpty()) {
+			return names;
+		}
+		this.jdbc.query("""
+				SELECT e.id, e.name, e.description FROM entities e JOIN metatypes m ON m.id = e.metatype_id
+				WHERE e.id = ANY(?) AND e.deleted_at IS NULL AND NOT m.is_connection""", (rs) -> {
+			names.put(rs.getInt(1), new NameRow(rs.getString(2), rs.getString(3)));
+		}, (Object) ids.toArray(Integer[]::new));
+		return names;
+	}
+
 	private static BrowseRow browseRow(ResultSet rs, int row) throws SQLException {
 		return new BrowseRow(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4), rs.getBoolean(5),
 				rs.getInt(6));

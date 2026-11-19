@@ -61,7 +61,7 @@ The ADRs no longer describe the code, so they guide nobody. Without a rule for S
   - the freezing rule of ArchUnit lets the existing violations shrink step by step while no new one can be added.
 - **Con**:
   - 57 classes have to move their SQL into `core` stores over several changes;
-  - until then, the frozen list documents the debt.
+  - until then, the frozen list documents the debt (resolved on 2026-11-19, see Consequences).
 
 ## Decision
 
@@ -88,8 +88,8 @@ We choose **Option 4: document the feature cut, SQL only in `core`, enforced by 
 **4. Enforcement.**
 
 - A new ArchUnit rule (`DataAccessRules`) forbids dependencies of `io.oea.app..` on `org.springframework.jdbc..` and `java.sql..`.
-- It is a `FreezingArchRule`. The violations that exist on 2026-11-16 are stored in `backend/src/test/resources/archunit_store`, and the store may only shrink: a new violation fails the build, and a removed one is dropped from the store.
-- Changes that touch a class with a stored violation move its SQL into `core` where that is in their scope. #259 tracks the rest.
+- The rule was introduced as a `FreezingArchRule`: the 915 violations of 2026-11-16 were stored in `backend/src/test/resources/archunit_store`, and the store could only shrink. Since the change `s17-sql-into-core-repository` (2026-11-19) the store is empty and the rule is a plain ArchUnit rule: any new JDBC dependency in `app` fails the build. The store directory and the freeze settings are removed.
+- #259 (shared entity read API) is resolved by the same change.
 
 ## Consequences
 
@@ -101,11 +101,12 @@ We choose **Option 4: document the feature cut, SQL only in `core`, enforced by 
 
 ### Negative Consequences / Trade-offs
 
-- Until the frozen store is empty, the rule allows the known exceptions: 915 dependencies in 74 classes of `app` on 2026-11-16 (`JdbcTemplate` in 57 classes, plus the row mappers and nested records that use `java.sql`). The store makes the debt visible but does not remove it.
+- Resolved (2026-11-19): until the frozen store was empty, the rule allowed the known exceptions: 915 dependencies in 74 classes of `app` on 2026-11-16 (`JdbcTemplate` in 57 classes, plus the row mappers and nested records that use `java.sql`). The store made the debt visible but did not remove it.
 - Progress note 2026-11-19: S17 removes the debt package by package. After the change `s17-sql-into-core-metamodel`, the 20 classes of `io.oea.app.metamodel` use stores in `io.oea.core.metamodel` and the frozen store lists 510 dependencies (860 before; 350 entries of that package removed); `s17-sql-into-core-identity` and `s17-sql-into-core-repository` follow.
 - Progress note 2026-11-19 (identity): after the change `s17-sql-into-core-identity`, the 29 classes of `io.oea.app.access`, `login`, `security` and `recovery` use eleven stores in `io.oea.core.access` and the frozen store lists 136 dependencies (510 before; 374 entries of these packages removed). The 136 remaining entries belong to the repository packages and to the 23 lines that only name `LanguagePreferences` and `OeaPrincipal`; `s17-sql-into-core-repository` empties the store.
+- Progress note 2026-11-19 (repository): the change `s17-sql-into-core-repository` moved the last nine classes (`SolutionDeltas`, `SolutionDiff`, `Solutions`, `SolutionLandscape`, `SolutionConflicts`, `EntityBatch`, `MetatypeRules`, `EntityRestore`, `CatalogQueries`) into stores of `core` (136 before, 0 after). The solution feature reads entity values through one shared read in `PropertyValueStore` and a counterpart in `DeltaValueStore` (#259), and `SolutionDeltas.Typed` is the one value record. The rule `applicationLayerAddsNoSql` is plain, and the freeze store and `archunit.properties` are deleted. The debt of this ADR is resolved by the three changes of S17 (#331, #332 and this one).
 - Moving SQL out of `app` adds a store class per table group and some indirection for simple reads.
-- `FreezingArchRule` needs its store in the repository. A refactoring that renames a violating class produces a new violation, and the store must be updated in the same change.
+- Resolved (2026-11-19): `FreezingArchRule` needed its store in the repository, and a refactoring that renamed a violating class produced a new violation. With the plain rule there is no store to maintain.
 
 ## References
 

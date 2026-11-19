@@ -10,7 +10,6 @@ import io.oea.audit.AuditWriter;
 import io.oea.core.catalog.CatalogQueryStore;
 import io.oea.core.catalog.CatalogQueryStore.Condition;
 import io.oea.core.catalog.ScopeStore;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -223,7 +222,7 @@ public class CatalogQueries {
 			throw ex;
 		}
 		catch (DataAccessException ex) {
-			if (!cancelled(ex)) {
+			if (!CatalogQueryStore.cancelled(ex)) {
 				throw ex;
 			}
 			this.metrics.record(started, channel, "timeout");
@@ -233,16 +232,6 @@ public class CatalogQueries {
 					Map.of("channel", channel.tag(), "limitMillis", this.timeoutMillis)));
 			throw new CatalogQueryTimeoutException(ex);
 		}
-	}
-
-	/** Whether the database cancelled a statement ({@code 57014 query_canceled}), e.g. by its time limit. */
-	static boolean cancelled(Throwable ex) {
-		for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
-			if (cause instanceof SQLException sql && "57014".equals(sql.getSQLState())) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private Result read(OeaPrincipal principal, UUID catalogId, Request request, Channel channel) {

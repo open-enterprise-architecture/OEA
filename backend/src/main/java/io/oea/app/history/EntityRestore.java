@@ -16,6 +16,7 @@ import io.oea.core.entity.EntityHistoryStore;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
 import io.oea.core.entity.EntityVersionStore;
+import io.oea.core.entity.MetatypeRuleStore;
 import io.oea.core.entity.PropertyValueStore;
 import io.oea.core.entity.TypedValue;
 import java.time.Clock;
@@ -32,7 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,7 +79,7 @@ public class EntityRestore {
 
 	private final LanguagePreferences languages;
 
-	private final JdbcTemplate jdbc;
+	private final MetatypeRuleStore ruleStore;
 
 	private final Clock clock;
 
@@ -88,7 +88,7 @@ public class EntityRestore {
 	public EntityRestore(EntityStore entities, EntityVersionStore versions, EntityVersions display,
 			EntityHistoryStore history,
 			PropertyAccess access, EntityWriter writer, PropertyValueStore values, MetamodelLabels labels,
-			LanguagePreferences languages, JdbcTemplate jdbc, Clock clock, EntityBlocks blocks) {
+			LanguagePreferences languages, MetatypeRuleStore ruleStore, Clock clock, EntityBlocks blocks) {
 		this.blocks = blocks;
 		this.entities = entities;
 		this.versions = versions;
@@ -99,7 +99,7 @@ public class EntityRestore {
 		this.values = values;
 		this.labels = labels;
 		this.languages = languages;
-		this.jdbc = jdbc;
+		this.ruleStore = ruleStore;
 		this.clock = clock;
 	}
 
@@ -248,7 +248,7 @@ public class EntityRestore {
 			.orElseThrow(NoSuchElementException::new);
 		Map<UUID, TypedValue> current = this.entities.values(entity.id());
 		PropertyAccess.Snapshot snapshot = this.access.of(principal);
-		MetatypeRules rules = MetatypeRules.load(this.jdbc, LocalDate.now(this.clock))
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
 			.forWriter(PropertyWriteAccess.writer(snapshot));
 		MetatypeRules.Metatype metatype = rules.metatype(entity.metatypeId());
 		if (metatype == null) {

@@ -4,12 +4,13 @@ import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.solution.SolutionDeltas.Change;
 import io.oea.app.solution.SolutionDeltas.Delta;
-import io.oea.app.solution.SolutionDeltas.Reference;
 import io.oea.app.solution.SolutionDeltas.Type;
 import io.oea.app.solution.SolutionDeltas.Typed;
 import io.oea.app.solution.SolutionDeltas.Value;
-import java.sql.ResultSet;
+import io.oea.core.entity.EntityStore;
+import io.oea.core.entity.PropertyValueStore;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -19,7 +20,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +39,9 @@ public class SolutionDiff {
 
 	private static final String PROPERTY = "property";
 
-	private final JdbcTemplate jdbc;
+	private final EntityStore entities;
+
+	private final PropertyValueStore valueStore;
 
 	private final SolutionDeltas deltas;
 
@@ -47,8 +49,9 @@ public class SolutionDiff {
 
 	private final SolutionLandscape landscape;
 
-	SolutionDiff(JdbcTemplate jdbc, SolutionDeltas deltas, PropertyAccess access, SolutionLandscape landscape) {
-		this.jdbc = jdbc;
+	SolutionDiff(EntityStore entities, PropertyValueStore valueStore, SolutionDeltas deltas, PropertyAccess access, SolutionLandscape landscape) {
+		this.entities = entities;
+		this.valueStore = valueStore;
 		this.deltas = deltas;
 		this.access = access;
 		this.landscape = landscape;
@@ -116,10 +119,8 @@ public class SolutionDiff {
 			fields.add(system(DESCRIPTION, null, description, true, false));
 		}
 		for (Value value : delta.properties()) {
-			Typed typed = value.redacted() ? null : new Typed(value.text(), value.integer(), value.bool(), value.date(),
-					value.enumValue(), value.reference());
 			fields.add(new Field(PROPERTY, value.propertyDefId(), value.propertyName(), value.dataType(), value.redacted(),
-					null, typed, true, false));
+					null, value.typed(), true, false));
 		}
 		return fields;
 	}
@@ -242,10 +243,8 @@ public class SolutionDiff {
 			}
 			Map<UUID, Field> values = new LinkedHashMap<>();
 			for (Value value : entry.properties()) {
-				Typed typed = value.redacted() ? null : new Typed(value.text(), value.integer(), value.bool(),
-						value.date(), value.enumValue(), value.reference());
 				values.put(value.propertyDefId(), new Field(PROPERTY, value.propertyDefId(), value.propertyName(),
-						value.dataType(), value.redacted(), typed, null, false, false));
+						value.dataType(), value.redacted(), value.typed(), null, false, false));
 			}
 			basis.put(id, new Catalog(entry.entry().name(), entry.description(), values));
 		}
@@ -257,37 +256,19 @@ public class SolutionDiff {
 		if (ids.length == 0) {
 			return catalog;
 		}
-		this.jdbc.query("""
-				SELECT e.id, e.name, e.description FROM entities e JOIN metatypes m ON m.id = e.metatype_id
-				WHERE e.id = ANY(?) AND e.deleted_at IS NULL AND NOT m.is_connection""", (ResultSet rs) -> {
-			catalog.put(rs.getInt(1), new Catalog(rs.getString(2), rs.getString(3), new LinkedHashMap<>()));
-		}, (Object) ids);
-		this.jdbc.query("""
-				SELECT v.entity_id, p.id, p.name, p.data_type, v.value_text, v.value_int, v.value_bool, v.value_date,
-				       v.value_ref, v.value_enum, r.name, rm.abbreviation
-				FROM entity_property_values v
-				JOIN property_definitions p ON p.id = v.property_def_id
-				LEFT JOIN entities r ON r.id = v.value_ref
-				LEFT JOIN metatypes rm ON rm.id = r.metatype_id
-				WHERE v.entity_id = ANY(?)""", (ResultSet rs) -> {
-			Catalog entity = catalog.get(rs.getInt(1));
-			if (entity == null) {
-				return;
+		this.entities.activeElementNames(Arrays.asList(ids))
+			.forEach((id, row) -> catalog.put(id, new Catalog(row.name(), row.description(), new LinkedHashMap<>())));
+		this.valueStore.labeledValues(catalog.keySet()).forEach((entityId, values) -> {
+			Catalog entity = catalog.get(entityId);
+			for (PropertyValueStore.NamedValue named : values) {
+				Value value = Value.of(named);
+				boolean redacted = !snapshot.readableFor(named.propertyDefId(), entityId);
+				Typed typed = redacted ? null : value.typed();
+				entity.values()
+					.put(named.propertyDefId(), new Field(PROPERTY, named.propertyDefId(), named.propertyName(),
+							named.dataType(), redacted, typed, null, false, false));
 			}
-			UUID property = rs.getObject(2, UUID.class);
-			Typed value = null;
-			boolean redacted = !snapshot.readableFor(property, rs.getInt(1));
-			if (!redacted) {
-				java.sql.Date date = rs.getDate(8);
-				Integer reference = rs.getObject(9, Integer.class);
-				value = new Typed(rs.getString(5), rs.getObject(6, Long.class), rs.getObject(7, Boolean.class),
-						(date != null) ? date.toLocalDate() : null, rs.getString(10),
-						(reference != null) ? new Reference(reference, rs.getString(11), rs.getString(12)) : null);
-			}
-			entity.values()
-				.put(property, new Field(PROPERTY, property, rs.getString(3), rs.getString(4), redacted, value, null, false,
-						false));
-		}, (Object) ids);
+		});
 		return catalog;
 	}
 

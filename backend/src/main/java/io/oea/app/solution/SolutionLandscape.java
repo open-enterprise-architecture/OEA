@@ -4,6 +4,7 @@ import io.oea.app.catalog.CatalogCursors;
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.core.catalog.CatalogQueryStore.KeyType;
+import io.oea.core.entity.PropertyValueStore;
 import io.oea.core.entity.TypedValue;
 import io.oea.core.solution.PlateauContentStore;
 import java.util.LinkedHashMap;
@@ -11,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +29,7 @@ public class SolutionLandscape {
 
 	private static final List<KeyType> KEY_TYPES = List.of(KeyType.TEXT, KeyType.TEXT);
 
-	private final JdbcTemplate jdbc;
+	private final PropertyValueStore valueStore;
 
 	private final Solutions solutions;
 
@@ -41,9 +41,9 @@ public class SolutionLandscape {
 
 	private final PlateauContentStore content;
 
-	SolutionLandscape(JdbcTemplate jdbc, Solutions solutions, CatalogCursors cursors, PropertyAccess access,
+	SolutionLandscape(PropertyValueStore valueStore, Solutions solutions, CatalogCursors cursors, PropertyAccess access,
 			SolutionConflicts conflicts, PlateauContentStore content) {
-		this.jdbc = jdbc;
+		this.valueStore = valueStore;
 		this.conflicts = conflicts;
 		this.solutions = solutions;
 		this.cursors = cursors;
@@ -82,23 +82,10 @@ public class SolutionLandscape {
 		String description = this.content.description(entityId);
 		PropertyAccess.Snapshot snapshot = this.access.of(principal);
 		Map<UUID, SolutionDeltas.Value> values = new LinkedHashMap<>();
-		this.jdbc.query("""
-				SELECT p.id, p.name, p.data_type, v.value_text, v.value_int, v.value_bool, v.value_date, v.value_ref,
-				       v.value_enum, r.name, rm.abbreviation
-				FROM entity_property_values v
-				JOIN property_definitions p ON p.id = v.property_def_id
-				LEFT JOIN entities r ON r.id = v.value_ref
-				LEFT JOIN metatypes rm ON rm.id = r.metatype_id
-				WHERE v.entity_id = ? ORDER BY lower(p.name), p.id""", (rs, row) -> {
-			java.sql.Date date = rs.getDate(7);
-			Integer reference = rs.getObject(8, Integer.class);
-			UUID property = rs.getObject(1, UUID.class);
-			values.put(property, new SolutionDeltas.Value(property, rs.getString(2), rs.getString(3), false,
-					rs.getString(4), rs.getObject(5, Long.class), rs.getObject(6, Boolean.class),
-					(date != null) ? date.toLocalDate() : null, rs.getString(9), (reference != null)
-							? new SolutionDeltas.Reference(reference, rs.getString(10), rs.getString(11)) : null));
-			return null;
-		}, entityId);
+		for (PropertyValueStore.NamedValue named : this.valueStore.labeledValues(List.of(entityId))
+			.getOrDefault(entityId, List.of())) {
+			values.put(named.propertyDefId(), SolutionDeltas.Value.of(named));
+		}
 		for (PlateauContentStore.Overlay overlay : this.content.overlay(layers, entityId)) {
 			if (overlay.systemField() != null) {
 				description = (overlay.value() != null) ? overlay.value().text() : null;
@@ -107,20 +94,16 @@ public class SolutionLandscape {
 				values.remove(overlay.propertyDefId());
 			}
 			else {
-				TypedValue value = overlay.value();
 				values.put(overlay.propertyDefId(), new SolutionDeltas.Value(overlay.propertyDefId(),
-						overlay.propertyName(), overlay.dataType(), false, value.text(), value.integer(), value.bool(),
-						value.date(), value.enumValue(), (value.reference() != null) ? new SolutionDeltas.Reference(
-								value.reference(), overlay.referenceName(), overlay.referenceAbbreviation()) : null));
+						overlay.propertyName(), overlay.dataType(), false, SolutionDeltas.Typed.of(overlay.value(),
+								overlay.referenceName(), overlay.referenceAbbreviation())));
 			}
 		}
 		List<SolutionDeltas.Value> shown = values.values()
 			.stream()
 			.sorted(java.util.Comparator.comparing((SolutionDeltas.Value value) -> value.propertyName().toLowerCase())
 				.thenComparing((value) -> value.propertyDefId().toString()))
-			.map((value) -> snapshot.readableFor(value.propertyDefId(), entityId) ? value
-					: new SolutionDeltas.Value(value.propertyDefId(), value.propertyName(), value.dataType(), true, null, null,
-							null, null, null, null))
+			.map((value) -> snapshot.readableFor(value.propertyDefId(), entityId) ? value : value.redact())
 			.toList();
 		return new EntityEntry(entry, description, shown);
 	}

@@ -418,15 +418,18 @@ public class SolutionController implements SolutionsApi {
 			.propertyName(value.propertyName())
 			.dataType(PropertyValue.DataTypeEnum.fromValue(value.dataType()))
 			.redacted(value.redacted());
-		result.valueText(value.text())
-			.valueInt(value.integer())
-			.valueBool(value.bool())
-			.valueDate(value.date())
-			.valueEnum(value.enumValue());
-		if (value.reference() != null) {
-			result.valueRef(new PropertyValueValueRef().id(value.reference().id())
-				.name(value.reference().name())
-				.metatypeAbbr(value.reference().metatypeAbbreviation()));
+		SolutionDeltas.Typed typed = value.typed();
+		if (typed != null) {
+			result.valueText(typed.text())
+				.valueInt(typed.integer())
+				.valueBool(typed.bool())
+				.valueDate(typed.date())
+				.valueEnum(typed.enumValue());
+			if (typed.reference() != null) {
+				result.valueRef(new PropertyValueValueRef().id(typed.reference().id())
+					.name(typed.reference().name())
+					.metatypeAbbr(typed.reference().metatypeAbbreviation()));
+			}
 		}
 		return result;
 	}

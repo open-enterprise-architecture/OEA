@@ -128,6 +128,20 @@ public class MetatypeStore {
 			.findFirst();
 	}
 
+	/** The name and abbreviation of a metatype. */
+	public record NameRow(String name, String abbreviation) {
+	}
+
+	/**
+	 * The name and abbreviation of the metatype.
+	 *
+	 * @throws org.springframework.dao.EmptyResultDataAccessException for an unknown ID
+	 */
+	public NameRow nameAndAbbreviation(UUID id) {
+		return this.jdbc.queryForObject("SELECT name, abbreviation FROM metatypes WHERE id = ?",
+				(rs, n) -> new NameRow(rs.getString(1), rs.getString(2)), id);
+	}
+
 	/** Whether the metatype is a connection metatype; empty for an unknown metatype. */
 	public Optional<Boolean> isConnection(UUID id) {
 		return this.jdbc.queryForList("SELECT is_connection FROM metatypes WHERE id = ?", Boolean.class, id)

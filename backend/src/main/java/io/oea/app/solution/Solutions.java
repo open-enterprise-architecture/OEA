@@ -6,14 +6,12 @@ import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
 import io.oea.core.solution.PlateauStore;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import io.oea.core.solution.SolutionStore;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,21 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class Solutions {
 
-	private static final String COLUMNS = """
-			s.id, s.name, s.description, s.status, s.from_plateau_id, s.to_plateau_id, s.owner_id, o.name,
-			s.created_at, s.created_by, c.name""";
-
-	private static final String FROM = " FROM solutions s JOIN persons o ON o.id = s.owner_id"
-			+ " JOIN persons c ON c.id = s.created_by";
-
-	private final JdbcTemplate jdbc;
+	private final SolutionStore store;
 
 	private final AuditWriter audit;
 
 	private final PlateauStore plateaus;
 
-	Solutions(JdbcTemplate jdbc, AuditWriter audit, PlateauStore plateaus) {
-		this.jdbc = jdbc;
+	Solutions(SolutionStore store, AuditWriter audit, PlateauStore plateaus) {
+		this.store = store;
 		this.audit = audit;
 		this.plateaus = plateaus;
 	}
@@ -79,11 +70,9 @@ public class Solutions {
 		}
 		plateaus(input.fromPlateauId(), input.toPlateauId());
 		UUID id = UUID.randomUUID();
-		int inserted = this.jdbc.update("""
-				INSERT INTO solutions (id, name, description, owner_id, created_by, from_plateau_id, to_plateau_id)
-				VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING""", id, name, input.description(), person, person,
-				input.fromPlateauId(), input.toPlateauId());
-		if (inserted == 0) {
+		boolean inserted = this.store.insert(id, name, input.description(), person, input.fromPlateauId(),
+				input.toPlateauId());
+		if (!inserted) {
 			throw new InvalidSolutionException("name", "Name '" + name + "' is already taken");
 		}
 		this.audit.append(new AuditEvent("solution.created", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
@@ -117,7 +106,7 @@ public class Solutions {
 	/** All solutions, ordered by name case-insensitively. */
 	@Transactional(readOnly = true)
 	public List<Solution> list() {
-		return this.jdbc.query("SELECT " + COLUMNS + FROM + " ORDER BY lower(s.name), s.id", Solutions::solution);
+		return this.store.list().stream().map(Solutions::solution).toList();
 	}
 
 	/**
@@ -131,15 +120,13 @@ public class Solutions {
 	}
 
 	private java.util.Optional<Solution> find(UUID id) {
-		return this.jdbc.query("SELECT " + COLUMNS + FROM + " WHERE s.id = ?", Solutions::solution, id)
-			.stream()
-			.findFirst();
+		return this.store.find(id).map(Solutions::solution);
 	}
 
-	private static Solution solution(ResultSet rs, int row) throws SQLException {
-		return new Solution(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4),
-				rs.getObject(5, UUID.class), rs.getObject(6, UUID.class), rs.getLong(7), rs.getString(8),
-				rs.getTimestamp(9).toInstant(), rs.getLong(10), rs.getString(11));
+	private static Solution solution(SolutionStore.SolutionRow row) {
+		return new Solution(row.id(), row.name(), row.description(), row.status(), row.fromPlateauId(),
+				row.toPlateauId(), row.ownerId(), row.ownerName(), row.createdAt(), row.createdById(),
+				row.createdByName());
 	}
 
 }

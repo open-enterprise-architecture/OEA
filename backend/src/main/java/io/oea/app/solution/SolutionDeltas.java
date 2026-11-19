@@ -1,7 +1,10 @@
 package io.oea.app.solution;
 
 import io.oea.app.entity.EntityBlocks;
+import io.oea.core.solution.DeltaStore;
+import io.oea.core.solution.DeltaValueStore;
 import io.oea.core.solution.SnapshotStore;
+import io.oea.core.solution.SolutionStore;
 import io.oea.app.catalog.CatalogCursors;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.EntityValidator;
@@ -17,10 +20,11 @@ import io.oea.audit.AuditWriter;
 import io.oea.core.catalog.CatalogQueryStore.KeyType;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
+import io.oea.core.entity.LabeledValue;
+import io.oea.core.entity.MetatypeRuleStore;
+import io.oea.core.entity.PropertyValueStore;
 import io.oea.core.entity.TypedValue;
 import io.oea.core.metamodel.BuiltInMetatypes;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,10 +36,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,10 +56,6 @@ public class SolutionDeltas {
 
 	private static final List<KeyType> KEY_TYPES = List.of(KeyType.INTEGER, KeyType.TEXT, KeyType.TEXT);
 
-	private static final String RANK = "CASE d.delta_type WHEN 'new' THEN 0 WHEN 'modified' THEN 1 ELSE 2 END";
-
-	private static final String SORT_NAME = "lower(coalesce(d.name, e.name))";
-
 	static final String DUPLICATE = "A delta already exists for this entity in this solution";
 
 	static final String NOT_IN_LANDSCAPE = "Entity not found in the current landscape";
@@ -68,7 +68,13 @@ public class SolutionDeltas {
 
 	private static final String DESCRIPTION = "description";
 
-	private final JdbcTemplate jdbc;
+	private final DeltaStore deltaStore;
+
+	private final DeltaValueStore deltaValues;
+
+	private final SolutionStore solutionStore;
+
+	private final MetatypeRuleStore ruleStore;
 
 	private final EntityStore store;
 
@@ -90,13 +96,17 @@ public class SolutionDeltas {
 
 	private final SolutionLandscape landscape;
 
-	SolutionDeltas(JdbcTemplate jdbc, EntityStore store, PropertyWriteAccess writeAccess, PropertyAccess readAccess,
+	SolutionDeltas(DeltaStore deltaStore, DeltaValueStore deltaValues, SolutionStore solutionStore,
+			MetatypeRuleStore ruleStore, EntityStore store, PropertyWriteAccess writeAccess, PropertyAccess readAccess,
 			AuditWriter audit, Clock clock, CatalogCursors cursors, SolutionConflicts conflicts, EntityBlocks blocks,
 			SnapshotStore snapshots, SolutionLandscape landscape) {
 		this.landscape = landscape;
 		this.blocks = blocks;
 		this.snapshots = snapshots;
-		this.jdbc = jdbc;
+		this.deltaStore = deltaStore;
+		this.deltaValues = deltaValues;
+		this.solutionStore = solutionStore;
+		this.ruleStore = ruleStore;
 		this.cursors = cursors;
 		this.conflicts = conflicts;
 		this.store = store;
@@ -154,14 +164,40 @@ public class SolutionDeltas {
 	/** A typed value in the app layer: exactly one component is set. */
 	public record Typed(String text, Long integer, Boolean bool, LocalDate date, String enumValue,
 			Reference reference) {
+
+		/** The value with the label of its reference target, or {@code null} for no value. */
+		static Typed of(LabeledValue labeled) {
+			return (labeled != null) ? of(labeled.value(), labeled.referenceName(), labeled.referenceAbbreviation())
+					: null;
+		}
+
+		static Typed of(TypedValue value, String referenceName, String referenceAbbreviation) {
+			if (value == null) {
+				return null;
+			}
+			Reference reference = (value.reference() != null)
+					? new Reference(value.reference(), referenceName, referenceAbbreviation) : null;
+			return new Typed(value.text(), value.integer(), value.bool(), value.date(), value.enumValue(), reference);
+		}
+
 	}
 
 	/**
-	 * A value of a delta {@code new} in its typed component; {@code redacted} without a value if the
-	 * reader may not read it.
+	 * A value of an entity or of a delta {@code new}; {@code typed} is {@code null} when
+	 * {@code redacted}, because the reader may not read it, and for no value.
 	 */
-	public record Value(UUID propertyDefId, String propertyName, String dataType, boolean redacted, String text,
-			Long integer, Boolean bool, LocalDate date, String enumValue, Reference reference) {
+	public record Value(UUID propertyDefId, String propertyName, String dataType, boolean redacted, Typed typed) {
+
+		/** The same value without its content, for a reader who may not read it. */
+		Value redact() {
+			return new Value(this.propertyDefId, this.propertyName, this.dataType, true, null);
+		}
+
+		static Value of(PropertyValueStore.NamedValue named) {
+			return new Value(named.propertyDefId(), named.propertyName(), named.dataType(), false,
+					Typed.of(named.value()));
+		}
+
 	}
 
 	/**
@@ -233,17 +269,15 @@ public class SolutionDeltas {
 		UUID id = UUID.randomUUID();
 		boolean isNew = input.type() == Type.NEW;
 		try {
-			this.jdbc.update("""
-					INSERT INTO entity_deltas (id, solution_id, delta_type, entity_id, metatype_id, name, description, created_by)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", id, solutionId, input.type().value(), input.entityId(),
+			this.deltaStore.insert(id, solutionId, input.type().value(), input.entityId(),
 					isNew ? input.metatypeId() : null, isNew ? input.name() : null,
 					isNew ? ((input.description() != null) ? input.description() : "") : null, person);
 		}
 		catch (DuplicateKeyException ex) {
 			throw new InvalidSolutionException(isNew ? NAME : "entityId", DUPLICATE);
 		}
-		values.forEach((definition, value) -> insertValue(id, null, definition, null, value));
-		changes.forEach((change) -> insertValue(id, change.systemField(), change.propertyDefId(), change.before(),
+		values.forEach((definition, value) -> this.deltaValues.insertValue(id, null, definition, null, value));
+		changes.forEach((change) -> this.deltaValues.insertValue(id, change.systemField(), change.propertyDefId(), change.before(),
 				change.after()));
 		Delta delta = read(solutionId, id, this.readAccess.of(principal)).get(0);
 		this.audit.append(event("solution.delta-added", principal, solutionId, delta, changes));
@@ -262,9 +296,7 @@ public class SolutionDeltas {
 	 */
 	@Transactional
 	public Delta update(OeaPrincipal principal, UUID solutionId, UUID deltaId, Modification input) {
-		List<Map<String, Object>> locked = this.jdbc.queryForList(
-				"SELECT delta_type, entity_id FROM entity_deltas WHERE id = ? AND solution_id = ? FOR UPDATE", deltaId,
-				solutionId);
+		Optional<DeltaStore.Locked> locked = this.deltaStore.lock(deltaId, solutionId);
 		if (locked.isEmpty()) {
 			status(solutionId);
 			throw new NoSuchElementException("delta " + deltaId);
@@ -274,37 +306,32 @@ public class SolutionDeltas {
 		if (person == null) {
 			throw new PermissionDeniedException();
 		}
-		if (!Type.MODIFIED.value().equals(locked.get(0).get("delta_type"))) {
+		if (!Type.MODIFIED.value().equals(locked.get().type())) {
 			throw new InvalidSolutionException(List.of(new Issue("deltaType", "NOT_SUPPORTED",
 					"Only a modified delta can be edited.")));
 		}
-		int entityId = ((Number) locked.get(0).get("entity_id")).intValue();
+		int entityId = locked.get().entityId();
 		Map<String, TypedValue> recorded = new HashMap<>();
 		List<Computed> hidden = new ArrayList<>();
 		PropertyAccess.Snapshot reader = this.readAccess.of(principal);
 		Set<UUID> sent = new HashSet<>();
 		input.properties().forEach((property) -> sent.add(property.propertyDefId()));
-		this.jdbc.query("""
-				SELECT system_field, property_def_id, before_value_text, before_value_int, before_value_bool,
-				       before_value_date, before_value_ref, before_value_enum, after_value_text, after_value_int,
-				       after_value_bool, after_value_date, after_value_ref, after_value_enum, p.name
-				FROM entity_delta_property_values v LEFT JOIN property_definitions p ON p.id = v.property_def_id
-				WHERE delta_id = ?""", (ResultSet rs) -> {
-			String field = rs.getString(1);
-			UUID property = rs.getObject(2, UUID.class);
-			recorded.put((field != null) ? field : property.toString(), typed(rs, 3));
+		for (DeltaValueStore.RecordedValue value : this.deltaValues.recorded(deltaId)) {
+			String field = value.systemField();
+			UUID property = value.propertyDefId();
+			recorded.put((field != null) ? field : property.toString(), value.before());
 			// a change the editor may not read cannot be resent, so it stays as recorded
 			if (property != null && !sent.contains(property) && !reader.readableFor(property, entityId)) {
-				hidden.add(new Computed(null, property, rs.getString(15), typed(rs, 3), typed(rs, 9)));
+				hidden.add(new Computed(null, property, value.propertyName(), value.before(), value.after()));
 			}
-		}, deltaId);
+		}
 		List<Computed> changes = new ArrayList<>(
 				computeChanges(principal, solutionId, entityId, input, recorded, !hidden.isEmpty()));
 		changes.addAll(hidden);
-		this.jdbc.update("DELETE FROM entity_delta_property_values WHERE delta_id = ?", deltaId);
-		changes.forEach((change) -> insertValue(deltaId, change.systemField(), change.propertyDefId(),
+		this.deltaValues.deleteValues(deltaId);
+		changes.forEach((change) -> this.deltaValues.insertValue(deltaId, change.systemField(), change.propertyDefId(),
 				change.before(), change.after()));
-		this.jdbc.update("UPDATE entity_deltas SET updated_at = now(), updated_by = ? WHERE id = ?", person, deltaId);
+		this.deltaStore.touch(deltaId, person);
 		Delta delta = read(solutionId, deltaId, this.readAccess.of(principal)).get(0);
 		this.audit.append(event("solution.delta-updated", principal, solutionId, delta, changes));
 		return delta;
@@ -347,28 +374,20 @@ public class SolutionDeltas {
 	/** {@link #list(OeaPrincipal, UUID, PageQuery)} with the reader's snapshot. */
 	Page list(PropertyAccess.Snapshot access, UUID solutionId, PageQuery query) {
 		status(solutionId);
-		Map<String, Long> byType = new HashMap<>();
-		this.jdbc.query("SELECT delta_type, count(*) FROM entity_deltas WHERE solution_id = ? GROUP BY delta_type",
-				(ResultSet rs) -> {
-					byType.put(rs.getString(1), rs.getLong(2));
-				}, solutionId);
+		Map<String, Long> byType = this.deltaStore.countsByType(solutionId);
 		Counts counts = new Counts(byType.getOrDefault("new", 0L), byType.getOrDefault("modified", 0L),
 				byType.getOrDefault("retiring", 0L));
 		long total = counts.total();
 
 		String fingerprint = CatalogCursors.fingerprint(
 				List.of("solution-deltas", solutionId.toString(), Integer.toString(query.pageSize())));
-		StringBuilder where = new StringBuilder();
-		List<Object> arguments = new ArrayList<>();
-		boolean keyset = query.cursor() != null && !query.cursor().isEmpty();
-		if (keyset) {
-			List<Object> after = this.cursors.decode(query.cursor(), fingerprint, query.page(), KEY_TYPES)
+		List<Object> after = null;
+		if (query.cursor() != null && !query.cursor().isEmpty()) {
+			after = this.cursors.decode(query.cursor(), fingerprint, query.page(), KEY_TYPES)
 				.orElseThrow(() -> new InvalidSolutionQueryException("cursor"));
-			where.append(" AND (" + RANK + ", " + SORT_NAME + ", d.id::text) > (?, lower(?), ?)");
-			arguments.addAll(after);
 		}
-		String limit = " LIMIT " + query.pageSize() + (keyset ? "" : " OFFSET " + ((long) query.page() * query.pageSize()));
-		List<Delta> items = read(solutionId, where.toString(), arguments, limit, access);
+		List<Delta> items = read(solutionId, null, after, query.pageSize(), (long) query.page() * query.pageSize(),
+				access);
 
 		String nextCursor = null;
 		if (!items.isEmpty() && (long) (query.page() + 1) * query.pageSize() < total) {
@@ -394,7 +413,7 @@ public class SolutionDeltas {
 		if (found.isEmpty()) {
 			throw new NoSuchElementException("delta " + deltaId);
 		}
-		this.jdbc.update("DELETE FROM entity_deltas WHERE id = ? AND solution_id = ?", deltaId, solutionId);
+		this.deltaStore.delete(deltaId, solutionId);
 		this.audit.append(event("solution.delta-removed", principal, solutionId, found.get(0), List.of()));
 	}
 
@@ -417,9 +436,7 @@ public class SolutionDeltas {
 	}
 
 	private String status(UUID solutionId) {
-		return this.jdbc.queryForList("SELECT status FROM solutions WHERE id = ?", String.class, solutionId)
-			.stream()
-			.findFirst()
+		return this.solutionStore.status(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 	}
 
@@ -428,7 +445,7 @@ public class SolutionDeltas {
 	 * deltas may keep a property or enumeration value a metamodel change removed (US-154 AC3).
 	 */
 	private MetatypeRules rules(UUID solutionId) {
-		return MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)).withSnapshots(this.snapshots.of(solutionId));
+		return MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock)).withSnapshots(this.snapshots.of(solutionId));
 	}
 
 	/** The checks of an entity write (design D2 of us-040-entity-deltas); the values after defaults. */
@@ -444,7 +461,7 @@ public class SolutionDeltas {
 			errors.add(new Issue("metatypeId", "REQUIRED", "The metatype is required."));
 			EntityValidator.Checked named = EntityValidator.check(
 					new EntityInput(input.name(), null, null, input.description(), null, null, null, List.of()),
-					MetatypeRules.load(this.jdbc, LocalDate.now(this.clock)), null, Map.of(), this.store::isActive);
+					MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock)), null, Map.of(), this.store::isActive);
 			named.errors().stream().filter((issue) -> !"metatypeId".equals(issue.field())).forEach(errors::add);
 			throw new InvalidSolutionException(errors);
 		}
@@ -485,10 +502,7 @@ public class SolutionDeltas {
 	}
 
 	private boolean inBaseline(int entityId) {
-		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM entities e JOIN metatypes m ON m.id = e.metatype_id
-				               WHERE e.id = ? AND e.deleted_at IS NULL AND NOT m.is_connection AND m.id <> ?)""",
-				Boolean.class, entityId, BuiltInMetatypes.STRUCTURING_AID));
+		return this.store.isBaselineElement(entityId);
 	}
 
 	/**
@@ -555,45 +569,29 @@ public class SolutionDeltas {
 		}
 	}
 
-	private void insertValue(UUID deltaId, String systemField, UUID definition, TypedValue before, TypedValue after) {
-		this.jdbc.update("""
-				INSERT INTO entity_delta_property_values (id, delta_id, system_field, property_def_id,
-				    before_value_text, before_value_int, before_value_bool, before_value_date, before_value_ref, before_value_enum,
-				    after_value_text, after_value_int, after_value_bool, after_value_date, after_value_ref, after_value_enum)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", UUID.randomUUID(), deltaId, systemField,
-				definition, text(before), integer(before), bool(before), date(before), reference(before),
-				enumValue(before), text(after), integer(after), bool(after), date(after), reference(after),
-				enumValue(after));
-	}
-
 	/** The delta with {@code deltaId}, if it belongs to the solution. */
 	private List<Delta> read(UUID solutionId, UUID deltaId, PropertyAccess.Snapshot access) {
-		return read(solutionId, " AND d.id = ?", List.of(deltaId), "", access);
+		return read(solutionId, deltaId, null, 0, 0, access);
 	}
 
 	/**
-	 * The deltas of the solution matching {@code where}, in the order of the list (design D5, D4 of
-	 * us-041, D0 of us-043), with their values, changes and conflicts (D1 of us-044).
+	 * The deltas of the solution in the order of the list (design D5, D4 of us-041, D0 of us-043):
+	 * one delta if {@code deltaId} is set, else a page after the keyset {@code after} or at the
+	 * offset; with their values, changes and conflicts (D1 of us-044).
 	 */
-	private List<Delta> read(UUID solutionId, String where, List<Object> whereArguments, String limit,
+	private List<Delta> read(UUID solutionId, UUID deltaId, List<Object> after, int limit, long offset,
 			PropertyAccess.Snapshot access) {
-		List<Object> arguments = new ArrayList<>(List.of(solutionId));
-		arguments.addAll(whereArguments);
-		List<Delta> deltas = this.jdbc.query("""
-				SELECT d.id, d.delta_type, d.entity_id, coalesce(d.name, e.name), m.id, m.name, d.description, d.created_at,
-				       d.updated_at
-				FROM entity_deltas d
-				LEFT JOIN entities e ON e.id = d.entity_id
-				JOIN metatypes m ON m.id = coalesce(d.metatype_id, e.metatype_id)
-				WHERE d.solution_id = ?""" + where + " ORDER BY " + RANK + ", " + SORT_NAME + ", d.id::text" + limit,
-				SolutionDeltas::delta, arguments.toArray());
+		List<Delta> deltas = this.deltaStore.page(solutionId, deltaId, after, limit, offset)
+			.stream()
+			.map(SolutionDeltas::delta)
+			.toList();
 		if (deltas.isEmpty()) {
 			return deltas;
 		}
 		Map<Integer, List<SolutionConflicts.Conflict>> conflicts = this.conflicts.of(solutionId,
 				deltas.stream().map(Delta::entityId).filter(Objects::nonNull).toList());
 		boolean onlyRetiring = deltas.stream().allMatch((delta) -> delta.type() == Type.RETIRING);
-		UUID[] ids = deltas.stream().map(Delta::id).toArray(UUID[]::new);
+		List<UUID> ids = deltas.stream().map(Delta::id).toList();
 		Map<UUID, List<Value>> values = onlyRetiring ? Map.of() : values(ids, access);
 		Map<UUID, List<Change>> changes = onlyRetiring ? Map.of() : changes(ids, access);
 		return deltas.stream()
@@ -605,119 +603,45 @@ public class SolutionDeltas {
 			.toList();
 	}
 
-	private Map<UUID, List<Value>> values(UUID[] ids, PropertyAccess.Snapshot access) {
+	private Map<UUID, List<Value>> values(List<UUID> ids, PropertyAccess.Snapshot access) {
 		Map<UUID, List<Value>> values = new HashMap<>();
-		this.jdbc.query("""
-				SELECT v.delta_id, p.id, p.name, p.data_type, v.after_value_text, v.after_value_int, v.after_value_bool,
-				       v.after_value_date, v.after_value_ref, v.after_value_enum, r.name, rm.abbreviation
-				FROM entity_delta_property_values v
-				JOIN entity_deltas d ON d.id = v.delta_id
-				JOIN property_definitions p ON p.id = v.property_def_id
-				LEFT JOIN entities r ON r.id = v.after_value_ref
-				LEFT JOIN metatypes rm ON rm.id = r.metatype_id
-				WHERE d.delta_type = 'new' AND d.id = ANY(?) ORDER BY lower(p.name), p.id""",
-				(ResultSet rs) -> {
-					UUID property = rs.getObject(2, UUID.class);
-					Value value;
-					// a delta new has no entity yet: connection-scoped only through the override (#256)
-					if (!access.readableWithoutEntity(property)) {
-						value = new Value(property, rs.getString(3), rs.getString(4), true, null, null, null, null, null,
-								null);
-					}
-					else {
-						Typed typed = typed(rs, 5, 11);
-						value = new Value(property, rs.getString(3), rs.getString(4), false, typed.text(),
-								typed.integer(), typed.bool(), typed.date(), typed.enumValue(), typed.reference());
-					}
-					values.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>()).add(value);
-				}, (Object) ids);
+		this.deltaValues.newValues(ids).forEach((deltaId, stored) -> {
+			List<Value> shown = new ArrayList<>();
+			for (PropertyValueStore.NamedValue named : stored) {
+				Value value = Value.of(named);
+				// a delta new has no entity yet: connection-scoped only through the override (#256)
+				shown.add(access.readableWithoutEntity(named.propertyDefId()) ? value : value.redact());
+			}
+			values.put(deltaId, shown);
+		});
 		return values;
 	}
 
 	/** The changes of the deltas {@code modified}: name, description, then properties by name. */
-	private Map<UUID, List<Change>> changes(UUID[] ids, PropertyAccess.Snapshot access) {
+	private Map<UUID, List<Change>> changes(List<UUID> ids, PropertyAccess.Snapshot access) {
 		Map<UUID, List<Change>> changes = new HashMap<>();
-		this.jdbc.query("""
-				SELECT v.delta_id, d.entity_id, v.system_field, p.id, p.name, p.data_type,
-				       v.before_value_text, v.before_value_int, v.before_value_bool, v.before_value_date, v.before_value_ref,
-				       v.before_value_enum, br.name, brm.abbreviation,
-				       v.after_value_text, v.after_value_int, v.after_value_bool, v.after_value_date, v.after_value_ref,
-				       v.after_value_enum, ar.name, arm.abbreviation
-				FROM entity_delta_property_values v
-				JOIN entity_deltas d ON d.id = v.delta_id
-				LEFT JOIN property_definitions p ON p.id = v.property_def_id
-				LEFT JOIN entities br ON br.id = v.before_value_ref
-				LEFT JOIN metatypes brm ON brm.id = br.metatype_id
-				LEFT JOIN entities ar ON ar.id = v.after_value_ref
-				LEFT JOIN metatypes arm ON arm.id = ar.metatype_id
-				WHERE d.delta_type = 'modified' AND d.id = ANY(?)"""
-				+ " ORDER BY v.system_field IS NULL, v.system_field = 'description', lower(p.name), p.id",
-				(ResultSet rs) -> {
-					String systemField = rs.getString(3);
-					Change change;
-					if (systemField != null) {
-						change = new Change(systemField, null, null, null, false, typed(rs, 7, 13), typed(rs, 15, 21));
-					}
-					else {
-						UUID property = rs.getObject(4, UUID.class);
-						boolean readable = access.readableFor(property, rs.getInt(2));
-						change = new Change("property", property, rs.getString(5), rs.getString(6), !readable,
-								readable ? typed(rs, 7, 13) : null, readable ? typed(rs, 15, 21) : null);
-					}
-					changes.computeIfAbsent(rs.getObject(1, UUID.class), (k) -> new ArrayList<>()).add(change);
-				}, (Object) ids);
+		this.deltaValues.changes(ids).forEach((deltaId, stored) -> {
+			List<Change> shown = new ArrayList<>();
+			for (DeltaValueStore.ChangeRow row : stored) {
+				if (row.systemField() != null) {
+					shown.add(new Change(row.systemField(), null, null, null, false, Typed.of(row.before()),
+							Typed.of(row.after())));
+				}
+				else {
+					boolean readable = access.readableFor(row.propertyDefId(), row.entityId());
+					shown.add(new Change("property", row.propertyDefId(), row.propertyName(), row.dataType(), !readable,
+							readable ? Typed.of(row.before()) : null, readable ? Typed.of(row.after()) : null));
+				}
+			}
+			changes.put(deltaId, shown);
+		});
 		return changes;
 	}
 
-	/** The typed value in the six columns from {@code first}, or {@code null} for no value. */
-	private static TypedValue typed(ResultSet rs, int first) throws SQLException {
-		java.sql.Date date = rs.getDate(first + 3);
-		TypedValue value = new TypedValue(rs.getString(first), rs.getObject(first + 1, Long.class),
-				rs.getObject(first + 2, Boolean.class), (date != null) ? date.toLocalDate() : null,
-				rs.getObject(first + 4, Integer.class), rs.getString(first + 5));
-		return (value.asText() != null) ? value : null;
-	}
-
-	/** The app value in the six columns from {@code first}, with the reference target from {@code ref}. */
-	private static Typed typed(ResultSet rs, int first, int ref) throws SQLException {
-		TypedValue value = typed(rs, first);
-		if (value == null) {
-			return null;
-		}
-		Reference reference = (value.reference() != null)
-				? new Reference(value.reference(), rs.getString(ref), rs.getString(ref + 1)) : null;
-		return new Typed(value.text(), value.integer(), value.bool(), value.date(), value.enumValue(), reference);
-	}
-
-	private static String text(TypedValue value) {
-		return (value != null) ? value.text() : null;
-	}
-
-	private static Long integer(TypedValue value) {
-		return (value != null) ? value.integer() : null;
-	}
-
-	private static Boolean bool(TypedValue value) {
-		return (value != null) ? value.bool() : null;
-	}
-
-	private static java.sql.Date date(TypedValue value) {
-		return (value != null && value.date() != null) ? java.sql.Date.valueOf(value.date()) : null;
-	}
-
-	private static Integer reference(TypedValue value) {
-		return (value != null) ? value.reference() : null;
-	}
-
-	private static String enumValue(TypedValue value) {
-		return (value != null) ? value.enumValue() : null;
-	}
-
-	private static Delta delta(ResultSet rs, int row) throws SQLException {
-		java.sql.Timestamp updated = rs.getTimestamp(9);
-		return new Delta(rs.getObject(1, UUID.class), Type.of(rs.getString(2)), rs.getObject(3, Integer.class),
-				rs.getString(4), rs.getObject(5, UUID.class), rs.getString(6), rs.getString(7), List.of(), List.of(),
-				List.of(), rs.getTimestamp(8).toInstant(), (updated != null) ? updated.toInstant() : null);
+	private static Delta delta(DeltaStore.DeltaRow row) {
+		return new Delta(row.id(), Type.of(row.type()), row.entityId(), row.name(), row.metatypeId(),
+				row.metatypeName(), row.description(), List.of(), List.of(), List.of(), row.createdAt(),
+				row.updatedAt());
 	}
 
 	/**

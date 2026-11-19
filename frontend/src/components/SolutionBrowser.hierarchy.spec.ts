@@ -1,6 +1,6 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '../api/session'
 import { clearBrowser } from '../navigation/store'
 import { session } from '../session/store'
@@ -71,6 +71,8 @@ const rootRow = () => node('current-state:components').querySelector<HTMLElement
 async function openMenu(id: number) {
   entity(id)!.querySelector<HTMLElement>('[data-testid="browser-item-actions"]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
   await flushPromises()
+  // the menu opens asynchronously; under load one flush is not always enough
+  await vi.waitFor(() => expect(document.querySelectorAll('[role="menuitem"]').length).toBeGreaterThan(0))
   return [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
 }
 
@@ -150,13 +152,15 @@ describe('SolutionBrowser hierarchy', () => {
       expect((await openMenu(AID)).map((entry) => entry.textContent?.trim())).toEqual(['Move to…', 'New structuring aid'])
     })
 
-    it('offers "Delete" on a structuring aid with entity:delete, but not on another component', async () => {
+    // two tests, one menu each: closing one menu and opening the next raced under load
+    it('offers "Delete" on a structuring aid with entity:delete', async () => {
+      await browser(ME_HIERARCHY_MANAGER)
+      expect((await openMenu(AID)).map((entry) => entry.textContent?.trim())).toContain('Delete')
+    })
+
+    it('does not offer "Delete" on another component with entity:delete', async () => {
       await browser(ME_HIERARCHY_MANAGER)
       expect((await openMenu(MODULE)).map((entry) => entry.textContent?.trim())).toEqual(['Move to…', 'New structuring aid'])
-      document.body.click()
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-      await flushPromises()
-      expect((await openMenu(AID)).map((entry) => entry.textContent?.trim())).toContain('Delete')
     })
   })
 
