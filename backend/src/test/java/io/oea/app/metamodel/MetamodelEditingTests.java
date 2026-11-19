@@ -89,7 +89,7 @@ class MetamodelEditingTests {
 		this.admin = principals.personWithIdpRole("metamodel-admin");
 		this.architect = principals.personWithIdpRole("enterprise-architect");
 		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
-			assertThat(call(HttpMethod.POST, "/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", null,
+			assertThat(call(HttpMethod.POST, "/metamodel/starter-packages/oea-starter-togaf-classic/import", null,
 					this.admin)).hasStatus(HttpStatus.OK);
 		}
 		this.component = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'Application Component'",
@@ -666,7 +666,7 @@ class MetamodelEditingTests {
 		String packageId = "bases-" + UUID.randomUUID().toString().substring(0, 8);
 		ObjectNode unknown = TestPackages.pkg(packageId, 1);
 		((ObjectNode) unknown.withArray("metatypes").get(0)).put("baseMetatypeId", this.component.toString());
-		MvcTestResult imported = call(HttpMethod.POST, "/admin/metamodel/import", unknown, this.admin);
+		MvcTestResult imported = call(HttpMethod.POST, "/metamodel/import", unknown, this.admin);
 		assertThat(imported).hasStatus(HttpStatus.UNPROCESSABLE_CONTENT);
 		assertThat(body(imported).path("pointer").asString()).isEqualTo("/metatypes/0/baseMetatypeId");
 		UUID builtIn = this.jdbc.queryForObject("""
@@ -798,7 +798,7 @@ class MetamodelEditingTests {
 	}
 
 	private void importPackage(ObjectNode pkg) {
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/import", pkg, this.admin);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/import", pkg, this.admin);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 	}
 

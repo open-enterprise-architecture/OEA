@@ -126,7 +126,7 @@ The exported format is the same as the import format from REQ-033, so that expor
 
 ## Implementation Notes
 
-- Backend: `GET /admin/metamodel/export?format=yaml&includeBuiltins=true`
+- Backend: `GET /metamodel/export?format=yaml&includeBuiltins=true`
 - Streaming recommended for large configurations (> 100 EntityTypes)
 - Header comment: `# OEA Metamodel Export | instance: {id} | exported: {ISO8601} | oea-version: {version}`
 

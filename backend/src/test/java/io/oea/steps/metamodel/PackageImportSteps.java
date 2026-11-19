@@ -19,7 +19,7 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public class PackageImportSteps {
 
-	private static final String IMPORT = "/api/v1/admin/metamodel/import";
+	private static final String IMPORT = "/api/v1/metamodel/import";
 
 	private static MetamodelInstance shared;
 

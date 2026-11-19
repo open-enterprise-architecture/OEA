@@ -1,0 +1,9 @@
+# Redocly lint configuration (CI job openapi-lint runs `redocly lint api/openapi.yaml` from the repository root).
+# The recommended ruleset stays; every operation must carry a description (S17 change 8, API-8).
+# Suppressed problems are listed in .redocly.lint-ignore.yaml. Further conventions
+# (shared id parameter, string limits, envelope names) are checked by scripts/check_openapi_conventions.py.
+extends:
+  - recommended
+
+rules:
+  operation-description: error

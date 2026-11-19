@@ -110,7 +110,7 @@ class CatalogJoinsTests {
 				this.architect.sessionId());
 		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
 			TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
-			assertThat(call(HttpMethod.POST, "/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import",
+			assertThat(call(HttpMethod.POST, "/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import",
 					null, metamodelAdmin)).hasStatus(HttpStatus.OK);
 		}
 		this.application = metatype("Application", false);

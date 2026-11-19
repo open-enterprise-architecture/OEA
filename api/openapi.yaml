@@ -6026,6 +6026,7 @@ paths:
     get:
       operationId: getPlateau
       summary: Read a plateau (US-085, SCR-065)
+      description: 'Returns one plateau with its details. Requires one of the permissions plateau:write, plateau:go-live or solution:write. Answers 404 if the plateau does not exist.'
       tags: [Plateaus]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["plateau:write", "plateau:go-live", "solution:write"]}
       parameters:
@@ -6237,10 +6238,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
           description: The solution
@@ -6267,10 +6265,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - name: q
           in: query
           description: Part of the entity name, compared case-insensitively; blank means no search
@@ -6304,10 +6299,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - name: entityId
           in: path
           required: true
@@ -6336,10 +6328,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
           description: The preview
@@ -6375,10 +6364,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
           description: The solution went live
@@ -6411,10 +6397,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
           description: The open issues
@@ -6446,10 +6429,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["solution:write", "entity:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
         required: true
         content:
@@ -6483,10 +6463,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - name: deltaId
           in: path
           required: true
@@ -6529,10 +6506,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
         - $ref: '#/components/parameters/CursorParam'
@@ -6562,10 +6536,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
         - $ref: '#/components/parameters/CursorParam'
@@ -6596,10 +6567,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       requestBody:
         required: true
         content:
@@ -6648,10 +6616,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - name: deltaId
           in: path
           required: true
@@ -6695,10 +6660,7 @@ paths:
       tags: [Solutions]
       x-oea-authorization: {"access": "permission", "permissions": ["solution:write"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
         - name: deltaId
           in: path
           required: true
@@ -6786,10 +6748,7 @@ paths:
       tags: [Catalogs]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
           description: The catalog
@@ -7576,6 +7535,7 @@ paths:
     get:
       operationId: getDiagramView
       summary: Diagram editor data (SCR-021/022)
+      description: 'Returns the data of one diagram for the diagram editor. Not implemented yet. Requires entity:read.'
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       x-oea-status: planned
@@ -7604,6 +7564,7 @@ paths:
     get:
       operationId: getLineageView
       summary: Data lineage graph (SCR-023)
+      description: 'Returns the data lineage graph around one entity. Not implemented yet. Requires entity:read.'
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       x-oea-status: planned
@@ -8015,6 +7976,7 @@ paths:
     get:
       operationId: getRoadmapView
       summary: Plateau-Roadmap (SCR-025)
+      description: 'Returns the plateau roadmap for one view. Not implemented yet. Requires entity:read.'
       tags: [Views – Editors]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       x-oea-status: planned
@@ -8516,6 +8478,7 @@ paths:
     get:
       operationId: getMetatype
       summary: Metatype detail
+      description: 'Returns one metatype with its properties. Requires entity:read or metamodel:write. Answers 404 if the metatype does not exist.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
@@ -8606,6 +8569,7 @@ paths:
     get:
       operationId: listPropertyMappings
       summary: Property mappings of a metatype
+      description: 'Lists the property mappings of one metatype, optionally with their history. Requires entity:read or metamodel:write. Answers 404 if the metatype does not exist.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
@@ -8793,6 +8757,7 @@ paths:
     get:
       operationId: getReimportPolicy
       summary: Global re-import setting
+      description: 'Returns the instance-wide setting that decides how a re-import treats entities changed in the application. Requires metamodel:write.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       responses:
@@ -9005,6 +8970,7 @@ paths:
     get:
       operationId: listPropertyCategories
       summary: List property categories
+      description: 'Lists all property categories. Requires entity:read or metamodel:write.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       responses:
@@ -9021,6 +8987,7 @@ paths:
     post:
       operationId: createPropertyCategory
       summary: Create property category
+      description: 'Creates a property category. Requires metamodel:write. Answers 409 if the name is already used and 400 if the request is invalid.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       requestBody:
@@ -9046,6 +9013,7 @@ paths:
     put:
       operationId: updatePropertyCategory
       summary: Update property category
+      description: 'Updates one property category. Requires metamodel:write. Answers 404 if the category does not exist and 409 if the new name is already used.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
@@ -9080,6 +9048,7 @@ paths:
     delete:
       operationId: deletePropertyCategory
       summary: Delete property category
+      description: 'Deletes one property category. Requires metamodel:write. Answers 404 if the category does not exist and 409 if property definitions still use it.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
@@ -9100,6 +9069,7 @@ paths:
     get:
       operationId: listPropertyDefinitions
       summary: List property definitions
+      description: 'Lists all property definitions. Requires entity:read or metamodel:write.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
@@ -9213,6 +9183,7 @@ paths:
     get:
       operationId: listEnumValues
       summary: Enum values of a property definition
+      description: 'Lists the values of one enumeration property definition. Requires entity:read or metamodel:write. Answers 404 if the property definition does not exist.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       parameters:
@@ -9233,6 +9204,7 @@ paths:
     post:
       operationId: createEnumValue
       summary: Create enum value
+      description: 'Adds a value to one enumeration property definition. Requires metamodel:write. Answers 404 if the property definition does not exist and 409 if the value already exists.'
       tags: [Metamodel]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
@@ -9404,6 +9376,7 @@ paths:
     get:
       operationId: getViewpoint
       summary: Viewpoint detail (US-090, SCR-031)
+      description: 'Returns one viewpoint with its metatype and relation assignments. Requires entity:read or viewpoint:manage. Answers 404 if the viewpoint does not exist.'
       tags: [Viewpoints]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "viewpoint:manage"]}
       parameters:
@@ -9601,6 +9574,7 @@ paths:
     get:
       operationId: listTRMEntries
       summary: Technology Reference Model (SCR-033)
+      description: 'Lists the entries of the Technology Reference Model. Not implemented yet. Requires entity:read.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       x-oea-status: planned
@@ -9632,6 +9606,7 @@ paths:
     post:
       operationId: createTRMEntry
       summary: Create TRM entry (SCR-033)
+      description: 'Creates an entry of the Technology Reference Model. Not implemented yet. Requires entity:write.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       x-oea-status: planned
@@ -9657,6 +9632,7 @@ paths:
     put:
       operationId: updateTRMEntry
       summary: Update TRM entry (SCR-033)
+      description: 'Updates one entry of the Technology Reference Model. Not implemented yet. Requires entity:write.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       x-oea-status: planned
@@ -9686,6 +9662,7 @@ paths:
     delete:
       operationId: deleteTRMEntry
       summary: Delete TRM entry (SCR-033)
+      description: 'Deletes one entry of the Technology Reference Model. Not implemented yet. Requires entity:write.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       x-oea-status: planned
@@ -9704,6 +9681,7 @@ paths:
     get:
       operationId: getContinuumConfig
       summary: Continuum configuration (SCR-034)
+      description: 'Returns the configuration of the Architecture Continuum. Not implemented yet. Requires entity:read or metamodel:write.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
       x-oea-status: planned
@@ -9730,6 +9708,7 @@ paths:
     put:
       operationId: updateContinuumConfig
       summary: Update continuum configuration (SCR-034)
+      description: 'Replaces the configuration of the Architecture Continuum. Not implemented yet. Requires metamodel:write.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       x-oea-status: planned
@@ -9763,6 +9742,7 @@ paths:
     post:
       operationId: importContinuumPackage
       summary: Import continuum package (SCR-035)
+      description: 'Imports a continuum package. Not implemented yet. Requires metamodel:write.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       x-oea-status: planned
@@ -9830,6 +9810,7 @@ paths:
     get:
       operationId: listAuthProviders
       summary: List auth providers (SCR-037)
+      description: 'Lists the configured authentication providers. Secrets are never returned. Requires auth-config:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       responses:
@@ -9846,6 +9827,7 @@ paths:
     post:
       operationId: createAuthProvider
       summary: Create auth provider (SCR-037)
+      description: 'Creates an authentication provider. Requires auth-config:manage. Answers 400 or 422 if the request is invalid.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       requestBody:
@@ -9870,6 +9852,7 @@ paths:
     get:
       operationId: getAuthProvider
       summary: Auth provider detail (SCR-037)
+      description: 'Returns one authentication provider. Secrets are never returned. Requires auth-config:manage. Answers 404 if the provider does not exist.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       parameters:
@@ -9892,6 +9875,7 @@ paths:
     put:
       operationId: updateAuthProvider
       summary: Update auth provider (SCR-037)
+      description: 'Updates one authentication provider. Requires auth-config:manage. Answers 404 if the provider does not exist and 400 if the request is invalid.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       parameters:
@@ -9917,6 +9901,7 @@ paths:
     delete:
       operationId: deleteAuthProvider
       summary: Delete auth provider (SCR-037)
+      description: 'Deletes one authentication provider. Not implemented yet. Requires auth-config:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       x-oea-status: planned
@@ -9939,6 +9924,7 @@ paths:
     post:
       operationId: testAuthProvider
       summary: Test auth provider connection (SCR-037)
+      description: 'Tests the connection to one authentication provider without changing it. Not implemented yet. Requires auth-config:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["auth-config:manage"]}
       x-oea-status: planned
@@ -10074,6 +10060,7 @@ paths:
     get:
       operationId: getServiceAccount
       summary: Service account detail
+      description: 'Returns one service account. Credentials are never returned. Requires service-account:manage. Answers 404 if the service account does not exist.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["service-account:manage"]}
       parameters:
@@ -10217,6 +10204,7 @@ paths:
     get:
       operationId: getSystemSettings
       summary: System settings (SCR-038)
+      description: 'Returns the system settings of the instance. Not implemented yet. Requires settings:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
       x-oea-status: planned
@@ -10232,6 +10220,7 @@ paths:
     put:
       operationId: updateSystemSettings
       summary: Update system settings (SCR-038)
+      description: 'Replaces the system settings of the instance. Not implemented yet. Requires settings:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
       x-oea-status: planned
@@ -10257,6 +10246,7 @@ paths:
     get:
       operationId: getSecondFactorPolicy
       summary: Enforcement of a second factor and exempt roles (US-031, US-028)
+      description: 'Returns whether a second factor is enforced and which roles are exempt. Requires settings:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
       responses:
@@ -10300,6 +10290,7 @@ paths:
     get:
       operationId: getPasswordPolicy
       summary: Password policy, operator floors and the switch of password login of persons (US-027)
+      description: 'Returns the password policy, the operator floors it must respect and the switch for password login of persons. Requires settings:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["settings:manage"]}
       responses:
@@ -10490,6 +10481,7 @@ paths:
     get:
       operationId: getAuthorizationRole
       summary: Authorization role detail
+      description: 'Returns one authorization role with its permissions. Requires role:assign, visibility:configure or service-account:manage. Answers 404 if the role does not exist.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "anyOfPermissions": ["role:assign", "visibility:configure", "service-account:manage"]}
       parameters:
@@ -10571,6 +10563,7 @@ paths:
     get:
       operationId: listPersons
       summary: List persons
+      description: 'Lists the persons of the instance. Requires person:manage.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
       responses:
@@ -10612,6 +10605,7 @@ paths:
     get:
       operationId: getPerson
       summary: Read a person
+      description: 'Returns one person. Requires person:manage. Answers 404 if the person does not exist.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
       parameters:
@@ -10815,6 +10809,7 @@ paths:
     get:
       operationId: listPersonIdentities
       summary: List the identity bindings of a person (REQ-166)
+      description: 'Lists the identity bindings (IdP subjects) of one person. Requires person:manage. Answers 404 if the person does not exist.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
       parameters:
@@ -10867,6 +10862,7 @@ paths:
     delete:
       operationId: deletePersonIdentity
       summary: Remove an identity binding
+      description: 'Removes one identity binding from a person. Requires person:manage. Answers 404 if the person or the binding does not exist.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["person:manage"]}
       parameters:
@@ -10887,6 +10883,7 @@ paths:
     get:
       operationId: listRoleAssignments
       summary: Local role assignments of a person or service account
+      description: 'Lists the local role assignments of one person or service account. Requires role:assign. Answers 404 if the principal does not exist.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       parameters:
@@ -11015,6 +11012,7 @@ paths:
     get:
       operationId: listApprovalRequests
       summary: Four-eyes requests for privileged changes (Q15, Q18)
+      description: 'Lists the open four-eyes requests for privileged changes. Not implemented yet. Requires role:assign.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       x-oea-status: planned
@@ -11120,6 +11118,7 @@ paths:
     get:
       operationId: listIdpGroupMappings
       summary: IdP group mappings (UC-23 A1)
+      description: 'Lists the mappings from IdP groups to roles, optionally for one authentication provider. Requires role:assign.'
       tags: [Access Control]
       x-oea-authorization: {"access": "permission", "permissions": ["role:assign"]}
       parameters:
@@ -11382,6 +11381,7 @@ paths:
     get:
       operationId: getPropertyVisibilityOverride
       summary: Property visibility override role list (REQ-128)
+      description: 'Returns the roles that may read properties regardless of the visibility restriction. The list is empty by default. Requires visibility:configure.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
       responses:
@@ -11500,6 +11500,7 @@ paths:
     get:
       operationId: getAuditEventChanges
       summary: Change detail of an audit event (SCR-027)
+      description: 'Returns the property changes recorded with one audit event. Not implemented yet. Requires audit:read.'
       tags: [Audit]
       x-oea-authorization: {"access": "permission", "permissions": ["audit:read"]}
       x-oea-status: planned
@@ -11661,6 +11662,7 @@ paths:
     get:
       operationId: getAnalyticsSchema
       summary: Reporting views and columns for the caller (ADR-034 §3.1)
+      description: 'Returns the reporting views and columns the caller may query. Not implemented yet. Requires analytics:query.'
       tags: [Analytics]
       x-oea-authorization: {"access": "permission", "permissions": ["analytics:query"]}
       x-oea-status: planned
@@ -11731,6 +11733,7 @@ paths:
     put:
       operationId: replaceEntity
       summary: Replace entity (full update)
+      description: 'Replaces all writable fields of one entity. Not implemented yet. Requires entity:write.'
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       x-oea-status: planned
@@ -11815,6 +11818,7 @@ paths:
     delete:
       operationId: deleteEntity
       summary: Soft-delete entity
+      description: 'Soft-deletes one entity. Not implemented yet. Requires entity:delete.'
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:delete"]}
       x-oea-status: planned
@@ -12225,7 +12229,7 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ── Metamodel package import/export (ADR-026) ───────────────────────────────
-  /admin/metamodel/export:
+  /metamodel/export:
     get:
       operationId: exportMetamodelPackage
       summary: Export metamodel package (ADR-026)
@@ -12257,7 +12261,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '501': { $ref: '#/components/responses/NotImplemented' }
 
-  /admin/metamodel/import:
+  /metamodel/import:
     post:
       operationId: importMetamodelPackage
       summary: Import metamodel package (ADR-026)
@@ -12312,7 +12316,7 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /admin/metamodel/starter-packages:
+  /metamodel/starter-packages:
     get:
       operationId: listStarterPackages
       summary: Starter packages shipped with OEA (ADR-005, REQ-112)
@@ -12331,7 +12335,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
-  /admin/metamodel/starter-packages/{packageId}/import:
+  /metamodel/starter-packages/{packageId}/import:
     post:
       operationId: importStarterPackage
       summary: Import a shipped starter package (ADR-005, REQ-112)
@@ -12398,6 +12402,7 @@ paths:
     put:
       operationId: updateShapePalette
       summary: Update shape palette
+      description: 'Replaces the shape palette of one viewpoint. Not implemented yet. Requires viewpoint:manage.'
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["viewpoint:manage"]}
       x-oea-status: planned

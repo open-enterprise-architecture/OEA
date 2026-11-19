@@ -385,7 +385,7 @@ public class EntityHistorySteps {
 
 	@When("the metamodel administrator imports the starter package again")
 	public void reimport() throws Exception {
-		this.response = instance().post("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", "",
+		this.response = instance().post("/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import", "",
 				instance().metamodelAdmin(), Map.of());
 		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(200);
 	}

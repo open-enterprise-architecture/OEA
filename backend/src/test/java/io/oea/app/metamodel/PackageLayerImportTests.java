@@ -316,7 +316,7 @@ class PackageLayerImportTests {
 
 	@Test
 	void starterPackageBringsFourLayers() {
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/starter-packages/" + STARTER + "/import", null,
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/starter-packages/" + STARTER + "/import", null,
 				this.admin);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 		assertThat(body(result).path("layersCreated").asInt()).isEqualTo(4);
@@ -339,7 +339,7 @@ class PackageLayerImportTests {
 			assertThat(german.valueStream().map(JsonNode::asString)).contains(name);
 		}
 		// importing again changes no layer
-		JsonNode again = body(call(HttpMethod.POST, "/admin/metamodel/starter-packages/" + STARTER + "/import", null,
+		JsonNode again = body(call(HttpMethod.POST, "/metamodel/starter-packages/" + STARTER + "/import", null,
 				this.admin));
 		assertThat(again.path("layersCreated").asInt()).isZero();
 		assertThat(again.path("layersUpdated").asInt()).isZero();
@@ -351,7 +351,7 @@ class PackageLayerImportTests {
 		assertThat(call(HttpMethod.POST, "/metamodel/architecture-layers",
 				JsonMapper.shared().createObjectNode().put("name", "Business"), this.admin)).hasStatus(HttpStatus.CREATED);
 		int metatypes = count("SELECT count(*) FROM metatypes WHERE source_package_id = '" + STARTER + "'");
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/starter-packages/" + STARTER + "/import", null,
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/starter-packages/" + STARTER + "/import", null,
 				this.admin);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.CONFLICT);
 		assertThat(body(result).path("type").asString()).isEqualTo("urn:oea:problem:package-conflict");
@@ -364,12 +364,12 @@ class PackageLayerImportTests {
 
 	@Test
 	void starterPackageKeepsAnOrganizationLayerOnAReimport() {
-		assertThat(call(HttpMethod.POST, "/admin/metamodel/starter-packages/" + STARTER + "/import", null, this.admin))
+		assertThat(call(HttpMethod.POST, "/metamodel/starter-packages/" + STARTER + "/import", null, this.admin))
 			.hasStatus(HttpStatus.OK);
 		assertThat(call(HttpMethod.POST, "/metamodel/architecture-layers",
 				JsonMapper.shared().createObjectNode().put("name", "Strategy"), this.admin)).hasStatus(HttpStatus.CREATED);
 		JsonNode strategy = find(body(get("/metamodel/architecture-layers", this.viewer)), "Strategy");
-		assertThat(call(HttpMethod.POST, "/admin/metamodel/starter-packages/" + STARTER + "/import", null, this.admin))
+		assertThat(call(HttpMethod.POST, "/metamodel/starter-packages/" + STARTER + "/import", null, this.admin))
 			.hasStatus(HttpStatus.OK);
 		JsonNode after = find(body(get("/metamodel/architecture-layers", this.viewer)), "Strategy");
 		assertThat(after.path("id")).isEqualTo(strategy.path("id"));
@@ -421,7 +421,7 @@ class PackageLayerImportTests {
 	}
 
 	private MvcTestResult post(ObjectNode pkg) {
-		return call(HttpMethod.POST, "/admin/metamodel/import", pkg, this.admin);
+		return call(HttpMethod.POST, "/metamodel/import", pkg, this.admin);
 	}
 
 	private MvcTestResult get(String path, TestSession session) {

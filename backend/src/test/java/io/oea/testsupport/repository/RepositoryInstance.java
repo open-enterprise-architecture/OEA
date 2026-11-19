@@ -57,7 +57,7 @@ public final class RepositoryInstance implements AutoCloseable {
 				session(instance, instance.login("dev-architect")), session(instance, instance.login("dev-viewer")),
 				metamodelAdmin);
 		HttpResponse<String> imported = repository.post(
-				"/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", "", metamodelAdmin, Map.of());
+				"/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import", "", metamodelAdmin, Map.of());
 		if (imported.statusCode() != 200) {
 			throw new IllegalStateException("starter import failed: " + imported.body());
 		}

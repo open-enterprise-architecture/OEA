@@ -569,7 +569,7 @@ class ArchitectureLayersTests {
 				.put("sortOrder", i);
 		}
 		((ObjectNode) pkg.path("metatypes").get(0)).put("architectureLayerId", TestPackages.uuid(packageId, "layer0"));
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/import", pkg, this.admin);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/import", pkg, this.admin);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 		assertThat(body(result).path("layersCreated").asInt()).isEqualTo(layerNames.length);
 	}

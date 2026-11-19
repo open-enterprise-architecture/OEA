@@ -274,7 +274,7 @@ class MetamodelVersionsTests {
 	}
 
 	private void importPackage(ObjectNode pkg) {
-		MvcTestResult result = call(HttpMethod.POST, "/admin/metamodel/import", pkg, null);
+		MvcTestResult result = call(HttpMethod.POST, "/metamodel/import", pkg, null);
 		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
 	}
 

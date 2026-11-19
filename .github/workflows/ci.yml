@@ -159,6 +159,12 @@ jobs:
         run: python3 scripts/check_openapi_authorization.py
       - name: Test the authorization check
         run: python3 scripts/test_check_openapi_authorization.py
+      - name: Bundle the contract with its references
+        run: redocly bundle api/openapi.yaml --ext json -o "$RUNNER_TEMP/openapi.bundle.json"
+      - name: Check the contract conventions (shared id parameter, string limits, envelope names)
+        run: python3 scripts/check_openapi_conventions.py "$RUNNER_TEMP/openapi.bundle.json"
+      - name: Test the convention check
+        run: python3 scripts/test_check_openapi_conventions.py
 
   # ── 4. Markdown lint (informational until baseline is cleaned up) ─────────────────────
   markdown-lint:

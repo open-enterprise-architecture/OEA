@@ -64,9 +64,9 @@ export async function fetchPropertyDefinitions(fetchFn: typeof fetch = fetch): P
   return (await response.json()) as PropertyDefinitionDetail[]
 }
 
-/** GET /admin/metamodel/starter-packages: the shipped packages with summary (ADR-005, REQ-112). */
+/** GET /metamodel/starter-packages: the shipped packages with summary (ADR-005, REQ-112). */
 export async function fetchStarterPackages(fetchFn: typeof fetch = fetch): Promise<StarterPackage[]> {
-  const response = await fetchFn('/api/v1/admin/metamodel/starter-packages', {
+  const response = await fetchFn('/api/v1/metamodel/starter-packages', {
     credentials: 'same-origin',
     headers: JSON_HEADERS,
   })
@@ -76,7 +76,7 @@ export async function fetchStarterPackages(fetchFn: typeof fetch = fetch): Promi
   return (await response.json()) as StarterPackage[]
 }
 
-/** POST /admin/metamodel/starter-packages/{packageId}/import with the CSRF token of the session. */
+/** POST /metamodel/starter-packages/{packageId}/import with the CSRF token of the session. */
 /** A conflicting element of a refused package import: its type and name, and why it conflicts. */
 export interface PackageConflict {
   element: string
@@ -88,7 +88,7 @@ export async function importStarterPackage(
   fetchFn: typeof fetch = fetch,
 ): Promise<{ ok: true; result: ImportResult } | { ok: false; rejection: Rejection; conflicts?: PackageConflict[] }> {
   const csrfToken = currentCsrfToken()
-  const response = await fetchFn(`/api/v1/admin/metamodel/starter-packages/${encodeURIComponent(packageId)}/import`, {
+  const response = await fetchFn(`/api/v1/metamodel/starter-packages/${encodeURIComponent(packageId)}/import`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { ...JSON_HEADERS, ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },

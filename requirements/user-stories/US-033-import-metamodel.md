@@ -42,7 +42,7 @@ As a Lead Enterprise Architect, I want to be able to import a prepared metamodel
 
 ## Technical Notes
 
-- Affected components: import UI component (file upload + diff preview), backend `POST /admin/metamodel/import` + `POST /admin/metamodel/import/confirm`
+- Affected components: import UI component (file upload + diff preview), backend `POST /metamodel/import` + `POST /metamodel/import/confirm`
 - Database changes: same as US-032 (same target table)
 - Batch UUID is generated at import confirm and used for all audit entries
 

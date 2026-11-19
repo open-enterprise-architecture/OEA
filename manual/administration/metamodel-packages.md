@@ -22,14 +22,14 @@ While the instance has no entity type, the start page shows *Import starter conf
 Through the API:
 
 ```bash
-curl "${auth[@]}" "$OEA/admin/metamodel/starter-packages"                          # list with summary
-curl "${auth[@]}" -X POST "$OEA/admin/metamodel/starter-packages/oea-starter-togaf-classic/import"
+curl "${auth[@]}" "$OEA/metamodel/starter-packages"                    # list with summary
+curl "${auth[@]}" -X POST "$OEA/metamodel/starter-packages/oea-starter-togaf-classic/import"
 curl "${auth[@]}" "$OEA/metamodel/metatypes"                                       # imported entity types
 ```
 
 ## Import your own package
 
-Packages of your own use the same JSON format (`MetamodelPackage`, with `packageId`, `packageVersion`, `publisher` and stable UUIDs per element). Import them with `POST /admin/metamodel/import`:
+Packages of your own use the same JSON format (`MetamodelPackage`, with `packageId`, `packageVersion`, `publisher` and stable UUIDs per element). Import them with `POST /metamodel/import`:
 
 - A package is imported completely or not at all. Imported content gets the scope `imported` and the package as origin.
 - Importing the same package again updates its own content. Content of another package or of your organization is never overwritten; the answer is `409` with the problem type `urn:oea:problem:package-conflict` and the list of conflicts in `conflictList`, and nothing of the package is stored.

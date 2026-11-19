@@ -50,8 +50,8 @@ The `editMode` is an operator setting (not changeable by architects) in the `Met
 
 **Processing with `editMode=import-only`**:
 
-- Incoming API requests to `POST/PUT/DELETE /admin/metamodel/entity-types`, `.../stereotypes`, `.../constraint-rules` → 403 Forbidden with message: "Metamodel editing via GUI is disabled (import-only mode). Changes only possible via import."
-- Import endpoint (`POST /admin/metamodel/import`) remains fully active
+- Incoming API requests to `POST/PUT/DELETE /metamodel/entity-types`, `.../stereotypes`, `.../constraint-rules` → 403 Forbidden with message: "Metamodel editing via GUI is disabled (import-only mode). Changes only possible via import."
+- Import endpoint (`POST /metamodel/import`) remains fully active
 - GUI: create/edit/delete actions for EntityTypes, Stereotypes, and Constraints are hidden or disabled; notice text "Metamodel in lock mode – changes only via import" appears
 - Read operations (GET) remain possible without restriction
 - `editMode` switch: exclusively via `PUT /admin/config/metamodel-edit-mode` (operator endpoint, separate RBAC level)

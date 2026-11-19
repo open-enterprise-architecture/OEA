@@ -91,7 +91,7 @@ class MetamodelConfigurationsTests {
 		this.architect = principals.personWithIdpRole("enterprise-architect");
 		this.viewer = principals.personWithIdpRole("viewer");
 		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
-			assertThat(call(HttpMethod.POST, "/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", null,
+			assertThat(call(HttpMethod.POST, "/metamodel/starter-packages/oea-starter-togaf-classic/import", null,
 					this.admin)).hasStatus(HttpStatus.OK);
 		}
 		this.component = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'Application Component'",
@@ -277,7 +277,7 @@ class MetamodelConfigurationsTests {
 		UUID extension = newExtension();
 		String packageId = "test-extension-" + UUID.randomUUID().toString().substring(0, 8);
 		created(createMetatype(packageId + " Type 1", extension, null, this.architect));
-		MvcTestResult imported = call(HttpMethod.POST, "/admin/metamodel/import", TestPackages.pkg(packageId, 1),
+		MvcTestResult imported = call(HttpMethod.POST, "/metamodel/import", TestPackages.pkg(packageId, 1),
 				this.admin);
 		assertThat(imported).as(() -> content(imported)).hasStatus(HttpStatus.CONFLICT);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = '" + packageId + "'")).isZero();
@@ -460,7 +460,7 @@ class MetamodelConfigurationsTests {
 	void whatStaysPossibleInALockedInstance() {
 		lockInstance();
 		String packageId = "test-locked-" + UUID.randomUUID().toString().substring(0, 8);
-		MvcTestResult imported = call(HttpMethod.POST, "/admin/metamodel/import", TestPackages.pkg(packageId, 1),
+		MvcTestResult imported = call(HttpMethod.POST, "/metamodel/import", TestPackages.pkg(packageId, 1),
 				this.admin);
 		assertThat(imported).as(() -> content(imported)).hasStatus(HttpStatus.OK);
 		assertThat(call(HttpMethod.PUT, "/metamodel/metatypes/" + this.component + "/reimport-policy",

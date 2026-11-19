@@ -44,14 +44,14 @@ public class StarterPackageSteps {
 
 	@When("the metamodel administrator lists the starter packages")
 	public void list() throws Exception {
-		this.response = shared.get("/api/v1/admin/metamodel/starter-packages", shared.metamodelAdmin());
+		this.response = shared.get("/api/v1/metamodel/starter-packages", shared.metamodelAdmin());
 		assertThat(this.response.statusCode()).isEqualTo(200);
 	}
 
 	@Given("the starter package {string} has been imported")
 	@When("the metamodel administrator imports the starter package {string}")
 	public void importStarter(String packageId) throws Exception {
-		this.response = shared.post("/api/v1/admin/metamodel/starter-packages/" + packageId + "/import", "",
+		this.response = shared.post("/api/v1/metamodel/starter-packages/" + packageId + "/import", "",
 				shared.metamodelAdmin());
 		if (this.response.statusCode() == 200) {
 			lastBatchId = body().path("batchId").asString();

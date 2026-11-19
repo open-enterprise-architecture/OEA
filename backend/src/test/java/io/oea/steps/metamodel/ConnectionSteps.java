@@ -147,7 +147,7 @@ public class ConnectionSteps {
 		link.put("isConnection", true).remove("propertyMappings");
 		link.putArray("connectionConstraints").addObject().put("direction", "source").putObject("allowedMetatype")
 			.put("id", this.importedSource).put("name", "source").put("abbreviation", "S");
-		ok(send("POST", "/api/v1/admin/metamodel/import", pkg, instance().metamodelAdmin()), 200);
+		ok(send("POST", "/api/v1/metamodel/import", pkg, instance().metamodelAdmin()), 200);
 	}
 
 	@Then("the imported metatype is a read-only connection metatype with that source")

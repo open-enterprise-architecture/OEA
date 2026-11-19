@@ -182,7 +182,7 @@ public class ParallelChangeSteps {
 	}
 
 	private void importPackage(String body) throws Exception {
-		HttpResponse<String> imported = instance().post("/api/v1/admin/metamodel/import", body,
+		HttpResponse<String> imported = instance().post("/api/v1/metamodel/import", body,
 				instance().metamodelAdmin(), Map.of());
 		assertThat(imported.statusCode()).as(imported.body()).isEqualTo(200);
 	}

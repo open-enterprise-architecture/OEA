@@ -22,14 +22,14 @@ Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person m
 Über die API:
 
 ```bash
-curl "${auth[@]}" "$OEA/admin/metamodel/starter-packages"                          # Liste mit Zusammenfassung
-curl "${auth[@]}" -X POST "$OEA/admin/metamodel/starter-packages/oea-starter-togaf-classic/import"
+curl "${auth[@]}" "$OEA/metamodel/starter-packages"                    # Liste mit Zusammenfassung
+curl "${auth[@]}" -X POST "$OEA/metamodel/starter-packages/oea-starter-togaf-classic/import"
 curl "${auth[@]}" "$OEA/metamodel/metatypes"                                       # importierte Entitätstypen
 ```
 
 ## Eigenes Paket importieren
 
-Eigene Pakete verwenden dasselbe JSON-Format (`MetamodelPackage`, mit `packageId`, `packageVersion`, `publisher` und stabilen UUIDs pro Element). Importiere sie mit `POST /admin/metamodel/import`:
+Eigene Pakete verwenden dasselbe JSON-Format (`MetamodelPackage`, mit `packageId`, `packageVersion`, `publisher` und stabilen UUIDs pro Element). Importiere sie mit `POST /metamodel/import`:
 
 - Ein Paket wird vollständig oder gar nicht importiert. Importierte Inhalte bekommen den Scope `imported` und das Paket als Herkunft.
 - Ein erneuter Import desselben Pakets aktualisiert dessen eigene Inhalte. Inhalte eines anderen Pakets oder deiner Organisation werden nie überschrieben; die Antwort ist `409` mit dem Problemtyp `urn:oea:problem:package-conflict` und der Liste der Konflikte in `conflictList`, und nichts vom Paket wird gespeichert.

@@ -153,7 +153,7 @@ class MetamodelChangesTests {
 	@Test
 	void anImportAsOneBatch() {
 		String packageId = "test-batch-" + suffix();
-		MvcTestResult imported = call(HttpMethod.POST, "/admin/metamodel/import", TestPackages.pkg(packageId, 5),
+		MvcTestResult imported = call(HttpMethod.POST, "/metamodel/import", TestPackages.pkg(packageId, 5),
 				this.kurt);
 		assertThat(imported).as(() -> content(imported)).hasStatus(HttpStatus.OK);
 		String batch = body(imported).path("batchId").asString();

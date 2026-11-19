@@ -24,6 +24,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -92,7 +94,7 @@ class RequestSizeLimitTests {
 		this.architect = this.principals.personWithIdpRole("enterprise-architect");
 		if (count("SELECT count(*) FROM metatypes WHERE name = 'Application Component'") == 0) {
 			TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
-			assertThat(post("/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", new byte[0],
+			assertThat(post("/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import", new byte[0],
 					metamodelAdmin)).hasStatus(HttpStatus.OK);
 		}
 	}
@@ -158,6 +160,33 @@ class RequestSizeLimitTests {
 		TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
 		assertTooLarge(post(RequestSizeConfiguration.IMPORT_PATH, new byte[65 * 1024], metamodelAdmin),
 				"package-too-large");
+	}
+
+	@Test
+	void packageAtTheLimitPassesTheSizeFilter() {
+		TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
+		MvcTestResult result = post(RequestSizeConfiguration.IMPORT_PATH, new byte[64 * 1024], metamodelAdmin);
+		// not a valid package, but the size filter lets it pass to the handler
+		assertThat(result.getResponse().getStatus()).isNotEqualTo(HttpStatus.CONTENT_TOO_LARGE.value());
+		assertThat(result.getResponse().getStatus()).isBetween(400, 499);
+	}
+
+	// s17-contract-cleanup (API-7): the package paths left /admin/metamodel without an alias
+
+	@ParameterizedTest
+	@CsvSource({ "GET,/api/v1/admin/metamodel/export", "POST,/api/v1/admin/metamodel/import",
+			"GET,/api/v1/admin/metamodel/starter-packages",
+			"POST,/api/v1/admin/metamodel/starter-packages/oea-starter-togaf-classic/import" })
+	void formerPackagePathsAreUnknown(String method, String path) {
+		TestSession metamodelAdmin = this.principals.personWithIdpRole("metamodel-admin");
+		int before = count("SELECT count(*) FROM metatypes");
+		MvcTestResult result = this.mvc.method(org.springframework.http.HttpMethod.valueOf(method))
+			.uri(path)
+			.cookie(new Cookie(SessionCookie.NAME, metamodelAdmin.token()))
+			.header(CsrfOriginFilter.HEADER, metamodelAdmin.csrfToken())
+			.exchange();
+		assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+		assertThat(count("SELECT count(*) FROM metatypes")).isEqualTo(before);
 	}
 
 	// s13-issue-fixes (#263 T-1): limits apply to the decoded path

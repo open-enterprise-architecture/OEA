@@ -76,7 +76,7 @@ class StarterPackagesTests {
 	@Test
 	@Order(1)
 	void packageListOfANewInstance() {
-		MvcTestResult result = get("/api/v1/admin/metamodel/starter-packages", principals().personWithIdpRole("metamodel-admin"));
+		MvcTestResult result = get("/api/v1/metamodel/starter-packages", principals().personWithIdpRole("metamodel-admin"));
 		assertThat(result).hasStatus(HttpStatus.OK);
 		JsonNode togaf = body(result).get(0);
 		assertThat(togaf.path("packageId").asString()).isEqualTo(TOGAF);
@@ -90,7 +90,7 @@ class StarterPackagesTests {
 	@Test
 	@Order(2)
 	void starterConfigurationImported() {
-		MvcTestResult result = post("/api/v1/admin/metamodel/starter-packages/" + TOGAF + "/import",
+		MvcTestResult result = post("/api/v1/metamodel/starter-packages/" + TOGAF + "/import",
 				principals().personWithIdpRole("metamodel-admin"));
 		assertThat(result).hasStatus(HttpStatus.OK);
 		JsonNode outcome = body(result);
@@ -107,7 +107,7 @@ class StarterPackagesTests {
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM audit.events WHERE event_type = "
 				+ "'metamodel.metatype-imported' AND details ->> 'batchId' = ?", Integer.class,
 				outcome.path("batchId").asString())).isEqualTo(8);
-		assertThat(body(get("/api/v1/admin/metamodel/starter-packages",
+		assertThat(body(get("/api/v1/metamodel/starter-packages",
 				principals().personWithIdpRole("metamodel-admin"))).get(0).path("imported").asBoolean()).isTrue();
 	}
 
@@ -140,7 +140,7 @@ class StarterPackagesTests {
 	@Order(4)
 	void readingWithoutPermissionAndUnknownPackage() {
 		assertThat(get("/api/v1/metamodel/metatypes", principals().personWithoutRole())).hasStatus(HttpStatus.FORBIDDEN);
-		assertThat(post("/api/v1/admin/metamodel/starter-packages/unknown-package/import",
+		assertThat(post("/api/v1/metamodel/starter-packages/unknown-package/import",
 				principals().personWithIdpRole("metamodel-admin"))).hasStatus(HttpStatus.NOT_FOUND);
 	}
 

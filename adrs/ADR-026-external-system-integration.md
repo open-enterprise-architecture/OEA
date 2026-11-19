@@ -156,12 +156,18 @@ So that external systems know the metamodel of an OEA instance without querying 
 piece by piece, there is a package endpoint:
 
 ```text
-GET  /api/v1/admin/metamodel/export   → JSON package: MetaTypes + PropertyDefs + Viewpoints + Shapes
-POST /api/v1/admin/metamodel/import   ← same format; strategy: merge | replace
+GET  /api/v1/metamodel/export   → JSON package: MetaTypes + PropertyDefs + Viewpoints + Shapes
+POST /api/v1/metamodel/import   ← same format; strategy: merge | replace
 ```
 
 This format is also the basis for exchangeable metamodel libraries
 (e.g. "ArchiMate 3.2 base metamodel").
+
+**Note 2026-11-19:** the package endpoints lived under `/api/v1/admin/metamodel/...` until the
+OpenSpec change `s17-contract-cleanup`. All metamodel paths now share the root `/metamodel`
+(review finding API-7): `GET /metamodel/export`, `POST /metamodel/import`,
+`GET /metamodel/starter-packages` and `POST /metamodel/starter-packages/{packageId}/import`.
+`operationId`, permission (`metamodel:write`) and behavior are unchanged; there is no alias for the old paths.
 
 ---
 

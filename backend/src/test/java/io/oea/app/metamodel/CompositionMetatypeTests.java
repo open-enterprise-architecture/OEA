@@ -275,7 +275,7 @@ class CompositionMetatypeTests {
 	@Test
 	void theStarterPackageBringsTheComposition() {
 		MvcTestResult imported = call(HttpMethod.POST,
-				"/admin/metamodel/starter-packages/oea-starter-togaf-classic/import", null, this.admin);
+				"/metamodel/starter-packages/oea-starter-togaf-classic/import", null, this.admin);
 		assertThat(imported).as(() -> content(imported)).hasStatus(HttpStatus.OK);
 
 		UUID composition = marked().get(0);
@@ -304,7 +304,7 @@ class CompositionMetatypeTests {
 
 	@Test
 	void importingTheStarterPackageAgainKeepsTheMark() {
-		String path = "/admin/metamodel/starter-packages/oea-starter-togaf-classic/import";
+		String path = "/metamodel/starter-packages/oea-starter-togaf-classic/import";
 		assertThat(call(HttpMethod.POST, path, null, this.admin)).hasStatus(HttpStatus.OK);
 		UUID composition = marked().get(0);
 
@@ -409,7 +409,7 @@ class CompositionMetatypeTests {
 	}
 
 	private MvcTestResult importPackage(ObjectNode pkg) {
-		return call(HttpMethod.POST, "/admin/metamodel/import", pkg, this.admin);
+		return call(HttpMethod.POST, "/metamodel/import", pkg, this.admin);
 	}
 
 	private UUID connection(String name, boolean composition) {
