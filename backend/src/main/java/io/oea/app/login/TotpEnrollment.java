@@ -5,6 +5,7 @@ import io.oea.app.security.RecentAuthentication;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
 import io.oea.core.domain.auth.LocalCredential;
 import io.oea.core.domain.auth.TotpCredential;
 import io.oea.core.repository.LocalCredentialRepository;
@@ -24,7 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.OptionalLong;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +46,7 @@ public class TotpEnrollment {
 
 	private final PersonRepository persons;
 
-	private final JdbcTemplate jdbc;
+	private final CredentialStore credentialStore;
 
 	private final SecretCipher cipher;
 
@@ -59,13 +59,13 @@ public class TotpEnrollment {
 	private final Clock clock;
 
 	public TotpEnrollment(LocalCredentialRepository credentials, TotpCredentialRepository totps,
-			SystemAdminAccountRepository accounts, PersonRepository persons, JdbcTemplate jdbc, SecretCipher cipher,
+			SystemAdminAccountRepository accounts, PersonRepository persons, CredentialStore credentialStore, SecretCipher cipher,
 			Sessions sessions, AuditWriter audit, RecentAuthentication recentAuthentication, Clock clock) {
 		this.credentials = credentials;
 		this.totps = totps;
 		this.accounts = accounts;
 		this.persons = persons;
-		this.jdbc = jdbc;
+		this.credentialStore = credentialStore;
 		this.cipher = cipher;
 		this.sessions = sessions;
 		this.audit = audit;
@@ -140,10 +140,7 @@ public class TotpEnrollment {
 		if (principal.type() == OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT) {
 			return this.accounts.findById(principal.systemAdminAccountId()).orElseThrow().getLoginName();
 		}
-		Boolean password = this.jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE person_id = ? AND type = 'password'
-				               AND status = 'active')""", Boolean.class, principal.personId());
-		if (!Boolean.TRUE.equals(password)) {
+		if (!this.credentialStore.hasActivePassword(principal.personId())) {
 			throw new PasswordChange.NoLocalPasswordException();
 		}
 		return this.persons.findById(principal.personId()).orElseThrow().getEmail();

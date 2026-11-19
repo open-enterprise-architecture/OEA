@@ -5,19 +5,18 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import java.sql.Array;
-import java.sql.Timestamp;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.IdentitySettingsStore;
+import io.oea.core.access.RoleStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SecondFactorPolicies {
 
-	private final JdbcTemplate jdbc;
+	private final IdentitySettingsStore settings;
+
+	private final CredentialStore credentials;
+
+	private final RoleStore roles;
 
 	private final SecondFactorProperties properties;
 
@@ -37,8 +40,11 @@ public class SecondFactorPolicies {
 
 	private final Clock clock;
 
-	public SecondFactorPolicies(JdbcTemplate jdbc, SecondFactorProperties properties, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+	public SecondFactorPolicies(IdentitySettingsStore settings, CredentialStore credentials, RoleStore roles,
+			SecondFactorProperties properties, AuditWriter audit, Clock clock) {
+		this.settings = settings;
+		this.credentials = credentials;
+		this.roles = roles;
 		this.properties = properties;
 		this.audit = audit;
 		this.clock = clock;
@@ -72,13 +78,7 @@ public class SecondFactorPolicies {
 			invalid.add("enforced");
 		}
 		if (!roles.isEmpty()) {
-			Integer allowed = this.jdbc.queryForObject("""
-					SELECT count(*) FROM authorization_roles r
-					WHERE r.id = ANY (?) AND NOT EXISTS (SELECT 1 FROM role_permissions rp
-					                                    JOIN permissions p ON p.id = rp.permission_id
-					                                    WHERE rp.role_id = r.id AND p.admin_class)""",
-					Integer.class, (Object) roles.toArray(String[]::new));
-			if (allowed == null || allowed != roles.size()) {
+			if (this.roles.countRolesWithoutAdminPermission(roles) != roles.size()) {
 				invalid.add("exemptRoles");
 			}
 		}
@@ -86,10 +86,7 @@ public class SecondFactorPolicies {
 			throw new InvalidAccessRequestException(invalid, "The second-factor policy is invalid: an operator floor, "
 					+ "an unknown role or a role with an administrative permission (" + String.join(", ", invalid) + ").");
 		}
-		int updated = this.jdbc.update("""
-				UPDATE system_settings SET second_factor_enforced = ?, second_factor_exempt_roles = ?, updated_at = ?,
-				       updated_by_person_id = ?, updated_by_admin_id = ?
-				WHERE id = 1""", enforced, roles.toArray(String[]::new), Timestamp.from(this.clock.instant()),
+		int updated = this.settings.updateSecondFactorSettings(enforced, roles, this.clock.instant(),
 				principal.personId(), principal.systemAdminAccountId());
 		if (updated != 1) {
 			throw new IllegalStateException("the instance has no settings yet");
@@ -117,11 +114,7 @@ public class SecondFactorPolicies {
 		if (!this.properties.enforced() && !stored.enforced()) {
 			return false;
 		}
-		Integer factors = this.jdbc.queryForObject("""
-				SELECT count(*) FROM local_credentials WHERE person_id = ? AND type IN ('totp', 'passkey')
-				  AND status = 'active' AND (?::uuid IS NULL OR id <> ?::uuid)""", Integer.class, personId,
-				ignoredCredential, ignoredCredential);
-		if (factors != null && factors > 0) {
+		if (this.credentials.countActiveSecondFactorsExcept(personId, ignoredCredential) > 0) {
 			return false;
 		}
 		return !exempt(personId, stored.exemptRoles(), this.clock.instant());
@@ -129,25 +122,17 @@ public class SecondFactorPolicies {
 
 	/** REQ-029: at least one role through a local role assignment, and every such role exempt. */
 	private boolean exempt(long personId, List<String> exemptRoles, Instant now) {
-		Set<String> roles = new LinkedHashSet<>(this.jdbc.queryForList("""
-				SELECT DISTINCT role_id FROM role_assignments
-				WHERE person_id = ? AND status = 'granted' AND valid_from <= ? AND (valid_to IS NULL OR valid_to > ?)""",
-				String.class, personId, Timestamp.from(now), Timestamp.from(now)));
-		return !roles.isEmpty() && exemptRoles.containsAll(roles);
+		Set<String> held = new LinkedHashSet<>(this.roles.grantedRoleIds(personId, now));
+		return !held.isEmpty() && exemptRoles.containsAll(held);
 	}
 
 	private record Stored(boolean enforced, List<String> exemptRoles) {
 	}
 
 	private Stored stored() {
-		List<Stored> rows = this.jdbc.query(
-				"SELECT second_factor_enforced, second_factor_exempt_roles FROM system_settings WHERE id = 1",
-				(rs, n) -> {
-					Array array = rs.getArray(2);
-					List<String> roles = (array != null) ? Arrays.asList((String[]) array.getArray()) : List.of();
-					return new Stored(rs.getBoolean(1), List.copyOf(roles));
-				});
-		return rows.isEmpty() ? new Stored(false, List.of()) : rows.getFirst();
+		return this.settings.secondFactorSettings()
+			.map((row) -> new Stored(row.enforced(), row.exemptRoles()))
+			.orElse(new Stored(false, List.of()));
 	}
 
 }

@@ -5,12 +5,14 @@ import io.oea.app.security.RecentAuthentication;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.PasskeyStore;
+import io.oea.core.access.PersonStore;
 import io.oea.core.domain.person.Person;
 import io.oea.core.repository.PersonRepository;
 import io.oea.infrastructure.webauthn.PasskeyRejectedException;
 import io.oea.infrastructure.webauthn.WebAuthnVerifier;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -19,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,11 @@ public class PasskeyRegistration {
 
 	private static final SecureRandom RANDOM = new SecureRandom();
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore personStore;
+
+	private final CredentialStore credentials;
+
+	private final PasskeyStore passkeyStore;
 
 	private final Passkeys passkeys;
 
@@ -49,9 +54,12 @@ public class PasskeyRegistration {
 
 	private final Clock clock;
 
-	public PasskeyRegistration(JdbcTemplate jdbc, Passkeys passkeys, WebAuthnVerifier verifier, PersonRepository persons,
+	public PasskeyRegistration(PersonStore personStore, CredentialStore credentials, PasskeyStore passkeyStore,
+			Passkeys passkeys, WebAuthnVerifier verifier, PersonRepository persons,
 			RecentAuthentication recentAuthentication, Sessions sessions, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.personStore = personStore;
+		this.credentials = credentials;
+		this.passkeyStore = passkeyStore;
 		this.passkeys = passkeys;
 		this.verifier = verifier;
 		this.persons = persons;
@@ -125,14 +133,8 @@ public class PasskeyRegistration {
 		String label = (challenge.label() != null) ? challenge.label()
 				: "Passkey (" + now.atOffset(ZoneOffset.UTC).toLocalDate() + ")";
 		UUID credentialId = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO local_credentials (id, person_id, type, status, created_at)
-				VALUES (?, ?, 'passkey', 'active', ?)""", credentialId, principal.personId(), Timestamp.from(now));
-		this.jdbc.update("""
-				INSERT INTO passkey_credentials (credential_id, webauthn_credential_id, attested_credential_data,
-				                                 sign_count, transports, backup_eligible, backed_up, label)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", credentialId, verified.credentialId(),
-				verified.attestedCredentialData(), verified.signCount(), verified.transports().toArray(String[]::new),
+		this.passkeyStore.insertPasskey(credentialId, principal.personId(), now, verified.credentialId(),
+				verified.attestedCredentialData(), verified.signCount(), verified.transports(),
 				verified.backupEligible(), verified.backedUp(), label);
 		this.sessions.confirmSecondFactor(principal.sessionId());
 		this.audit.append(new AuditEvent("auth.factor-added", AuditEvent.Category.SECURITY, AuditEvent.Severity.HIGH,
@@ -146,10 +148,7 @@ public class PasskeyRegistration {
 		if (principal.type() != OeaPrincipal.Type.PERSON) {
 			throw new PasswordChange.NoLocalPasswordException();
 		}
-		Boolean password = this.jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE person_id = ? AND type = 'password'
-				               AND status = 'active')""", Boolean.class, principal.personId());
-		if (!Boolean.TRUE.equals(password)) {
+		if (!this.credentials.hasActivePassword(principal.personId())) {
 			throw new PasswordChange.NoLocalPasswordException();
 		}
 		return principal.personId();
@@ -157,17 +156,14 @@ public class PasskeyRegistration {
 
 	/** The WebAuthn user handle of the person, created at the first registration (US-022). */
 	private byte[] userHandle(long personId) {
-		byte[] existing = this.jdbc.queryForObject("SELECT webauthn_user_handle FROM persons WHERE id = ?",
-				byte[].class, personId);
+		byte[] existing = this.personStore.webauthnUserHandle(personId);
 		if (existing != null) {
 			return existing;
 		}
 		byte[] handle = new byte[64];
 		RANDOM.nextBytes(handle);
-		this.jdbc.update("UPDATE persons SET webauthn_user_handle = ? WHERE id = ? AND webauthn_user_handle IS NULL",
-				handle, personId);
-		return this.jdbc.queryForObject("SELECT webauthn_user_handle FROM persons WHERE id = ?", byte[].class,
-				personId);
+		this.personStore.setWebauthnUserHandleIfAbsent(personId, handle);
+		return this.personStore.webauthnUserHandle(personId);
 	}
 
 	/** REQ-025 AC2: a failed confirmation, in its own transaction. */

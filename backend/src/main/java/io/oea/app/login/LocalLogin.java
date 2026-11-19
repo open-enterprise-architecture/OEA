@@ -5,6 +5,8 @@ import io.oea.app.security.Sessions;
 import io.oea.app.security.SetupPhase;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.LoginStateStore;
 import io.oea.core.domain.auth.LocalCredential;
 import io.oea.core.domain.auth.PasswordCredential;
 import io.oea.core.domain.auth.SystemAdminAccount;
@@ -21,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,7 +72,9 @@ public class LocalLogin {
 
 	private final AuditWriter audit;
 
-	private final JdbcTemplate jdbc;
+	private final CredentialStore credentialStore;
+
+	private final LoginStateStore loginStates;
 
 	private final Clock clock;
 
@@ -89,7 +91,7 @@ public class LocalLogin {
 	public LocalLogin(SystemAdminAccountRepository accounts, PasswordCredentialRepository passwords,
 			LocalCredentialRepository credentials, TotpCredentialRepository totps, PasswordHasher hasher,
 			SecretCipher cipher, LoginThrottle throttle, SetupPhase setupPhase, Sessions sessions, AuditWriter audit,
-			JdbcTemplate jdbc, Clock clock, PasswordPolicies policies, PersonSessions personSessions,
+			CredentialStore credentialStore, LoginStateStore loginStates, Clock clock, PasswordPolicies policies, PersonSessions personSessions,
 			Passkeys passkeys, LoginMetrics metrics) {
 		this.accounts = accounts;
 		this.passwords = passwords;
@@ -101,7 +103,8 @@ public class LocalLogin {
 		this.setupPhase = setupPhase;
 		this.sessions = sessions;
 		this.audit = audit;
-		this.jdbc = jdbc;
+		this.credentialStore = credentialStore;
+		this.loginStates = loginStates;
 		this.clock = clock;
 		this.dummyHash = hasher.hash("timing-equalizer-" + UUID.randomUUID());
 		this.policies = policies;
@@ -161,41 +164,26 @@ public class LocalLogin {
 	 */
 	private Sessions.NewSession loginPerson(String loginName, String password, Client client) {
 		Instant now = this.clock.instant();
-		record Candidate(long personId, String status, String personType, UUID credentialId, String hash, String origin,
-				Instant expiresAt, Instant setAt) {
-		}
 		boolean possible = this.policies.personPasswordLoginPossible();
-		List<Candidate> found = this.jdbc.query("""
-				SELECT p.id, p.status, p.person_type, c.id, pc.password_hash, pc.origin, pc.expires_at, c.created_at
-				FROM persons p
-				LEFT JOIN local_credentials c ON c.person_id = p.id AND c.type = 'password' AND c.status = 'active'
-				LEFT JOIN password_credentials pc ON pc.credential_id = c.id
-				WHERE lower(p.email) = lower(?)""", (rs, n) -> {
-			Timestamp expires = rs.getTimestamp(7);
-			Timestamp set = rs.getTimestamp(8);
-			return new Candidate(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getObject(4, UUID.class),
-					rs.getString(5), rs.getString(6), (expires != null) ? expires.toInstant() : null,
-					(set != null) ? set.toInstant() : null);
-		}, loginName.strip());
-		Optional<Candidate> candidate = found.stream()
+		List<CredentialStore.PersonLoginCandidate> found = this.credentialStore
+			.findPersonLoginCandidates(loginName.strip());
+		Optional<CredentialStore.PersonLoginCandidate> candidate = found.stream()
 			.filter((c) -> possible)
 			.filter((c) -> "human".equals(c.personType()))
 			.filter((c) -> "invited".equals(c.status()) || "active".equals(c.status()))
 			.filter((c) -> c.hash() != null)
 			.filter((c) -> c.expiresAt() == null || c.expiresAt().isAfter(now))
 			.findFirst();
-		String hash = candidate.map(Candidate::hash).orElse(this.dummyHash);
+		String hash = candidate.map(CredentialStore.PersonLoginCandidate::hash).orElse(this.dummyHash);
 		if (!verify(password, hash) || candidate.isEmpty()) {
 			fail(loginName, client);
 		}
 		this.throttle.recordSuccess(loginName);
-		Candidate person = candidate.get();
+		CredentialStore.PersonLoginCandidate person = candidate.get();
 		if (this.hasher.needsRehash(hash)) {
-			this.jdbc.update("UPDATE password_credentials SET password_hash = ? WHERE credential_id = ?",
-					this.hasher.hash(password), person.credentialId());
+			this.credentialStore.updatePasswordHash(person.credentialId(), this.hasher.hash(password));
 		}
-		this.jdbc.update("UPDATE local_credentials SET last_used_at = ? WHERE id = ?", Timestamp.from(now),
-				person.credentialId());
+		this.credentialStore.markUsed(person.credentialId(), now);
 		List<String> methods = new ArrayList<>();
 		if (!this.credentials.findByPersonIdAndTypeAndStatus(person.personId(), "totp", "active").isEmpty()) {
 			methods.add("totp");
@@ -216,10 +204,6 @@ public class LocalLogin {
 		return this.hasher.matches(usable ? password : "", hash) && usable;
 	}
 
-	/** Owner of a login transaction: the system admin account or a person. */
-	private record Owner(UUID systemAdminAccountId, Long personId) {
-	}
-
 	/**
 	 * TOTP step after the setup phase (REQ-171, REQ-168 AC2, REQ-170), and of persons with an
 	 * active TOTP credential (REQ-010; design D4 of us-021-person-totp).
@@ -232,19 +216,14 @@ public class LocalLogin {
 	private Sessions.NewSession totpStep(String loginTransaction, String code, Client client) {
 		Instant now = this.clock.instant();
 		byte[] hash = sha256(loginTransaction);
-		Optional<Owner> owner = this.jdbc.query("""
-				SELECT system_admin_account_id, person_id FROM login_transactions
-				WHERE token_hash = ? AND expires_at > ? AND failed_codes < ? FOR UPDATE""",
-				(rs) -> rs.next() ? Optional.of(new Owner(rs.getObject(1, UUID.class), rs.getObject(2, Long.class)))
-						: Optional.<Owner>empty(),
-				hash, Timestamp.from(now), MAXIMUM_WRONG_CODES);
+		Optional<LoginStateStore.Owner> owner = this.loginStates.lockOpenTransaction(hash, now, MAXIMUM_WRONG_CODES);
 		if (owner.isEmpty()) {
 			throw new InvalidCredentialsException(0);
 		}
 		if (!acceptCode(owner.get(), code, now)) {
 			wrongSecondFactor(hash);
 		}
-		this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+		this.loginStates.deleteTransaction(hash);
 		if (owner.get().personId() != null) {
 			return this.personSessions.start(owner.get().personId(), "password-totp", client);
 		}
@@ -260,13 +239,9 @@ public class LocalLogin {
 	@Transactional
 	public PasskeyLogin.Options passkeyOptions(String loginTransaction) {
 		Instant now = this.clock.instant();
-		List<UUID> transactions = this.jdbc.queryForList("""
-				SELECT id FROM login_transactions
-				WHERE token_hash = ? AND person_id IS NOT NULL AND expires_at > ? AND failed_codes < ?""", UUID.class,
-				sha256(loginTransaction), Timestamp.from(now), MAXIMUM_WRONG_CODES);
-		Long personId = transactions.isEmpty() ? null
-				: this.jdbc.queryForObject("SELECT person_id FROM login_transactions WHERE id = ?", Long.class,
-						transactions.getFirst());
+		List<UUID> transactions = this.loginStates.findOpenPersonTransactionIds(sha256(loginTransaction), now,
+				MAXIMUM_WRONG_CODES);
+		Long personId = transactions.isEmpty() ? null : this.loginStates.personOfTransaction(transactions.getFirst());
 		if (personId == null || !this.passkeys.available() || !this.passkeys.hasActivePasskey(personId)) {
 			throw new InvalidCredentialsException(0);
 		}
@@ -292,14 +267,8 @@ public class LocalLogin {
 			Client client) {
 		Instant now = this.clock.instant();
 		byte[] hash = sha256(loginTransaction);
-		record Transaction(UUID id, long personId) {
-		}
-		Optional<Transaction> transaction = this.jdbc.query("""
-				SELECT id, person_id FROM login_transactions
-				WHERE token_hash = ? AND person_id IS NOT NULL AND expires_at > ? AND failed_codes < ? FOR UPDATE""",
-				(rs) -> rs.next() ? Optional.of(new Transaction(rs.getObject(1, UUID.class), rs.getLong(2)))
-						: Optional.<Transaction>empty(),
-				hash, Timestamp.from(now), MAXIMUM_WRONG_CODES);
+		Optional<LoginStateStore.PersonTransaction> transaction = this.loginStates.lockOpenPersonTransaction(hash,
+				now, MAXIMUM_WRONG_CODES);
 		if (transaction.isEmpty()) {
 			throw new InvalidCredentialsException(0);
 		}
@@ -314,24 +283,22 @@ public class LocalLogin {
 		catch (PasskeyRejectedException ex) {
 			wrongSecondFactor(hash);
 		}
-		this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+		this.loginStates.deleteTransaction(hash);
 		return this.personSessions.start(transaction.get().personId(), "password-passkey", client);
 	}
 
 	/** A wrong code or passkey: counted on the transaction, five invalidate it (REQ-168 AC2). */
 	private void wrongSecondFactor(byte[] hash) {
-		int failed = this.jdbc.queryForObject("""
-				UPDATE login_transactions SET failed_codes = failed_codes + 1 WHERE token_hash = ?
-				RETURNING failed_codes""", Integer.class, hash);
+		int failed = this.loginStates.incrementFailedCodes(hash);
 		if (failed >= MAXIMUM_WRONG_CODES) {
-			this.jdbc.update("DELETE FROM login_transactions WHERE token_hash = ?", (Object) hash);
+			this.loginStates.deleteTransaction(hash);
 		}
 		this.audit.appendIndependently(failedEvent("wrong-second-factor"));
 		throw new InvalidCredentialsException(0);
 	}
 
 	/** Verifies a code against the active TOTP credentials of the owner and records its time step (REQ-030). */
-	private boolean acceptCode(Owner owner, String code, Instant now) {
+	private boolean acceptCode(LoginStateStore.Owner owner, String code, Instant now) {
 		List<LocalCredential> active = (owner.personId() != null)
 				? this.credentials.findByPersonIdAndTypeAndStatus(owner.personId(), "totp", "active")
 				: this.credentials.findBySystemAdminAccountIdAndTypeAndStatus(owner.systemAdminAccountId(), "totp",
@@ -382,10 +349,8 @@ public class LocalLogin {
 		RANDOM.nextBytes(bytes);
 		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 		Instant now = this.clock.instant();
-		this.jdbc.update("""
-				INSERT INTO login_transactions (token_hash, system_admin_account_id, person_id, created_at, expires_at)
-				VALUES (?, ?, ?, ?, ?)""", sha256(token), systemAdminAccountId, personId, Timestamp.from(now),
-				Timestamp.from(now.plus(TRANSACTION_VALIDITY)));
+		this.loginStates.insertTransaction(sha256(token), systemAdminAccountId, personId, now,
+				now.plus(TRANSACTION_VALIDITY));
 		return token;
 	}
 

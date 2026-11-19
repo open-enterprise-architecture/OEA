@@ -7,15 +7,14 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.SessionStore;
 import io.oea.core.service.PasswordHasher;
 import io.oea.core.service.PasswordPolicy;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PasswordChange {
 
-	private final JdbcTemplate jdbc;
+	private final CredentialStore credentials;
+
+	private final SessionStore sessionStore;
 
 	private final PasswordHasher hasher;
 
@@ -46,9 +47,10 @@ public class PasswordChange {
 
 	private final Clock clock;
 
-	public PasswordChange(JdbcTemplate jdbc, PasswordHasher hasher, LoginThrottle throttle, PasswordPolicies policies,
+	public PasswordChange(CredentialStore credentials, SessionStore sessionStore, PasswordHasher hasher, LoginThrottle throttle, PasswordPolicies policies,
 			SecondFactorPolicies secondFactorPolicies, Sessions sessions, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.credentials = credentials;
+		this.sessionStore = sessionStore;
 		this.hasher = hasher;
 		this.throttle = throttle;
 		this.policies = policies;
@@ -106,13 +108,9 @@ public class PasswordChange {
 
 	private void requireLocalPassword(OeaPrincipal principal) {
 		boolean person = principal.type() == OeaPrincipal.Type.PERSON;
-		Boolean exists = this.jdbc.queryForObject(person ? """
-				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE person_id = ? AND type = 'password'
-				               AND status = 'active')""" : """
-				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE system_admin_account_id = ? AND type = 'password'
-				               AND status = 'active')""", Boolean.class,
-				person ? principal.personId() : principal.systemAdminAccountId());
-		if (!Boolean.TRUE.equals(exists)) {
+		boolean exists = person ? this.credentials.hasActivePassword(principal.personId())
+				: this.credentials.hasActivePasswordOfAdmin(principal.systemAdminAccountId());
+		if (!exists) {
 			throw new NoLocalPasswordException();
 		}
 	}
@@ -120,22 +118,9 @@ public class PasswordChange {
 	@Transactional(noRollbackFor = WrongCurrentPasswordException.class)
 	public void change(OeaPrincipal principal, String currentPassword, String newPassword, String clientAddress) {
 		boolean person = principal.type() == OeaPrincipal.Type.PERSON;
-		record Current(UUID credentialId, String hash, String loginName) {
-		}
-		List<Current> found = this.jdbc.query(person ? """
-				SELECT c.id, pc.password_hash, p.email FROM local_credentials c
-				JOIN password_credentials pc ON pc.credential_id = c.id JOIN persons p ON p.id = c.person_id
-				WHERE c.person_id = ? AND c.type = 'password' AND c.status = 'active'""" : """
-				SELECT c.id, pc.password_hash, a.login_name FROM local_credentials c
-				JOIN password_credentials pc ON pc.credential_id = c.id
-				JOIN system_admin_accounts a ON a.id = c.system_admin_account_id
-				WHERE c.system_admin_account_id = ? AND c.type = 'password' AND c.status = 'active'""",
-				(rs, n) -> new Current(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)),
-				person ? principal.personId() : principal.systemAdminAccountId());
-		if (found.isEmpty()) {
-			throw new WrongCurrentPasswordException();
-		}
-		Current current = found.getFirst();
+		CredentialStore.CurrentPassword current = (person ? this.credentials.findCurrentPassword(principal.personId())
+				: this.credentials.findCurrentPasswordOfAdmin(principal.systemAdminAccountId()))
+			.orElseThrow(WrongCurrentPasswordException::new);
 		boolean usable = currentPassword != null && currentPassword.length() <= PasswordHasher.MAXIMUM_LENGTH;
 		if (!this.hasher.matches(usable ? currentPassword : "", current.hash()) || !usable) {
 			// REQ-168: guessing the current password is throttled like a login
@@ -147,16 +132,11 @@ public class PasswordChange {
 		}
 		this.policies.check(newPassword, principal.personId(), principal.systemAdminAccountId());
 		Instant now = this.clock.instant();
-		this.jdbc.update("""
-				UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'superseded'
-				WHERE id = ?""", Timestamp.from(now), current.credentialId());
+		this.credentials.revoke(current.credentialId(), now, "superseded", null, null);
 		UUID credentialId = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO local_credentials (id, person_id, system_admin_account_id, type, status, created_at)
-				VALUES (?, ?, ?, 'password', 'active', ?)""", credentialId, principal.personId(),
-				principal.systemAdminAccountId(), Timestamp.from(now));
-		this.jdbc.update("INSERT INTO password_credentials (credential_id, password_hash) VALUES (?, ?)", credentialId,
-				this.hasher.hash(newPassword));
+		this.credentials.insertActivePassword(credentialId, principal.personId(), principal.systemAdminAccountId(),
+				now);
+		this.credentials.insertPasswordHash(credentialId, this.hasher.hash(newPassword));
 		if (person && !principal.secondFactorVerified()
 				&& this.secondFactorPolicies.enrollmentRequired(principal.personId())) {
 			// design D3 of us-031-second-factor-enforcement: the enrollment follows the password change
@@ -165,12 +145,9 @@ public class PasswordChange {
 		else {
 			this.sessions.clearRequiredAction(principal.sessionId());
 		}
-		int revoked = this.jdbc.update("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'credential-revoked', revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?
-				WHERE id <> ? AND revoked_at IS NULL AND (person_id = ? OR system_admin_account_id = ?)""",
-				Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(), principal.sessionId(),
-				principal.personId(), principal.systemAdminAccountId());
+		int revoked = this.sessionStore.revokeOthers(principal.sessionId(), principal.personId(),
+				principal.systemAdminAccountId(), now, "credential-revoked", principal.personId(),
+				principal.systemAdminAccountId());
 		this.throttle.recordSuccess(current.loginName());
 		this.audit.append(new AuditEvent("auth.password-changed", AuditEvent.Category.SECURITY,
 				AuditEvent.Severity.HIGH, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),

@@ -3,17 +3,21 @@ package io.oea.app.recovery;
 import io.oea.app.login.LoginThrottle;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.IdentitySettingsStore;
+import io.oea.core.access.LoginStateStore;
+import io.oea.core.access.LoginThrottleStore;
+import io.oea.core.access.SessionStore;
+import io.oea.core.access.SystemAdminAccountStore;
 import io.oea.core.domain.auth.TotpCredential;
 import io.oea.core.service.PasswordHasher;
 import io.oea.infrastructure.secrets.SecretCipher;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -24,7 +28,17 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 public class AdminRecovery {
 
-	private final JdbcTemplate jdbc;
+	private final SystemAdminAccountStore accounts;
+
+	private final CredentialStore credentials;
+
+	private final SessionStore sessions;
+
+	private final LoginStateStore loginStates;
+
+	private final LoginThrottleStore throttle;
+
+	private final IdentitySettingsStore settings;
 
 	private final TransactionTemplate transaction;
 
@@ -44,9 +58,16 @@ public class AdminRecovery {
 	public record NewFactor(String secret, long acceptedStep) {
 	}
 
-	public AdminRecovery(JdbcTemplate jdbc, TransactionTemplate transaction, SecretCipher cipher,
-			PasswordHasher hasher, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+	public AdminRecovery(SystemAdminAccountStore accounts, CredentialStore credentials, SessionStore sessions,
+			LoginStateStore loginStates, LoginThrottleStore throttle, IdentitySettingsStore settings,
+			TransactionTemplate transaction, SecretCipher cipher, PasswordHasher hasher, AuditWriter audit,
+			Clock clock) {
+		this.accounts = accounts;
+		this.credentials = credentials;
+		this.sessions = sessions;
+		this.loginStates = loginStates;
+		this.throttle = throttle;
+		this.settings = settings;
 		this.transaction = transaction;
 		this.cipher = cipher;
 		this.hasher = hasher;
@@ -56,17 +77,12 @@ public class AdminRecovery {
 
 	/** The account of the bootstrapping; empty on an instance that is not bootstrapped. */
 	public Optional<Account> account() {
-		return this.jdbc.query(
-				"SELECT id, login_name, status FROM system_admin_accounts ORDER BY created_at, id LIMIT 1",
-				(rs) -> rs.next() ? Optional.of(new Account(rs.getObject(1, UUID.class), rs.getString(2),
-						rs.getString(3))) : Optional.<Account>empty());
+		return this.accounts.firstAccount().map((a) -> new Account(a.id(), a.loginName(), a.status()));
 	}
 
 	/** After the setup phase every login needs TOTP, so the recovery must replace the factor (ADR-042). */
 	public boolean setupPhaseEnded() {
-		return Boolean.TRUE.equals(this.jdbc.query(
-				"SELECT setup_phase_ended_at IS NOT NULL FROM system_settings WHERE id = 1",
-				(rs) -> rs.next() && rs.getBoolean(1)));
+		return this.settings.setupPhaseEnded();
 	}
 
 	/**
@@ -81,46 +97,27 @@ public class AdminRecovery {
 
 	private int recoverInTransaction(Account account, String password, NewFactor factor) {
 		Instant now = this.clock.instant();
-		Timestamp at = Timestamp.from(now);
 		UUID id = account.id();
-		this.jdbc.queryForObject("SELECT id FROM system_admin_accounts WHERE id = ? FOR UPDATE", UUID.class, id);
-		boolean reactivated = this.jdbc.update("""
-				UPDATE system_admin_accounts
-				SET status = CASE WHEN first_login_at IS NULL THEN 'bootstrapped' ELSE 'active' END,
-				    deactivated_at = NULL, deactivated_by_admin_id = NULL, deactivated_by_person_id = NULL
-				WHERE id = ? AND status = 'deactivated'""", id) == 1;
+		this.accounts.lockAccount(id);
+		boolean reactivated = this.accounts.reactivate(id);
 
-		this.jdbc.update("""
-				UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'admin_action'
-				WHERE system_admin_account_id = ? AND type = 'password' AND status = 'active'""", at, id);
+		this.credentials.revokeActivePasswordOfAdmin(id, now);
 		UUID passwordId = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO local_credentials (id, system_admin_account_id, type, status, created_at)
-				VALUES (?, ?, 'password', 'active', ?)""", passwordId, id, at);
-		this.jdbc.update("INSERT INTO password_credentials (credential_id, password_hash) VALUES (?, ?)", passwordId,
-				this.hasher.hash(password));
+		this.credentials.insertActivePassword(passwordId, null, id, now);
+		this.credentials.insertPasswordHash(passwordId, this.hasher.hash(password));
 
 		if (factor != null) {
-			this.jdbc.update("""
-					UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'factor_reset'
-					WHERE system_admin_account_id = ? AND type = 'totp' AND status IN ('active', 'pending')""", at, id);
+			this.credentials.revokeTotpOfAdmin(id, now);
 			UUID totpId = UUID.randomUUID();
-			this.jdbc.update("""
-					INSERT INTO local_credentials (id, system_admin_account_id, type, status, created_at, last_used_at)
-					VALUES (?, ?, 'totp', 'active', ?, ?)""", totpId, id, at, at);
+			this.credentials.insertActiveTotpOfAdmin(totpId, id, now);
 			SecretCipher.Encrypted secret = this.cipher.encrypt(factor.secret(),
 					TotpCredential.encryptionContext(totpId));
-			this.jdbc.update("""
-					INSERT INTO totp_credentials (credential_id, secret_encrypted, key_id, last_used_time_step, label)
-					VALUES (?, ?, ?, ?, 'break-glass recovery')""", totpId, secret.ciphertext(), secret.keyId(),
-					factor.acceptedStep());
+			this.credentials.insertRecoveredTotp(totpId, secret.ciphertext(), secret.keyId(), factor.acceptedStep());
 		}
 
-		int revoked = this.jdbc.update("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'credential-revoked'
-				WHERE system_admin_account_id = ? AND revoked_at IS NULL""", at, id);
-		this.jdbc.update("DELETE FROM login_transactions WHERE system_admin_account_id = ?", id);
-		this.jdbc.update("DELETE FROM auth_throttle WHERE throttle_key = ?", LoginThrottle.accountKey(account.loginName()));
+		int revoked = this.sessions.revokeAllOfAdmin(id, now, "credential-revoked", null, null);
+		this.loginStates.deleteTransactionsOfAdmin(id);
+		this.throttle.delete(LoginThrottle.accountKey(account.loginName()));
 
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("reactivated", reactivated);

@@ -6,8 +6,9 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.PersonStore;
 import io.oea.core.service.PasswordHasher;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -15,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PersonPasswords {
 
-	private final JdbcTemplate jdbc;
+	private final PersonStore persons;
+
+	private final CredentialStore credentials;
 
 	private final PasswordHasher hasher;
 
@@ -42,9 +44,10 @@ public class PersonPasswords {
 
 	private final Clock clock;
 
-	public PersonPasswords(JdbcTemplate jdbc, PasswordHasher hasher, PersonPasswordProperties properties,
+	public PersonPasswords(PersonStore persons, CredentialStore credentials, PasswordHasher hasher, PersonPasswordProperties properties,
 			PasswordPolicies policies, PermissionDenials denials, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+		this.persons = persons;
+		this.credentials = credentials;
 		this.hasher = hasher;
 		this.properties = properties;
 		this.policies = policies;
@@ -71,11 +74,8 @@ public class PersonPasswords {
 	 */
 	@Transactional
 	public Result setInitial(OeaPrincipal principal, long personId, String password, boolean generate) {
-		List<Map<String, Object>> rows = this.jdbc
-			.queryForList("SELECT person_type, status FROM persons WHERE id = ? FOR UPDATE", personId);
-		if (rows.isEmpty()) {
-			throw new NoSuchElementException("no person " + personId);
-		}
+		PersonStore.LockedPerson locked = this.persons.lockPerson(personId)
+			.orElseThrow(() -> new NoSuchElementException("no person " + personId));
 		if (!this.policies.personPasswordLoginPossible()) {
 			throw new AccessConflictException("Password login of persons is switched off on this instance.");
 		}
@@ -84,8 +84,8 @@ public class PersonPasswords {
 					PermissionDenials.SELF_ADMINISTRATION);
 			throw new SelfAdministrationException();
 		}
-		String status = (String) rows.getFirst().get("status");
-		if (!"human".equals(rows.getFirst().get("person_type"))
+		String status = locked.status();
+		if (!"human".equals(locked.personType())
 				|| !("invited".equals(status) || "active".equals(status))) {
 			throw new InvalidAccessRequestException("personId",
 					"Only invited or active persons get a password; service accounts never do.");
@@ -98,21 +98,14 @@ public class PersonPasswords {
 		if (!generate) {
 			this.policies.check(initial, personId, null);
 		}
-		Boolean exists = this.jdbc.queryForObject("""
-				SELECT EXISTS (SELECT 1 FROM local_credentials WHERE person_id = ? AND type = 'password'
-				               AND status = 'active')""", Boolean.class, personId);
-		if (Boolean.TRUE.equals(exists)) {
+		if (this.credentials.hasActivePassword(personId)) {
 			throw new PasswordAlreadySetException();
 		}
 		Instant now = this.clock.instant().truncatedTo(ChronoUnit.MICROS);
 		Instant expiresAt = now.plus(this.properties.temporaryPasswordValidity());
 		UUID credentialId = UUID.randomUUID();
-		this.jdbc.update("""
-				INSERT INTO local_credentials (id, person_id, type, status, created_at)
-				VALUES (?, ?, 'password', 'active', ?)""", credentialId, personId, Timestamp.from(now));
-		this.jdbc.update("""
-				INSERT INTO password_credentials (credential_id, password_hash, origin, expires_at)
-				VALUES (?, ?, 'initial', ?)""", credentialId, this.hasher.hash(initial), Timestamp.from(expiresAt));
+		this.credentials.insertActivePassword(credentialId, personId, null, now);
+		this.credentials.insertPasswordHash(credentialId, this.hasher.hash(initial), "initial", expiresAt);
 		this.audit.append(new AuditEvent("person.password-set", AuditEvent.Category.SECURITY, AuditEvent.Severity.HIGH,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "person",
 				Long.toString(personId),

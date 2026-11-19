@@ -3,14 +3,12 @@ package io.oea.app.access;
 import io.oea.app.security.PermissionResolver;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import java.sql.Timestamp;
+import io.oea.core.access.RoleStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class RoleAssignmentExpiry {
 
-	private final JdbcTemplate jdbc;
+	private final RoleStore roles;
 
 	private final AuditWriter audit;
 
@@ -31,8 +29,8 @@ public class RoleAssignmentExpiry {
 
 	private final Clock clock;
 
-	public RoleAssignmentExpiry(JdbcTemplate jdbc, AuditWriter audit, PermissionResolver permissions, Clock clock) {
-		this.jdbc = jdbc;
+	public RoleAssignmentExpiry(RoleStore roles, AuditWriter audit, PermissionResolver permissions, Clock clock) {
+		this.roles = roles;
 		this.audit = audit;
 		this.permissions = permissions;
 		this.clock = clock;
@@ -44,18 +42,9 @@ public class RoleAssignmentExpiry {
 	@Transactional
 	public int recordExpiries() {
 		Instant now = this.clock.instant();
-		record Expired(UUID id, long personId, String roleId, Instant validTo) {
-		}
-		List<Expired> expired = this.jdbc.query("""
-				SELECT id, person_id, role_id, valid_to FROM role_assignments
-				WHERE status = 'granted' AND valid_to <= ? AND expiry_recorded_at IS NULL
-				ORDER BY valid_to, id FOR UPDATE SKIP LOCKED""",
-				(rs, n) -> new Expired(rs.getObject(1, UUID.class), rs.getLong(2), rs.getString(3),
-						rs.getTimestamp(4).toInstant()),
-				Timestamp.from(now));
-		for (Expired assignment : expired) {
-			this.jdbc.update("UPDATE role_assignments SET expiry_recorded_at = ? WHERE id = ?", Timestamp.from(now),
-					assignment.id());
+		List<RoleStore.ExpiredAssignment> expired = this.roles.lockUnrecordedExpiries(now);
+		for (RoleStore.ExpiredAssignment assignment : expired) {
+			this.roles.markExpiryRecorded(assignment.id(), now);
 			Map<String, Object> details = new LinkedHashMap<>();
 			details.put("personId", assignment.personId());
 			details.put("roleId", assignment.roleId());

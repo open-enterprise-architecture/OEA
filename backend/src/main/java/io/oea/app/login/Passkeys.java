@@ -1,9 +1,10 @@
 package io.oea.app.login;
 
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.PasskeyStore;
 import io.oea.infrastructure.webauthn.PasskeyRejectedException;
 import io.oea.infrastructure.webauthn.WebAuthnVerifier;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -36,14 +36,17 @@ class Passkeys {
 
 	private static final Base64.Encoder BASE64URL = Base64.getUrlEncoder().withoutPadding();
 
-	private final JdbcTemplate jdbc;
+	private final PasskeyStore store;
+
+	private final CredentialStore credentials;
 
 	private final WebAuthnVerifier verifier;
 
 	private final Clock clock;
 
-	Passkeys(JdbcTemplate jdbc, WebAuthnVerifier verifier, Clock clock) {
-		this.jdbc = jdbc;
+	Passkeys(PasskeyStore store, CredentialStore credentials, WebAuthnVerifier verifier, Clock clock) {
+		this.store = store;
+		this.credentials = credentials;
 		this.verifier = verifier;
 		this.clock = clock;
 	}
@@ -71,16 +74,13 @@ class Passkeys {
 	/** Stores a new challenge; expired challenges are deleted at the same time (D2). */
 	Challenge newChallenge(String purpose, Long personId, UUID loginTransactionId, String label, Duration validity) {
 		Instant now = this.clock.instant();
-		this.jdbc.update("DELETE FROM webauthn_challenges WHERE expires_at <= ?", Timestamp.from(now));
+		this.store.deleteExpiredChallenges(now);
 		byte[] value = new byte[32];
 		RANDOM.nextBytes(value);
 		Challenge challenge = new Challenge(UUID.randomUUID(), value, personId, loginTransactionId, label,
 				now.plus(validity));
-		this.jdbc.update("""
-				INSERT INTO webauthn_challenges (id, purpose, challenge, person_id, login_transaction_id, label,
-				                                 created_at, expires_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", challenge.id(), purpose, value, personId, loginTransactionId, label,
-				Timestamp.from(now), Timestamp.from(challenge.expiresAt()));
+		this.store.insertChallenge(new PasskeyStore.Challenge(challenge.id(), value, personId, loginTransactionId, label,
+				challenge.expiresAt()), purpose, now);
 		return challenge;
 	}
 
@@ -90,12 +90,9 @@ class Passkeys {
 			return Optional.empty();
 		}
 		Instant now = this.clock.instant();
-		return this.jdbc.query("""
-				DELETE FROM webauthn_challenges WHERE id = ? AND purpose = ?
-				RETURNING id, challenge, person_id, login_transaction_id, label, expires_at""",
-				(rs, n) -> new Challenge(rs.getObject(1, UUID.class), rs.getBytes(2), rs.getObject(3, Long.class),
-						rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()),
-				id, purpose)
+		return this.store.consumeChallenge(id, purpose)
+			.map((c) -> new Challenge(c.id(), c.value(), c.personId(), c.loginTransactionId(), c.label(),
+					c.expiresAt()))
 			.stream()
 			.filter((challenge) -> challenge.expiresAt().isAfter(now))
 			.findFirst();
@@ -114,11 +111,7 @@ class Passkeys {
 
 	/** The WebAuthn credential IDs of the active passkeys of a person. */
 	List<byte[]> credentialIds(long personId) {
-		return this.jdbc.queryForList("""
-				SELECT p.webauthn_credential_id FROM passkey_credentials p
-				JOIN local_credentials c ON c.id = p.credential_id
-				WHERE c.person_id = ? AND c.type = 'passkey' AND c.status = 'active' ORDER BY c.created_at""",
-				byte[].class, personId);
+		return this.store.activeCredentialIds(personId);
 	}
 
 	boolean hasActivePasskey(long personId) {
@@ -132,23 +125,8 @@ class Passkeys {
 	 */
 	Verified verify(String assertionJson, Challenge challenge, Long expectedPersonId) {
 		WebAuthnVerifier.Presented presented = this.verifier.presented(assertionJson);
-		record Stored(UUID credentialId, long personId, byte[] userHandle, byte[] data, long signCount,
-				boolean backupEligible, boolean backedUp) {
-		}
-		List<Stored> found = this.jdbc.query("""
-				SELECT c.id, c.person_id, pe.webauthn_user_handle, p.attested_credential_data, p.sign_count,
-				       p.backup_eligible, p.backed_up
-				FROM passkey_credentials p JOIN local_credentials c ON c.id = p.credential_id
-				JOIN persons pe ON pe.id = c.person_id
-				WHERE p.webauthn_credential_id = ? AND c.type = 'passkey' AND c.status = 'active'
-				FOR UPDATE OF p""",
-				(rs, n) -> new Stored(rs.getObject(1, UUID.class), rs.getLong(2), rs.getBytes(3), rs.getBytes(4),
-						rs.getLong(5), rs.getBoolean(6), rs.getBoolean(7)),
-				(Object) presented.credentialId());
-		if (found.isEmpty()) {
-			throw new PasskeyRejectedException("unknown passkey");
-		}
-		Stored stored = found.getFirst();
+		PasskeyStore.StoredPasskey stored = this.store.lockActivePasskey(presented.credentialId())
+			.orElseThrow(() -> new PasskeyRejectedException("unknown passkey"));
 		if (expectedPersonId != null && expectedPersonId != stored.personId()) {
 			throw new PasskeyRejectedException("passkey of another person");
 		}
@@ -156,12 +134,10 @@ class Passkeys {
 			throw new PasskeyRejectedException("user handle does not match");
 		}
 		WebAuthnVerifier.Asserted asserted = this.verifier.verifyAuthentication(assertionJson, challenge.value(),
-				new WebAuthnVerifier.StoredPasskey(stored.data(), stored.signCount(), stored.backupEligible(),
+				new WebAuthnVerifier.StoredPasskey(stored.attestedCredentialData(), stored.signCount(), stored.backupEligible(),
 						stored.backedUp()));
-		this.jdbc.update("UPDATE passkey_credentials SET sign_count = ?, backed_up = ? WHERE credential_id = ?",
-				asserted.signCount(), asserted.backedUp(), stored.credentialId());
-		this.jdbc.update("UPDATE local_credentials SET last_used_at = ? WHERE id = ?",
-				Timestamp.from(this.clock.instant()), stored.credentialId());
+		this.store.updateAssertion(stored.credentialId(), asserted.signCount(), asserted.backedUp());
+		this.credentials.markUsed(stored.credentialId(), this.clock.instant());
 		return new Verified(stored.personId(), stored.credentialId());
 	}
 

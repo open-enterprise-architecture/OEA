@@ -7,11 +7,15 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.IdpMappingStore;
+import io.oea.core.access.PersonStore;
+import io.oea.core.access.RoleStore;
+import io.oea.core.access.SessionStore;
+import io.oea.core.access.SystemAdminAccountStore;
 import io.oea.core.domain.auth.AuthProvider;
 import io.oea.core.domain.auth.IdpGroupMapping;
 import io.oea.core.repository.AuthProviderRepository;
 import io.oea.core.repository.IdpGroupMappingRepository;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,7 +24,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +49,15 @@ public class IdpGroupMappings {
 
 	private final AuditWriter audit;
 
-	private final JdbcTemplate jdbc;
+	private final IdpMappingStore mappingStore;
+
+	private final SessionStore sessionStore;
+
+	private final SystemAdminAccountStore adminAccounts;
+
+	private final PersonStore persons;
+
+	private final RoleStore roles;
 
 	private final Clock clock;
 
@@ -68,13 +79,18 @@ public class IdpGroupMappings {
 	public static final String GROUP_NOT_SEEN = "group-not-seen";
 
 	public IdpGroupMappings(IdpGroupMappingRepository mappings, AuthProviderRepository providers,
-			SetupPhase setupPhase, AuditWriter audit, JdbcTemplate jdbc, Clock clock, PermissionDenials denials,
-			AdministrationPaths paths) {
+			SetupPhase setupPhase, AuditWriter audit, IdpMappingStore mappingStore, SessionStore sessionStore,
+			SystemAdminAccountStore adminAccounts, PersonStore persons, RoleStore roles, Clock clock,
+			PermissionDenials denials, AdministrationPaths paths) {
 		this.mappings = mappings;
 		this.providers = providers;
 		this.setupPhase = setupPhase;
 		this.audit = audit;
-		this.jdbc = jdbc;
+		this.mappingStore = mappingStore;
+		this.sessionStore = sessionStore;
+		this.adminAccounts = adminAccounts;
+		this.persons = persons;
+		this.roles = roles;
 		this.clock = clock;
 		this.denials = denials;
 		this.paths = paths;
@@ -102,12 +118,8 @@ public class IdpGroupMappings {
 	private Mapping viewWithWarnings(IdpGroupMapping mapping, Instant lastMatchedAt) {
 		List<String> warnings = new ArrayList<>();
 		if (SYSTEM_ADMIN.equals(mapping.getRoleId()) && lastMatchedAt == null) {
-			Boolean seen = this.jdbc.queryForObject("""
-					SELECT EXISTS (SELECT 1 FROM sessions
-					               WHERE auth_provider_id = ? AND revoked_at IS NULL AND absolute_expires_at > ?
-					                 AND ? = ANY (idp_group_identifiers))""", Boolean.class,
-					mapping.getAuthProviderId(), Timestamp.from(this.clock.instant()), mapping.getGroupIdentifier());
-			if (!Boolean.TRUE.equals(seen)) {
+			if (!this.sessionStore.hasOpenSessionWithGroup(mapping.getAuthProviderId(), this.clock.instant(),
+					mapping.getGroupIdentifier())) {
 				warnings.add(GROUP_NOT_SEEN);
 			}
 		}
@@ -116,12 +128,9 @@ public class IdpGroupMappings {
 
 	private Creator creator(IdpGroupMapping mapping) {
 		if (mapping.getCreatedByAdminId() != null) {
-			return new Creator(true, null, this.jdbc.queryForObject(
-					"SELECT login_name FROM system_admin_accounts WHERE id = ?", String.class,
-					mapping.getCreatedByAdminId()));
+			return new Creator(true, null, this.adminAccounts.loginName(mapping.getCreatedByAdminId()));
 		}
-		return new Creator(false, mapping.getCreatedByPersonId(), this.jdbc
-			.queryForObject("SELECT name FROM persons WHERE id = ?", String.class, mapping.getCreatedByPersonId()));
+		return new Creator(false, mapping.getCreatedByPersonId(), this.persons.name(mapping.getCreatedByPersonId()));
 	}
 
 	@Transactional
@@ -160,7 +169,7 @@ public class IdpGroupMappings {
 		}
 		if (!sameGroup) {
 			// a match of another group or role is no evidence for the changed mapping (SoD-7 path)
-			this.jdbc.update("UPDATE idp_group_mappings SET last_matched_at = NULL WHERE id = ?", mappingId);
+			this.mappingStore.clearLastMatch(mappingId);
 		}
 		mapping.change(provider, identifier, roleId, active, principal.systemAdminAccountId(), principal.personId(),
 				this.clock.instant());
@@ -187,12 +196,7 @@ public class IdpGroupMappings {
 		if (principal.type() != OeaPrincipal.Type.PERSON || principal.sessionId() == null) {
 			return;
 		}
-		Boolean own = this.jdbc.query("""
-				SELECT ? = ANY (s.idp_group_identifiers)
-				FROM sessions s JOIN auth_providers p ON p.id = s.auth_provider_id
-				WHERE s.id = ? AND p.issuer = ?""", (rs) -> rs.next() && rs.getBoolean(1), groupIdentifier,
-				principal.sessionId(), provider.getIssuer());
-		if (Boolean.TRUE.equals(own)) {
+		if (this.sessionStore.sessionHasGroup(groupIdentifier, principal.sessionId(), provider.getIssuer())) {
 			this.denials.record(principal, operation, "idp-group-mapping", null, PermissionDenials.SELF_ADMINISTRATION);
 			throw new SelfAdministrationException();
 		}
@@ -212,9 +216,7 @@ public class IdpGroupMappings {
 			throw new InvalidAccessRequestException("groupIdentifier",
 					"The group identifier must be the immutable group ID (a UUID) of the provider, not a display name.");
 		}
-		Integer roles = this.jdbc.queryForObject(
-				"SELECT count(*) FROM authorization_roles WHERE id = ? AND deleted_at IS NULL", Integer.class, roleId);
-		if (roles == null || roles == 0) {
+		if (!this.roles.existsLiveRole(roleId)) {
 			throw new InvalidAccessRequestException("roleId", "The role does not exist.");
 		}
 		return provider;

@@ -8,7 +8,10 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
-import java.sql.Timestamp;
+import io.oea.core.access.CredentialStore;
+import io.oea.core.access.PersonStore;
+import io.oea.core.access.RoleStore;
+import io.oea.core.access.SessionStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -18,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SecondFactors {
 
-	/** Types of local credentials that are second factors. */
-	private static final String SECOND_FACTOR_TYPES = "('totp', 'passkey')";
+	private final PersonStore persons;
 
-	private final JdbcTemplate jdbc;
+	private final CredentialStore credentials;
+
+	private final RoleStore roles;
+
+	private final SessionStore sessionStore;
 
 	private final RecentAuthentication recentAuthentication;
 
@@ -46,9 +51,13 @@ public class SecondFactors {
 
 	private final Clock clock;
 
-	public SecondFactors(JdbcTemplate jdbc, RecentAuthentication recentAuthentication, SetupPhase setupPhase,
-			SecondFactorPolicies policies, PermissionDenials denials, AuditWriter audit, Clock clock) {
-		this.jdbc = jdbc;
+	public SecondFactors(PersonStore persons, CredentialStore credentials, RoleStore roles, SessionStore sessionStore,
+			RecentAuthentication recentAuthentication, SetupPhase setupPhase, SecondFactorPolicies policies,
+			PermissionDenials denials, AuditWriter audit, Clock clock) {
+		this.persons = persons;
+		this.credentials = credentials;
+		this.roles = roles;
+		this.sessionStore = sessionStore;
 		this.recentAuthentication = recentAuthentication;
 		this.setupPhase = setupPhase;
 		this.policies = policies;
@@ -64,16 +73,10 @@ public class SecondFactors {
 	/** The active second factors of the principal, ordered by creation. */
 	@Transactional(readOnly = true)
 	public List<Factor> list(OeaPrincipal principal) {
-		return this.jdbc.query("""
-				SELECT c.id, c.type, COALESCE(t.label, p.label), c.created_at, c.last_used_at FROM local_credentials c
-				LEFT JOIN totp_credentials t ON t.credential_id = c.id
-				LEFT JOIN passkey_credentials p ON p.credential_id = c.id
-				WHERE (c.person_id = ? OR c.system_admin_account_id = ?) AND c.status = 'active'
-				  AND c.type IN """ + SECOND_FACTOR_TYPES + " ORDER BY c.created_at, c.id", (rs, n) -> {
-			Timestamp used = rs.getTimestamp(5);
-			return new Factor(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
-					rs.getTimestamp(4).toInstant(), (used != null) ? used.toInstant() : null);
-		}, principal.personId(), principal.systemAdminAccountId());
+		return this.credentials.activeSecondFactors(principal.personId(), principal.systemAdminAccountId())
+			.stream()
+			.map((row) -> new Factor(row.credentialId(), row.type(), row.label(), row.createdAt(), row.lastUsedAt()))
+			.toList();
 	}
 
 	/**
@@ -99,17 +102,11 @@ public class SecondFactors {
 			throw new LastSecondFactorException();
 		}
 		Instant now = this.clock.instant();
-		this.jdbc.update("""
-				UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'person_request',
-				       revoked_by_person_id = ?, revoked_by_admin_id = ?
-				WHERE id = ?""", Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(),
-				credentialId);
-		int others = this.jdbc.update("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'credential-revoked', revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?
-				WHERE id <> ? AND revoked_at IS NULL AND (person_id = ? OR system_admin_account_id = ?)""",
-				Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(), principal.sessionId(),
-				principal.personId(), principal.systemAdminAccountId());
+		this.credentials.revoke(credentialId, now, "person_request", principal.personId(),
+				principal.systemAdminAccountId());
+		int others = this.sessionStore.revokeOthers(principal.sessionId(), principal.personId(),
+				principal.systemAdminAccountId(), now, "credential-revoked", principal.personId(),
+				principal.systemAdminAccountId());
 		Map<String, Object> details = new HashMap<>();
 		details.put("type", factor.type());
 		if (factor.label() != null) {
@@ -134,12 +131,9 @@ public class SecondFactors {
 	 */
 	@Transactional
 	public int reset(OeaPrincipal principal, long personId, String reason) {
-		List<String> types = this.jdbc.queryForList("SELECT person_type FROM persons WHERE id = ? FOR UPDATE",
-				String.class, personId);
-		if (types.isEmpty()) {
-			throw new NoSuchElementException("no person " + personId);
-		}
-		if (!"human".equals(types.getFirst())) {
+		PersonStore.LockedPerson locked = this.persons.lockPerson(personId)
+			.orElseThrow(() -> new NoSuchElementException("no person " + personId));
+		if (!"human".equals(locked.personType())) {
 			throw new InvalidAccessRequestException("personId", "Service accounts have no second factors.");
 		}
 		if (principal.personId() != null && principal.personId() == personId) {
@@ -147,30 +141,21 @@ public class SecondFactors {
 					PermissionDenials.SELF_ADMINISTRATION);
 			throw new SelfAdministrationException();
 		}
-		Integer active = this.jdbc.queryForObject("""
-				SELECT count(*) FROM local_credentials WHERE person_id = ? AND status = 'active' AND type IN """
-				+ SECOND_FACTOR_TYPES, Integer.class, personId);
-		if (active == null || active == 0) {
+		if (this.credentials.countActiveSecondFactors(personId) == 0) {
 			throw new AccessConflictException("The person has no second factor to reset.");
 		}
 		Instant now = this.clock.instant().truncatedTo(ChronoUnit.MICROS);
 		if (principal.type() != OeaPrincipal.Type.SYSTEM_ADMIN_ACCOUNT
-				&& PasswordResets.holdsAdminClassPermission(this.jdbc, personId, now)) {
+				&& this.roles.holdsAdminClassPermission(personId, now)) {
 			this.denials.record(principal, "resetPersonSecondFactors", "person", Long.toString(personId),
 					PasswordResets.ADMIN_RESET_RESTRICTED);
 			throw new PasswordResets.AdminResetRestrictedException();
 		}
 		// pending enrollments end as well, so that no half-finished factor survives the reset
-		int revoked = this.jdbc.update("""
-				UPDATE local_credentials SET status = 'revoked', revoked_at = ?, revoked_reason = 'factor_reset',
-				       revoked_by_person_id = ?, revoked_by_admin_id = ?
-				WHERE person_id = ? AND status IN ('active', 'pending') AND type IN """ + SECOND_FACTOR_TYPES,
-				Timestamp.from(now), principal.personId(), principal.systemAdminAccountId(), personId);
-		List<UUID> sessions = this.jdbc.queryForList("""
-				UPDATE sessions SET revoked_at = ?, revoked_reason = 'factor-reset', revoked_by_person_id = ?,
-				       revoked_by_admin_id = ?
-				WHERE person_id = ? AND revoked_at IS NULL RETURNING id""", UUID.class, Timestamp.from(now),
-				principal.personId(), principal.systemAdminAccountId(), personId);
+		int revoked = this.credentials.revokeSecondFactors(personId, now, "factor_reset", principal.personId(),
+				principal.systemAdminAccountId());
+		List<UUID> sessions = this.sessionStore.revokeAllOfPersonReturningIds(personId, now, "factor-reset",
+				principal.personId(), principal.systemAdminAccountId());
 		for (UUID session : sessions) {
 			this.audit.append(new AuditEvent("session.revoked", AuditEvent.Category.SECURITY, AuditEvent.Severity.INFO,
 					AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "session",
