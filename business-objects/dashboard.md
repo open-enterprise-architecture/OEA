@@ -2,7 +2,7 @@
 identifier: dashboard
 name_de: Dashboard
 name_en: Dashboard
-version: 0.2.0
+version: 0.3.0
 status: draft
 maturity: initial
 owner_role: Lead Enterprise Architect
@@ -31,7 +31,9 @@ Dashboards primarily target C-level decision makers (CIO, division heads) who do
 
 **Scope**: Dashboards have the same scope mechanism as catalogs – `instance` (visible to all) or `personal` (only the creator). Shared dashboards are changed by every holder of `dashboard:manage`; a personal dashboard is changed by its owner only. Holders of `settings:manage` read the personal dashboards of other persons, read-only (owner decisions 2026-11-18, ADR-032 amendment). A personal dashboard can become shared (not the other way round) unless a widget shows a personal catalog.
 
-**Implemented in change us-055-dashboards**: the dashboard, the widget types `text` and `table`, the data source `CatalogQueryDataSource` without `additionalFilters`, and the grid. KPI and chart widgets, `PropertyAggregationDataSource`, `globalFilters` and the column overrides follow later (S17 and beyond); the service answers 422 for the types `kpi` and `chart`.
+**Implemented in change us-055-dashboards**: the dashboard, the widget types `text` and `table`, the data source `CatalogQueryDataSource` without `additionalFilters`, and the grid.
+
+**Implemented in change us-056-kpi-and-chart-widgets**: the widget types `kpi` (comparison `none` and `vs-target`) and `chart`, and the `PropertyAggregationDataSource` as described under "PropertyAggregationDataSource" below, with metamodel IDs instead of names, grouping by property, metatype or architecture layer, at most 50 groups, and the visibility rules of the aggregate. The comparison `vs-previous-value`, `globalFilters`, `filters` of a data source, architecture domains and the column overrides follow later.
 
 ## Attributes
 
@@ -64,22 +66,23 @@ Displays a single metric prominently (number + unit, optionally with a compariso
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| dataSource | PropertyAggregationDataSource | required | | | Data source; must contain aggregationFn |
+| dataSource | PropertyAggregationDataSource | required | | | Data source (`aggregation` in the contract); `groupBy` must be empty |
 | unit | string | optional | | max. 20 characters | Unit (e.g. "CHF", "EUR m", "%") |
-| comparisonMode | enum | optional | `none` | `[none, vs-previous-value, vs-target]` | Comparison mode for the trend arrow |
+| comparisonMode | enum | optional | `none` | `[none, vs-previous-value, vs-target]` | Comparison mode for the trend (arrow icon and text); `vs-previous-value` is rejected (422) until it is implemented |
 | targetValue | decimal | conditional | | only if comparisonMode=vs-target | Target value |
-| numberFormat | string | optional | | e.g. "#,##0" | Number format (locale-sensitive) |
+| numberFormat | string | optional | | e.g. "#,##0" | Number format (locale-sensitive); not implemented, the value is shown in the number format of the user interface language |
 
 ### ChartWidget
 
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | chartType | enum | required | | `[bar, line, pie, donut, area, treemap]` | Chart type |
-| dataSource | CatalogQueryDataSource \| PropertyAggregationDataSource | required | | | Data source |
-| xAxis | AxisConfig | conditional | | not for chartType=pie/donut/treemap | X-axis configuration |
-| yAxis | AxisConfig | conditional | | min. 1 for bar/line/area; exactly 1 for pie/donut | Y-axis configuration |
-| colorScheme | string | optional | `default` | | Color palette |
-| showLegend | boolean | optional | true | | Show legend |
+| dataSource | PropertyAggregationDataSource | required | | | Data source with `groupBy`; a chart shows one series per widget, so there is one value axis |
+| unit | string | optional | | max. 20 characters | Unit in tooltips and data labels |
+| xAxis | AxisConfig | conditional | | | Not implemented: the axes follow from the grouping and the aggregated value |
+| yAxis | AxisConfig | conditional | | | Not implemented, see `xAxis` |
+| colorScheme | string | optional | `default` | | Not implemented: the palette follows the light or dark theme |
+| showLegend | boolean | optional | true | | Show legend (not for the treemap) |
 | showDataLabels | boolean | optional | false | | Values directly on the chart |
 
 ### TableWidget
@@ -108,13 +111,18 @@ Displays catalog results directly in the dashboard (read-only, no configuration)
 
 ### PropertyAggregationDataSource
 
+As implemented in change us-056-kpi-and-chart-widgets (contract `WidgetAggregation`); names of the earlier draft are replaced by IDs of the metamodel.
+
 | Attribute | Type | Optional | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| entityType | string | required | | valid EntityType ID (built-in or custom) | Entity type over which to aggregate |
-| propertyName | string | required | | must exist as a PropertyDefinition on entityType; dataType.kind must be `int` for sum/avg/min/max | Aggregated attribute |
-| aggregationFn | enum | required | | `[sum, count, avg, min, max]` | Aggregation function |
-| groupBy | string | optional | null | valid PropertyName or `architectureLayerId` or `architectureDomainId` | Grouping field; null = no grouping (a single result) |
-| filters | FilterExpression[] | optional | [] | same syntax as catalog filters | Pre-filters on the entities |
+| metatypeId | reference | conditional | | an element metatype of the instance metamodel; null only for `count` without `propertyDefId` | Entity type over which to aggregate; its subtypes are included, entities that are deleted are not, and neither are the changes of solutions. Null counts all element entities |
+| propertyDefId | reference | conditional | | a property mapped (effective now) to the metatype or a base type; `sum`, `avg`, `min`, `max` need data type `integer` | Aggregated property; null counts the entities themselves (`count` only). A `count` of a property counts the entities that have a value of it |
+| function | enum | required | | `[count, sum, avg, min, max]` | Aggregation function; `avg` keeps decimals, `sum`, `min`, `max` over no values and `avg` over no values give no value ("– (no data)"), `count` gives 0 |
+| groupBy | GroupBy | conditional | null | charts only (required there); a KPI rejects it | Grouping field of a chart |
+
+`GroupBy` has the `kind` `property` (a mapped property of data type `enum`, `string`, `boolean` or `reference`, named by `propertyDefId`; a reference groups by the name of the referenced entity), `metatype` (the metatype of the entity) or `layer` (the architecture layer of the metatype). Entities without a value form the group "(none)", as do metatypes without a layer. At most 50 groups are shown, ordered by value descending and then by name; the rest is aggregated with the same function into "Other". Grouping by the name of the entity and by architecture domain is not offered.
+
+The data of a widget carries `value` and `target` (KPI) or `series` (chart): per group the `kind` (`value`, `none`, `other`, `true`, `false`), a `key`, the `label` in the corporate language and the `labelKey` of the label bundle, so that the client names enum values, metatypes and layers in the language of the user and names "(none)", "Other", "Yes" and "No" itself.
 
 ### AxisConfig
 
@@ -149,12 +157,14 @@ Displays catalog results directly in the dashboard (read-only, no configuration)
 |---|---|---|---|
 | BR-01 | `Dashboard.name` must be unique per scope (`instance`: global; `personal`: per owner), compared case-insensitively after trimming; a taken name is rejected with 422 `dashboard-name-taken` | onCreate, onUpdate | – |
 | BR-02 | `CatalogQueryDataSource.catalogId` must point to an existing catalog that is visible to the requesting user; a shared dashboard shows shared catalogs only; a deleted or invisible catalog gives an error widget on query, not an error of the dashboard | onCreate, onUpdate, onQuery | – |
-| BR-03 | `PropertyAggregationDataSource.propertyName` must be a valid `PropertyDefinition` on the referenced `entityType` | onCreate, onUpdate | – |
-| BR-04 | `PropertyAggregationDataSource.aggregationFn` = `sum` / `avg` / `min` / `max` requires `propertyName` with `dataType.kind=int` | onCreate, onUpdate | – |
-| BR-05 | `ChartWidget` with `chartType=pie` or `chartType=donut` may have exactly one Y-axis | onCreate, onUpdate | – |
+| BR-03 | `PropertyAggregationDataSource.propertyDefId` must be mapped to the referenced `metatypeId` (or a base type) and `metatypeId` must be an existing element metatype | onCreate, onUpdate, onQuery | REQ-053 |
+| BR-04 | `PropertyAggregationDataSource.function` = `sum` / `avg` / `min` / `max` requires `propertyDefId` with data type `integer` (422 "sum requires an integer property") | onCreate, onUpdate | REQ-053 |
+| BR-05 | A `ChartWidget` has exactly one series, hence one value axis; a pie or donut has no axes | onCreate, onUpdate | – |
 | BR-06 | `KPIWidget` with `comparisonMode=vs-target` must have `targetValue` set | onCreate, onUpdate | – |
 | BR-07 | `GridPosition.col + GridPosition.width` must not exceed 13 | onCreate, onUpdate | – |
 | BR-08 | Dashboards with `scope=personal` are not visible to other users (answered as not existing, 404) and cannot be shared via sharing links; holders of `settings:manage` read them, read-only | onRead | – |
+| BR-09 | An aggregation or grouping over a property whose values the reader may not read for every entity (role-restricted without a read role, or connection-scoped) gives the widget the error `restricted`; override roles do not lift it. Counting and grouping by metatype or layer are always readable | onQuery | ADR-032, REQ-056 |
+| BR-10 | A widget whose metatype or property no longer exists or no longer fits gives the error `invalid-configuration` on read; it is not deleted | onQuery | REQ-053 BR-05 |
 
 ## Example: Investment Cost Dashboard for the CIO
 
@@ -162,42 +172,43 @@ Displays catalog results directly in the dashboard (read-only, no configuration)
 dashboard:
   name: "IT Investment Planning 2026–2030"
   scope: instance
-  globalFilters: []
   widgets:
     - widgetType: kpi
       title: "Total Investment Costs (Forecast)"
-      dataSource:
-        entityType: plateau
-        propertyName: investmentCostForecast
-        aggregationFn: sum
-      unit: "CHF m"
-      gridPosition: { col: 1, row: 1, width: 3, height: 1 }
+      dataSource:                       # contract: config.aggregation
+        metatypeId: <Application Component>
+        propertyDefId: <Investment>     # data type integer
+        function: sum
+      unit: "CHF"
+      comparison: vs-target
+      targetValue: 50000000
+      gridPosition: { col: 1, row: 1, width: 4, height: 2 }
 
     - widgetType: chart
       title: "Investment Costs per Plateau"
       chartType: bar
       dataSource:
-        entityType: plateau
-        propertyName: investmentCostForecast
-        aggregationFn: sum
-        groupBy: name
-      xAxis: { propertyName: name, label: "Plateau" }
-      yAxis: { propertyName: investmentCostForecast, label: "CHF" }
-      gridPosition: { col: 4, row: 1, width: 9, height: 3 }
+        metatypeId: <Application Component>
+        propertyDefId: <Investment>
+        function: sum
+        groupBy: { kind: property, propertyDefId: <Plateau> }   # an enum property
+      unit: "CHF"
+      showLegend: true
+      showDataLabels: true
+      gridPosition: { col: 5, row: 1, width: 8, height: 3 }
 
     - widgetType: chart
-      title: "Entities by Architecture Domain"
+      title: "Entities by Architecture Layer"
       chartType: pie
       dataSource:
-        entityType: application-component
-        propertyName: id
-        aggregationFn: count
-        groupBy: architectureDomainId
-      yAxis: { propertyName: id, label: "Count" }
-      gridPosition: { col: 1, row: 2, width: 6, height: 3 }
+        metatypeId: null                # all element entities
+        propertyDefId: null
+        function: count
+        groupBy: { kind: layer }
+      gridPosition: { col: 1, row: 3, width: 4, height: 3 }
 ```
 
-**Precondition**: The plateau EntityType (or a stereotype `ManagedPlateau`) must have `PropertyDefinition { name: investmentCostForecast, dataType: { kind: int }, validationMode: warning, category: "Costs" }` defined.
+**Precondition**: the metatype has the properties "Investment" (data type `integer`) and "Plateau" (data type `enum`) mapped.
 
 ## Delimitation from Similar Objects
 
@@ -208,6 +219,7 @@ dashboard:
 
 ## Notes
 
+- 2026-11-19 (us-056-kpi-and-chart-widgets): no schema change; the JSONB configuration of `kpi` is `{dataSource, aggregation, unit?, comparison, targetValue?}` and that of `chart` is `{dataSource, aggregation, unit?, chartType, showLegend, showDataLabels}` (aggregation as above). The metamodel IDs are soft references, checked at write and on each read.
 - 2026-11-18 (us-055-dashboards): `docs/data-model.puml` has the tables `dashboards` and `dashboard_widgets` (V43). The configuration of a widget is stored as JSONB (`text`: `{content}`; `table`: `{catalogId, savedViewId?, pageSize}`) and checked by the service; the grid checks (BR-07 and the limits of `GridPosition`) also hold in the database. `owner` replaces `createdBy` (one person, the creator).
 
 ## Change History
@@ -216,3 +228,4 @@ dashboard:
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Business Engineer | Initial draft: KPI, chart, table, text widgets; CatalogQuery and PropertyAggregation data sources; C-level investment cost example |
 | 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: owner, version and limits; widget types of the first implementation; scope rules and visibility for administrators; names compared ignoring case |
+| 0.3.0 | 2026-11-19 | Fullstack Engineer | us-056-kpi-and-chart-widgets: KPI and chart widgets, the property aggregation with metamodel IDs, grouping by property, metatype or layer, the limit of 50 groups, aggregates and property visibility, errors after metamodel changes |

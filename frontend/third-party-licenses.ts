@@ -3,12 +3,14 @@ import { join } from 'node:path'
 import type { Plugin } from 'vite'
 
 /** One third-party package of the bundle (ADR-043). */
-interface BundledPackage {
+export interface BundledPackage {
   name: string
   version: string
   license: string
   repository: string
   licenseText: string
+  /** the `NOTICE` file, which Apache-2.0 section 4(d) requires to be passed on */
+  noticeText: string
 }
 
 const NODE_MODULES = '/node_modules/'
@@ -24,7 +26,14 @@ function packageRoot(moduleId: string): string | undefined {
   return id.slice(0, index + NODE_MODULES.length) + name
 }
 
-function describe(root: string): BundledPackage {
+/** The text of the first file in the directory whose name matches, trimmed; empty if there is none. */
+function textOf(root: string, pattern: RegExp): string {
+  const file = readdirSync(root).find((entry) => pattern.test(entry))
+  return file ? readFileSync(join(root, file), 'utf8').trim() : ''
+}
+
+/** The license and the notice of a package in `root` (a directory with a `package.json`). */
+export function describePackage(root: string): BundledPackage {
   const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
     name: string
     version: string
@@ -35,20 +44,26 @@ function describe(root: string): BundledPackage {
     typeof manifest.license === 'string' ? manifest.license : (manifest.license?.type ?? 'UNKNOWN')
   const repository =
     typeof manifest.repository === 'string' ? manifest.repository : (manifest.repository?.url ?? '')
-  const file = readdirSync(root).find((entry) => /^(licen[cs]e|copying)(\..*)?$/i.test(entry))
   return {
     name: manifest.name,
     version: manifest.version,
     license,
     repository: repository.replace(/^git\+/, '').replace(/\.git$/, ''),
-    licenseText: file ? readFileSync(join(root, file), 'utf8').trim() : '',
+    licenseText: textOf(root, /^(licen[cs]e|copying)(\..*)?$/i),
+    noticeText: textOf(root, /^notice(\..*)?$/i),
   }
 }
 
+/** The entry of a package in `third-party-licenses.txt`: header, license text and, if there is one, the notice. */
+export function licenseEntry(p: BundledPackage): string {
+  const notice = p.noticeText ? `\n\nNOTICE\n\n${p.noticeText}` : ''
+  return `${p.name} ${p.version} (${p.license})\n${p.repository}\n\n${p.licenseText || `License: ${p.license}`}${notice}\n`
+}
+
 /**
- * Lists the third-party packages that end up in the bundle and ships their license texts
- * (ADR-043): `third-party-licenses.txt` for users, `third-party-packages.json` for
- * scripts/generate_third_party_licenses.py.
+ * Lists the third-party packages that end up in the bundle and ships their license texts and
+ * notices (ADR-043; Apache-2.0 section 4(d) for `NOTICE` files): `third-party-licenses.txt` for
+ * users, `third-party-packages.json` for scripts/generate_third_party_licenses.py.
  */
 export function thirdPartyLicenses(): Plugin {
   return {
@@ -67,13 +82,13 @@ export function thirdPartyLicenses(): Plugin {
         }
       }
       const packages = [...roots]
-        .map(describe)
+        .map(describePackage)
         .sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version))
       this.emitFile({
         type: 'asset',
         fileName: 'third-party-packages.json',
         source: `${JSON.stringify(
-          packages.map(({ licenseText, ...rest }) => ({ ...rest, licenseFile: licenseText !== '' })),
+          packages.map(({ licenseText, noticeText, ...rest }) => ({ ...rest, licenseFile: licenseText !== '', noticeFile: noticeText !== '' })),
           null,
           2,
         )}\n`,
@@ -81,12 +96,7 @@ export function thirdPartyLicenses(): Plugin {
       this.emitFile({
         type: 'asset',
         fileName: 'third-party-licenses.txt',
-        source: packages
-          .map(
-            (p) =>
-              `${p.name} ${p.version} (${p.license})\n${p.repository}\n\n${p.licenseText || `License: ${p.license}`}\n`,
-          )
-          .join(`\n${'-'.repeat(72)}\n\n`),
+        source: packages.map(licenseEntry).join(`\n${'-'.repeat(72)}\n\n`),
       })
     },
   }

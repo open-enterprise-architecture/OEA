@@ -1451,7 +1451,9 @@
       "taller": "One row taller",
       "error": {
         "catalog-not-found": "Catalog not found",
-        "view-not-found": "Saved view not found"
+        "view-not-found": "Saved view not found",
+        "restricted": "The values of this property are not readable for every entity, so no aggregate is shown.",
+        "invalid-configuration": "The widget no longer fits the metamodel. Edit or remove it."
       },
       "noData": "No data",
       "noRows": "No rows",
@@ -1459,7 +1461,26 @@
       "restrictedColumn": "You may not see the values of this column.",
       "loadingPage": "Loading…",
       "pageFailed": "The page could not be loaded.",
-      "tableRegion": "Table rows"
+      "tableRegion": "Table rows",
+      "kpi": {
+        "noData": "– (no data)",
+        "target": "Target: {target}",
+        "above": "{difference} above the target",
+        "below": "{difference} below the target",
+        "onTarget": "On target",
+        "summary": "{title}: {value}"
+      },
+      "chart": {
+        "none": "(none)",
+        "other": "Other",
+        "yes": "Yes",
+        "no": "No",
+        "region": "Chart {title}",
+        "tableCaption": "Data of the chart {title}",
+        "group": "Group",
+        "value": "Value",
+        "noGroups": "No groups to show"
+      }
     },
     "shareRejected": "A dashboard with a widget on a personal catalog cannot become shared."
   },
@@ -1491,10 +1512,60 @@
       "catalogId": "Choose a catalog.",
       "savedViewId": "The saved view does not belong to the catalog.",
       "pageSize": "The page size must be 5 to 100.",
-      "type": "This widget type is not supported yet.",
+      "type": "This widget type cannot be used here.",
       "widgets": "A dashboard has at most 50 widgets.",
       "position": "The widget does not fit into the grid.",
-      "width": "Widget exceeds the grid width"
-    }
+      "width": "Widget exceeds the grid width",
+      "metatypeId": "Choose an element type, or all element types for a count.",
+      "propertyDefId": "Choose a property that fits the function.",
+      "function": "The function needs a number property.",
+      "groupBy": "Choose a grouping that fits the element type.",
+      "unit": "The unit may have at most 20 characters.",
+      "targetValue": "Enter a target value.",
+      "chartType": "Choose a chart type.",
+      "comparison": "This comparison is not supported.",
+      "aggregation": "Complete the aggregation."
+    },
+    "kpi": "KPI",
+    "kpiHint": "One aggregated value",
+    "chart": "Chart",
+    "chartHint": "An aggregation as bars, lines or segments",
+    "metatype": "Element type",
+    "allElementTypes": "All element types",
+    "metatypePlaceholder": "Choose an element type",
+    "function": "Function",
+    "functions": {
+      "count": "Count",
+      "sum": "Sum",
+      "avg": "Average",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "property": "Property",
+    "noProperty": "The entities themselves",
+    "propertyHelp": "Sum, average, minimum and maximum need a number property",
+    "groupBy": "Group by",
+    "groupMetatype": "Element type",
+    "groupLayer": "Architecture layer",
+    "groupPlaceholder": "Choose a grouping",
+    "groupProperty": "Property: {name}",
+    "unit": "Unit",
+    "unitHelp": "Optional, up to 20 characters",
+    "comparison": "Comparison",
+    "comparisonNone": "None",
+    "comparisonTarget": "With a target value",
+    "targetValue": "Target value",
+    "chartType": "Chart type",
+    "chartTypes": {
+      "bar": "Bar",
+      "line": "Line",
+      "area": "Area",
+      "pie": "Pie",
+      "donut": "Donut",
+      "treemap": "Treemap"
+    },
+    "showLegend": "Show legend",
+    "showDataLabels": "Show data labels",
+    "metamodelFailed": "The element types could not be loaded."
   }
 }

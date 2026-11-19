@@ -154,6 +154,33 @@ class PropertyAccessTests {
 	}
 
 	@Test
+	void readableCompletelyNeedsPublicOrAReadRoleAndNeverTheOverrideOrALink() {
+		PropertyAccess.Snapshot architect = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("enterprise-architect"));
+		PropertyAccess.Snapshot viewer = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("viewer"));
+		// public, and role-restricted with and without a read role
+		assertThat(viewer.readableCompletely(PUBLIC)).isTrue();
+		assertThat(viewer.readableCompletely(UUID.randomUUID())).isTrue();
+		assertThat(architect.readableCompletely(COST)).isTrue();
+		assertThat(viewer.readableCompletely(COST)).isFalse();
+		// connection-scoped, without a link, with a link and as a holder of an override role
+		ScopeStore scopes = new ScopeStore(null) {
+			@Override
+			public boolean inScope(int anchor, UUID scopingType, int entityId) {
+				return true;
+			}
+		};
+		PropertyAccess.Snapshot linked = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("viewer"), 7, scopes, false);
+		assertThat(viewer.readableCompletely(SCOPED)).isFalse();
+		assertThat(linked.readable(SCOPED)).isTrue();
+		assertThat(linked.readableCompletely(SCOPED)).isFalse();
+		PropertyAccess.Snapshot override = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("viewer"), 7, scopes, true);
+		assertThat(override.readable(COST)).isTrue();
+		assertThat(override.readableCompletely(COST)).isFalse();
+		assertThat(override.readableCompletely(SCOPED)).isFalse();
+		assertThat(override.readableCompletely(PUBLIC)).isTrue();
+	}
+
+	@Test
 	void overrideReadsEveryPropertyButWritesNothingMore() {
 		PropertyAccess.Snapshot override = new PropertyAccess.Snapshot(VISIBILITIES, Set.of("migration-support"), null,
 				null, true);

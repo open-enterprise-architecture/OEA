@@ -2,8 +2,9 @@
 
 **ID**: US-057
 **Story Points**: 8
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: done
+**Sprint**: S17
+**Implementation**: OpenSpec change `us-056-kpi-and-chart-widgets` – chart widgets of the types bar, line, area, pie, donut and treemap (Apache ECharts) with the property aggregation, grouping by a property, the element type or the architecture layer, legend and data labels, at most 50 groups with "Other"; grouping by architecture domain and by the entity name is not offered (owner decision 2026-11-18: property, metatype and layer)
 
 ## Story
 
@@ -19,26 +20,26 @@ As a Lead Enterprise Architect, I want to add chart widgets (bar, line, pie, don
 
 **AC1** (bar chart: costs per plateau):
 
-- Given: 3 plateau instances with investmentCostForecast: P1=5M, P2=12M, P3=25M
-- When: Kurt configures chart widget: chartType=bar, entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum, groupBy=name
-- Then: Bar chart with 3 bars; X axis = plateau name; Y axis = amount; bar heights correct
+- Given: applications with the integer property "Investment" and the enum property "Plateau" with the values P1, P2 and P3, summing to P1=5M, P2=12M, P3=25M
+- When: Kurt configures chart widget: chartType=bar, the element type, property "Investment", function=sum, groupBy = the property "Plateau"
+- Then: Bar chart with 3 bars; X axis = the labels of the enum values; Y axis = amount; bar heights correct
 
-**AC2** (pie chart: applications by domain):
+**AC2** (pie chart: applications by property):
 
-- Given: 20 ApplicationComponents, 12 domain=finance, 8 domain=hr
-- When: Chart widget: chartType=pie, entityType=application-component, propertyName=id, aggregationFn=count, groupBy=architectureDomainId
-- Then: Pie chart with 2 segments (Finance 60%, HR 40%); labels show domain names (not IDs)
+- Given: 20 applications, 12 with the enum property "Domain" = Finance, 8 = HR
+- When: Chart widget: chartType=pie, the element type, function=count, groupBy = the property "Domain"
+- Then: Pie chart with 2 segments (Finance 60%, HR 40%); labels show the names (not IDs)
+- Note: grouping by architecture domains follows when domains exist (owner decision 2026-11-18)
 
-**AC3** (pie chart: two yAxis rejected):
+**AC3** (pie chart: one series):
 
-- When: chartType=pie configured with two yAxis entries
-- Then: HTTP 422 "pie allows exactly one Y axis"
+- A chart widget shows one series, so a pie with two Y axes cannot be configured; the contract has no axes
 
-**AC4** (groupBy=architectureLayerId):
+**AC4** (groupBy = architecture layer):
 
-- Given: EntityTypes with layer assignment; 50 entities distributed across 3 layers
-- When: Bar chart, aggregationFn=count, groupBy=architectureLayerId
-- Then: 3 bars (Business, Application, Technology); labels from ArchitectureLayerDefinition.name
+- Given: element types with layer assignment; 50 entities distributed across 3 layers
+- When: Bar chart, function=count, groupBy = the architecture layer
+- Then: 3 bars (Business, Application, Technology); labels from the layer names, translated in the language of the reader
 
 **AC5** (legend and data labels):
 
@@ -47,15 +48,15 @@ As a Lead Enterprise Architect, I want to add chart widgets (bar, line, pie, don
 
 **AC6** (invalid groupBy reference):
 
-- When: groupBy=nonExistentProperty
-- Then: HTTP 422 "groupBy 'nonExistentProperty' is not a valid PropertyDefinition name on EntityType 'application-component' and not a system value"
+- When: groupBy names a property that is not mapped to the element type, or of a data type other than enum, string, boolean or reference
+- Then: HTTP 422 naming `groupBy`
 
 ## Technical Notes
 
 - Chart types: bar, line, pie, donut, area, treemap (all the same widget configuration; only chartType changes)
-- xAxis is optional for pie/donut/treemap; for bar/line/area xAxis is mandatory if groupBy is set
-- groupBy system values `architectureDomainId` and `architectureLayerId` resolve name labels from the associated definitions (not raw IDs)
-- Chart library for the web portal: not yet decided (no ADR needed; implementation decision)
+- The axes follow from the grouping and the aggregated value; `xAxis` and `yAxis` are not configurable
+- The kinds of `groupBy` are `property`, `metatype` and `layer`; the labels are names, never IDs (the client translates them with the label bundle)
+- Chart library for the web portal: Apache ECharts (Apache-2.0, ADR-043), imported modularly
 
 ## Definition of Done
 

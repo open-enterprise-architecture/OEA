@@ -4,9 +4,9 @@ title: Add, configure, and remove a widget
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-11-18
+last_updated: 2026-11-19
 author: requirements-engineer
 references:
   use_cases:
@@ -30,7 +30,7 @@ superseded_by: []
 
 The system MUST allow those who may change a dashboard (every holder of `dashboard:manage` for a shared dashboard, the owner for a personal one) to add widgets to an existing [Dashboard](../../business-objects/dashboard.md), configure them, and remove them. Four widget types MUST be supported: `kpi`, `chart`, `table`, `text`. The widget type is immutable after creation; to change the type, the widget must be deleted and recreated. All mandatory fields of a widget type MUST be completely filled in at creation; the system MUST reject incomplete configurations with HTTP 422.
 
-**Implementation note (change us-055-dashboards, S16)**: the first implementation accepts the types `text` and `table`; `kpi` and `chart` answer 422 naming `type` until S17. A table widget needs a catalog visible to its writer (403 otherwise) and, on a shared dashboard, a shared catalog (422 naming `catalogId`). Title: 1–150 characters, at most 50 widgets per dashboard, `pageSize` 5–100. The widget writes are `POST`, `PUT` and `DELETE` on `/dashboards/{id}/widgets[/{widgetId}]` and `PUT /dashboards/{id}/layout` for several positions at once; each returns the dashboard with its new version and needs `If-Match`.
+**Implementation note (changes us-055-dashboards, S16, and us-056-kpi-and-chart-widgets, S17)**: all four types are accepted. A KPI or chart widget has the data source `property-aggregation` and the field `aggregation` ([REQ-053](./REQ-053-property-aggregation-datasource.md)); fields of another widget type are rejected with 422 naming the field, `unit` has at most 20 characters, a chart needs `groupBy` and `chartType` and has one series (hence no second axis), a KPI with the comparison `vs-target` needs `targetValue`, and `vs-previous-value` answers 422 until it is implemented. A table widget needs a catalog visible to its writer (403 otherwise) and, on a shared dashboard, a shared catalog (422 naming `catalogId`). Title: 1–150 characters, at most 50 widgets per dashboard, `pageSize` 5–100. The widget writes are `POST`, `PUT` and `DELETE` on `/dashboards/{id}/widgets[/{widgetId}]` and `PUT /dashboards/{id}/layout` for several positions at once; each returns the dashboard with its new version and needs `If-Match`.
 
 ## Rationale
 
@@ -129,3 +129,4 @@ Widget configuration takes place in the **client app**. The **web portal** rende
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; all 4 widget types, type immutability, BR-01–06 |
 | 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: who changes widgets; versions; the first implementation (text and table) |
+| 0.3.0 | 2026-11-19 | Fullstack Engineer | us-056-kpi-and-chart-widgets: KPI and chart widgets accepted; fields per type |

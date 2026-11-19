@@ -198,17 +198,6 @@ class DashboardWidgetsTests {
 
 	// ---- types
 
-	@ParameterizedTest
-	@CsvSource({ "kpi", "chart" })
-	void kpiAndChartAreNotSupportedYet(String type) {
-		Reply dashboard = shared();
-		ObjectNode widget = DashboardTestSupport.textWidget("Later", "x", pos(1, 1, 3, 1)).put("type", type);
-		Reply reply = add(this.kurt, dashboard, widget);
-		assertThat(reply.status()).isEqualTo(422);
-		assertThat(reply.names("type")).isTrue();
-		assertThat(widgetCount(dashboard)).isZero();
-	}
-
 	@Test
 	void unknownTypeIsRejected() {
 		Reply dashboard = shared();
@@ -245,6 +234,303 @@ class DashboardWidgetsTests {
 		assertThat(fiftyFirst.status()).isEqualTo(422);
 		assertThat(fiftyFirst.invalidFields()).containsExactly("widgets");
 		assertThat(widgetCount(dashboard)).isEqualTo(50);
+	}
+
+	// ---- KPI and chart widgets (us-056-kpi-and-chart-widgets, design D2)
+
+	/** An element type with an integer, a string, an enum, a boolean, a reference and a date property, all mapped. */
+	private record Model(UUID type, UUID subtype, UUID integer, UUID string, UUID enumeration, UUID bool, UUID reference,
+			UUID date, UUID text, UUID unmapped) {
+	}
+
+	private Model model() {
+		UUID type = this.support.elementType("Application", null, null);
+		UUID subtype = this.support.elementType("Cloud Application", type, null);
+		Model model = new Model(type, subtype, this.support.property("Investment", "integer", "public"),
+				this.support.property("Vendor", "string", "public"), this.support.property("Plateau", "enum", "public"),
+				this.support.property("Critical", "boolean", "public"),
+				this.support.property("Hosted by", "reference", "public"),
+				this.support.property("Go live", "date", "public"), this.support.property("Notes", "text", "public"),
+				this.support.property("Unmapped", "integer", "public"));
+		for (UUID property : new UUID[] { model.integer, model.string, model.enumeration, model.bool, model.reference,
+				model.date, model.text }) {
+			this.support.map(type, property);
+		}
+		return model;
+	}
+
+	private Reply addKpi(Reply dashboard, ObjectNode aggregation) {
+		return add(this.kurt, dashboard, DashboardTestSupport.kpiWidget("KPI", aggregation, pos(1, 1, 3, 1)));
+	}
+
+	private Reply addChart(Reply dashboard, ObjectNode aggregation) {
+		return add(this.kurt, dashboard, DashboardTestSupport.chartWidget("Chart", aggregation, "bar", pos(1, 1, 6, 2)));
+	}
+
+	private static ObjectNode count(Object type, Object property, ObjectNode groupBy) {
+		return DashboardTestSupport.aggregation(type, property, "count", groupBy);
+	}
+
+	private void assertRejected(Reply reply, Reply dashboard, String field) {
+		assertThat(reply.status()).as(reply.raw()).isEqualTo(422);
+		assertThat(reply.names(field)).as(reply.raw()).isTrue();
+		assertThat(widgetCount(dashboard)).isZero();
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "count", "sum", "avg", "min", "max" })
+	void aKpiOverAnIntegerPropertyIsAccepted(String function) {
+		Model model = model();
+		Reply dashboard = shared();
+		Reply reply = addKpi(dashboard, DashboardTestSupport.aggregation(model.type, model.integer, function, null));
+		assertThat(reply.status()).as(reply.raw()).isEqualTo(200);
+		JsonNode config = reply.json().path("widgets").get(0).path("config");
+		assertThat(config.path("aggregation").path("function").asString()).isEqualTo(function);
+		assertThat(config.path("aggregation").path("metatypeId").asString()).isEqualTo(model.type.toString());
+		assertThat(config.path("aggregation").path("propertyDefId").asString()).isEqualTo(model.integer.toString());
+		assertThat(config.path("comparison").asString()).isEqualTo("none");
+	}
+
+	@Test
+	void aKpiCountsEntitiesWithAnyPropertyOrAllElementEntities() {
+		Model model = model();
+		assertThat(addKpi(shared(), count(model.type, null, null)).status()).isEqualTo(200);
+		assertThat(addKpi(shared(), count(model.type, model.string, null)).status()).isEqualTo(200);
+		Reply all = addKpi(shared(), count(null, null, null));
+		assertThat(all.status()).as(all.raw()).isEqualTo(200);
+		assertThat(all.json().path("widgets").get(0).path("config").path("aggregation").path("metatypeId").isNull()
+				|| all.json().path("widgets").get(0).path("config").path("aggregation").path("metatypeId").isMissingNode())
+			.isTrue();
+		// a property of a base type is mapped to its subtype as well
+		assertThat(addKpi(shared(), DashboardTestSupport.aggregation(model.subtype, model.integer, "sum", null))
+			.status()).isEqualTo(200);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "sum", "avg", "min", "max" })
+	void aNumericFunctionOverANonIntegerPropertyIsRejected(String function) {
+		Model model = model();
+		Reply dashboard = shared();
+		Reply reply = addKpi(dashboard, DashboardTestSupport.aggregation(model.type, model.string, function, null));
+		assertRejected(reply, dashboard, "function");
+		assertThat(reply.json().path("detail").asString()).isEqualTo(function + " requires an integer property");
+		assertRejected(addKpi(dashboard, DashboardTestSupport.aggregation(model.type, null, function, null)), dashboard,
+				"propertyDefId");
+	}
+
+	@Test
+	void anUnmappedUnknownOrMissingMetatypeOrPropertyIsRejected() {
+		Model model = model();
+		Reply dashboard = shared();
+		assertRejected(addKpi(dashboard, count(model.type, model.unmapped, null)), dashboard, "propertyDefId");
+		assertRejected(addKpi(dashboard, count(model.type, UUID.randomUUID(), null)), dashboard, "propertyDefId");
+		assertRejected(addKpi(dashboard, count(UUID.randomUUID(), null, null)), dashboard, "metatypeId");
+		// no metatype counts all element entities, but only without a property and only for count
+		assertRejected(addKpi(dashboard, DashboardTestSupport.aggregation(null, model.integer, "sum", null)), dashboard,
+				"metatypeId");
+		assertRejected(addKpi(dashboard, count(null, model.integer, null)), dashboard, "metatypeId");
+		// a connection type is no element type
+		UUID connection = this.jdbc.queryForObject("""
+				INSERT INTO metatypes (config_id, name, is_connection)
+				VALUES ('00000000-0000-0000-0000-000000000001', ?, true) RETURNING id""", UUID.class,
+				"Flow " + UUID.randomUUID());
+		assertRejected(addKpi(dashboard, count(connection, null, null)), dashboard, "metatypeId");
+	}
+
+	@Test
+	void aKpiRejectsGroupingAndChartFields() {
+		Model model = model();
+		Reply dashboard = shared();
+		assertRejected(addKpi(dashboard, count(model.type, null, DashboardTestSupport.groupBy("metatype", null))),
+				dashboard, "groupBy");
+		for (String field : new String[] { "chartType", "showLegend", "showDataLabels", "catalogId", "savedViewId",
+				"pageSize", "content" }) {
+			ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", count(model.type, null, null), pos(1, 1, 3, 1));
+			switch (field) {
+				case "chartType" -> DashboardTestSupport.config(widget).put(field, "bar");
+				case "showLegend", "showDataLabels" -> DashboardTestSupport.config(widget).put(field, true);
+				case "pageSize" -> DashboardTestSupport.config(widget).put(field, 10);
+				case "content" -> DashboardTestSupport.config(widget).put(field, "x");
+				default -> DashboardTestSupport.config(widget).put(field, this.sharedCatalog);
+			}
+			assertRejected(add(this.kurt, dashboard, widget), dashboard, field);
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "catalog-query", "catalogId" })
+	void aKpiOrChartNeedsThePropertyAggregationDataSource(String field) {
+		Model model = model();
+		Reply dashboard = shared();
+		for (boolean chart : new boolean[] { false, true }) {
+			ObjectNode widget = chart
+					? DashboardTestSupport.chartWidget("W", count(model.type, null, DashboardTestSupport.groupBy("metatype", null)),
+							"pie", pos(1, 1, 3, 1))
+					: DashboardTestSupport.kpiWidget("W", count(model.type, null, null), pos(1, 1, 3, 1));
+			if (field.equals("catalogId")) {
+				DashboardTestSupport.config(widget).put("catalogId", this.sharedCatalog);
+			}
+			else {
+				DashboardTestSupport.config(widget).put("dataSource", field);
+			}
+			assertRejected(add(this.kurt, dashboard, widget), dashboard, field.equals("catalogId") ? field : "dataSource");
+		}
+		// the explicit property-aggregation data source is the default
+		ObjectNode explicit = DashboardTestSupport.kpiWidget("W", count(model.type, null, null), pos(1, 1, 3, 1));
+		DashboardTestSupport.config(explicit).put("dataSource", "property-aggregation");
+		assertThat(add(this.kurt, dashboard, explicit).status()).isEqualTo(200);
+	}
+
+	@Test
+	void aChartNeedsGroupingAndChartTypeAndRejectsComparisonFields() {
+		Model model = model();
+		Reply dashboard = shared();
+		assertRejected(addChart(dashboard, count(model.type, null, null)), dashboard, "groupBy");
+		ObjectNode noType = DashboardTestSupport.chartWidget("Chart",
+				count(model.type, null, DashboardTestSupport.groupBy("metatype", null)), "bar", pos(1, 1, 3, 1));
+		DashboardTestSupport.config(noType).remove("chartType");
+		assertRejected(add(this.kurt, dashboard, noType), dashboard, "chartType");
+		for (String field : new String[] { "comparison", "targetValue" }) {
+			ObjectNode widget = DashboardTestSupport.chartWidget("Chart",
+					count(model.type, null, DashboardTestSupport.groupBy("metatype", null)), "bar", pos(1, 1, 3, 1));
+			if (field.equals("comparison")) {
+				DashboardTestSupport.config(widget).put(field, "none");
+			}
+			else {
+				DashboardTestSupport.config(widget).put(field, 5);
+			}
+			assertRejected(add(this.kurt, dashboard, widget), dashboard, field);
+		}
+		ObjectNode unknown = DashboardTestSupport.chartWidget("Chart",
+				count(model.type, null, DashboardTestSupport.groupBy("metatype", null)), "radar", pos(1, 1, 3, 1));
+		assertThat(add(this.kurt, dashboard, unknown).status()).isIn(400, 422);
+		assertThat(addKpi(dashboard, DashboardTestSupport.aggregation(model.type, null, "median", null)).status())
+			.isIn(400, 422);
+		assertThat(widgetCount(dashboard)).isZero();
+	}
+
+	/** grouping property type, accepted */
+	@ParameterizedTest
+	@CsvSource({ "enumeration, true", "string, true", "bool, true", "reference, true", "date, false", "integer, false",
+			"text, false", "unmapped, false" })
+	void aGroupingPropertyMustBeOfAGroupableType(String which, boolean accepted) {
+		Model model = model();
+		UUID property = switch (which) {
+			case "enumeration" -> model.enumeration;
+			case "string" -> model.string;
+			case "bool" -> model.bool;
+			case "reference" -> model.reference;
+			case "date" -> model.date;
+			case "integer" -> model.integer;
+			case "text" -> model.text;
+			default -> model.unmapped;
+		};
+		Reply dashboard = shared();
+		Reply reply = addChart(dashboard, count(model.type, null, DashboardTestSupport.groupBy("property", property.toString())));
+		if (accepted) {
+			assertThat(reply.status()).as(reply.raw()).isEqualTo(200);
+			JsonNode groupBy = reply.json().path("widgets").get(0).path("config").path("aggregation").path("groupBy");
+			assertThat(groupBy.path("kind").asString()).isEqualTo("property");
+			assertThat(groupBy.path("propertyDefId").asString()).isEqualTo(property.toString());
+		}
+		else {
+			assertRejected(reply, dashboard, "groupBy");
+		}
+	}
+
+	@Test
+	void groupingByMetatypeOrLayerNeedsNoPropertyAndAPropertyGroupingNeedsOne() {
+		Model model = model();
+		Reply dashboard = shared();
+		assertThat(addChart(dashboard, count(model.type, null, DashboardTestSupport.groupBy("metatype", null))).status())
+			.isEqualTo(200);
+		assertThat(addChart(shared(), count(null, null, DashboardTestSupport.groupBy("layer", null))).status())
+			.isEqualTo(200);
+		Reply none = shared();
+		assertRejected(addChart(none, count(model.type, null, DashboardTestSupport.groupBy("property", null))), none,
+				"groupBy");
+		// a property grouping over all element types has no property to group by
+		assertRejected(addChart(none, count(null, null, DashboardTestSupport.groupBy("property", model.string.toString()))),
+				none, "groupBy");
+		assertThat(addChart(none, count(model.type, null, DashboardTestSupport.groupBy("diagonal", null))).status())
+			.isIn(400, 422);
+	}
+
+	@Test
+	void aChartKeepsItsSettingsAndHasDefaults() {
+		Model model = model();
+		Reply dashboard = shared();
+		ObjectNode widget = DashboardTestSupport.chartWidget("Per plateau",
+				DashboardTestSupport.aggregation(model.type, model.integer, "sum",
+						DashboardTestSupport.groupBy("property", model.enumeration.toString())),
+				"donut", pos(1, 1, 6, 2));
+		DashboardTestSupport.config(widget).put("unit", "CHF").put("showLegend", false).put("showDataLabels", true);
+		Reply added = add(this.kurt, dashboard, widget);
+		assertThat(added.status()).as(added.raw()).isEqualTo(200);
+		JsonNode config = added.json().path("widgets").get(0).path("config");
+		assertThat(config.path("chartType").asString()).isEqualTo("donut");
+		assertThat(config.path("unit").asString()).isEqualTo("CHF");
+		assertThat(config.path("showLegend").asBoolean(true)).isFalse();
+		assertThat(config.path("showDataLabels").asBoolean(false)).isTrue();
+		Reply defaults = add(this.kurt, added, DashboardTestSupport.chartWidget("Defaults",
+				count(model.type, null, DashboardTestSupport.groupBy("metatype", null)), "bar", pos(7, 1, 6, 2)));
+		JsonNode second = defaults.json().path("widgets").get(1).path("config");
+		assertThat(second.path("showLegend").asBoolean(false)).isTrue();
+		assertThat(second.path("showDataLabels").asBoolean(true)).isFalse();
+		// a KPI widget changes with a PUT, and its type stays
+		String widgetId = DashboardTestSupport.widgetId(defaults, "Per plateau");
+		Reply changed = this.support.write(HttpMethod.PUT, widgetsPath(dashboard) + "/" + widgetId, this.kurt,
+				DashboardTestSupport.kpiWidget("Per plateau", count(model.type, null, null), pos(1, 1, 3, 1)),
+				defaults.version());
+		assertThat(changed.status()).isEqualTo(422);
+		assertThat(changed.invalidFields()).containsExactly("type");
+	}
+
+	/** comparison, target, accepted, rejected field */
+	@ParameterizedTest
+	@CsvSource(value = { "vs-target, 50, true, ", "vs-target, 0, true, ", "vs-target, -2.5, true, ",
+			"vs-target, , false, targetValue", "vs-previous-value, 50, false, comparison",
+			"vs-previous-value, , false, comparison", "none, , true, ", "none, 50, true, ", ", , true, " })
+	void theComparisonOfAKpi(String comparison, Double target, boolean accepted, String field) {
+		Model model = model();
+		Reply dashboard = shared();
+		ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", count(model.type, null, null), pos(1, 1, 3, 1));
+		if (comparison != null) {
+			DashboardTestSupport.config(widget).put("comparison", comparison);
+		}
+		if (target != null) {
+			DashboardTestSupport.config(widget).put("targetValue", target);
+		}
+		Reply reply = add(this.kurt, dashboard, widget);
+		if (accepted) {
+			assertThat(reply.status()).as(reply.raw()).isEqualTo(200);
+			JsonNode config = reply.json().path("widgets").get(0).path("config");
+			assertThat(config.path("comparison").asString()).isEqualTo((comparison != null) ? comparison : "none");
+			if ("vs-target".equals(comparison)) {
+				assertThat(config.path("targetValue").asDouble()).isEqualTo(target);
+			}
+		}
+		else {
+			assertRejected(reply, dashboard, field);
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "0, true", "1, true", "20, true", "21, false" })
+	void theUnitAtTheBoundaries(int length, boolean accepted) {
+		Model model = model();
+		Reply dashboard = shared();
+		ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", count(model.type, null, null), pos(1, 1, 3, 1));
+		DashboardTestSupport.config(widget).put("unit", "u".repeat(length));
+		Reply reply = add(this.kurt, dashboard, widget);
+		if (accepted) {
+			assertThat(reply.status()).as(reply.raw()).isEqualTo(200);
+			JsonNode unit = reply.json().path("widgets").get(0).path("config").path("unit");
+			assertThat(unit.isMissingNode() || unit.isNull() ? 0 : unit.asString().length()).isEqualTo(length);
+		}
+		else {
+			assertRejected(reply, dashboard, "unit");
+		}
 	}
 
 	// ---- table widgets

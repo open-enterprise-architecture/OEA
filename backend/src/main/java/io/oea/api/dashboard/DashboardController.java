@@ -11,9 +11,12 @@ import io.oea.api.generated.model.DashboardSummary;
 import io.oea.api.generated.model.DashboardUpdate;
 import io.oea.api.generated.model.GridPosition;
 import io.oea.api.generated.model.LayoutUpdate;
+import io.oea.api.generated.model.WidgetAggregation;
 import io.oea.api.generated.model.WidgetConfig;
 import io.oea.api.generated.model.WidgetData;
 import io.oea.api.generated.model.WidgetDataError;
+import io.oea.api.generated.model.WidgetGroupBy;
+import io.oea.api.generated.model.WidgetSeriesEntry;
 import io.oea.api.generated.model.WidgetSettings;
 import io.oea.api.generated.model.WidgetType;
 import io.oea.api.generated.model.WidgetWrite;
@@ -189,6 +192,14 @@ public class DashboardController implements DashboardsApi, ViewsEditorsApi {
 		if (result.table() != null) {
 			widget.table(CatalogQueryMapping.result(result.table(), this.blocks));
 		}
+		widget.value(result.value()).target(result.target());
+		widget.series((result.series() != null) ? result.series()
+			.stream()
+			.map((entry) -> new WidgetSeriesEntry(WidgetSeriesEntry.KindEnum.fromValue(entry.kind()), entry.value())
+				.key(entry.key())
+				.label(entry.label())
+				.labelKey(entry.labelKey()))
+			.toList() : null);
 		return widget;
 	}
 
@@ -201,7 +212,23 @@ public class DashboardController implements DashboardsApi, ViewsEditorsApi {
 						position.getHeight()),
 				(config != null) ? new Dashboards.Settings(config.getContent(), config.getCatalogId(),
 						config.getSavedViewId(), config.getPageSize(),
-						(config.getDataSource() != null) ? config.getDataSource().getValue() : null) : null);
+						(config.getDataSource() != null) ? config.getDataSource().getValue() : null,
+						aggregation(config.getAggregation()), config.getUnit(),
+						(config.getComparison() != null) ? config.getComparison().getValue() : null,
+						config.getTargetValue(),
+						(config.getChartType() != null) ? config.getChartType().getValue() : null,
+						config.getShowLegend(), config.getShowDataLabels()) : null);
+	}
+
+	private static Dashboards.Aggregation aggregation(WidgetAggregation aggregation) {
+		if (aggregation == null) {
+			return null;
+		}
+		WidgetGroupBy groupBy = aggregation.getGroupBy();
+		return new Dashboards.Aggregation(aggregation.getMetatypeId(), aggregation.getPropertyDefId(),
+				aggregation.getFunction().getValue(),
+				(groupBy != null) ? new Dashboards.GroupBy(groupBy.getKind().getValue(), groupBy.getPropertyDefId())
+						: null);
 	}
 
 	private static ResponseEntity<DashboardConfig> versioned(Dashboards.Dashboard dashboard) {
@@ -222,10 +249,32 @@ public class DashboardController implements DashboardsApi, ViewsEditorsApi {
 	}
 
 	private static WidgetSettings settings(Dashboards.Settings config) {
-		return new WidgetSettings().content(config.content())
+		WidgetSettings settings = new WidgetSettings().content(config.content())
 			.catalogId(config.catalogId())
 			.savedViewId(config.savedViewId())
 			.pageSize(config.pageSize());
+		if (config.aggregation() == null) {
+			return settings;
+		}
+		Dashboards.Aggregation aggregation = config.aggregation();
+		WidgetAggregation out = new WidgetAggregation(
+				WidgetAggregation.FunctionEnum.fromValue(aggregation.function()))
+			.metatypeId(aggregation.metatypeId())
+			.propertyDefId(aggregation.propertyDefId());
+		if (aggregation.groupBy() != null) {
+			out.groupBy(new WidgetGroupBy(WidgetGroupBy.KindEnum.fromValue(aggregation.groupBy().kind()))
+				.propertyDefId(aggregation.groupBy().propertyDefId()));
+		}
+		return settings.dataSource(WidgetSettings.DataSourceEnum.PROPERTY_AGGREGATION)
+			.aggregation(out)
+			.unit(config.unit())
+			.comparison((config.comparison() != null) ? WidgetSettings.ComparisonEnum.fromValue(config.comparison())
+					: null)
+			.targetValue(config.targetValue())
+			.chartType((config.chartType() != null) ? WidgetSettings.ChartTypeEnum.fromValue(config.chartType())
+					: null)
+			.showLegend(config.showLegend())
+			.showDataLabels(config.showDataLabels());
 	}
 
 	private static WidgetType type(Dashboards.WidgetType type) {

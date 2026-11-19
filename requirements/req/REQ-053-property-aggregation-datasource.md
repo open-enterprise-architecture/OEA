@@ -4,9 +4,9 @@ title: Configure and validate PropertyAggregation DataSource
 type: functional
 priority: should
 status: proposed
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-19
 author: requirements-engineer
 references:
   use_cases:
@@ -29,7 +29,9 @@ superseded_by: []
 
 ## Statement
 
-The system MUST validate a `PropertyAggregationDataSource` configuration for `kpi` and `chart` widgets and, during data calculation (REQ-055), resolve it as an aggregation query on the entity store. The DataSource MUST support the following parameters: `entityType`, `propertyName`, `aggregationFn` (sum|count|avg|min|max), optional `groupBy` and optional `filters`. At write time (creating/editing a widget), the system MUST check whether `entityType` and `propertyName` exist in the current [MetamodelConfiguration](../../business-objects/metamodel-configuration.md).
+The system MUST validate a `PropertyAggregationDataSource` configuration (contract field `aggregation`) for `kpi` and `chart` widgets and, during data calculation (REQ-055), resolve it as an aggregation query on the entity store. The DataSource MUST support the following parameters: `metatypeId`, `propertyDefId`, `function` (count|sum|avg|min|max) and, for charts, `groupBy`. At write time (creating/editing a widget), the system MUST check against the current metamodel that `metatypeId` is an element metatype and that `propertyDefId` and a grouping property are mapped to it. Optional `filters` are not supported yet.
+
+**Implementation note (change us-056-kpi-and-chart-widgets, S17)**: the metamodel is referenced by IDs, not names. `metatypeId` includes the subtypes of the metatype; `null` is allowed only for `count` without a property and counts all element entities. Only entities that are not deleted in the catalog are counted, not the deltas of solutions. `groupBy` is `{kind, propertyDefId?}` with the kind `property` (a mapped property of data type `enum`, `string`, `boolean` or `reference`; a reference groups by the name of the referenced entity), `metatype` or `layer` (the architecture layer of the metatype). Grouping by an architecture domain follows when domains exist; grouping by the entity name is not offered. At most 50 groups are shown by value descending, the rest is aggregated with the same function into "Other", entities without a value form "(none)". An aggregation or grouping over a property whose values the reader may not read for every entity (role-restricted without a read role, or connection-scoped) gives the widget the error `restricted`; override roles do not lift it ([REQ-056](./REQ-056-dashboard-access-visibility.md), ADR-032).
 
 ## Rationale
 
@@ -37,9 +39,7 @@ PropertyAggregation is the core DataSource for C-level KPIs such as "Total inves
 
 ## Context
 
-`propertyName` references a [PropertyDefinition](../../business-objects/metamodel-configuration.md) (v0.6.0) with `dataType.kind` ∈ {int, varchar, enum}. The aggregation functions `sum`, `avg`, `min`, `max` are only valid for `kind=int`. `count` is always valid (counts entities regardless of the attribute type).
-
-The special word `id` is always valid for `propertyName` with `aggregationFn=count`, even if no explicit property "id" is defined in the MetamodelConfiguration (entity-id is system-defined).
+`propertyDefId` references a [PropertyDefinition](../../business-objects/metamodel-configuration.md) with data type `integer`, `string`, `boolean`, `enum`, `reference` and others. The aggregation functions `sum`, `avg`, `min`, `max` are only valid for `integer`. `count` counts the entities, or, with a property, the entities that have a value of it.
 
 ## Type-Specific Fields
 
@@ -47,99 +47,96 @@ The special word `id` is always valid for `propertyName` with `aggregationFn=cou
 
 | Field | Type | Optional | Description |
 |---|---|---|---|
-| entityType | string | required | EntityType ID (built-in or custom); must exist in MetamodelConfiguration |
-| propertyName | string | required | PropertyDefinition.name on entityType; `id` always valid for count |
-| aggregationFn | enum | required | `sum`, `count`, `avg`, `min`, `max` |
-| groupBy | string | optional | PropertyDefinition.name on entityType OR `architectureDomainId` OR `architectureLayerId` |
-| filters | FilterExpression[] | optional | Same filter syntax as catalog filters (REQ-047); only attributes of the entityType; no join |
+| metatypeId | UUID | conditional | element metatype of the instance metamodel; null only for `count` without `propertyDefId` |
+| propertyDefId | UUID | conditional | property mapped (effective now) to the metatype or a base type; null counts the entities |
+| function | enum | required | `count`, `sum`, `avg`, `min`, `max` |
+| groupBy | object | conditional | charts only (required there): `{kind: property\|metatype\|layer, propertyDefId?}` |
 
 ### Validation Rules at Write Time
 
 | Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `entityType` must exist as a valid type in MetamodelConfiguration (scope=instance) | onCreate, onUpdate |
-| BR-02 | `propertyName` must exist as `PropertyDefinition.name` on `entityType`; exception: `id` always valid | onCreate, onUpdate |
-| BR-03 | `aggregationFn` ∈ {sum, avg, min, max} requires `propertyName` with `dataType.kind=int`; on violation → 422 | onCreate, onUpdate |
-| BR-04 | `groupBy` (if set) must be a PropertyDefinition.name on entityType OR one of the system values `architectureDomainId`, `architectureLayerId` | onCreate, onUpdate |
-| BR-05 | If an EntityType or a PropertyDefinition is removed from the metamodel (UC-04), affected widgets are not deleted automatically; on the next data retrieval (REQ-055) they return an error status instead of data | onMetamodelChange |
+| BR-01 | `metatypeId` must be an existing element metatype of the instance metamodel; 422 naming `metatypeId` | onCreate, onUpdate |
+| BR-02 | `propertyDefId` must be mapped to the metatype (or a base type); 422 naming `propertyDefId` | onCreate, onUpdate |
+| BR-03 | `function` ∈ {sum, avg, min, max} requires a property of data type `integer`; on violation → 422 "sum requires an integer property" | onCreate, onUpdate |
+| BR-04 | `groupBy` of a chart must be a mapped property of data type enum, string, boolean or reference, the metatype, or the layer; a KPI must have none; 422 naming `groupBy` | onCreate, onUpdate |
+| BR-05 | If a metatype or property is removed from the metamodel or no longer fits (UC-04), affected widgets are not deleted automatically; on the next data retrieval (REQ-055) they return the error `invalid-configuration` instead of data; a deleted layer moves its metatypes into the group "(none)" | onMetamodelChange |
 
 ### Output During Data Calculation (REQ-055)
 
-**Without groupBy** (KPI widget):
+**KPI widget**: `{"value": 42500000}`; `null` for sum, avg, min and max over no values, 0 for count over no entities.
 
-```json
-{ "value": 42500000 }
-```
-
-**With groupBy** (chart widget):
+**Chart widget**:
 
 ```json
 {
   "series": [
-    { "group": "Plateau 2026", "value": 12000000 },
-    { "group": "Plateau 2027", "value": 30500000 }
+    { "kind": "value", "key": "P3", "label": "P3", "labelKey": "enum-value.<id>.label", "value": 25000000 },
+    { "kind": "none", "value": 1000000 }
   ]
 }
 ```
 
-**With groupBy=architectureDomainId** (pie chart by domain):
-
-```json
-{
-  "series": [
-    { "group": "finance", "groupLabel": "Finance", "value": 18 },
-    { "group": "hr", "groupLabel": "Human Resources", "value": 7 }
-  ]
-}
-```
-
-`groupLabel` is resolved from `ArchitectureDomainDefinition.name`.
+`kind` is `value`, `none`, `other`, `true` or `false`; the client translates `labelKey` with the label bundle (`enum-value.{id}.label`, `metatype.{id}.name`, `architecture-layer.{id}.name`) with `label` as fallback and names "(none)", "Other", "Yes" and "No" itself.
 
 ## Acceptance Criteria
 
 **AC1** (Valid int aggregation, no groupBy):
 
-- Given: EntityType `plateau` with PropertyDefinition `investmentCostForecast` (kind=int); 3 plateau instances with values 5000, 12000, 25000
-- When: DataSource configured with entityType=plateau, propertyName=investmentCostForecast, aggregationFn=sum
-- Then: data calculation returns `{ "value": 42000 }`
+- Given: element type "Application" with the integer property "Investment"; 3 applications with values 5 000 000, 12 000 000, 25 000 000 and a fourth one that is deleted
+- When: DataSource configured with that metatype, property and function=sum
+- Then: data calculation returns `{ "value": 42000000 }`
 
-**AC2** (Valid count aggregation with groupBy):
+**AC2** (Count with grouping):
 
-- Given: EntityType `application-component`; 20 entities, of which 12 domain=finance, 8 domain=hr
-- When: DataSource with propertyName=id, aggregationFn=count, groupBy=architectureDomainId
-- Then: series=[{group: "finance", value: 12}, {group: "hr", value: 8}]
+- Given: element type "Application" with the enum property "Plateau"; 12 applications with P1, 8 with P2
+- When: DataSource with function=count, groupBy=property "Plateau"
+- Then: series=[{value, label P1, 12}, {value, label P2, 8}]
 
-**AC3** (Invalid propertyName for sum):
+**AC3** (Invalid property for sum):
 
-- Given: PropertyDefinition `name` (kind=varchar) on EntityType `plateau`
-- When: Create widget with aggregationFn=sum, propertyName=name
-- Then: HTTP 422 "sum/avg/min/max require propertyName with dataType.kind=int"
+- Given: a property of data type `string` mapped to the element type
+- When: Create widget with function=sum on it
+- Then: HTTP 422 "sum requires an integer property"
 
-**AC4** (Invalid entityType):
+**AC4** (Invalid metatype):
 
-- When: Create widget with entityType=non-existent-type
-- Then: HTTP 422 "EntityType 'non-existent-type' not found in MetamodelConfiguration"
+- When: Create widget with a metatype ID that does not exist or is a connection metatype
+- Then: HTTP 422 naming `metatypeId`
 
 **AC5** (No entities present):
 
-- Given: EntityType `plateau` has no instances in the repository
-- When: Data calculation with aggregationFn=sum
+- Given: no entity has a value of the property
+- When: Data calculation with function=sum
 - Then: `{ "value": null }` (no error; null means "no data")
 
-**AC6** (groupBy=architectureLayerId):
+**AC6** (groupBy=layer):
 
-- Given: 3 EntityTypes each assigned to a layer; 50 entities distributed
-- When: propertyName=id, aggregationFn=count, groupBy=architectureLayerId
-- Then: series with entries per layer ID and their entity count
+- Given: 3 layers with element types each; 50 entities distributed
+- When: function=count over all element entities, groupBy=layer
+- Then: series with one entry per layer, named after the layer, summing to 50; element types without a layer form "(none)"
+
+**AC7** (more than 50 groups):
+
+- Given: 51 distinct values of the grouping property
+- When: the chart is calculated
+- Then: 50 groups and "Other" with the value of the last group
+
+**AC8** (restricted property):
+
+- Given: the property is readable only for a role the reader does not hold
+- When: the widget is calculated
+- Then: the widget has the error `restricted`; a holder of an override role without the read role gets the same
 
 ## Dependencies
 
-- Obtains validation information from: MetamodelConfiguration v0.6.0 (PropertyDefinition, ArchitectureLayers, ArchitectureDomains)
+- Obtains validation information from: MetamodelConfiguration (PropertyDefinition, mappings, architecture layers); architecture domains follow
 - Used by: REQ-052 (widget validation), REQ-055 (data calculation)
-- Filter syntax analogous to: REQ-047 (catalog filter)
+- Filters (analogous to REQ-047, catalog filter): not part of the implementation yet
 
 ## Change History
 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; BR-01–05, output format with/without groupBy, groupBy special values |
+| 0.2.0 | 2026-11-19 | Fullstack Engineer | us-056-kpi-and-chart-widgets: realigned to the implementation: metamodel IDs, groupBy kinds, limit of 50 groups, `restricted` and `invalid-configuration`; no domains and no filters yet |

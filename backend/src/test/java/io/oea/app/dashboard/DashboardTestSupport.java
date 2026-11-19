@@ -221,6 +221,142 @@ final class DashboardTestSupport {
 		}
 	}
 
+	// ---- property aggregation (us-056-kpi-and-chart-widgets)
+
+	static ObjectNode groupBy(String kind, String propertyDefId) {
+		ObjectNode groupBy = JsonMapper.shared().createObjectNode().put("kind", kind);
+		if (propertyDefId != null) {
+			groupBy.put("propertyDefId", propertyDefId);
+		}
+		return groupBy;
+	}
+
+	/** An aggregation; {@code metatypeId}, {@code propertyDefId} and {@code groupBy} may be null. */
+	static ObjectNode aggregation(Object metatypeId, Object propertyDefId, String function, ObjectNode groupBy) {
+		ObjectNode aggregation = JsonMapper.shared().createObjectNode().put("function", function);
+		if (metatypeId != null) {
+			aggregation.put("metatypeId", metatypeId.toString());
+		}
+		if (propertyDefId != null) {
+			aggregation.put("propertyDefId", propertyDefId.toString());
+		}
+		if (groupBy != null) {
+			aggregation.set("groupBy", groupBy);
+		}
+		return aggregation;
+	}
+
+	static ObjectNode kpiWidget(String title, ObjectNode aggregation, ObjectNode position) {
+		ObjectNode body = JsonMapper.shared().createObjectNode().put("type", "kpi").put("title", title);
+		body.set("position", position);
+		body.putObject("config").set("aggregation", aggregation);
+		return body;
+	}
+
+	static ObjectNode chartWidget(String title, ObjectNode aggregation, String chartType, ObjectNode position) {
+		ObjectNode body = JsonMapper.shared().createObjectNode().put("type", "chart").put("title", title);
+		body.set("position", position);
+		ObjectNode config = body.putObject("config");
+		config.set("aggregation", aggregation);
+		config.put("chartType", chartType);
+		return body;
+	}
+
+	/** The {@code config} of a widget body, to set further fields. */
+	static ObjectNode config(ObjectNode widget) {
+		return (ObjectNode) widget.path("config");
+	}
+
+	/** An element type of the instance metamodel, with an optional base type and layer. */
+	UUID elementType(String name, UUID base, UUID layer) {
+		return this.jdbc.queryForObject("""
+				INSERT INTO metatypes (config_id, name, base_metatype_id, architecture_layer_id)
+				VALUES ('00000000-0000-0000-0000-000000000001', ?, ?, ?) RETURNING id""", UUID.class,
+				name + " " + UUID.randomUUID().toString().substring(0, 8), base, layer);
+	}
+
+	UUID layer(String name) {
+		return this.jdbc.queryForObject(
+				"INSERT INTO architecture_layers (name, sort_order) VALUES (?, 0) RETURNING id", UUID.class,
+				name + " " + UUID.randomUUID().toString().substring(0, 8));
+	}
+
+	/** A property; {@code visibility} is {@code public}, {@code role-restricted} or {@code connection-scoped}. */
+	UUID property(String name, String dataType, String visibility) {
+		String key = "p_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+		UUID reference = "reference".equals(dataType) ? metatype() : null;
+		UUID scoping = "connection-scoped".equals(visibility) ? scopingType() : null;
+		return this.jdbc.queryForObject("""
+				INSERT INTO property_definitions (name, sql_column_name, data_type, visibility_mode, ref_metatype_id,
+				                                  scoping_connection_type_id)
+				VALUES (?, ?, ?, ?, ?, ?) RETURNING id""", UUID.class, name + " " + key, key, dataType, visibility,
+				reference, scoping);
+	}
+
+	private UUID scopingType() {
+		return this.jdbc.queryForObject("""
+				INSERT INTO metatypes (config_id, name, is_connection)
+				VALUES ('00000000-0000-0000-0000-000000000001', ?, true) RETURNING id""", UUID.class,
+				"Scoping " + UUID.randomUUID());
+	}
+
+	void readRole(UUID property, String role) {
+		this.jdbc.update("INSERT INTO property_visibility_roles (property_def_id, role_id, access) VALUES (?, ?, 'read')",
+				property, role);
+	}
+
+	UUID enumValue(UUID property, String value) {
+		return this.jdbc.queryForObject(
+				"INSERT INTO property_enum_values (property_def_id, value, sort_order) VALUES (?, ?, 0) RETURNING id",
+				UUID.class, property, value);
+	}
+
+	void map(UUID metatype, UUID property) {
+		this.jdbc.update("""
+				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
+				VALUES (?, ?, 'optional', DATE '2026-01-01', 'organization')""", metatype, property);
+	}
+
+	void unmap(UUID metatype, UUID property) {
+		this.jdbc.update("DELETE FROM metatype_property_mappings WHERE metatype_id = ? AND property_def_id = ?",
+				metatype, property);
+	}
+
+	int entity(UUID metatype, String name, long createdBy) {
+		return this.jdbc.queryForObject(
+				"INSERT INTO entities (metatype_id, name, created_by) VALUES (?, ?, ?) RETURNING id", Integer.class,
+				metatype, name, createdBy);
+	}
+
+	void deleted(int entity, long by) {
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", by, entity);
+	}
+
+	void integer(int entity, UUID property, long value) {
+		this.jdbc.update("INSERT INTO entity_property_values (entity_id, property_def_id, value_int) VALUES (?, ?, ?)",
+				entity, property, value);
+	}
+
+	void text(int entity, UUID property, String value) {
+		this.jdbc.update("INSERT INTO entity_property_values (entity_id, property_def_id, value_text) VALUES (?, ?, ?)",
+				entity, property, value);
+	}
+
+	void enumeration(int entity, UUID property, String value) {
+		this.jdbc.update("INSERT INTO entity_property_values (entity_id, property_def_id, value_enum) VALUES (?, ?, ?)",
+				entity, property, value);
+	}
+
+	void bool(int entity, UUID property, boolean value) {
+		this.jdbc.update("INSERT INTO entity_property_values (entity_id, property_def_id, value_bool) VALUES (?, ?, ?)",
+				entity, property, value);
+	}
+
+	void reference(int entity, UUID property, int target) {
+		this.jdbc.update("INSERT INTO entity_property_values (entity_id, property_def_id, value_ref) VALUES (?, ?, ?)",
+				entity, property, target);
+	}
+
 	long personOf(TestSession session) {
 		return this.jdbc.queryForObject("SELECT person_id FROM sessions WHERE id = ?", Long.class, session.sessionId());
 	}

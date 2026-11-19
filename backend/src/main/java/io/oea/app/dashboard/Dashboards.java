@@ -53,6 +53,8 @@ public class Dashboards {
 
 	static final int CONTENT_MAX_LENGTH = 10_000;
 
+	static final int UNIT_MAX_LENGTH = 20;
+
 	static final int MAX_WIDGETS = 50;
 
 	static final int MAX_LAYOUT_ITEMS = 50;
@@ -77,16 +79,19 @@ public class Dashboards {
 
 	private final Catalogs catalogs;
 
+	private final WidgetAggregations aggregations;
+
 	private final PermissionResolver permissions;
 
 	private final AuditWriter audit;
 
 	private final Clock clock;
 
-	Dashboards(DashboardStore store, Catalogs catalogs, PermissionResolver permissions, AuditWriter audit,
-			Clock clock) {
+	Dashboards(DashboardStore store, Catalogs catalogs, WidgetAggregations aggregations,
+			PermissionResolver permissions, AuditWriter audit, Clock clock) {
 		this.store = store;
 		this.catalogs = catalogs;
+		this.aggregations = aggregations;
 		this.permissions = permissions;
 		this.audit = audit;
 		this.clock = clock;
@@ -103,7 +108,7 @@ public class Dashboards {
 
 	}
 
-	/** The type of a widget; {@code kpi} and {@code chart} are not supported yet. */
+	/** The type of a widget. */
 	public enum WidgetType {
 
 		KPI, CHART, TABLE, TEXT;
@@ -127,12 +132,34 @@ public class Dashboards {
 	public record Position(int col, int row, int width, int height) {
 	}
 
+	/** The grouping of a chart: {@code kind} is {@code property}, {@code metatype} or {@code layer}. */
+	public record GroupBy(String kind, UUID propertyDefId) {
+	}
+
+	/**
+	 * The property aggregation of a KPI or chart widget (REQ-053): {@code function} is
+	 * {@code count}, {@code sum}, {@code avg}, {@code min} or {@code max}; {@code groupBy} is set
+	 * for a chart.
+	 */
+	public record Aggregation(UUID metatypeId, UUID propertyDefId, String function, GroupBy groupBy) {
+	}
+
 	/**
 	 * The configuration of a widget: {@code content} of a text widget; {@code catalogId},
-	 * {@code savedViewId} and {@code pageSize} of a table widget; {@code dataSource} as sent
-	 * ({@code null} means the catalog query).
+	 * {@code savedViewId} and {@code pageSize} of a table widget; {@code aggregation},
+	 * {@code unit}, {@code comparison} and {@code targetValue} of a KPI widget, {@code aggregation},
+	 * {@code unit}, {@code chartType}, {@code showLegend} and {@code showDataLabels} of a chart
+	 * widget; {@code dataSource} as sent ({@code null} means the default of the type).
 	 */
-	public record Settings(String content, UUID catalogId, UUID savedViewId, Integer pageSize, String dataSource) {
+	public record Settings(String content, UUID catalogId, UUID savedViewId, Integer pageSize, String dataSource,
+			Aggregation aggregation, String unit, String comparison, Double targetValue, String chartType,
+			Boolean showLegend, Boolean showDataLabels) {
+
+		/** The settings of a text or table widget. */
+		public Settings(String content, UUID catalogId, UUID savedViewId, Integer pageSize, String dataSource) {
+			this(content, catalogId, savedViewId, pageSize, dataSource, null, null, null, null, null, null, null);
+		}
+
 	}
 
 	/** Input of a widget. */
@@ -399,10 +426,6 @@ public class Dashboards {
 		if (input.type() == null) {
 			throw InvalidDashboardException.invalid("type", "The type is required.");
 		}
-		if (input.type() == WidgetType.KPI || input.type() == WidgetType.CHART) {
-			throw InvalidDashboardException.invalid("type", "The widget type " + input.type().dbValue()
-					+ " is not supported yet.");
-		}
 		if (existing != null && !existing.type().equals(input.type().dbValue())) {
 			throw InvalidDashboardException.invalid("type", "The type of a widget cannot change.");
 		}
@@ -420,10 +443,92 @@ public class Dashboards {
 			}
 			json.put("content", content);
 		}
-		else {
+		else if (input.type() == WidgetType.TABLE) {
 			tableConfig(principal, dashboard, config, json);
 		}
+		else {
+			aggregationConfig(input.type(), config, json);
+		}
 		return new Checked(input.type().dbValue(), title, position, JSON.writeValueAsString(json));
+	}
+
+	/** Checks the configuration of a KPI or chart widget (design D2 of us-056-kpi-and-chart-widgets). */
+	private void aggregationConfig(WidgetType type, Settings config, ObjectNode json) {
+		boolean chart = type == WidgetType.CHART;
+		if (config.dataSource() != null && !"property-aggregation".equals(config.dataSource())) {
+			throw InvalidDashboardException.invalid("dataSource",
+					"A KPI or chart widget requires the property aggregation data source.");
+		}
+		rejectSet("catalogId", config.catalogId());
+		rejectSet("savedViewId", config.savedViewId());
+		rejectSet("pageSize", config.pageSize());
+		rejectSet("content", config.content());
+		if (chart) {
+			rejectSet("comparison", config.comparison());
+			rejectSet("targetValue", config.targetValue());
+			if (config.chartType() == null) {
+				throw InvalidDashboardException.invalid("chartType", "A chart widget needs a chart type.");
+			}
+		}
+		else {
+			rejectSet("chartType", config.chartType());
+			rejectSet("showLegend", config.showLegend());
+			rejectSet("showDataLabels", config.showDataLabels());
+		}
+		if (config.aggregation() == null) {
+			throw InvalidDashboardException.invalid("aggregation", "The aggregation is required.");
+		}
+		this.aggregations.resolve(config.aggregation(), chart);
+		String unit = (config.unit() != null) ? config.unit().strip() : "";
+		if (unit.length() > UNIT_MAX_LENGTH) {
+			throw InvalidDashboardException.invalid("unit", "The unit must have at most 20 characters.");
+		}
+		json.put("dataSource", "property-aggregation");
+		json.set("aggregation", aggregationJson(config.aggregation()));
+		if (!unit.isEmpty()) {
+			json.put("unit", unit);
+		}
+		if (chart) {
+			json.put("chartType", config.chartType());
+			json.put("showLegend", config.showLegend() == null || config.showLegend());
+			json.put("showDataLabels", config.showDataLabels() != null && config.showDataLabels());
+			return;
+		}
+		String comparison = (config.comparison() != null) ? config.comparison() : "none";
+		if ("vs-previous-value".equals(comparison)) {
+			throw InvalidDashboardException.invalid("comparison", "The comparison vs-previous-value is not supported yet.");
+		}
+		if ("vs-target".equals(comparison)) {
+			if (config.targetValue() == null || !Double.isFinite(config.targetValue())) {
+				throw InvalidDashboardException.invalid("targetValue", "The comparison vs-target needs a target value.");
+			}
+			json.put("targetValue", config.targetValue());
+		}
+		json.put("comparison", comparison);
+	}
+
+	private static void rejectSet(String field, Object value) {
+		if (value != null) {
+			throw InvalidDashboardException.invalid(field, "The field " + field + " does not belong to this widget type.");
+		}
+	}
+
+	private static ObjectNode aggregationJson(Aggregation aggregation) {
+		ObjectNode json = JSON.createObjectNode();
+		json.put("function", aggregation.function());
+		if (aggregation.metatypeId() != null) {
+			json.put("metatypeId", aggregation.metatypeId().toString());
+		}
+		if (aggregation.propertyDefId() != null) {
+			json.put("propertyDefId", aggregation.propertyDefId().toString());
+		}
+		if (aggregation.groupBy() != null) {
+			ObjectNode groupBy = json.putObject("groupBy").put("kind", aggregation.groupBy().kind());
+			if (aggregation.groupBy().propertyDefId() != null) {
+				groupBy.put("propertyDefId", aggregation.groupBy().propertyDefId().toString());
+			}
+		}
+		return json;
 	}
 
 	private void tableConfig(OeaPrincipal principal, StoredDashboard dashboard, Settings config, ObjectNode json) {
@@ -541,10 +646,29 @@ public class Dashboards {
 	/** The configuration of a stored widget. */
 	static Settings settings(StoredWidget widget) {
 		JsonNode json = JSON.readTree(widget.configJson());
-		return new Settings(json.hasNonNull("content") ? json.get("content").asString() : null,
-				json.hasNonNull("catalogId") ? UUID.fromString(json.get("catalogId").asString()) : null,
-				json.hasNonNull("savedViewId") ? UUID.fromString(json.get("savedViewId").asString()) : null,
-				json.hasNonNull("pageSize") ? json.get("pageSize").asInt() : null, null);
+		return new Settings(text(json, "content"), uuid(json, "catalogId"), uuid(json, "savedViewId"),
+				json.hasNonNull("pageSize") ? json.get("pageSize").asInt() : null, text(json, "dataSource"),
+				aggregation(json.path("aggregation")), text(json, "unit"), text(json, "comparison"),
+				json.hasNonNull("targetValue") ? json.get("targetValue").asDouble() : null, text(json, "chartType"),
+				json.hasNonNull("showLegend") ? json.get("showLegend").asBoolean() : null,
+				json.hasNonNull("showDataLabels") ? json.get("showDataLabels").asBoolean() : null);
+	}
+
+	private static Aggregation aggregation(JsonNode json) {
+		if (!json.isObject()) {
+			return null;
+		}
+		JsonNode groupBy = json.path("groupBy");
+		return new Aggregation(uuid(json, "metatypeId"), uuid(json, "propertyDefId"), text(json, "function"),
+				groupBy.isObject() ? new GroupBy(text(groupBy, "kind"), uuid(groupBy, "propertyDefId")) : null);
+	}
+
+	private static String text(JsonNode json, String field) {
+		return json.hasNonNull(field) ? json.get(field).asString() : null;
+	}
+
+	private static UUID uuid(JsonNode json, String field) {
+		return json.hasNonNull(field) ? UUID.fromString(json.get(field).asString()) : null;
 	}
 
 	private static boolean canEdit(StoredDashboard stored, long personId, boolean manager) {
