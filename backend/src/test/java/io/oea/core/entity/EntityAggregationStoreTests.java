@@ -8,6 +8,8 @@ import io.oea.core.entity.EntityAggregationStore.ValueColumn;
 import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +19,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
@@ -225,6 +229,161 @@ class EntityAggregationStoreTests {
 		assertThat(rows.get(Integer.toString(datacenter)).count()).isEqualTo(2);
 		assertThat(rows.get(Integer.toString(cloud)).name()).isEqualTo("Cloud");
 		assertThat(rows.get("null").name()).isNull();
+	}
+
+	// ---- the state at a point in time (design D2 of us-056-kpi-previous-value)
+
+	private static final Instant AT = Instant.parse("2026-10-20T12:00:00Z");
+
+	private static int entityAt(UUID metatype, String name, Instant createdAt) {
+		return owner.queryForObject(
+				"INSERT INTO entities (metatype_id, name, created_by, created_at) VALUES (?, ?, ?, ?) RETURNING id",
+				Integer.class, metatype, name, person, Timestamp.from(createdAt));
+	}
+
+	private static void deleteAt(int entity, Instant deletedAt) {
+		owner.update("UPDATE entities SET deleted_at = ?, deleted_by = ? WHERE id = ?", Timestamp.from(deletedAt), person,
+				entity);
+	}
+
+	/** A history row: the value before the change of the given version; a null value is "had none". */
+	private static void history(int entity, UUID property, int version, Instant changedAt, Long old) {
+		owner.update("""
+				INSERT INTO entity_property_value_history (entity_id, property_def_id, entity_version, value_int,
+				    changed_at, changed_by) VALUES (?, ?, ?, ?, ?, ?)""", entity, property, version, old,
+				Timestamp.from(changedAt), person);
+	}
+
+	private static GroupRow at(UUID type, UUID property) {
+		return store.aggregateAt(Set.of(type), property, AT);
+	}
+
+	/** created offset (seconds from AT), deleted offset (null: not deleted), expected count */
+	@ParameterizedTest
+	@CsvSource(value = { "0, , 1", "-1, , 1", "1, , 0", "-100, 0, 0", "-100, -1, 0", "-100, 1, 1", "-100, 100, 1",
+			"-100, -100, 0" })
+	void anEntityExistsAtTheTimeIfCreatedAtOrBeforeAndNotDeletedAtOrBefore(long created, Long deleted, long expected) {
+		UUID type = metatype();
+		int entity = entityAt(type, "E", AT.plusSeconds(created));
+		if (deleted != null) {
+			deleteAt(entity, AT.plusSeconds(deleted));
+		}
+		assertThat(at(type, null)).isEqualTo(new GroupRow(null, null, expected, null, null, null));
+		// an entity of the same type that is current still counts for the current state
+		assertThat(store.aggregate(Set.of(type), null, Grouping.none()).get(0).count()).isEqualTo((deleted == null) ? 1 : 0);
+	}
+
+	@Test
+	void theValueAtTheTimeIsTheCurrentValueIfItHasNotChangedSince() {
+		UUID type = metatype();
+		UUID cost = property("integer");
+		value(entityAt(type, "A", AT.minusSeconds(60)), cost, "value_int", 5);
+		value(entityAt(type, "B", AT.minusSeconds(60)), cost, "value_int", 7);
+		// history rows of changes before or at the time do not matter
+		int changedBefore = entityAt(type, "C", AT.minusSeconds(600));
+		value(changedBefore, cost, "value_int", 100);
+		history(changedBefore, cost, 2, AT.minusSeconds(10), 99L);
+		entityAt(type, "No value", AT.minusSeconds(60));
+		assertThat(at(type, cost)).isEqualTo(new GroupRow(null, null, 3, 112L, 5L, 100L));
+	}
+
+	@Test
+	void theValueAtTheTimeIsTheOldValueOfTheFirstLaterChange() {
+		UUID type = metatype();
+		UUID cost = property("integer");
+		// changed once after the time: 5 -> 7 now
+		int once = entityAt(type, "Once", AT.minusSeconds(600));
+		value(once, cost, "value_int", 7);
+		history(once, cost, 2, AT.plusSeconds(10), 5L);
+		// changed twice after the time: 3 -> 4 -> 9; the first later row holds the value at the time
+		int twice = entityAt(type, "Twice", AT.minusSeconds(600));
+		value(twice, cost, "value_int", 9);
+		history(twice, cost, 2, AT.plusSeconds(10), 3L);
+		history(twice, cost, 3, AT.plusSeconds(20), 4L);
+		// changed before and after the time: 1 -> 2 (before) -> 6 (after)
+		int mixed = entityAt(type, "Mixed", AT.minusSeconds(600));
+		value(mixed, cost, "value_int", 6);
+		history(mixed, cost, 2, AT.minusSeconds(20), 1L);
+		history(mixed, cost, 3, AT.plusSeconds(20), 2L);
+		assertThat(at(type, cost)).isEqualTo(new GroupRow(null, null, 3, 10L, 2L, 5L));
+	}
+
+	/** change offset (seconds from AT) of 12 -> 20, the value at AT, and whether it counts */
+	@ParameterizedTest
+	@CsvSource({ "0, 20, 1", "1, 12, 1", "-1, 20, 1" })
+	void aChangeExactlyAtTheTimeHasTakenEffect(long change, long expected, long count) {
+		UUID type = metatype();
+		UUID cost = property("integer");
+		int entity = entityAt(type, "E", AT.minusSeconds(600));
+		value(entity, cost, "value_int", 20);
+		history(entity, cost, 2, AT.plusSeconds(change), 12L);
+		assertThat(at(type, cost)).isEqualTo(new GroupRow(null, null, count, expected, expected, expected));
+	}
+
+	@Test
+	void aValueRemovedAfterTheTimeCountsAndOneSetForTheFirstTimeAfterItDoesNot() {
+		UUID type = metatype();
+		UUID cost = property("integer");
+		int removed = entityAt(type, "Removed", AT.minusSeconds(600));
+		history(removed, cost, 2, AT.plusSeconds(10), 8L);
+		int added = entityAt(type, "Added", AT.minusSeconds(600));
+		value(added, cost, "value_int", 50);
+		history(added, cost, 2, AT.plusSeconds(10), null);
+		assertThat(at(type, cost)).isEqualTo(new GroupRow(null, null, 1, 8L, 8L, 8L));
+		// without a property both entities count
+		assertThat(at(type, null).count()).isEqualTo(2);
+	}
+
+	@Test
+	void anEntityCreatedAfterTheTimeNeverCountsAndADeletedOneCountsWithItsValue() {
+		UUID type = metatype();
+		UUID cost = property("integer");
+		value(entityAt(type, "Later", AT.plusSeconds(1)), cost, "value_int", 1000);
+		int deletedLater = entityAt(type, "Deleted later", AT.minusSeconds(60));
+		value(deletedLater, cost, "value_int", 4);
+		deleteAt(deletedLater, AT.plusSeconds(1));
+		int deletedBefore = entityAt(type, "Deleted before", AT.minusSeconds(60));
+		value(deletedBefore, cost, "value_int", 2000);
+		deleteAt(deletedBefore, AT);
+		assertThat(at(type, cost)).isEqualTo(new GroupRow(null, null, 1, 4L, 4L, 4L));
+	}
+
+	@Test
+	void subtypesAreIncludedAndOtherTypesAreNot() {
+		UUID type = metatype();
+		UUID subtype = metatype();
+		UUID other = metatype();
+		UUID cost = property("integer");
+		value(entityAt(type, "A", AT.minusSeconds(60)), cost, "value_int", 1);
+		value(entityAt(subtype, "B", AT.minusSeconds(60)), cost, "value_int", 2);
+		value(entityAt(other, "C", AT.minusSeconds(60)), cost, "value_int", 4);
+		assertThat(store.aggregateAt(Set.of(type, subtype), cost, AT)).isEqualTo(new GroupRow(null, null, 2, 3L, 1L, 2L));
+		assertThat(store.aggregateAt(Set.of(type), cost, AT).count()).isEqualTo(1);
+	}
+
+	@Test
+	void noEntitiesGiveACountOfZeroAndNoSum() {
+		UUID type = metatype();
+		UUID cost = property("integer");
+		entityAt(type, "Later", AT.plusSeconds(1));
+		assertThat(at(type, null)).isEqualTo(new GroupRow(null, null, 0, null, null, null));
+		assertThat(at(type, cost)).isEqualTo(new GroupRow(null, null, 0, null, null, null));
+		assertThat(store.aggregateAt(Set.of(), cost, AT)).isEqualTo(new GroupRow(null, null, 0, null, null, null));
+		assertThat(store.aggregateAt(Set.of(), null, AT)).isEqualTo(new GroupRow(null, null, 0, null, null, null));
+	}
+
+	@Test
+	void countOfANonIntegerPropertyCountsTheEntitiesThatHadAValueThen() {
+		UUID type = metatype();
+		UUID vendor = property("string");
+		int changed = entityAt(type, "Changed", AT.minusSeconds(600));
+		value(changed, vendor, "value_text", "Oracle");
+		owner.update("""
+				INSERT INTO entity_property_value_history (entity_id, property_def_id, entity_version, value_text,
+				    changed_at, changed_by) VALUES (?, ?, 2, 'SAP', ?, ?)""", changed, vendor, Timestamp.from(AT.plusSeconds(5)),
+				person);
+		entityAt(type, "None", AT.minusSeconds(600));
+		assertThat(at(type, vendor)).isEqualTo(new GroupRow(null, null, 1, null, null, null));
 	}
 
 }

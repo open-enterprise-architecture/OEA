@@ -1839,7 +1839,7 @@ components:
         dataSource:  { type: string, enum: [catalog-query, property-aggregation], description: '`catalog-query` for a table widget (the default), `property-aggregation` for a KPI or chart widget (the default)' }
         aggregation: { $ref: '#/components/schemas/WidgetAggregation' }
         unit:        { type: [string, 'null'], maxLength: 20, description: 'Unit shown after the value, up to 20 characters (KPI and chart)' }
-        comparison:  { type: string, enum: [none, vs-target, vs-previous-value], description: 'KPI only, `none` if omitted. `vs-target` needs `targetValue`; `vs-previous-value` is rejected with 422 until it is supported' }
+        comparison:  { type: string, enum: [none, vs-target, vs-previous-value], description: 'KPI only, `none` if omitted. `vs-target` needs `targetValue`; `vs-previous-value` compares with the value of the same aggregation 30 days before the request (`previousValue`, `previousAt`)' }
         targetValue: { type: [number, 'null'], format: double, description: 'The target of a KPI widget with `comparison=vs-target`' }
         chartType:   { type: string, enum: [bar, line, area, pie, donut, treemap], description: 'Chart only, required there' }
         showLegend:  { type: [boolean, 'null'], description: 'Chart only, true if omitted' }
@@ -1925,6 +1925,14 @@ components:
           type: [number, 'null']
           format: double
           description: 'The target of a KPI widget with `comparison=vs-target`'
+        previousValue:
+          type: [number, 'null']
+          format: double
+          description: 'The value of the same aggregation at `previousAt`, for a KPI widget with `comparison=vs-previous-value`; null if no entity had a value then (sum, avg, min, max), 0 for `count` over no entities, always null for other comparisons'
+        previousAt:
+          type: [string, 'null']
+          format: date-time
+          description: 'The point in time of `previousValue` (the request time minus 30 days of 24 hours); null for other comparisons'
         series:
           type: array
           maxItems: 51

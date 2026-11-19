@@ -178,6 +178,36 @@ public class DashboardModelSteps {
 			.formatted(metatype(type), CREATOR, count, property(property)));
 	}
 
+	// ---- the past of entities (us-056-kpi-previous-value): the times are relative to now
+
+	@Given("the entities named {string} were created {int} days ago")
+	public void createdDaysAgo(String prefix, int days) throws Exception {
+		oidc().update("UPDATE entities SET created_at = now() - interval '%d days' WHERE name LIKE '%s%%'"
+			.formatted(days, q(prefix)));
+	}
+
+	@Given("the entity {string} was created {int} days ago")
+	public void entityCreatedDaysAgo(String name, int days) throws Exception {
+		oidc().update("UPDATE entities SET created_at = now() - interval '%d days' WHERE id = %s".formatted(days,
+				entity(name)));
+	}
+
+	@Given("the entity {string} was soft-deleted {int} days ago")
+	public void deletedDaysAgo(String name, int days) throws Exception {
+		oidc().update("UPDATE entities SET deleted_at = now() - interval '%d days', deleted_by = created_by WHERE id = %s"
+			.formatted(days, entity(name)));
+	}
+
+	/** The change of version 2: the history row holds the value before it, the entity the current value. */
+	@Given("the {string} of the entity {string} was changed {int} days ago from {string}")
+	public void changedDaysAgo(String property, String name, int days, String old) throws Exception {
+		oidc().update("""
+				INSERT INTO entity_property_value_history (entity_id, property_def_id, entity_version, value_int,
+				    changed_at, changed_by)
+				VALUES (%s, %s, 2, %s, now() - interval '%d days', %s)""".formatted(entity(name), property(property), old,
+				days, CREATOR));
+	}
+
 	@After("@dashboard-aggregation")
 	public void remove() throws Exception {
 		if (CatalogSteps.shared() == null) {
@@ -194,6 +224,7 @@ public class DashboardModelSteps {
 		if (!this.entityPatterns.isEmpty()) {
 			instance.oidc().update("DELETE FROM entity_connections WHERE entity_id IN (" + entities
 					+ ") OR source_entity_id IN (" + entities + ") OR target_entity_id IN (" + entities + ")");
+			instance.oidc().update("DELETE FROM entity_property_value_history WHERE entity_id IN (" + entities + ")");
 			instance.oidc().update("DELETE FROM entity_property_values WHERE entity_id IN (" + entities + ")");
 			instance.oidc().update("DELETE FROM entities WHERE " + like("name", this.entityPatterns));
 		}

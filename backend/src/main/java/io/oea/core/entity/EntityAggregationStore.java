@@ -1,6 +1,8 @@
 package io.oea.core.entity;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -136,6 +138,60 @@ public class EntityAggregationStore {
 			BigDecimal sum = rs.getBigDecimal(4);
 			return new GroupRow(rs.getString(1), rs.getString(2), rs.getLong(3),
 					(sum != null) ? sum.longValueExact() : null, (Long) rs.getObject(5), (Long) rs.getObject(6));
+		}, arguments.toArray());
+	}
+
+	/**
+	 * The aggregate of the entities of the metatypes as they were at {@code at} (design D2 of
+	 * us-056-kpi-previous-value), without grouping. An entity existed at {@code at} if it was
+	 * created at or before it and not deleted at or before it. Its value of the property is the
+	 * old value of its first history row changed after {@code at} (a history row holds the value
+	 * before the change), or the current value if it has not changed since. The metatype and the
+	 * metamodel are the current ones.
+	 *
+	 * @param valuePropertyDefId the property to aggregate, or {@code null} to count every entity
+	 *     that existed; with a property, only entities that had a value of it then are aggregated
+	 * @return one row (key and name {@code null}), also over no entities (count 0)
+	 */
+	public GroupRow aggregateAt(Collection<UUID> metatypeIds, UUID valuePropertyDefId, Instant at) {
+		if (metatypeIds.isEmpty()) {
+			return new GroupRow(null, null, 0, null, null, null);
+		}
+		String[] metatypes = metatypeIds.stream().map(UUID::toString).toArray(String[]::new);
+		Timestamp time = Timestamp.from(at);
+		boolean valued = valuePropertyDefId != null;
+		StringBuilder sql = new StringBuilder();
+		List<Object> arguments = new ArrayList<>();
+		if (valued) {
+			sql.append("SELECT count(*), sum(x.value_int)::numeric, min(x.value_int), max(x.value_int) FROM (")
+				.append("SELECT CASE WHEN h.id IS NOT NULL THEN h.value_text ELSE v.value_text END AS value_text,")
+				.append(" CASE WHEN h.id IS NOT NULL THEN h.value_int ELSE v.value_int END AS value_int,")
+				.append(" CASE WHEN h.id IS NOT NULL THEN h.value_bool ELSE v.value_bool END AS value_bool,")
+				.append(" CASE WHEN h.id IS NOT NULL THEN h.value_date ELSE v.value_date END AS value_date,")
+				.append(" CASE WHEN h.id IS NOT NULL THEN h.value_ref ELSE v.value_ref END AS value_ref,")
+				.append(" CASE WHEN h.id IS NOT NULL THEN h.value_enum ELSE v.value_enum END AS value_enum")
+				.append(" FROM entities e LEFT JOIN LATERAL (")
+				.append("SELECT h.id, h.value_text, h.value_int, h.value_bool, h.value_date, h.value_ref, h.value_enum")
+				.append(" FROM entity_property_value_history h")
+				.append(" WHERE h.entity_id = e.id AND h.property_def_id = ? AND h.changed_at > ?")
+				.append(" ORDER BY h.entity_version LIMIT 1) h ON true")
+				.append(" LEFT JOIN entity_property_values v ON v.entity_id = e.id AND v.property_def_id = ?")
+				.append(" WHERE e.created_at <= ? AND (e.deleted_at IS NULL OR e.deleted_at > ?)")
+				.append(" AND e.metatype_id = ANY (?::uuid[])) x")
+				.append(" WHERE num_nonnulls(x.value_text, x.value_int, x.value_bool, x.value_date, x.value_ref, x.value_enum) > 0");
+			arguments.addAll(List.of(valuePropertyDefId, time, valuePropertyDefId, time, time));
+		}
+		else {
+			sql.append("SELECT count(*), NULL::numeric, NULL::int8, NULL::int8 FROM entities e")
+				.append(" WHERE e.created_at <= ? AND (e.deleted_at IS NULL OR e.deleted_at > ?)")
+				.append(" AND e.metatype_id = ANY (?::uuid[])");
+			arguments.addAll(List.of(time, time));
+		}
+		arguments.add(metatypes);
+		return this.jdbc.queryForObject(sql.toString(), (rs, n) -> {
+			BigDecimal sum = rs.getBigDecimal(2);
+			return new GroupRow(null, null, rs.getLong(1), (sum != null) ? sum.longValueExact() : null,
+					(Long) rs.getObject(3), (Long) rs.getObject(4));
 		}, arguments.toArray());
 	}
 

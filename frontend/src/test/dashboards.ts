@@ -122,6 +122,25 @@ export const KPI_NO_DATA_WIDGET: WidgetConfig = {
   config: { dataSource: 'property-aggregation', aggregation: { ...AGGREGATION_SUM, function: 'avg' }, unit: 'CHF', comparison: 'none' },
 }
 
+function previousKpi(suffix: string, title: string): WidgetConfig {
+  return {
+    id: `a0000000-0000-4000-8000-0000000001${suffix}`,
+    type: 'kpi',
+    title,
+    position: position(1, 1, 4, 2),
+    config: { dataSource: 'property-aggregation', aggregation: AGGREGATION_SUM, unit: 'CHF', comparison: 'vs-previous-value' },
+  }
+}
+
+/** KPIs compared with the value 30 days ago (us-056-kpi-previous-value). */
+export const KPI_INCREASED_WIDGET = previousKpi('21', 'Investment (increased)')
+export const KPI_DECREASED_WIDGET = previousKpi('22', 'Investment (decreased)')
+export const KPI_EQUAL_WIDGET = previousKpi('23', 'Investment (equal)')
+export const KPI_NO_COMPARISON_WIDGET = previousKpi('24', 'Investment (no comparison value)')
+export const KPI_PREVIOUS_ZERO_WIDGET = previousKpi('25', 'Investment (from zero)')
+
+export const PREVIOUS_AT = '2026-10-20T12:00:00Z'
+
 export const BAR_WIDGET: WidgetConfig = {
   id: 'a0000000-0000-4000-8000-000000000013',
   type: 'chart',
@@ -230,6 +249,16 @@ function aggregationData(widget: WidgetConfig, restricted: boolean): WidgetData 
   switch (widget.id) {
     case KPI_WIDGET.id:
       return { ...base, status: 'ok', value: 42000000, target: 50000000 }
+    case KPI_INCREASED_WIDGET.id:
+      return { ...base, status: 'ok', value: 42000000, previousValue: 35000000, previousAt: PREVIOUS_AT }
+    case KPI_DECREASED_WIDGET.id:
+      return { ...base, status: 'ok', value: 42000000, previousValue: 50000000, previousAt: PREVIOUS_AT }
+    case KPI_EQUAL_WIDGET.id:
+      return { ...base, status: 'ok', value: 42000000, previousValue: 42000000, previousAt: PREVIOUS_AT }
+    case KPI_NO_COMPARISON_WIDGET.id:
+      return { ...base, status: 'ok', value: 42000000, previousValue: null, previousAt: PREVIOUS_AT }
+    case KPI_PREVIOUS_ZERO_WIDGET.id:
+      return { ...base, status: 'ok', value: 42000000, previousValue: 0, previousAt: PREVIOUS_AT }
     case KPI_NO_DATA_WIDGET.id:
       return { ...base, status: 'ok', value: null }
     case BAR_WIDGET.id:

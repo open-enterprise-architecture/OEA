@@ -482,6 +482,27 @@ public class DashboardSteps {
 		assertThat(widgetData(title).path("value").isNull()).isTrue();
 	}
 
+	@Then("the widget {string} has the previous value {double}")
+	public void previousValue(String title, double value) throws Exception {
+		assertThat(widgetData(title).path("status").asString()).isEqualTo("ok");
+		assertThat(widgetData(title).path("previousValue").asDouble()).isEqualTo(value);
+	}
+
+	@Then("the widget {string} has no previous value")
+	public void noPreviousValue(String title) throws Exception {
+		JsonNode previous = widgetData(title).path("previousValue");
+		assertThat(previous.isNull() || previous.isMissingNode()).isTrue();
+	}
+
+	/** The point in time is 30 days before the read, within a minute (the test cannot fix the clock). */
+	@Then("the widget {string} compares with the point in time 30 days ago")
+	public void previousAt(String title) throws Exception {
+		java.time.Instant at = java.time.OffsetDateTime.parse(widgetData(title).path("previousAt").asString())
+			.toInstant();
+		assertThat(at).isBetween(java.time.Instant.now().minus(java.time.Duration.ofHours(30 * 24 + 1)),
+				java.time.Instant.now().minus(java.time.Duration.ofHours(30 * 24)));
+	}
+
 	@Then("the widget {string} has the target {double}")
 	public void target(String title, double target) throws Exception {
 		assertThat(widgetData(title).path("target").asDouble()).isEqualTo(target);

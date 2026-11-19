@@ -15,9 +15,14 @@ import io.oea.testsupport.containers.OeaDatabase;
 import io.oea.testsupport.containers.OeaDatabases;
 import io.oea.testsupport.containers.OeaPostgres;
 import io.oea.testsupport.containers.OeaTestKeys;
+import io.oea.testsupport.time.MutableClock;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +33,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -44,6 +53,7 @@ import tools.jackson.databind.node.ObjectNode;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(DashboardAggregationTests.ClockConfiguration.class)
 class DashboardAggregationTests {
 
 	private static final OeaDatabase postgres = OeaDatabases.freshMigrated();
@@ -79,6 +89,10 @@ class DashboardAggregationTests {
 
 	@MockitoSpyBean
 	private EntityAggregationStore store;
+
+	/** Never advanced in this class: its instant is the fixed time of every request. */
+	@Autowired
+	private MutableClock clock;
 
 	private DashboardTestSupport support;
 
@@ -638,6 +652,187 @@ class DashboardAggregationTests {
 			.json()
 			.path("widgets")
 			.get(0), "invalid-configuration");
+	}
+
+	// ---- KPI: comparison with the value 30 days ago (design D3 of us-056-kpi-previous-value)
+
+	private static final Duration PERIOD = Duration.ofHours(30 * 24);
+
+	private Instant previousAt() {
+		return this.clock.instant().minus(PERIOD);
+	}
+
+	private int entityCreatedAt(UUID type, Instant createdAt) {
+		int entity = this.support.entity(type, unique("App"), this.kurtId);
+		this.jdbc.update("UPDATE entities SET created_at = ? WHERE id = ?", Timestamp.from(createdAt), entity);
+		return entity;
+	}
+
+	/** The old value of the change of a version, changed at the given time. */
+	private void changedFrom(int entity, UUID property, int version, Instant changedAt, long old) {
+		this.jdbc.update("""
+				INSERT INTO entity_property_value_history (entity_id, property_def_id, entity_version, value_int,
+				    changed_at, changed_by) VALUES (?, ?, ?, ?, ?, ?)""", entity, property, version,
+				old, Timestamp.from(changedAt), this.kurtId);
+	}
+
+	private JsonNode compared(ObjectNode aggregation, TestSession reader) {
+		ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", aggregation, pos());
+		DashboardTestSupport.config(widget).put("comparison", "vs-previous-value");
+		return compute(widget, reader);
+	}
+
+	private static void assertNull(JsonNode node) {
+		assertThat(node.isNull() || node.isMissingNode()).as(node.toString()).isTrue();
+	}
+
+	/** function, current value, value 30 days ago */
+	@ParameterizedTest
+	@CsvSource({ "count, 3, 3", "sum, 140, 90", "avg, 46.666666666666664, 30", "min, 10, 10", "max, 100, 60" })
+	void theKpiComparesWithTheValueThirtyDaysAgo(String function, double current, double previous) {
+		UUID type = this.support.elementType("Application", null, null);
+		UUID cost = this.support.property("Cost", "integer", "public");
+		this.support.map(type, cost);
+		Instant created = previousAt().minus(Duration.ofDays(10));
+		// unchanged since then
+		this.support.integer(entityCreatedAt(type, created), cost, 10);
+		// 20 -> 30 ten days ago
+		int changed = entityCreatedAt(type, created);
+		this.support.integer(changed, cost, 30);
+		changedFrom(changed, cost, 2, this.clock.instant().minus(Duration.ofDays(10)), 20);
+		// deleted five days ago
+		int deleted = entityCreatedAt(type, created);
+		this.support.integer(deleted, cost, 60);
+		this.support.deleted(deleted, this.kurtId);
+		this.jdbc.update("UPDATE entities SET deleted_at = ? WHERE id = ?",
+				Timestamp.from(this.clock.instant().minus(Duration.ofDays(5))), deleted);
+		// created five days ago
+		this.support.integer(entityCreatedAt(type, this.clock.instant().minus(Duration.ofDays(5))), cost, 100);
+		// never had a value
+		entityCreatedAt(type, created);
+
+		JsonNode data = compared(agg(type, cost, function), this.franz);
+		assertThat(data.path("status").asString()).isEqualTo("ok");
+		assertThat(data.path("value").asDouble()).isEqualTo(current);
+		assertThat(data.path("previousValue").asDouble()).isEqualTo(previous);
+		assertThat(OffsetDateTime.parse(data.path("previousAt").asString()).toInstant()).isEqualTo(previousAt());
+		assertNull(data.path("target"));
+	}
+
+	@Test
+	void theCountGrewByCreationsAndDeletionsSince() {
+		UUID type = this.support.elementType("Application", null, null);
+		for (int i = 0; i < 12; i++) {
+			entityCreatedAt(type, previousAt().minus(Duration.ofDays(1)));
+		}
+		for (int i = 0; i < 3; i++) {
+			entityCreatedAt(type, previousAt().plus(Duration.ofDays(1)));
+		}
+		int gone = entityCreatedAt(type, previousAt().minus(Duration.ofDays(1)));
+		this.jdbc.update("UPDATE entities SET deleted_at = ?, deleted_by = ? WHERE id = ?",
+				Timestamp.from(previousAt().plus(Duration.ofDays(2))), this.kurtId, gone);
+		// 12 + the deleted one existed then; 12 + 3 exist now
+		JsonNode data = compared(agg(type, null, "count"), this.franz);
+		assertThat(data.path("value").asDouble()).isEqualTo(15.0);
+		assertThat(data.path("previousValue").asDouble()).isEqualTo(13.0);
+	}
+
+	/** seconds of the creation after the point in time, entities counted for the previous value */
+	@ParameterizedTest
+	@CsvSource({ "-1, 1", "0, 1", "1, 0" })
+	void theBoundaryOfThePeriodIsTheFixedTime(long seconds, double previous) {
+		UUID type = this.support.elementType("Application", null, null);
+		entityCreatedAt(type, previousAt().plusSeconds(seconds));
+		JsonNode data = compared(agg(type, null, "count"), this.franz);
+		assertThat(data.path("value").asDouble()).isEqualTo(1.0);
+		assertThat(data.path("previousValue").asDouble()).isEqualTo(previous);
+	}
+
+	/** function, previous value when no entity had a value 30 days ago */
+	@ParameterizedTest
+	@CsvSource({ "sum, null", "avg, null", "min, null", "max, null", "count, 0" })
+	void withoutAValueThirtyDaysAgoOnlyTheCountComparesWithZero(String function, String previous) {
+		UUID type = this.support.elementType("Application", null, null);
+		UUID cost = this.support.property("Cost", "integer", "public");
+		this.support.map(type, cost);
+		this.support.integer(entityCreatedAt(type, this.clock.instant().minus(Duration.ofDays(2))), cost, 8);
+		// an entity of that time without a value does not give a comparison value either
+		entityCreatedAt(type, previousAt().minus(Duration.ofDays(2)));
+		JsonNode data = compared(agg(type, cost, function), this.franz);
+		assertThat(data.path("status").asString()).isEqualTo("ok");
+		assertThat(data.path("value").isNull()).isFalse();
+		if (previous.equals("null")) {
+			assertNull(data.path("previousValue"));
+		}
+		else {
+			assertThat(data.path("previousValue").asDouble()).isEqualTo(Double.parseDouble(previous));
+		}
+		assertThat(OffsetDateTime.parse(data.path("previousAt").asString()).toInstant()).isEqualTo(previousAt());
+	}
+
+	@Test
+	void otherComparisonsHaveNoPreviousValue() {
+		UUID type = this.support.elementType("Application", null, null);
+		entityCreatedAt(type, previousAt().minus(Duration.ofDays(1)));
+		JsonNode none = kpi(agg(type, null, "count"), this.franz);
+		assertNull(none.path("previousValue"));
+		assertNull(none.path("previousAt"));
+		ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", agg(type, null, "count"), pos());
+		DashboardTestSupport.config(widget).put("comparison", "vs-target").put("targetValue", 5);
+		JsonNode target = compute(widget, this.franz);
+		assertNull(target.path("previousValue"));
+		assertNull(target.path("previousAt"));
+	}
+
+	@Test
+	void aRestrictedPropertyShowsNeitherValueAndRunsNoQuery() {
+		UUID type = this.support.elementType("Application", null, null);
+		UUID investment = this.support.property("Investment", "integer", "role-restricted");
+		this.support.readRole(investment, "analyst");
+		this.support.map(type, investment);
+		this.support.integer(entityCreatedAt(type, previousAt().minus(Duration.ofDays(1))), investment, 40);
+		ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", agg(type, investment, "sum"), pos());
+		DashboardTestSupport.config(widget).put("comparison", "vs-previous-value");
+		Reply dashboard = this.support.addWidget(this.kurt, shared(), widget);
+		String path = DashboardTestSupport.VIEWS + "/" + dashboard.id() + "/data";
+		clearInvocations(this.store);
+		JsonNode data = this.support.get(path, this.franz).json().path("widgets").get(0);
+		assertError(data, "restricted");
+		assertNull(data.path("previousValue"));
+		verifyNoInteractions(this.store);
+		TestSession analyst = this.principals.personWithIdpRoles("analyst", "enterprise-architect");
+		JsonNode readable = this.support.get(path, analyst).json().path("widgets").get(0);
+		assertThat(readable.path("value").asDouble()).isEqualTo(40.0);
+		assertThat(readable.path("previousValue").asDouble()).isEqualTo(40.0);
+		verify(this.store).aggregateAt(org.mockito.ArgumentMatchers.anyCollection(),
+				org.mockito.ArgumentMatchers.eq(investment), org.mockito.ArgumentMatchers.eq(previousAt()));
+	}
+
+	@Test
+	void aConfigurationThatNoLongerFitsIsStillInvalidWithTheComparison() {
+		UUID type = this.support.elementType("Application", null, null);
+		UUID cost = this.support.property("Cost", "integer", "public");
+		this.support.map(type, cost);
+		ObjectNode widget = DashboardTestSupport.kpiWidget("KPI", agg(type, cost, "sum"), pos());
+		DashboardTestSupport.config(widget).put("comparison", "vs-previous-value");
+		Reply dashboard = this.support.addWidget(this.kurt, shared(), widget);
+		this.support.unmap(type, cost);
+		String id = DashboardTestSupport.widgetId(dashboard, "KPI");
+		JsonNode data = this.support.get(DashboardTestSupport.VIEWS + "/" + dashboard.id() + "/widgets/" + id + "/data",
+				this.franz).json();
+		assertError(data, "invalid-configuration");
+		assertNull(data.path("previousValue"));
+	}
+
+	@TestConfiguration(proxyBeanMethods = false)
+	static class ClockConfiguration {
+
+		@Bean
+		@Primary
+		MutableClock testClock() {
+			return new MutableClock();
+		}
+
 	}
 
 }

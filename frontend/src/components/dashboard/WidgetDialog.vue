@@ -77,7 +77,7 @@ const form = reactive<{
   propertyDefId: string
   groupBy: string
   unit: string
-  comparison: 'none' | 'vs-target'
+  comparison: 'none' | 'vs-target' | 'vs-previous-value'
   targetValue: number | undefined
   chartType: ChartType
   showLegend: boolean
@@ -95,7 +95,7 @@ const form = reactive<{
   propertyDefId: aggregation?.propertyDefId ?? NO_PROPERTY,
   groupBy: aggregation ? groupValue(aggregation.groupBy) : 'metatype',
   unit: props.widget?.config.unit ?? '',
-  comparison: props.widget?.config.comparison === 'vs-target' ? 'vs-target' : 'none',
+  comparison: props.widget?.config.comparison === 'vs-target' || props.widget?.config.comparison === 'vs-previous-value' ? props.widget.config.comparison : 'none',
   targetValue: props.widget?.config.targetValue ?? undefined,
   chartType: props.widget?.config.chartType ?? 'bar',
   showLegend: props.widget?.config.showLegend ?? true,
@@ -155,6 +155,7 @@ const chartTypeItems = computed(() =>
 const comparisonItems = computed(() => [
   { label: t('widgetDialog.comparisonNone'), value: 'none' },
   { label: t('widgetDialog.comparisonTarget'), value: 'vs-target' },
+  { label: t('widgetDialog.comparisonPreviousValue'), value: 'vs-previous-value' },
 ])
 const catalogItems = computed(() =>
   catalogs.value.filter((catalog) => !props.shared || catalog.scope === 'instance').map((catalog) => ({ label: catalog.name, value: catalog.id })),
