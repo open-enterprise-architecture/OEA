@@ -4,7 +4,7 @@ title: Calculate and retrieve dashboard data live
 type: functional
 priority: should
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-26
 last_updated: 2026-11-19
 author: requirements-engineer
@@ -50,6 +50,8 @@ Live calculation ensures that C-level dashboards always show the current reposit
 ### API Endpoint
 
 `GET /api/v1/views/dashboards/{id}/data` (the first implementation, change us-055-dashboards: widgets `{widgetId, type, status, error?: {code, message}, table?}` with `status` `ok`, `static` or `error`; `error.code` is `catalog-not-found` or `view-not-found`; the page of a table widget is the catalog query result, further pages through `GET /views/dashboards/{id}/widgets/{widgetId}/data?page=`; with change us-056-kpi-and-chart-widgets a KPI widget has `value` and `target`, a chart widget `series` `[{kind, key, label, labelKey, value}]`, and the error codes `restricted` and `invalid-configuration` are added)
+
+The web portal reads the same data with `GET /api/v1/portal/dashboards/{id}/data` and `GET /api/v1/portal/dashboards/{id}/widgets/{widgetId}/data?page=` (change us-061-portal-dashboards, permission `portal:read`): the computation is the same, with the reader's permissions and property visibility; a table widget is measured with the metrics channel `portal`; the configuration is read with `GET /api/v1/portal/dashboards/{id}` (always `canEdit: false`).
 
 **Response structure (HTTP 200)**:
 
@@ -164,3 +166,4 @@ Live calculation ensures that C-level dashboards always show the current reposit
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; widget error isolation, globalFilters, live calculation, response schema |
 | 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards: path and response of the first implementation |
 | 0.3.0 | 2026-11-19 | Fullstack Engineer | us-056-kpi-and-chart-widgets: data of KPI and chart widgets, error codes `restricted` and `invalid-configuration` |
+| 0.4.0 | 2026-11-19 | Fullstack Engineer | us-061-portal-dashboards: the same data in the web portal through the portal operations |

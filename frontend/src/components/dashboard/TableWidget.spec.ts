@@ -1,14 +1,14 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import type { WidgetData } from '../../api/dashboards'
+import { fetchWidgetData, type WidgetData } from '../../api/dashboards'
 import { dashboardApi, FILLED_DASHBOARD, ME_READER, TABLE_WIDGET, widgetData } from '../../test/dashboards'
 import type { RecordedRequest } from '../../test/fetch'
 import TableWidget from './TableWidget.vue'
 
 function mountWidget(data: WidgetData | null = widgetData(TABLE_WIDGET), recorded: RecordedRequest[] = []) {
   const fetchFn = dashboardApi({ me: ME_READER, dashboards: [FILLED_DASHBOARD], recorded })
-  return mount(TableWidget, { props: { dashboardId: FILLED_DASHBOARD.id, widgetId: TABLE_WIDGET.id, data: data ?? undefined, fetchFn }, global: { plugins: [ui] } })
+  return mount(TableWidget, { props: { data: data ?? undefined, loadPage: (page: number) => fetchWidgetData(FILLED_DASHBOARD.id, TABLE_WIDGET.id, page, fetchFn) }, global: { plugins: [ui] } })
 }
 
 // spec dashboard/widgets "Table widget", "Dashboard data" (US-058)
@@ -56,7 +56,7 @@ describe('TableWidget', () => {
     expect(wrapper.findAll('[data-testid="widget-row"]')).toHaveLength(7)
     expect(wrapper.get('[data-testid="widget-page-info"]').text()).toContain('Page 5 of 5')
     const failing = mount(TableWidget, {
-      props: { dashboardId: 'unknown', widgetId: TABLE_WIDGET.id, data: widgetData(TABLE_WIDGET), fetchFn: dashboardApi({ me: ME_READER, dashboards: [] }) },
+      props: { data: widgetData(TABLE_WIDGET), loadPage: (page: number) => fetchWidgetData('unknown', TABLE_WIDGET.id, page, dashboardApi({ me: ME_READER, dashboards: [] })) },
       global: { plugins: [ui] },
     })
     failing.findComponent({ name: 'Pagination' }).vm.$emit('update:page', 2)

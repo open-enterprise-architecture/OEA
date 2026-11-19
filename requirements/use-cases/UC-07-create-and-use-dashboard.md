@@ -5,9 +5,9 @@ status: draft
 priority: should
 target_release: v1.0
 complexity: large
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-11-18
+last_updated: 2026-11-19
 primary_actor: SH-03
 secondary_actors:
   - SH-01
@@ -173,7 +173,7 @@ As CIO, I want to open a clear dashboard with the most important architecture me
 *The CIO opens the IT investment cost dashboard in the management meeting.*
 
 1. **CIO**: opens the web portal in the browser and logs in (UC-01; anonymous access is not offered in v1, see REQ-163)
-2. **System**: shows the dashboard overview
+2. **System**: shows the page "Portal" with the section "Dashboards": the shared dashboards and the CIO's own personal ones (personal dashboards of other persons are never listed there)
 3. **CIO**: clicks "IT Investment Planning 2026–2030"
 4. **System**: renders all widgets with current data; shows loading animation during calculation
 5. **CIO**: looks at KPI and bar chart; hovers over a bar → tooltip shows the exact value
@@ -338,3 +338,4 @@ The connection to the [PropertyDefinitions](../../business-objects/metamodel-con
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; basic flow investment cost dashboard, A1–A5, acceptance criteria, out of scope |
 | 0.1.1 | 2026-10-13 | requirements-engineer | Security review SEC-05 / owner decision Q1: login required for the web portal (A1 step 1, open question closed) |
 | 0.2.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards, owner decisions 2026-11-18: every holder of `dashboard:manage` maintains shared dashboards; administrators read personal dashboards of others, read-only; error widgets named by their code |
+| 0.3.0 | 2026-11-19 | Fullstack Engineer | us-061-portal-dashboards, owner decisions 2026-11-19: the portal lists the shared dashboards and the own personal ones in the section "Dashboards" (SCR-050); the read-only view is SCR-053 |

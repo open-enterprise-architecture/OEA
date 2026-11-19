@@ -2,9 +2,9 @@
 
 **ID**: US-060
 **Story Points**: 3
-**Status**: in-progress
+**Status**: done
 **Sprint**: S16
-**Implementation**: OpenSpec change `us-055-dashboards` – the 12-column grid with its editor (drag and drop, resize, arrangement buttons and arrow keys; `PUT /dashboards/{id}/layout` for several positions in one request; overlaps are marked); AC1–AC4 done, AC5 (the portal shows the layout read-only) follows with the portal view US-061 in S17
+**Implementation**: OpenSpec change `us-055-dashboards` – the 12-column grid with its editor (drag and drop, resize, arrangement buttons and arrow keys; `PUT /dashboards/{id}/layout` for several positions in one request; overlaps are marked); AC1–AC4 done; AC5 (the portal shows the layout read-only) is done in the change `us-061-portal-dashboards`, which draws the widgets of the portal view at their saved grid positions without edit mode, drag handles or resizing
 
 ## Story
 

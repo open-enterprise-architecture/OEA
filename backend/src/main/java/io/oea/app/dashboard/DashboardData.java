@@ -131,23 +131,33 @@ public class DashboardData {
 
 	/** The data of all widgets; table widgets give their first page. */
 	public Result data(OeaPrincipal principal, UUID id) {
-		StoredDashboard stored = this.dashboards.visible(principal, id);
+		return data(principal, id, Dashboards.Reach.WORK_AREA);
+	}
+
+	/** The data of all widgets for a channel; the portal reads shared and own dashboards only. */
+	public Result data(OeaPrincipal principal, UUID id, Dashboards.Reach reach) {
+		StoredDashboard stored = this.dashboards.visible(principal, id, reach);
 		return new Result(stored.id(), this.clock.instant(),
-				this.dashboards.widgetsOf(id).stream().map((widget) -> result(principal, widget, 0)).toList());
+				this.dashboards.widgetsOf(id).stream().map((widget) -> result(principal, widget, 0, reach)).toList());
 	}
 
 	/** The data of one widget, for further pages of a table widget ({@code page} is 0-based). */
 	public WidgetResult widget(OeaPrincipal principal, UUID id, UUID widgetId, int page) {
-		this.dashboards.visible(principal, id);
+		return widget(principal, id, widgetId, page, Dashboards.Reach.WORK_AREA);
+	}
+
+	/** As {@link #widget(OeaPrincipal, UUID, UUID, int)} for a channel. */
+	public WidgetResult widget(OeaPrincipal principal, UUID id, UUID widgetId, int page, Dashboards.Reach reach) {
+		this.dashboards.visible(principal, id, reach);
 		StoredWidget widget = this.dashboards.widgetsOf(id)
 			.stream()
 			.filter((candidate) -> candidate.id().equals(widgetId))
 			.findFirst()
 			.orElseThrow(() -> new NoSuchElementException("widget " + widgetId));
-		return result(principal, widget, page);
+		return result(principal, widget, page, reach);
 	}
 
-	private WidgetResult result(OeaPrincipal principal, StoredWidget widget, int page) {
+	private WidgetResult result(OeaPrincipal principal, StoredWidget widget, int page, Dashboards.Reach reach) {
 		WidgetType type = WidgetType.valueOf(widget.type().toUpperCase(Locale.ROOT));
 		if (type == WidgetType.KPI || type == WidgetType.CHART) {
 			return aggregate(principal, widget, type);
@@ -160,7 +170,8 @@ public class DashboardData {
 			CatalogQueries.Result table = this.queries.query(principal, config.catalogId(),
 					new CatalogQueries.Request(page, config.pageSize(), null, null, List.of(), null,
 							config.savedViewId(), null),
-					CatalogQueries.Channel.DASHBOARD);
+					(reach == Dashboards.Reach.PORTAL) ? CatalogQueries.Channel.PORTAL
+							: CatalogQueries.Channel.DASHBOARD);
 			return new WidgetResult(widget.id(), type, Status.OK, null, table);
 		}
 		catch (NoSuchElementException ex) {

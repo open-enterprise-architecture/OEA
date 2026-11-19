@@ -7,7 +7,7 @@
 **Informed**: Business Engineer (data model follow-up), Backend Engineer, Frontend Engineer
 **Partially supersedes**: [ADR-006](./ADR-006-auth-stack-choice.md) (follow-up "claim mapping conventions to OEA roles"), [ADR-008](./ADR-008-gui-architecture-dual-track.md) (portal access "without login effort"), [ADR-026](./ADR-026-external-system-integration.md) (Security section: service account roles, "Entities – Write" role requirement) – see [Relation to Existing ADRs](#relation-to-existing-adrs)
 **Partially superseded**: 2026-10-15 by [ADR-042](./ADR-042-setup-phase-without-second-factor.md) — SoD-8 does not apply to the local system admin account during the setup phase
-**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite); 2026-11-05 – `metamodel:write` reads the metamodel changes, see [Amendment 2026-11-05](#amendment-2026-11-05-metamodelwrite-reads-the-metamodel-changes); 2026-11-12 – new permission `solution:write` and built-in role `solution-architect`, see [Amendment 2026-11-12](#amendment-2026-11-12-solutionwrite-and-the-role-solution-architect)
+**Amended**: 2026-11-04 – new permission `solution-metamodel:write`, see [Amendment 2026-11-04](#amendment-2026-11-04-solution-metamodelwrite); 2026-11-05 – `metamodel:write` reads the metamodel changes, see [Amendment 2026-11-05](#amendment-2026-11-05-metamodelwrite-reads-the-metamodel-changes); 2026-11-12 – new permission `solution:write` and built-in role `solution-architect`, see [Amendment 2026-11-12](#amendment-2026-11-12-solutionwrite-and-the-role-solution-architect); 2026-11-19 – personal dashboards in the portal, see [Amendment 2026-11-19](#amendment-2026-11-19-personal-dashboards-in-the-portal)
 
 ## Context and Problem
 
@@ -190,7 +190,7 @@ Notes:
 
 - The identifiers follow REQ-157 (`metamodel:write`, `settings:manage`, `auth-config:manage`); `portal:read` and `viewpoint:manage` are added. A permission for granting architecture waivers (concept §21.8 `waiver-grant`) is added when a waiver use case exists; `plateau-create` from §21.8 is covered by `entity:write`.
 - Operations that only concern the caller (own profile, own logout, own personal dashboards and saved filters, own authentication methods) require an authenticated principal and are protected by object-level ownership checks, not by a catalog permission.
-- Personal dashboards and saved filters can be created by every principal holding `entity:read` or `portal:read`.
+- Personal dashboards are created by every person holding `entity:read` (amendment 2026-11-19); the portal shows them to their owner only. Saved filters can be created by every principal holding `entity:read` or `portal:read`.
 
 ### 4. Built-in roles and permission matrix
 
@@ -290,7 +290,7 @@ Authorization is enforced in four layers. No layer relies on another one having 
 |---|---|---|---|
 | L1 Authentication | Security filter chain (`config/`) | Every operation except an explicit allowlist (login/callback endpoints, health without repository data, static client assets) requires an authenticated principal; 401 otherwise | REQ-163 |
 | L2 Function-level | API layer, generated from the contract | Each operation's declared permission(s) are checked before the controller runs; unmapped requests are denied for all principals (`denyAll` default); 403 with a generic problem body | REQ-157, REQ-158 |
-| L3 Object-level | Application layer (`io.oea.app`) | Ownership (personal dashboards, saved filters), sharing scope (`portal:read` only for instance-scope objects), deletion state (`entity:restore`), readability of referenced entities in writes, external-ID namespace ownership (REQ-177), scoping connection types (`visibility-scope:assign`), SoD rules; identical 404 for "not existing" and "not permitted" where existence is sensitive | REQ-159, REQ-161, REQ-177 |
+| L3 Object-level | Application layer (`io.oea.app`) | Ownership (personal dashboards, saved filters), sharing scope (`portal:read` only for instance-scope objects and the caller's own personal dashboards, amendment 2026-11-19), deletion state (`entity:restore`), readability of referenced entities in writes, external-ID namespace ownership (REQ-177), scoping connection types (`visibility-scope:assign`), SoD rules; identical 404 for "not existing" and "not permitted" where existence is sensitive | REQ-159, REQ-161, REQ-177 |
 | L4 Property-level | Application layer, separate component; evaluation logic in `io.oea.core` | Property visibility (REQ-124 to REQ-128) applied in one read projection used by every read channel (entity, catalog, search, history, diff, audit, portal, aggregation, lineage, roadmap, export, events, webhooks, write responses) and one write guard used by every write path; filters, sorting and grouping on unreadable properties rejected server-side | REQ-160, REQ-162 |
 
 Additional rules:
@@ -466,6 +466,17 @@ The business engineer updates `docs/data-model.puml` and the business objects; t
 - The table data of such a dashboard is computed with the administrator's own visibility (L3, L4), so the permission discloses no repository content beyond what the administrator may read.
 - For every other principal, another person's personal dashboard stays an identical 404 (L3).
 - No role changes; the permission stays admin-class.
+
+## Amendment 2026-11-19: personal dashboards in the portal
+
+**Reason.** The web portal shows dashboards (change us-061-portal-dashboards). Two sentences of this ADR no longer matched the implemented rule: "Personal dashboards and saved filters can be created by every principal holding `entity:read` or `portal:read`" (personal dashboards need `entity:read` since S16) and "`portal:read` only for instance-scope objects" (the portal also shows the own personal dashboards).
+
+**Change.**
+
+- A person with `portal:read` reads in the portal the dashboards with scope `instance` and, read-only, the own personal dashboards. The portal operations of the dashboards need `portal:read` only; service accounts get 403.
+- Another person's personal dashboard is an identical 404 (L3) in the portal, also for holders of `settings:manage`: the reading of personal dashboards of others (amendment 2026-11-18) applies to the work area only.
+- Personal dashboards are created with `entity:read`, as in the work area; the portal creates and changes nothing.
+- The data of the widgets is computed with the reader's permissions and property visibility (L4); no role changes.
 
 ## Notes
 

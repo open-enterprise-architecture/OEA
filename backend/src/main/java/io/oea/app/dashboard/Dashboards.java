@@ -42,6 +42,16 @@ public class Dashboards {
 	/** Permission for shared dashboards, the contract condition of the writes. */
 	public static final String MANAGE_PERMISSION = "dashboard:manage";
 
+	/**
+	 * The channel of a read: the work area lets {@code settings:manage} read any dashboard, the
+	 * portal admits shared and own personal dashboards only (owner decision 2026-11-19).
+	 */
+	public enum Reach {
+
+		WORK_AREA, PORTAL
+
+	}
+
 	/** Permission that reads the personal dashboards of other persons. */
 	public static final String ADMIN_PERMISSION = "settings:manage";
 
@@ -234,6 +244,28 @@ public class Dashboards {
 	}
 
 	/**
+	 * The shared dashboards and the caller's own personal ones, never editable, for the portal;
+	 * {@code settings:manage} adds nothing. Ordered by name.
+	 */
+	@Transactional(readOnly = true)
+	public List<Summary> listForPortal(OeaPrincipal principal) {
+		long personId = person(principal);
+		return this.store.visibleTo(personId, false)
+			.stream()
+			.map((stored) -> new Summary(stored.id(), stored.name(), stored.description(), stored.scope(),
+					new Owner(stored.ownerId(), stored.ownerName()), stored.widgetCount(), false))
+			.toList();
+	}
+
+	/** The dashboard for the portal: shared or own, never editable. */
+	@Transactional(readOnly = true)
+	public Dashboard getForPortal(OeaPrincipal principal, UUID id) {
+		Dashboard dashboard = dashboard(principal, visible(principal, id, Reach.PORTAL));
+		return new Dashboard(dashboard.id(), dashboard.name(), dashboard.description(), dashboard.scope(),
+				dashboard.owner(), dashboard.version(), false, dashboard.widgets());
+	}
+
+	/**
 	 * Changes name, description and scope (US-062 AC4, AC5). A shared dashboard does not become
 	 * personal; becoming shared needs {@code dashboard:manage}, a name free among the shared
 	 * dashboards and no widget on a personal catalog.
@@ -363,10 +395,15 @@ public class Dashboards {
 	 * any with {@code settings:manage}; everything else is answered as not existing (L3).
 	 */
 	StoredDashboard visible(OeaPrincipal principal, UUID id) {
+		return visible(principal, id, Reach.WORK_AREA);
+	}
+
+	/** As {@link #visible(OeaPrincipal, UUID)}; the portal ignores {@code settings:manage}. */
+	StoredDashboard visible(OeaPrincipal principal, UUID id, Reach reach) {
 		long personId = person(principal);
 		StoredDashboard stored = this.store.find(id).orElse(null);
 		if (stored == null || !("instance".equals(stored.scope()) || stored.ownerId() == personId
-				|| admin(principal))) {
+				|| reach == Reach.WORK_AREA && admin(principal))) {
 			throw new NoSuchElementException("dashboard " + id);
 		}
 		return stored;

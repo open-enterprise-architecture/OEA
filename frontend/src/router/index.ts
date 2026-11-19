@@ -17,6 +17,7 @@ import SolutionPage from '../pages/SolutionPage.vue'
 import SolutionsPage from '../pages/SolutionsPage.vue'
 import PlateausPage from '../pages/PlateausPage.vue'
 import PortalCatalogPage from '../pages/PortalCatalogPage.vue'
+import PortalDashboardPage from '../pages/PortalDashboardPage.vue'
 import PortalPage from '../pages/PortalPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
 import SecondFactorPage from '../pages/SecondFactorPage.vue'
@@ -42,6 +43,8 @@ export const router = createRouter({
     // the web portal for readers with portal:read (SCR-050, s9-portal-catalogs)
     { path: '/portal', name: 'portal', component: PortalPage },
     { path: '/portal/catalogs/:id', name: 'portal-catalog', component: PortalCatalogPage, props: true },
+    // a dashboard read-only (SCR-053, us-061-portal-dashboards)
+    { path: '/portal/dashboards/:id', name: 'portal-dashboard', component: PortalDashboardPage, props: true },
     // one record, so that switching sections and metatypes keeps the page (design D3 of scr-030)
     { path: '/metamodel/:section?/:id?', name: 'metamodel', component: MetamodelPage, props: true },
     { path: '/admin/property-visibility', name: 'property-visibility', component: PropertyVisibilityPage },

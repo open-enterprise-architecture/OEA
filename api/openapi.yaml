@@ -12547,31 +12547,113 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '501': { $ref: '#/components/responses/NotImplemented' }
 
-  /portal/dashboards/{id}/data:
+  /portal/dashboards:
     get:
-      operationId: getPortalDashboardData
-      summary: Portal dashboard data (SCR-053)
-      description: Read-only. No widget configuration; data points only.
+      operationId: listPortalDashboards
+      summary: Dashboards of the portal (SCR-050, US-061)
+      description: |
+        The dashboards with scope `instance` and the caller's own personal dashboards, ordered by
+        name (case-insensitive), each with `canEdit: false`. Personal dashboards of other persons
+        never appear, also not for holders of `settings:manage`. Service accounts get 403.
       tags: [Portal]
       x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
-      x-oea-status: planned
+      responses:
+        '200':
+          description: Visible dashboards
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DashboardSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /portal/dashboards/{id}:
+    get:
+      operationId: getPortalDashboard
+      summary: Portal dashboard configuration (SCR-053, US-061, US-060)
+      description: |
+        The dashboard with its widgets, their types, titles, settings and grid positions, always
+        with `canEdit: false`. The `version` carries no write meaning in the portal and there is
+        no `ETag`. A shared dashboard and the caller's own personal dashboard are readable; another
+        person's personal dashboard is answered with 404, like an unknown dashboard, also for
+        holders of `settings:manage`. Service accounts get 403, also for an unknown ID.
+      tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
       responses:
         '200':
-          description: Dashboard data
+          description: Dashboard configuration
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardConfig' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /portal/dashboards/{id}/data:
+    get:
+      operationId: getPortalDashboardData
+      summary: Portal dashboard data (SCR-053, US-061)
+      description: |
+        The data of all widgets, computed on each request with the reader's permissions and
+        property visibility, as `getDashboardData`. A table widget gives its first page and is
+        measured with the metrics channel `portal`. A widget that fails gets `status: error` and
+        the others are computed normally. Visibility of the dashboard and service accounts as
+        `getPortalDashboard`. A table widget whose catalog query exceeds the time limit fails the
+        request with 503 `query-timeout`.
+      tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+      responses:
+        '200':
+          description: Widget data
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DashboardData' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Not found
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/QueryTimeout' }
+
+  /portal/dashboards/{id}/widgets/{widgetId}/data:
+    get:
+      operationId: getPortalDashboardWidgetData
+      summary: Portal data of one dashboard widget (SCR-053, US-061)
+      description: |
+        The data of one widget, for further pages of a table widget. `page` is 0-based as in
+        `queryPortalCatalog`; the page size is that of the widget. Visibility, service accounts and
+        the time limit as `getPortalDashboardData`; an unknown widget is answered with 404.
+      tags: [Portal]
+      x-oea-authorization: {"access": "permission", "permissions": ["portal:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: widgetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: Widget data
           content:
-            application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+            application/json:
+              schema: { $ref: '#/components/schemas/WidgetData' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/QueryTimeout' }
 
   /portal/audit/events:
     get:
@@ -12703,7 +12785,7 @@ tags:
   - name: Audit
     description: Compliance audit log, SIEM export, integrity status and retention (ADR-024, ADR-033, SCR-054)
   - name: Portal
-    description: Web portal read-only endpoints; the shared catalogs (SCR-050) are implemented, the entity detail, diagrams, dashboards and audit events (SCR-051–054) are planned
+    description: Web portal read-only endpoints; the shared catalogs (SCR-050) and the dashboards (SCR-053) are implemented, the entity detail, diagrams and audit events (SCR-051, SCR-052, SCR-054) are planned
   - name: I18N
     description: Dynamic labels with ETag caching (ADR-025)
   - name: Events
