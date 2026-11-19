@@ -373,6 +373,7 @@
       "metatypes": "Entity types",
       "properties": "Properties",
       "categories": "Categories",
+      "layers": "Layers",
       "translations": "Translations",
       "changes": "Changes",
       "settings": "Settings",
@@ -409,7 +410,10 @@
       "back": "All entity types",
       "missing": "This entity type no longer exists.",
       "choose": "Choose an entity type",
-      "chooseHint": "Select an entity type in the list to see its properties."
+      "chooseHint": "Select an entity type in the list to see its properties.",
+      "layer": "Layer",
+      "layerHelp": "The architecture layer of the entity type; optional.",
+      "noLayer": "No layer"
     },
     "mapping": {
       "new": "Add property",
@@ -493,6 +497,26 @@
       "description": "Description",
       "none": "No categories yet."
     },
+    "layer": {
+      "list": "Layers ({count})",
+      "new": "New layer",
+      "newHint": "A layer of your organization. Charts group by layers; entity types have at most one.",
+      "edit": "Rename layer",
+      "delete": "Delete layer",
+      "deleteHint": "Delete “{name}”? A layer that entity types still have cannot be deleted.",
+      "name": "Name",
+      "nameInvalid": "Enter a name with 1 to 100 characters.",
+      "none": "No layers yet.",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "metatypeCount": "{count} entity types",
+      "limitReached": "The limit of {limit} layers is reached.",
+      "imported": "Layers of packages cannot be changed.",
+      "inUse": "It is still assigned. | It is assigned to 1 entity type, which must first lose the layer. | It is assigned to {count} entity types, which must first lose the layer.",
+      "field": "Layer",
+      "fieldHelp": "The architecture layer of the entity type; optional.",
+      "noLayer": "No layer"
+    },
     "translation": {
       "title": "Translations",
       "hint": "Names of entity types, properties, values and categories per language. An empty field uses the package translation or the name.",
@@ -507,7 +531,8 @@
         "metatype": "Entity type",
         "property-def": "Property",
         "enum-value": "Value",
-        "property-category": "Category"
+        "property-category": "Category",
+        "architecture-layer": "Layer"
       }
     },
     "lock": {
@@ -553,7 +578,8 @@
         "labels": "Translations",
         "reimport": "Re-import settings",
         "package": "Package imports",
-        "configuration": "Configurations and lock mode"
+        "configuration": "Configurations and lock mode",
+        "layer": "Layers"
       },
       "event": {
         "metatype-created": "Entity type created",
@@ -578,7 +604,10 @@
         "configuration-created": "Extension created",
         "configuration-updated": "Configuration changed",
         "configuration-deleted": "Extension deleted",
-        "edit-mode-changed": "Lock mode switched"
+        "edit-mode-changed": "Lock mode switched",
+        "layer-created": "Layer created",
+        "layer-updated": "Layer changed",
+        "layer-deleted": "Layer deleted"
       }
     },
     "reimport": {

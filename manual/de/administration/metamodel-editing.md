@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-032, US-057, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Metamodell bearbeiten
@@ -11,13 +11,15 @@ Neben dem Import von Paketen (siehe [Metamodell-Pakete](./metamodel-packages)) p
 
 ## Die Seite Metamodell {#the-metamodel-page}
 
-Wähle in der Kopfzeile *Metamodell*. Die Seite hat sechs Bereiche:
+Wähle in der Kopfzeile *Metamodell*. Die Seite hat diese Bereiche:
 
 | Bereich | Inhalt |
 |---|---|
 | Entitätstypen | die Liste aller Entitätstypen mit Kürzel und Herkunft und der gewählte Entitätstyp mit seinen Eigenschaften |
 | Eigenschaften | alle Eigenschaften mit Datentyp, Kategorie, Werten und Grenzen |
 | Kategorien | die Kategorien, die Eigenschaften gruppieren |
+| Schichten | die [Architekturschichten](#layers), zu denen Entitätstypen gehören |
+| Viewpoints | die [Viewpoints](#viewpoints) mit ihrer Notation |
 | Übersetzungen | die Namen aller Elemente pro Sprache |
 | Änderungen | wer das Metamodell wann geändert hat (nur für die Administration) |
 | Einstellungen | der Sperrmodus und was beim erneuten Import eines Pakets mit deinen eigenen Eigenschaften geschieht (nur für die Administration) |
@@ -29,10 +31,10 @@ Die Herkunft sagt dir, was du ändern darfst: *Eigene* Inhalte gehören deiner O
 ## Entitätstypen
 
 1. Wähle in *Entitätstypen* die Schaltfläche *Neu*.
-2. Gib den Namen ein, ein optionales Kürzel mit bis zu 10 Zeichen, die Reihenfolge und einen optionalen Basistyp.
+2. Gib den Namen ein, ein optionales Kürzel mit bis zu 10 Zeichen, die Reihenfolge, einen optionalen Basistyp und eine optionale [Schicht](#layers).
 3. Wähle *Speichern*. Der Entitätstyp erscheint in der Liste und ist sofort für Entitäten und Kataloge nutzbar.
 
-<Screenshot name="metamodel-entity-type-new" alt="Dialog Neuer Entitätstyp mit Name, Kürzel, Reihenfolge und Basistyp" />
+<Screenshot name="metamodel-entity-type-new" alt="Dialog Neuer Entitätstyp mit Name, Kürzel, Reihenfolge, Basistyp und Schicht" />
 
 - Namen sind über alle Entitätstypen eindeutig, unabhängig von Groß- und Kleinschreibung: *application component* wird abgelehnt, solange *Application Component* existiert.
 - Du änderst (*Bearbeiten*) und löschst (*Löschen*) nur eigene Entitätstypen.
@@ -127,6 +129,21 @@ Nutzen aktive [Lösungen](../usage/solutions) die Werte, listet der Dialog sie n
 Lösungen, die auf dasselbe [Plateau](../usage/plateaus) hinarbeiten, werden gemeinsam entschieden: Der Dialog fragt einmal für das Plateau und nennt seine Lösungen. Eine Lösung ohne Plateau wird weiterhin einzeln gefragt.
 
 Eine Eigenschaft, die eine Lösung als Snapshot behält, kann erst gelöscht werden, wenn diese Lösung live ist. Änderungen in der Erweiterung einer Lösung und Paketimporte fragen nicht nach.
+
+## Schichten {#layers}
+
+Architekturschichten ordnen Entitätstypen nach der Art ihres Inhalts, zum Beispiel *Geschäft*, *Daten*, *Anwendung* und *Technologie*, und Diagramme in Dashboards gruppieren danach. Der Bereich *Schichten* der Metamodell-Seite listet die Schichten der Instanz in ihrer Reihenfolge, mit Herkunft und der Anzahl der Entitätstypen, die sie haben; alle, die das Metamodell lesen dürfen, sehen sie. Ein Entitätstyp hat höchstens eine Schicht oder keine; du setzt sie im Dialog des Entitätstyps (*Schicht*), und die Liste und die Detailansicht des Entitätstyps zeigen sie.
+
+1. Wähle in *Schichten* *Neu* und gib den Namen ein.
+2. Wähle *Speichern*. Die Schicht erscheint am Ende der Liste.
+3. Verschiebe eine Schicht mit den Pfeilen, benenne sie mit dem Stift um oder lösche sie mit dem Papierkorb.
+
+- Der Name hat 1 bis 100 Zeichen und ist unabhängig von Gross- und Kleinschreibung eindeutig: *geschäft* wird abgelehnt, solange *Geschäft* existiert.
+- Eine Instanz hat höchstens 20 Schichten. An der Grenze ist *Neu* abgeschaltet.
+- Du änderst nur deine eigenen Schichten. Schichten eines [Pakets](./metamodel-packages#layers-in-packages) (zum Beispiel die des Starterpakets) sind schreibgeschützt, und die Entitätstypen eines Pakets ebenfalls: Um einem importierten Entitätstyp eine andere Schicht zu geben, importiere eine neue Version des Pakets.
+- Eine Schicht, die ein Entitätstyp – der Instanz oder einer Lösungserweiterung – noch hat, lässt sich nicht löschen. Die Meldung nennt die Anzahl der Entitätstypen; nimm ihnen die Schicht zuerst weg.
+- In einem [gesperrten](#lock-mode) Metamodell lassen sich auch Schichten nicht ändern; der Bereich bleibt lesbar.
+- Schichten haben Übersetzungen wie andere Elemente: Öffne [Übersetzungen](#translating-labels) und gib den Namen pro Sprache ein.
 
 ## Viewpoints {#viewpoints}
 
@@ -228,9 +245,10 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 
 - Entitätstypen, Eigenschaften und Kategorien tragen eine `version`, die auch als `ETag` zurückkommt. Schicke sie mit `If-Match: "<version>"` zurück, wenn du ein Element, eine Zuordnung, einen Wert oder eine Einstellung für den erneuten Import änderst oder löschst: Hat jemand das Element inzwischen geändert, wird die Anfrage mit `412` abgelehnt (`stale-version`, mit `currentVersion`), und nichts ändert sich. Ohne `If-Match` wird die Änderung trotzdem gemacht, deshalb sollten Skripte es mitschicken.
 - Ablehnungen nutzen die Problemtypen `name-taken`, `read-only-metatype`, `in-use` (mit der Anzahl der Entitäten in `count`), `conflict` und `validation-failed` (mit `invalidFields`).
-- Ein Label-Schlüssel nennt das Element über seine Kennung: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` oder `enum-value.{id}.label`; ein leerer Text entfernt dein Label, und ein unbekannter Schlüssel lehnt die ganze Änderung ab.
+- Ein Label-Schlüssel nennt das Element über seine Kennung: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label`, `enum-value.{id}.label` oder `architecture-layer.{id}.name`; ein leerer Text entfernt dein Label, und ein unbekannter Schlüssel lehnt die ganze Änderung ab.
 - Verbindungstypen werden mit `"isConnection": true` und den Listen `allowedSourceMetatypeIds` und `allowedTargetMetatypeIds` angelegt; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` beantwortet, welche Verbindungstypen zwei Entitätstypen in welcher Richtung verbinden dürfen.
 - `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` listet alle Einträge der Zuordnungen mit ihrem `state`. Die Einstellungen für den erneuten Import sind `PUT /metamodel/settings/reimport-policy` und `PUT /metamodel/metatypes/{id}/reimport-policy`. `PUT /metamodel/metatypes/{id}/parallel-changes` mit `{"showInBaseline": true}` und `If-Match` setzt die Markierung paralleler Änderungen; der Entitätstyp zeigt sie als `showParallelChanges`, und die Änderung wird als `metamodel.metatype-parallel-changes-changed` festgehalten.
+- Schichten: `GET /metamodel/architecture-layers` listet sie in ihrer Reihenfolge mit `metatypeCount` und `version` (Berechtigung `entity:read` oder `metamodel:write`); `POST /metamodel/architecture-layers` mit `{"name": "Business"}` legt eine am Ende an, und `PUT /metamodel/architecture-layers/{id}` mit `{"name": "Business", "sortOrder": 0}` benennt sie um und verschiebt sie. `PUT` und `DELETE` brauchen `If-Match` (`428` ohne, `412` bei einer alten Version) und antworten mit `409`: `read-only-metatype` bei einer Schicht eines Pakets, `in-use` (mit der Anzahl der Entitätstypen in `count`) bei einer Schicht, die Entitätstypen haben, und `name-taken` bei einem vergebenen Namen. Ein Name mit mehr als 100 Zeichen, ein leerer Name und die 21. Schicht ergeben `422`. Ein Entitätstyp trägt seine Schicht als `architectureLayerId` (`null` für keine) und, schreibgeschützt, `architectureLayerName`; eine unbekannte ID ergibt `422` mit `architectureLayerId`. Audit-Ereignisse: `metamodel.layer-created`, `metamodel.layer-updated` und `metamodel.layer-deleted`, aufgelistet von `GET /metamodel/changes?kind=layer`.
 - Jede Änderung schreibt ein Audit-Ereignis, zum Beispiel `metamodel.metatype-updated`, `metamodel.mapping-deleted` mit der Anzahl der betroffenen Entitäten, `metamodel.mapping-effective`, wenn ein Eintrag wirksam wird, oder `metamodel.labels-changed`.
 - `GET /metamodel/configurations` listet die Konfiguration der Instanz und die Erweiterungen mit ihrem `editMode`. `PUT /metamodel/configurations/{id}` mit `{"name": "Instance metamodel", "editMode": "import-only"}` und `If-Match` sperrt eine Konfiguration; `gui-and-import` entsperrt sie.
 

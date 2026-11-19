@@ -1,10 +1,12 @@
 import { reactive } from 'vue'
 import {
+  fetchArchitectureLayers,
   fetchCategories,
   fetchConfigurations,
   fetchGlobalReimportSetting,
   fetchMetatypes,
   fetchPropertyDefinitions,
+  type ArchitectureLayer,
   type GlobalReimportSetting,
   type MetamodelConfiguration,
   type MetatypeDetail,
@@ -23,26 +25,30 @@ export const metamodel = reactive<{
   metatypes: MetatypeDetail[]
   properties: PropertyDefinitionDetail[]
   categories: PropertyCategory[]
+  /** The architecture layers in their order (change s17-architecture-layers). */
+  layers: ArchitectureLayer[]
   globalReimportSetting?: GlobalReimportSetting
   /** The instance configuration with its edit mode (US-035). */
   instanceConfiguration?: MetamodelConfiguration
   loaded: boolean
   failed: boolean
-}>({ metatypes: [], properties: [], categories: [], loaded: false, failed: false })
+}>({ metatypes: [], properties: [], categories: [], layers: [], loaded: false, failed: false })
 
 /** Loads metatypes, property definitions, categories, the global re-import setting and the instance configuration. */
 export async function loadMetamodel(fetchFn: typeof fetch = fetch): Promise<void> {
   try {
-    const [metatypes, properties, categories] = await Promise.all([
+    const [metatypes, properties, categories, layers] = await Promise.all([
       fetchMetatypes(fetchFn),
       fetchPropertyDefinitions(fetchFn),
       fetchCategories(fetchFn),
+      fetchArchitectureLayers(fetchFn),
     ])
     metamodel.metatypes = [...metatypes].sort(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
     )
     metamodel.properties = [...properties].sort((a, b) => a.name.localeCompare(b.name))
     metamodel.categories = [...categories].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+    metamodel.layers = [...layers].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
     metamodel.failed = false
   } catch {
     metamodel.failed = true
@@ -78,6 +84,10 @@ export function metatypeById(id: string | undefined): MetatypeDetail | undefined
 
 export function propertyById(id: string | undefined): PropertyDefinitionDetail | undefined {
   return metamodel.properties.find((property) => property.id === id)
+}
+
+export function layerById(id: string | null | undefined): ArchitectureLayer | undefined {
+  return metamodel.layers.find((layer) => layer.id === id)
 }
 
 export function categoryById(id: string | undefined): PropertyCategory | undefined {

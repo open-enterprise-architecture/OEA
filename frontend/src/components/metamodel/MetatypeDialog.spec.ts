@@ -51,6 +51,46 @@ describe('MetatypeDialog', () => {
     )
   })
 
+  // spec metamodel/architecture-layers "Assign a layer" (change s17-architecture-layers)
+  it('offers the layers and None, and sends no layer by default', async () => {
+    const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)
+    const layer = wrapper.findAllComponents({ name: 'Select' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-layer')!
+    expect((layer.props('items') as { label: string; value: string }[]).map((item) => item.label)).toEqual(['No layer', 'Business', 'Application', 'Technology', 'Strategy'])
+    expect(layer.props('modelValue')).toBe('-')
+    await field(wrapper, 'metatype-name').setValue('Zone 3')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.requests.find((request) => request.method === 'POST')?.body).toEqual(expect.objectContaining({ architectureLayerId: null }))
+  })
+
+  it('sends the chosen layer and shows it when editing', async () => {
+    const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)
+    await field(wrapper, 'metatype-name').setValue('Zone 4')
+    await choose(wrapper, 'metatype-layer', IDS.layerStrategy)
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.requests.find((request) => request.method === 'POST')?.body).toEqual(expect.objectContaining({ architectureLayerId: IDS.layerStrategy }))
+    expect(api.state.metatypes.at(-1)!.architectureLayerId).toBe(IDS.layerStrategy)
+
+    const { wrapper: editing, api: other } = await mountWithMetamodel(MetatypeDialog, () => ({ metatype: { ...metatypeById(IDS.zone)!, architectureLayerId: IDS.layerStrategy } }))
+    const layer = editing.findAllComponents({ name: 'Select' }).find((candidate) => candidate.vm.$attrs['data-testid'] === 'metatype-layer')!
+    expect(layer.props('modelValue')).toBe(IDS.layerStrategy)
+    await choose(editing, 'metatype-layer', '-')
+    await editing.get('form').trigger('submit')
+    await flushPromises()
+    expect(other.requests.find((request) => request.method === 'PUT')?.body).toEqual(expect.objectContaining({ architectureLayerId: null }))
+  })
+
+  it('shows an unknown layer at its field', async () => {
+    const { wrapper } = await mountWithMetamodel(MetatypeDialog)
+    await field(wrapper, 'metatype-name').setValue('Zone 5')
+    await choose(wrapper, 'metatype-layer', 'f1000000-0000-4000-8000-0000000000ff')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(wrapper.text()).toContain('This value is not accepted.')
+    expect(wrapper.emitted('saved')).toBeUndefined()
+  })
+
   // spec metamodel/connection-metatypes "Composition mark" (us-135-component-hierarchy)
   it('shows the switch "Composition" only for a connection metatype and sends the mark', async () => {
     const { wrapper, api } = await mountWithMetamodel(MetatypeDialog)

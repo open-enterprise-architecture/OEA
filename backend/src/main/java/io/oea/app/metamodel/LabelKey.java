@@ -7,7 +7,7 @@ import java.util.UUID;
 /**
  * Key of a translatable label, {@code {elementType}.{uuid}.{field}} (ADR-025, design D1 of
  * us-140-dynamic-labels): {@code metatype.{id}.name}, {@code property-category.{id}.name},
- * {@code property-def.{id}.label} and {@code enum-value.{id}.label}.
+ * {@code property-def.{id}.label}, {@code enum-value.{id}.label} and {@code architecture-layer.{id}.name}.
  */
 public record LabelKey(Element element, UUID id) {
 
@@ -23,7 +23,8 @@ public record LabelKey(Element element, UUID id) {
 		METATYPE("metatype", "metatype", "name"),
 		PROPERTY_CATEGORY("property-category", "property_category", "name"),
 		PROPERTY_DEF("property-def", "property_def", "label"),
-		ENUM_VALUE("enum-value", "enum_value", "label");
+		ENUM_VALUE("enum-value", "enum_value", "label"),
+		ARCHITECTURE_LAYER("architecture-layer", "architecture_layer", "name");
 
 		private final String prefix;
 

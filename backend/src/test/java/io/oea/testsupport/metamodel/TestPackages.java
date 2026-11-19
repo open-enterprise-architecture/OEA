@@ -43,7 +43,8 @@ public final class TestPackages {
 		return root;
 	}
 
-	static String uuid(String packageId, String element) {
+	/** The stable identifier of an element of a package. */
+	public static String uuid(String packageId, String element) {
 		return UUID.nameUUIDFromBytes((packageId + "/" + element).getBytes()).toString();
 	}
 

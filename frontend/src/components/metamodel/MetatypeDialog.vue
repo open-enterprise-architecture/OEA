@@ -17,7 +17,7 @@ const props = defineProps<{ metatype?: MetatypeDetail; fetchFn?: typeof fetch }>
 const emit = defineEmits<{ saved: [id: string]; cancel: [] }>()
 const { t } = useI18n()
 
-type Field = 'name' | 'isComposition' | 'abbreviation' | 'sortOrder' | 'baseMetatypeId' | 'allowedSourceMetatypeIds' | 'allowedTargetMetatypeIds'
+type Field = 'name' | 'isComposition' | 'abbreviation' | 'sortOrder' | 'baseMetatypeId' | 'architectureLayerId' | 'allowedSourceMetatypeIds' | 'allowedTargetMetatypeIds'
 
 const NONE = '-'
 
@@ -26,6 +26,7 @@ const form = reactive({
   abbreviation: props.metatype?.abbreviation ?? '',
   sortOrder: props.metatype?.sortOrder ?? 0,
   baseMetatypeId: props.metatype?.baseMetatypeId ?? NONE,
+  layerId: props.metatype?.architectureLayerId ?? NONE,
   connection: props.metatype?.isConnection ?? false,
   composition: props.metatype?.isComposition ?? false,
   allowedSources: allowed('source'),
@@ -53,6 +54,12 @@ const baseItems = computed(() => [
     // base types have the same kind (us-036-connection-metatypes D2)
     .filter((candidate) => candidate.id !== props.metatype?.id && Boolean(candidate.isConnection) === form.connection)
     .map((candidate) => ({ label: label(labelKeys.metatype(candidate.id), candidate.name), value: candidate.id })),
+])
+
+// the layers of the instance in their order, with the translated names (change s17-architecture-layers D4)
+const layerItems = computed(() => [
+  { label: t('metamodel.metatype.noLayer'), value: NONE },
+  ...metamodel.layers.map((layer) => ({ label: label(labelKeys.architectureLayer(layer.id), layer.name), value: layer.id })),
 ])
 
 // every metatype may be an endpoint, also connection metatypes and, once it exists, this one
@@ -98,6 +105,7 @@ async function submit(version = props.metatype?.version) {
     allowedTargetMetatypeIds: form.connection ? form.allowedTargets : [],
     configId: INSTANCE_CONFIGURATION,
     baseMetatypeId: form.baseMetatypeId === NONE ? null : form.baseMetatypeId,
+    architectureLayerId: form.layerId === NONE ? null : form.layerId,
     ...(affected.value.length > 0
       ? {
           solutionDecisions: chosenDecisions(affected.value, decisions.value),
@@ -153,6 +161,8 @@ async function submit(version = props.metatype?.version) {
         <dd data-testid="collision-abbreviation">{{ current.abbreviation || '–' }}</dd>
         <dt class="text-toned">{{ t('metamodel.metatype.base') }}</dt>
         <dd>{{ baseName(current.baseMetatypeId) }}</dd>
+        <dt class="text-toned">{{ t('metamodel.metatype.layer') }}</dt>
+        <dd data-testid="collision-layer">{{ current.architectureLayerName ?? t('metamodel.metatype.noLayer') }}</dd>
       </dl>
       <p v-else>{{ t('metamodel.collision.deleted') }}</p>
     </CollisionWarning>
@@ -224,6 +234,9 @@ async function submit(version = props.metatype?.version) {
       :help="t('metamodel.metatype.baseHelp')"
     >
       <USelect v-model="form.baseMetatypeId" data-testid="metatype-base" :items="baseItems" class="w-full" />
+    </UFormField>
+    <UFormField :label="t('metamodel.metatype.layer')" name="architectureLayerId" :error="errors.architectureLayerId" :help="t('metamodel.metatype.layerHelp')">
+      <USelect v-model="form.layerId" data-testid="metatype-layer" :items="layerItems" class="w-full" />
     </UFormField>
 
     <SolutionDecisions v-if="affected.length > 0" v-model="decisions" :solutions="affected" />

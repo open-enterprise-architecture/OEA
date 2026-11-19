@@ -1,6 +1,7 @@
 package io.oea.app.metamodel;
 
 import io.oea.app.security.OeaPrincipal;
+import io.oea.core.metamodel.ArchitectureLayerStore;
 import io.oea.core.metamodel.BuiltInMetatypes;
 import io.oea.core.metamodel.CompositionStore;
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ public class MetatypeEditing {
 
 	private CompositionStore composition;
 
+	private ArchitectureLayerStore layers;
+
 	public MetatypeEditing(JdbcTemplate jdbc, MetamodelEffects effects, MetamodelAudit audit,
 			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact) {
 		this.impact = impact;
@@ -59,6 +62,12 @@ public class MetatypeEditing {
 		this.composition = composition;
 	}
 
+	/** The store of the architecture layers; set by Spring, so that the constructor stays as the frozen architecture rule knows it. */
+	@Autowired
+	void setLayers(ArchitectureLayerStore layers) {
+		this.layers = layers;
+	}
+
 	/**
 	 * The writable fields of a metatype.
 	 *
@@ -66,7 +75,7 @@ public class MetatypeEditing {
 	 *     metatype (us-036-connection-metatypes D2)
 	 * @param allowedTargets the same for the target
 	 */
-	public record Input(String name, String abbreviation, boolean connection, String architectureLayerId,
+	public record Input(String name, String abbreviation, boolean connection, UUID architectureLayerId,
 			int sortOrder, UUID configId, UUID baseMetatypeId, List<UUID> allowedSources, List<UUID> allowedTargets,
 			boolean composition) {
 
@@ -75,7 +84,7 @@ public class MetatypeEditing {
 			allowedTargets = (allowedTargets != null) ? List.copyOf(new LinkedHashSet<>(allowedTargets)) : List.of();
 		}
 
-		public Input(String name, String abbreviation, boolean connection, String architectureLayerId, int sortOrder,
+		public Input(String name, String abbreviation, boolean connection, UUID architectureLayerId, int sortOrder,
 				UUID configId, UUID baseMetatypeId, List<UUID> allowedSources, List<UUID> allowedTargets) {
 			this(name, abbreviation, connection, architectureLayerId, sortOrder, configId, baseMetatypeId,
 					allowedSources, allowedTargets, false);
@@ -83,8 +92,14 @@ public class MetatypeEditing {
 
 	}
 
-	private record Stored(String name, String abbreviation, boolean connection, String architectureLayerId,
+	private record Stored(String name, String abbreviation, boolean connection, UUID architectureLayerId,
 			int sortOrder, String scope, UUID baseMetatypeId, UUID configId) {
+
+		Stored withLayer(UUID layerId) {
+			return new Stored(this.name, this.abbreviation, this.connection, layerId, this.sortOrder, this.scope,
+					this.baseMetatypeId, this.configId);
+		}
+
 	}
 
 	@Transactional
@@ -113,6 +128,9 @@ public class MetatypeEditing {
 		}
 		if (input.baseMetatypeId() != null) {
 			details.put("baseMetatypeId", input.baseMetatypeId().toString());
+		}
+		if (input.architectureLayerId() != null) {
+			details.put("architectureLayerId", input.architectureLayerId().toString());
 		}
 		if (input.composition()) {
 			details.put("isComposition", true);
@@ -244,6 +262,10 @@ public class MetatypeEditing {
 		if (abbreviation != null && abbreviation.length() > ABBREVIATION_MAX_LENGTH) {
 			throw MetamodelChangeException.invalid("abbreviation", "The abbreviation has more than 10 characters.");
 		}
+		// the layers of the instance, also for the metatypes of an extension (design D3 of s17-architecture-layers)
+		if (input.architectureLayerId() != null && !this.layers.exists(input.architectureLayerId())) {
+			throw MetamodelChangeException.invalid("architectureLayerId", "The architecture layer does not exist.");
+		}
 		boolean instance = PackageImporter.INSTANCE_CONFIGURATION.equals(config);
 		if (count("""
 				SELECT count(*) FROM metatypes WHERE (? OR config_id IN (?, ?)) AND lower(name) = lower(?)
@@ -333,13 +355,13 @@ public class MetatypeEditing {
 
 	private Stored stored(UUID id) {
 		return this.jdbc.query("""
-				SELECT name, abbreviation, is_connection, architecture_layer_id, sort_order, scope, base_metatype_id,
-				       config_id
+				SELECT name, abbreviation, is_connection, sort_order, scope, base_metatype_id, config_id
 				FROM metatypes WHERE id = ?""", (rs, n) -> new Stored(rs.getString(1), rs.getString(2), rs.getBoolean(3),
-				rs.getString(4), rs.getInt(5), rs.getString(6), rs.getObject(7, UUID.class), rs.getObject(8, UUID.class)),
+				null, rs.getInt(4), rs.getString(5), rs.getObject(6, UUID.class), rs.getObject(7, UUID.class)),
 				id)
 			.stream()
 			.findFirst()
+			.map((stored) -> stored.withLayer(this.layers.layerOf(id).orElse(null)))
 			.orElseThrow(() -> new NoSuchElementException("no metatype " + id));
 	}
 

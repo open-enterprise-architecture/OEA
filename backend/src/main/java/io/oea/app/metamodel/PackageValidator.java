@@ -19,6 +19,9 @@ public final class PackageValidator {
 
 	static final int MAXIMUM_ELEMENTS = 10_000;
 
+	/** Maximum number of architecture layers of a package (and of the instance). */
+	static final int MAXIMUM_LAYERS = ArchitectureLayers.MAXIMUM_LAYERS;
+
 	private static final Pattern PACKAGE_ID = Pattern.compile("^[a-z0-9][a-z0-9-]{1,62}$");
 
 	private static final Set<String> DATA_TYPES = Set.of("string", "integer", "boolean", "enum", "reference", "date",
@@ -70,6 +73,20 @@ public final class PackageValidator {
 		limit(definition.metatypes(), "/metatypes");
 
 		Set<UUID> ids = new HashSet<>();
+		Set<UUID> layerIds = new HashSet<>();
+		require(definition.layers().size() <= MAXIMUM_LAYERS, "/architectureLayers",
+				"A package has at most " + MAXIMUM_LAYERS + " architecture layers.");
+		Set<String> layerNames = new HashSet<>();
+		for (int i = 0; i < definition.layers().size(); i++) {
+			PackageDefinition.Layer layer = definition.layers().get(i);
+			String pointer = "/architectureLayers/" + i;
+			require(layer.id() != null && ids.add(layer.id()), pointer + "/id", "Missing or duplicate identifier.");
+			require(notBlank(layer.name()) && layer.name().strip().length() <= ArchitectureLayers.NAME_MAX_LENGTH
+					&& layerNames.add(key(layer.name())), pointer + "/name",
+					"Missing, too long or duplicate layer name.");
+			require(layer.sortOrder() >= 0, pointer + "/sortOrder", "The order is negative.");
+			layerIds.add(layer.id());
+		}
 		Set<String> categoryNames = new HashSet<>();
 		Set<UUID> categoryIds = new HashSet<>();
 		for (int i = 0; i < definition.categories().size(); i++) {
@@ -124,6 +141,8 @@ public final class PackageValidator {
 					pointer + "/name", "Missing, too long or duplicate metatype name.");
 			require(metatype.abbreviation() == null || metatype.abbreviation().length() <= 10, pointer + "/abbreviation",
 					"The abbreviation has more than 10 characters.");
+			require(metatype.architectureLayerId() == null || layerIds.contains(metatype.architectureLayerId()),
+					pointer + "/architectureLayerId", "The architecture layer is not part of the package.");
 			require(!metatype.id().equals(metatype.baseMetatypeId()), pointer + "/baseMetatypeId",
 					"A metatype cannot be its own base type.");
 			require(metatype.connection() || (metatype.allowedSources().isEmpty() && metatype.allowedTargets().isEmpty()),
@@ -208,6 +227,8 @@ public final class PackageValidator {
 		own.put(LabelKey.Element.PROPERTY_DEF, new HashSet<>());
 		own.put(LabelKey.Element.ENUM_VALUE, new HashSet<>());
 		own.put(LabelKey.Element.METATYPE, new HashSet<>());
+		own.put(LabelKey.Element.ARCHITECTURE_LAYER, new HashSet<>());
+		definition.layers().forEach((layer) -> own.get(LabelKey.Element.ARCHITECTURE_LAYER).add(layer.id()));
 		definition.categories().forEach((category) -> own.get(LabelKey.Element.PROPERTY_CATEGORY).add(category.id()));
 		definition.metatypes().forEach((metatype) -> own.get(LabelKey.Element.METATYPE).add(metatype.id()));
 		for (PackageDefinition.Property property : definition.properties()) {

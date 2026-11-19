@@ -69,6 +69,19 @@ public final class MetamodelInstance implements AutoCloseable {
 			.POST(HttpRequest.BodyPublishers.ofString(body)));
 	}
 
+	/** A request with any method and further headers; {@code body} may be {@code null}. */
+	public HttpResponse<String> send(String method, String path, String body, Session session,
+			java.util.Map<String, String> headers) throws Exception {
+		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(this.instance.url() + path))
+			.header("Cookie", "__Host-OEA_SESSION=" + session.token())
+			.header("X-XSRF-TOKEN", session.csrfToken())
+			.header("Content-Type", "application/json")
+			.method(method, (body != null) ? HttpRequest.BodyPublishers.ofString(body)
+					: HttpRequest.BodyPublishers.noBody());
+		headers.forEach(request::header);
+		return this.instance.send(request);
+	}
+
 	public HttpResponse<String> get(String path, Session session) throws Exception {
 		return this.instance.get(path, session.token());
 	}

@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-032, US-057, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Editing the metamodel
@@ -11,13 +11,15 @@ Besides importing packages (see [Metamodel packages](./metamodel-packages)), you
 
 ## The metamodel page {#the-metamodel-page}
 
-Choose *Metamodel* in the header. The page has six sections:
+Choose *Metamodel* in the header. The page has these sections:
 
 | Section | Content |
 |---|---|
 | Entity types | the list of all entity types with abbreviation and origin, and the selected entity type with its properties |
 | Properties | all properties with data type, category, values and limits |
 | Categories | the categories that group properties |
+| Layers | the [architecture layers](#layers) that entity types belong to |
+| Viewpoints | the [viewpoints](#viewpoints) with their notation |
 | Translations | the names of all elements per language |
 | Changes | who changed the metamodel and when (administrators only) |
 | Settings | the lock mode, and what happens to your own properties when a package is imported again (administrators only) |
@@ -29,10 +31,10 @@ The origin tells you what you may change: *Own* content belongs to your organiza
 ## Entity types
 
 1. In *Entity types*, choose *New*.
-2. Enter the name, an optional abbreviation of up to 10 characters, the sort order and an optional base type.
+2. Enter the name, an optional abbreviation of up to 10 characters, the sort order, an optional base type and an optional [layer](#layers).
 3. Choose *Save*. The entity type appears in the list and can be used for entities and catalogs at once.
 
-<Screenshot name="metamodel-entity-type-new" alt="Dialog New entity type with name, abbreviation, sort order and base type" />
+<Screenshot name="metamodel-entity-type-new" alt="Dialog New entity type with name, abbreviation, sort order, base type and layer" />
 
 - Names are unique across all entity types, regardless of upper and lower case: *application component* is rejected while *Application Component* exists.
 - You change (*Edit*) and delete (*Delete*) only your own entity types.
@@ -127,6 +129,21 @@ If active [solutions](../usage/solutions) use the values, the dialog lists them 
 Solutions that work toward the same [plateau](../usage/plateaus) are decided together: the dialog asks once for the plateau and names its solutions. A solution without a plateau is still asked on its own.
 
 A property that a solution keeps as a snapshot cannot be deleted until that solution went live. Changes inside the extension of a solution, and package imports, do not ask.
+
+## Layers {#layers}
+
+Architecture layers sort entity types by their kind of content, for example *Business*, *Data*, *Application* and *Technology*, and charts on dashboards group by them. The section *Layers* of the metamodel page lists the layers of the instance in their order, with their origin and the number of entity types that have each; everyone who may read the metamodel sees them. An entity type has at most one layer, or none; you set it in the dialog of the entity type (*Layer*), and the list and the detail of the entity type show it.
+
+1. In *Layers*, choose *New* and enter the name.
+2. Choose *Save*. The layer appears at the end of the list.
+3. Move a layer with the arrows, rename it with the pencil or delete it with the bin.
+
+- The name has 1 to 100 characters and is unique regardless of upper and lower case: *business* is rejected while *Business* exists.
+- An instance has at most 20 layers. At the limit, *New* is switched off.
+- You change only your own layers. Layers of a [package](./metamodel-packages#layers-in-packages) (for example those of the starter package) are read-only, and so are the entity types of a package: to give an imported entity type another layer, import a new version of the package.
+- A layer that an entity type – of the instance or of a solution extension – still has cannot be deleted. The message names the number of entity types; remove the layer from them first.
+- In a [locked](#lock-mode) metamodel, layers cannot be changed either; the section stays readable.
+- Layers have translations like other elements: open [Translations](#translating-labels) and enter the name per language.
 
 ## Viewpoints {#viewpoints}
 
@@ -228,9 +245,10 @@ curl "${auth[@]}" -X PUT "$OEA/metamodel/labels/de" -H 'Content-Type: applicatio
 
 - Entity types, properties and categories carry a `version`, also returned as `ETag`. Send it back with `If-Match: "<version>"` when you change or delete an element, an assignment, a value or a re-import setting: if someone changed the element meanwhile, the request is rejected with `412` (`stale-version`, with `currentVersion`) and nothing changes. Without `If-Match` the change is made anyway, so scripts should send it.
 - Rejections use the problem types `name-taken`, `read-only-metatype`, `in-use` (with the number of entities in `count`), `conflict` and `validation-failed` (with `invalidFields`).
-- A label key names the element by its identifier: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label` or `enum-value.{id}.label`; an empty text removes your label, and an unknown key rejects the whole change.
+- A label key names the element by its identifier: `metatype.{id}.name`, `property-category.{id}.name`, `property-def.{id}.label`, `enum-value.{id}.label` or `architecture-layer.{id}.name`; an empty text removes your label, and an unknown key rejects the whole change.
 - Connection types are created with `"isConnection": true` and the lists `allowedSourceMetatypeIds` and `allowedTargetMetatypeIds`; `GET /metamodel/allowed-connections?sourceMetatypeId=…&targetMetatypeId=…` answers which connection types may connect two entity types, in which direction.
 - `GET /metamodel/metatypes/{id}/property-mappings?includeHistory=true` lists all entries of the assignments with their `state`. The re-import settings are `PUT /metamodel/settings/reimport-policy` and `PUT /metamodel/metatypes/{id}/reimport-policy`. `PUT /metamodel/metatypes/{id}/parallel-changes` with `{"showInBaseline": true}` and `If-Match` sets the marker of parallel changes; the entity type shows it as `showParallelChanges`, and the change is recorded as `metamodel.metatype-parallel-changes-changed`.
+- Layers: `GET /metamodel/architecture-layers` lists them in their order with `metatypeCount` and `version` (permission `entity:read` or `metamodel:write`); `POST /metamodel/architecture-layers` with `{"name": "Business"}` creates one at the end, and `PUT /metamodel/architecture-layers/{id}` with `{"name": "Business", "sortOrder": 0}` renames and moves it. `PUT` and `DELETE` need `If-Match` (`428` without, `412` for an old version) and answer `409` with `read-only-metatype` for a layer of a package, `in-use` (with the number of entity types in `count`) for a layer that entity types have and `name-taken` for a taken name. A name with more than 100 characters, a blank name and the 21st layer give `422`. An entity type carries its layer as `architectureLayerId` (`null` for none) and, read-only, `architectureLayerName`; an unknown ID gives `422` naming `architectureLayerId`. Audit events: `metamodel.layer-created`, `metamodel.layer-updated` and `metamodel.layer-deleted`, listed by `GET /metamodel/changes?kind=layer`.
 - Every change writes an audit event, for example `metamodel.metatype-updated`, `metamodel.mapping-deleted` with the number of affected entities, `metamodel.mapping-effective` when an entry takes effect, or `metamodel.labels-changed`.
 - `GET /metamodel/configurations` lists the instance configuration and the extensions with their `editMode`. `PUT /metamodel/configurations/{id}` with `{"name": "Instance metamodel", "editMode": "import-only"}` and `If-Match` locks a configuration; `gui-and-import` unlocks it.
 

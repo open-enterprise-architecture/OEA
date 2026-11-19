@@ -38,7 +38,7 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Specs metamodel/connection-metatypes "Composition mark" and repository/entity-hierarchy
  * "Built-in metatype Structuring aid" (us-135-component-hierarchy D3, D4) on an own database:
- * marking, the packages and the starter package 1.3.0. At most one metatype may be marked, so
+ * marking, the packages and the starter package (1.4.0). At most one metatype may be marked, so
  * every test starts without a mark.
  */
 @SpringBootTest
@@ -270,7 +270,7 @@ class CompositionMetatypeTests {
 		assertThat(result.path("updated").asInt()).isEqualTo(1);
 	}
 
-	// Starter package 1.3.0
+	// Starter package (1.4.0)
 
 	@Test
 	void theStarterPackageBringsTheComposition() {
@@ -285,7 +285,7 @@ class CompositionMetatypeTests {
 		assertThat(metatype.path("isConnection").asBoolean()).isTrue();
 		assertThat(metatype.path("isComposition").asBoolean()).isTrue();
 		assertThat(metatype.path("scope").asString()).isEqualTo("imported");
-		assertThat(metatype.path("sourcePackage").path("version").asString()).isEqualTo("1.3.0");
+		assertThat(metatype.path("sourcePackage").path("version").asString()).isEqualTo("1.4.0");
 		assertThat(metatype.path("connectionConstraints").size()).as("no endpoint restriction").isZero();
 		assertThat(this.jdbc.queryForObject("""
 				SELECT value FROM i18n_entries WHERE entity_type = 'metatype' AND entity_id = ? AND locale = 'de'
