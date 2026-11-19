@@ -90,7 +90,7 @@ describe('KpiWidget', () => {
     ])('value %d against the previous value %d: "%s"', (value, previous, text) => {
       setLanguage('en')
       const wrapper = compared(value, previous)
-      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe(`30 days ago: ${previous} CHF`)
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe(`30 days ago (Oct 20, 2026): ${previous} CHF`)
       const trend = wrapper.get('[data-testid="kpi-trend"]')
       expect(trend.text()).toBe(text)
       // the arrow is an icon plus text, not color alone
@@ -104,15 +104,28 @@ describe('KpiWidget', () => {
       expect(new Set([icon(42, 35), icon(42, 50), icon(42, 42)]).size).toBe(3)
     })
 
-    it('shows the date of the previous value as the tooltip', () => {
+    it('shows the date of the previous value as visible text, in the language, and without a tooltip', () => {
       setLanguage('en')
-      expect(compared(42, 35).get('[data-testid="kpi-previous"]').attributes('title')).toBe('Oct 20, 2026')
+      const en = compared(42, 35).get('[data-testid="kpi-previous"]')
+      expect(en.text()).toContain('(Oct 20, 2026)')
+      expect(en.attributes('title')).toBeUndefined()
+      setLanguage('de')
+      const de = compared(42, 35).get('[data-testid="kpi-previous"]')
+      expect(de.text()).toContain('(20.10.2026)')
+      expect(de.attributes('title')).toBeUndefined()
+      setLanguage('en')
+    })
+
+    it('shows the previous value without a date when the answer carries none', () => {
+      setLanguage('en')
+      const wrapper = mountKpi({ data: data({ value: 42, previousValue: 35, previousAt: undefined }), config: PREVIOUS })
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('30 days ago: 35 CHF')
     })
 
     it('formats the numbers and the percentage in the language', () => {
       setLanguage('de')
       const wrapper = mountKpi({ data: data({ value: 42000000, previousValue: 35000000, previousAt: AT }), config: PREVIOUS })
-      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('Vor 30 Tagen: 35.000.000 CHF')
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('Vor 30 Tagen (20.10.2026): 35.000.000 CHF')
       expect(wrapper.get('[data-testid="kpi-trend"]').text()).toContain('+7.000.000 CHF')
       expect(wrapper.get('[data-testid="kpi-trend"]').text()).toMatch(/\+20\s?%/)
       setLanguage('en')
@@ -130,7 +143,7 @@ describe('KpiWidget', () => {
     it('shows the previous value but no trend when the current value has no data', () => {
       const wrapper = compared(null, 5)
       expect(wrapper.find('[data-testid="kpi-no-data"]').exists()).toBe(true)
-      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('30 days ago: 5 CHF')
+      expect(wrapper.get('[data-testid="kpi-previous"]').text()).toBe('30 days ago (Oct 20, 2026): 5 CHF')
       expect(wrapper.find('[data-testid="kpi-trend"]').exists()).toBe(false)
     })
 

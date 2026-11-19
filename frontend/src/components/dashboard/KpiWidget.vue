@@ -29,7 +29,7 @@ const day = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'm
 
 const comparesWithPrevious = computed(() => props.config.comparison === 'vs-previous-value')
 const previous = computed(() => props.data?.previousValue ?? undefined)
-/** The date of the previous value, formatted locally (the tooltip of "30 days ago"). */
+/** The date of the previous value, formatted locally and shown as text next to "30 days ago" (design D5 of us-061-portal-dashboards). */
 const previousDate = computed(() => (props.data?.previousAt ? day.value.format(new Date(props.data.previousAt)) : undefined))
 
 /** The change against the value of 30 days ago: icon, text with the signed difference and, unless that value is 0, the percentage. */
@@ -86,7 +86,13 @@ const trend = computed(() => {
       </template>
       <template v-if="comparesWithPrevious">
         <template v-if="previous !== undefined">
-          <p data-testid="kpi-previous" class="text-muted" :title="previousDate">{{ t('dashboard.widget.kpi.previous', { previous: format(previous) }) }}</p>
+          <p data-testid="kpi-previous" class="text-muted">
+            {{
+              previousDate
+                ? t('dashboard.widget.kpi.previousOn', { date: previousDate, previous: format(previous) })
+                : t('dashboard.widget.kpi.previous', { previous: format(previous) })
+            }}
+          </p>
           <p v-if="change" data-testid="kpi-trend" class="inline-flex items-center gap-1 text-default">
             <UIcon :name="change.icon" class="size-4" aria-hidden="true" />
             {{ change.text }}

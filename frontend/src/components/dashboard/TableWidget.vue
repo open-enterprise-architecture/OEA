@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchWidgetData, type WidgetData } from '../../api/dashboards'
+import type { WidgetData } from '../../api/dashboards'
+import type { Outcome } from '../../api/session'
 
 // A table widget (US-058): the page of rows from the dashboard data, and further pages per widget
 // (design D4 of us-055-dashboards). Values are text; a column the reader may not see is marked and
 // its values are empty, as in the catalog. A catalog or saved view that is gone shows its message.
-const props = defineProps<{ dashboardId: string; widgetId: string; data?: WidgetData; fetchFn?: typeof fetch }>()
+// `loadPage` reads another page (0-based): the work area and the portal pass their own operation
+// (design D4 of us-061-portal-dashboards).
+const props = defineProps<{ data?: WidgetData; loadPage: (page: number) => Promise<Outcome<WidgetData>> }>()
 const { t } = useI18n()
 
 const current = ref<WidgetData | undefined>(props.data)
@@ -24,7 +27,7 @@ async function goTo(page: number) {
   loading.value = true
   failure.value = false
   try {
-    const outcome = await fetchWidgetData(props.dashboardId, props.widgetId, page - 1, props.fetchFn)
+    const outcome = await props.loadPage(page - 1)
     if (outcome.ok) {
       current.value = outcome.value
     } else {
@@ -91,6 +94,7 @@ async function goTo(page: number) {
         <UPagination
           v-if="current.table.page.totalPages > 1"
           data-testid="widget-pagination"
+          :aria-label="t('dashboard.widget.pagination')"
           :page="current.table.page.page + 1"
           :items-per-page="current.table.page.pageSize"
           :total="current.table.page.totalElements"

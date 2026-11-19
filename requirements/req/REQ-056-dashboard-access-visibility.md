@@ -4,9 +4,9 @@ title: Dashboard access and visibility (scope logic)
 type: functional
 priority: should
 status: proposed
-version: 0.3.0
+version: 0.4.0
 created: 2026-06-26
-last_updated: 2026-11-18
+last_updated: 2026-11-19
 author: requirements-engineer
 references:
   use_cases:
@@ -63,7 +63,10 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 - `GET /api/v1/views/dashboards/{id}/data`
 - Same visibility rule as for the configuration
 
-**Web portal**:
+**Web portal** (change us-061-portal-dashboards, owner decisions 2026-11-19):
+
+- `GET /api/v1/portal/dashboards` (list), `GET /api/v1/portal/dashboards/{id}`, `.../data` and `.../widgets/{widgetId}/data` need `portal:read` only; service accounts get HTTP 403, also for an unknown ID
+- The portal shows the dashboards with `scope=instance` and the caller's own personal dashboards; a personal dashboard of another person is answered with HTTP 404 also for holders of `settings:manage` (they read it in the work area only); every portal answer is read-only (`canEdit: false`)
 
 - All endpoints, including the web portal, require authentication (UC-01); there is no public or anonymous mode in v1 (owner decision Q1 of the 2026-10 security review, finding SEC-05; REQ-163)
 - Dashboard data is subject to property visibility on all read channels (REQ-160)
@@ -72,7 +75,7 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 
 | Rule-ID | Statement | Trigger |
 |---|---|---|
-| BR-01 | `scope=personal` dashboards are visible to the creator and, read-only, to holders of `settings:manage` | onRead, onList |
+| BR-01 | `scope=personal` dashboards are visible to the creator and, read-only in the work area, to holders of `settings:manage`; the web portal shows them to the creator only | onRead, onList |
 | BR-02 | `scope=instance` dashboards are readable for all authenticated users of the instance | onRead |
 | BR-03 | Write access (create, update, delete) to a shared dashboard needs `dashboard:manage`; to a personal dashboard it is allowed to its owner only; administrators never change another person's personal dashboard (403) (REQ-051 BR-02, BR-03) | onWrite |
 | BR-04 | A dashboard can be promoted from `personal` to `instance` if the creator has the dashboard write permission; downgrading from `instance` to `personal` is not possible (422 naming `scope`); a personal dashboard with a widget on a personal catalog does not become shared (422 naming `scope`) | onUpdate |
@@ -128,3 +131,4 @@ Dashboards can contain confidential company metrics. Scope control ensures that 
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; scope enforcement, URL access protection, upgrade/downgrade logic |
 | 0.2.0 | 2026-10-13 | requirements-engineer | Security review SEC-05 / owner decision Q1: "public instance" without login removed; references REQ-159, REQ-160, REQ-163 |
 | 0.3.0 | 2026-11-18 | Fullstack Engineer | us-055-dashboards, owner decisions 2026-11-18: 404 instead of 403 for another person's personal dashboard; "admins" are holders of `settings:manage` and read only; downgrade 422 instead of 409; paths of the reads |
+| 0.4.0 | 2026-11-19 | Fullstack Engineer | us-061-portal-dashboards, owner decisions 2026-11-19: the portal shows shared and own personal dashboards, administrators see no personal dashboard of others there |

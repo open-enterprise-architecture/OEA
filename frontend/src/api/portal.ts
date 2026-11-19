@@ -1,9 +1,10 @@
 import type { CatalogQueryResult, CatalogSort, CatalogSummary } from './catalogs'
+import type { DashboardConfig, DashboardData, DashboardSummary, WidgetData } from './dashboards'
 import { readRejection, RequestRejected } from './problem'
 import type { Outcome } from './session'
 
 // The portal API of the web portal (SCR-050; design D7 of s9-portal-catalogs): the shared
-// catalogs read-only for readers with portal:read.
+// catalogs and, since us-061-portal-dashboards, the dashboards read-only for readers with portal:read.
 
 const JSON_HEADERS = { Accept: 'application/json, application/problem+json' }
 
@@ -51,6 +52,59 @@ export async function queryPortalCatalog(
   )
   if (response.ok) {
     return { ok: true, value: (await response.json()) as CatalogQueryResult }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/** GET /portal/dashboards: the shared dashboards and the caller's own personal ones, ordered by name (US-061). */
+export async function fetchPortalDashboards(fetchFn: typeof fetch = fetch): Promise<DashboardSummary[]> {
+  const response = await fetchFn('/api/v1/portal/dashboards', { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as DashboardSummary[]
+}
+
+/** GET /portal/dashboards/{id}: `undefined` if the dashboard does not exist or is not visible in the portal (404). */
+export async function fetchPortalDashboard(id: string, fetchFn: typeof fetch = fetch): Promise<DashboardConfig | undefined> {
+  const response = await fetchFn(`/api/v1/portal/dashboards/${encodeURIComponent(id)}`, {
+    credentials: 'same-origin',
+    headers: JSON_HEADERS,
+  })
+  if (response.status === 404) {
+    return undefined
+  }
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as DashboardConfig
+}
+
+/** GET /portal/dashboards/{id}/data: the data of all widgets, computed with the reader's visibility. */
+export async function fetchPortalDashboardData(id: string, fetchFn: typeof fetch = fetch): Promise<DashboardData> {
+  const response = await fetchFn(`/api/v1/portal/dashboards/${encodeURIComponent(id)}/data`, {
+    credentials: 'same-origin',
+    headers: JSON_HEADERS,
+  })
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as DashboardData
+}
+
+/** GET /portal/dashboards/{id}/widgets/{widgetId}/data: another page of a table widget (`page` is 0-based). */
+export async function fetchPortalWidgetData(
+  id: string,
+  widgetId: string,
+  page: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<WidgetData>> {
+  const response = await fetchFn(
+    `/api/v1/portal/dashboards/${encodeURIComponent(id)}/widgets/${encodeURIComponent(widgetId)}/data?page=${page}`,
+    { credentials: 'same-origin', headers: JSON_HEADERS },
+  )
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as WidgetData }
   }
   return { ok: false, rejection: await readRejection(response) }
 }

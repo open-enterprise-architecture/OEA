@@ -23,14 +23,27 @@ export function passwordChangeTarget(path: string, me: Me | undefined): string |
 /** Paths of the work area that a reader without entity:read leaves for the portal (design D7 of s9-portal-catalogs). */
 const WORK_AREA = [/^\/$/, /^\/catalogs(\/[^/]+)?\/?$/]
 
+const DASHBOARDS = /^\/dashboards\/?$/
+const DASHBOARD = /^\/dashboards\/([^/]+)\/?$/
+
 /**
- * The portal for a session with portal:read and without entity:read that opens the start page or
- * the catalogs, or `true` to continue.
+ * The portal for a session with portal:read and without entity:read that opens the start page,
+ * the catalogs or the dashboards, or `true` to continue. A dashboard of the work area leads to the
+ * same dashboard in the portal (design D4 of us-061-portal-dashboards).
  */
 export function portalTarget(path: string, me: Me | undefined): string | true {
   const permissions = new Set(me?.permissions.map((entry) => entry.permission) ?? [])
   if (permissions.has('portal:read') && !permissions.has('entity:read') && WORK_AREA.some((pattern) => pattern.test(path))) {
     return '/portal'
+  }
+  if (permissions.has('portal:read') && !permissions.has('entity:read')) {
+    if (DASHBOARDS.test(path)) {
+      return '/portal'
+    }
+    const dashboard = DASHBOARD.exec(path)
+    if (dashboard) {
+      return `/portal/dashboards/${dashboard[1]}`
+    }
   }
   return true
 }

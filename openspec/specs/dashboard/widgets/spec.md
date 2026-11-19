@@ -280,7 +280,7 @@ Trace: REQ-053 BR-05, REQ-055, US-061 AC2
 
 ### Requirement: Comparison with the value 30 days ago
 
-With `vs-previous-value` the KPI SHALL also show the value of the same aggregation 30 days before the request: over the entities that existed and were not deleted then, with each property value of their last version up to then, under the current metamodel and visibility. If no entity had a value then, sum, average, minimum and maximum SHALL show "No comparison value", and a count SHALL compare with 0.
+With `vs-previous-value` the KPI SHALL also show, with its date as visible text, the value of the same aggregation 30 days before the request: over the entities existing and not deleted then, each with the value of its last version up to then, under the current metamodel and visibility. Without values then, sum, average, minimum and maximum SHALL show "No comparison value", and a count SHALL compare with 0.
 
 Trace: US-056, REQ-053, owner decision 2026-11-18
 
@@ -313,3 +313,9 @@ Trace: US-056, REQ-053, owner decision 2026-11-18
 - **GIVEN** "Investment" is readable only for the role `finance`
 - **WHEN** Franz, without that role, opens the KPI with the sum of "Investment" and `vs-previous-value`
 - **THEN** the widget shows the error `restricted` and neither value
+
+#### Scenario: Date of the previous value
+
+- **GIVEN** the request is on 19 November 2026
+- **WHEN** Franz opens the counting KPI with `vs-previous-value`
+- **THEN** the date 20 October 2026 is shown as text next to "30 days ago", reachable without hovering

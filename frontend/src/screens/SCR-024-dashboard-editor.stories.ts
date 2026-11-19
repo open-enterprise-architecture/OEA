@@ -140,7 +140,7 @@ export const KpiIncreased: Story = {
   ...page(ME_READER, single(KPI_INCREASED_WIDGET, 4, 2)),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(await canvas.findByText('30 days ago: 35,000,000 CHF')).toBeInTheDocument()
+    await expect(await canvas.findByText('30 days ago (Oct 20, 2026): 35,000,000 CHF')).toBeInTheDocument()
     await expect(canvas.getByText('Increase: +7,000,000 CHF (+20%)')).toBeInTheDocument()
   },
 }

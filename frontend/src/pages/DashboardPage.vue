@@ -7,6 +7,7 @@ import {
   deleteDashboard,
   fetchDashboard,
   fetchDashboardData,
+  fetchWidgetData,
   LIMITS,
   nextFreeRow,
   removeWidget,
@@ -337,10 +338,8 @@ async function share() {
           <ChartWidget v-else-if="widget.type === 'chart'" :data="dataOf.get(widget.id)" :config="widget.config" :title="widget.title" />
           <TableWidget
             v-else-if="widget.type === 'table'"
-            :dashboard-id="config.id"
-            :widget-id="widget.id"
             :data="dataOf.get(widget.id)"
-            :fetch-fn="props.fetchFn"
+            :load-page="(page) => fetchWidgetData(config!.id, widget.id, page, props.fetchFn)"
           />
         </template>
       </DashboardGrid>

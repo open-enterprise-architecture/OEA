@@ -45,6 +45,31 @@ describe('portalTarget', () => {
     expect(portalTarget('/catalogs/c0000000-0000-4000-8000-000000000001', petra)).toBe('/portal')
   })
 
+  // spec portal/portal-dashboards "Dashboards on the portal pages", scenario "Work area link of a portal reader"
+  it('sends a reader without entity:read from the dashboards to the portal and from a dashboard to its portal view', () => {
+    const petra = reader(['portal:read'])
+    const id = 'd0000000-0000-4000-8000-000000000001'
+    expect(portalTarget('/dashboards', petra)).toBe('/portal')
+    expect(portalTarget('/dashboards/', petra)).toBe('/portal')
+    expect(portalTarget(`/dashboards/${id}`, petra)).toBe(`/portal/dashboards/${id}`)
+  })
+
+  it('leaves the dashboards to readers with entity:read and to sessions without portal:read', () => {
+    const id = 'd0000000-0000-4000-8000-000000000001'
+    for (const permissions of [['portal:read', 'entity:read'], [], ['entity:read']]) {
+      expect(portalTarget('/dashboards', reader(permissions))).toBe(true)
+      expect(portalTarget(`/dashboards/${id}`, reader(permissions))).toBe(true)
+    }
+    expect(portalTarget('/dashboards', undefined)).toBe(true)
+  })
+
+  it('leaves the portal views of the dashboards and similar paths alone', () => {
+    const petra = reader(['portal:read'])
+    expect(portalTarget('/portal/dashboards/d0000000-0000-4000-8000-000000000001', petra)).toBe(true)
+    expect(portalTarget('/dashboards/a/b', petra)).toBe(true)
+    expect(portalTarget('/dashboardsx', petra)).toBe(true)
+  })
+
   it('leaves the portal, the profile and the login to the portal reader', () => {
     const petra = reader(['portal:read'])
     expect(portalTarget('/portal', petra)).toBe(true)

@@ -54,6 +54,12 @@ public class PortalSteps {
 		return withoutRole;
 	}
 
+	/** The portal reader (only {@code portal-reader}) on the shared catalog instance. */
+	public static Session portalReader() throws Exception {
+		logInOnce();
+		return portalReader;
+	}
+
 	private static void logInOnce() throws Exception {
 		synchronized (PortalSteps.class) {
 			// the instance is shared by the catalog features and restarted per run

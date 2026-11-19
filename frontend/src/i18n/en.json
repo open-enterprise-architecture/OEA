@@ -815,14 +815,24 @@
   },
   "portal": {
     "title": "Portal",
-    "intro": "The shared catalogs of the architecture repository, read-only.",
+    "intro": "The shared catalogs and dashboards of the architecture repository, read-only.",
     "catalogs": "Shared catalogs",
     "empty": "No shared catalogs yet",
     "emptyHint": "Shared catalogs appear here as soon as someone creates one.",
     "loadFailed": "The shared catalogs could not be loaded.",
     "noAccess": "You have no access to the portal. Ask an administrator for a role.",
     "back": "Back to the portal",
-    "notFoundHint": "The catalog does not exist or is not shared."
+    "notFoundHint": "The catalog does not exist or is not shared.",
+    "dashboards": "Dashboards",
+    "dashboardsEmpty": "No dashboards yet.",
+    "dashboardsEmptyHint": "Shared dashboards and your own personal dashboards appear here.",
+    "dashboardsLoadFailed": "The dashboards could not be loaded.",
+    "dashboardNotFound": "Dashboard not found",
+    "dashboardNotFoundHint": "The dashboard does not exist or you may not see it.",
+    "dashboardLoadFailed": "The dashboard could not be loaded.",
+    "refresh": "Refresh",
+    "dataAsOf": "Data as of {time}",
+    "refreshFailed": "The data could not be refreshed."
   },
   "visibility": {
     "title": "Property visibility",
@@ -1456,6 +1466,7 @@
         "invalid-configuration": "The widget no longer fits the metamodel. Edit or remove it."
       },
       "noData": "No data",
+      "pagination": "Table pages",
       "noRows": "No rows",
       "pageInfo": "Page {page} of {pages} · {entries} entries",
       "restrictedColumn": "You may not see the values of this column.",
@@ -1468,6 +1479,7 @@
         "above": "{difference} above the target",
         "below": "{difference} below the target",
         "previous": "30 days ago: {previous}",
+        "previousOn": "30 days ago ({date}): {previous}",
         "increase": "Increase: {change}",
         "decrease": "Decrease: {change}",
         "unchanged": "Unchanged",
