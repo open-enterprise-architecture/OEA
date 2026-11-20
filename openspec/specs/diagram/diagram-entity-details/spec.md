@@ -8,7 +8,7 @@ Defines the details of an entity shown in a diagram: reading them, searching ref
 
 ### Requirement: Read the details of a shown entity
 
-A principal with `entity:read` SHALL read for an entity shown in a diagram by a shape or an edge its name, description, metatype, version, values and missing mandatory properties; unreadable values SHALL be redacted, and each mapped property SHALL say whether the reader may read and change it. An entity without a shape or edge in the diagram, a deleted entity or a deleted diagram SHALL answer 404.
+A principal with `entity:read` SHALL read an entity shown by a shape or edge: name, description, metatype, version, values (unreadable ones redacted), per property whether it may be read and changed, and missing mandatory properties. Otherwise, or for a deleted entity or diagram, the answer SHALL be 404.
 
 Trace: UC-10 step 6, US-074, REQ-160, owner decisions 2026-11-19 and 2026-11-20, diagram/diagram-connections
 
@@ -54,7 +54,7 @@ Trace: UC-10 step 6, US-074, repository/entity-write (property values checked ag
 
 ### Requirement: Change entities with the diagram
 
-A save of the diagram SHALL carry changes of entities shown by a shape or an edge (name, description, property values; not the endpoints) with the entity version read, and values of new entities and connections. They SHALL be written like every entity write: metamodel and visibility checked, mandatory values required, an entity with an open issue rejected, versioned, audited, atomic with the layout.
+A diagram save SHALL carry changes of entities shown by a shape or edge (name, description, values; not endpoints) with the version read, and values of new entities and connections, written like every entity write – checked, mandatory values required, blocked by open issues, versioned, audited – atomic with the layout.
 
 Trace: UC-10 step 6, US-074, repository/entity-write, solution/solution-go-live, owner decisions 2026-11-19 and 2026-11-20
 
@@ -122,7 +122,7 @@ Trace: #69, repository/entity-write, owner decision 2026-11-19
 
 ### Requirement: Details panel
 
-Selecting a shape or an edge SHALL open the details panel of its entity on the canvas page, with name, description, metatype and the property values in the form of the entity's metatype. Holders of `entity:write` SHALL change the values they may write; the changes SHALL count as unsaved changes of the diagram, and missing mandatory values SHALL be marked. A reader SHALL see the panel read-only.
+Selecting a shape or edge SHALL open the details panel of its entity with name, description, metatype and values in the form of its metatype. Holders of `entity:write` SHALL change what they may write, as unsaved changes of the diagram, with missing mandatory values marked; readers SHALL see it read-only.
 
 Trace: UC-10 step 6, US-074, SCR-021, owner decisions 2026-11-19 and 2026-11-20, diagram/diagram-connections
 
