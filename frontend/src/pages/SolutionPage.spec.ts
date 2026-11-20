@@ -494,6 +494,43 @@ describe('SolutionPage', () => {
     document.body.innerHTML = ''
   })
 
+  // spec solution/solution-go-live "Deltas on deleted entities" (s17-entity-delete)
+  it('marks a delta of a deleted entity, names it in the confirmation and blocks the go-live', async () => {
+    const wrapper = await mountGoLive({ deletedEntities: [MODIFIED_ERP.entityId!] })
+    expect(wrapper.find(`[data-testid="delta-entity-deleted-${MODIFIED_ERP.id}"]`).exists()).toBe(true)
+    expect(wrapper.get('[data-testid="solution-deletion-conflicts"]').text()).toContain('1 change concerns a deleted entity')
+    await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
+    await flushPromises()
+    expect(body('go-live-deletion-conflicts')!.textContent).toContain('1 change concerns a deleted entity (ERP-Core)')
+    expect(body('go-live-confirm-button')!.hasAttribute('disabled')).toBe(true)
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('marks no delta and offers the go-live when no entity is deleted', async () => {
+    const wrapper = await mountGoLive()
+    expect(wrapper.find('[data-testid^="delta-entity-deleted-"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="solution-deletion-conflicts"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
+    await flushPromises()
+    expect(body('go-live-deletion-conflicts')).toBeNull()
+    expect(body('go-live-confirm-button')!.hasAttribute('disabled')).toBe(false)
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('shows the message of the 409 entity-deleted when the entity was deleted after the preview', async () => {
+    const wrapper = await mountGoLive()
+    await wrapper.get('[data-testid="solution-go-live"]').trigger('click')
+    await flushPromises()
+    wrapper.api.deletedEntities.push(MODIFIED_ERP.entityId!)
+    ;(body('go-live-confirm-button') as HTMLButtonElement).click()
+    await flushPromises()
+    expect(document.body.textContent).toContain('An entity of a change is deleted')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
   it('opens the merge dialog first when conflicts exist, then the confirmation', async () => {
     const wrapper = await mountGoLive({ goLiveConflicts: [goLiveConflict(MODIFIED_ERP.id)] })
     await wrapper.get('[data-testid="solution-go-live"]').trigger('click')

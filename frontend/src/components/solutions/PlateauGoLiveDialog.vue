@@ -21,6 +21,7 @@ const busy = ref(false)
 const merging = ref<string>()
 
 const conflicted = computed(() => (preview.value?.solutions ?? []).filter((solution) => solution.conflicts.length > 0))
+const deleted = computed(() => (preview.value?.solutions ?? []).filter((solution) => solution.deletionConflicts.length > 0))
 const warned = computed(
   () => (preview.value?.warnings.notApproved.length ?? 0) > 0 || (preview.value?.warnings.openIssues ?? 0) > 0,
 )
@@ -53,6 +54,9 @@ async function confirm() {
       // the conflicts are listed per solution in the preview
       await load()
       failure.value = t('plateaus.goLive.conflicts')
+    } else if (rejection.problemType === 'entity-deleted') {
+      await load()
+      failure.value = t('plateaus.goLive.entityDeleted')
     } else if (rejection.problemType === 'entity-blocked') {
       failure.value = t('plateaus.goLive.blocked')
     } else if (rejection.problemType === 'plateau-not-next') {
@@ -112,9 +116,26 @@ async function onMerged() {
                   @click="merging = solution.id"
                 />
               </template>
+              <UBadge
+                v-if="solution.deletionConflicts.length > 0"
+                data-testid="plateau-go-live-deleted"
+                color="error"
+                variant="subtle"
+                size="sm"
+                icon="i-lucide-trash-2"
+                :label="t('plateaus.goLive.deletionCount', { n: solution.deletionConflicts.length }, solution.deletionConflicts.length)"
+              />
             </li>
           </ul>
         </section>
+        <UAlert
+          v-if="deleted.length > 0"
+          data-testid="plateau-go-live-deletion-conflicts"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-trash-2"
+          :description="t('plateaus.goLive.deletionConflicts', { names: deleted.flatMap((solution) => solution.deletionConflicts.map((entry) => `${solution.name}: ${entry.entityName}`)).join(', ') })"
+        />
         <UAlert
           v-if="warned"
           data-testid="plateau-go-live-warnings"
@@ -151,7 +172,7 @@ async function onMerged() {
           data-testid="plateau-go-live-confirm"
           color="error"
           icon="i-lucide-rocket"
-          :disabled="!preview || !confirmed || conflicted.length > 0"
+          :disabled="!preview || !confirmed || conflicted.length > 0 || deleted.length > 0"
           :loading="busy"
           :label="t('plateaus.goLive.confirm')"
           @click="confirm"

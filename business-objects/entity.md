@@ -117,6 +117,8 @@ All further properties are defined in `PropertyGroup` categories, which are conf
 | createdBy | reference | required | | target: person | Creating person |
 | updatedAt | datetime | optional | null | ISO 8601, UTC | Last change |
 | updatedBy | reference | optional | null | target: person | Person who last made a change |
+| deletedAt, deletedBy, deletionReason | datetime, reference, string | optional | null | set together; `deletedBy` targets a person | Soft delete (ADR-019): the entity is deleted and leaves catalogs, baselines and diagrams; history and external ID stay |
+| deletedWithEntityId | integer | optional | null | FK → ArchitectureEntity.id; only on a deleted entity (V49) | The entity whose deletion took this one along (a child on any level or a connection of it); `null` for the entity deleted itself and for rows deleted before V49. The restore finds its cascade by this origin and the deletion time |
 
 ### isLogical — Meaning in the Plateau Context
 
@@ -166,9 +168,12 @@ Every create and every change that modifies at least one field creates a new ver
 | BR-11 | `isLogical` is a boolean; default is `true`; can be changed afterwards | onCreate, onUpdate | – |
 | BR-12 | On every update to an ArchitectureEntity, the client MUST send the current `version`; if it does not match the stored value → HTTP 409 Conflict; after a successful update, `version` is incremented by 1 (optimistic locking, ADR-016). Exception: a batch write by `externalId` carries no version; the source system is the authority for the fields it sends and is written last-writer-wins under a row lock (change us-141-entity-batch-upsert, design D3) | onUpdate | ADR-016 |
 | BR-13 | Every change MUST write a version header and, for each changed system field and property, the value before the change (delta); history records are append-only. A write that changes nothing creates no version | onUpdate | ADR-022 |
+| BR-15 | Deleting an element entity deletes its children on all levels and every connection with the entity or a child as endpoint, with one time and actor (`deletedWithEntityId` = the entity); a connection is deleted alone; a restore (`entity:restore`) brings back exactly that cascade with unchanged versions, leaves connections with a deleted endpoint deleted, and places an element whose parent is deleted at the top level. Open issues on any part block the deletion; the external ID of a deleted entity stays reserved and is only restored by the entity (ADR-019, #70) | onDelete, onRestore | – |
 | BR-14 | No `PropertyGroup` in the metamodel may carry the reserved name `general` (case-insensitive); General fields are system-defined and not extensible | metamodel configuration | – |
 
 ## Lifecycle
+
+An ArchitectureEntity is **active**, or **deleted** alone or with a cascade (`deletedWithEntityId`), and **restored** to active again (ADR-019, change s17-entity-delete).
 
 ArchitectureEntities have no standalone lifecycle status. Their state within the architecture model (active, retiring, realized) is controlled contextually:
 

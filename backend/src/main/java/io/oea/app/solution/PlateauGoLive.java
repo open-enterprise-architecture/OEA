@@ -110,6 +110,7 @@ public class PlateauGoLive {
 	 * @throws PlateauNotNextException for a plateau that does not succeed the baseline (409)
 	 * @throws InvalidPlateauException naming {@code name} for another name than the plateau's (422)
 	 * @throws MergeRequiredException for unresolved field conflicts of any of its solutions (409)
+	 * @throws EntityDeletedException for a delta {@code modified} or {@code retiring} of a deleted entity (409)
 	 */
 	@Transactional
 	public Result goLive(OeaPrincipal principal, UUID plateauId, String name) {
@@ -127,13 +128,20 @@ public class PlateauGoLive {
 		// every conflict of every solution at its turn, before anything is written
 		List<SolutionGoLive.Conflict> conflicts = new ArrayList<>();
 		List<SolutionPlan> plans = plans(principal, plateauId);
+		List<UUID> deleted = plans.stream()
+			.flatMap((plan) -> plan.preview().deletionConflicts().stream())
+			.map(SolutionGoLive.DeletionConflict::deltaId)
+			.toList();
+		if (!deleted.isEmpty()) {
+			throw new EntityDeletedException(deleted);
+		}
 		plans.forEach((plan) -> conflicts.addAll(plan.preview().conflicts()));
 		if (!conflicts.isEmpty()) {
 			throw new MergeRequiredException(conflicts);
 		}
 		List<SolutionGoLive.Result> results = new ArrayList<>();
 		for (SolutionPlan plan : plans) {
-			results.add(this.goLive.goLiveOne(principal, plan.id()));
+			results.add(this.goLive.goLiveOne(principal, plan.id(), true));
 		}
 		Instant now = this.clock.instant();
 		LocalDate day = LocalDate.ofInstant(now, ZoneOffset.UTC);

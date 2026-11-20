@@ -1,5 +1,6 @@
 package io.oea.app.history;
 
+import io.oea.app.entity.DeletedEntityException;
 import io.oea.app.entity.EntityBlockedException;
 import io.oea.app.entity.EntityBlocks;
 import io.oea.app.access.LanguagePreferences;
@@ -148,6 +149,9 @@ public class EntityRestore {
 	@Transactional(readOnly = true)
 	public Preview preview(OeaPrincipal principal, int entityId, int targetVersion) {
 		StoredEntity entity = this.entities.find(entityId).orElseThrow(NoSuchElementException::new);
+		if (entity.deleted()) {
+			throw new DeletedEntityException();
+		}
 		checkTarget(entity, targetVersion);
 		Plan plan = plan(principal, entity, targetVersion, null);
 		List<Field> fields = new ArrayList<>();
@@ -182,6 +186,7 @@ public class EntityRestore {
 	 * @throws StaleEntityVersionException when the entity is at another version (412)
 	 * @throws NothingToRestoreException when every restorable field has its target value (422)
 	 * @throws EntityBlockedException while the entity has open issues of a solution (409)
+	 * @throws DeletedEntityException for a deleted entity (409)
 	 */
 	@Transactional
 	public Result restore(OeaPrincipal principal, int entityId, int targetVersion, Long expectedVersion,
@@ -194,6 +199,10 @@ public class EntityRestore {
 			throw new InvalidRestoreSelectionException();
 		}
 		StoredEntity entity = this.entities.lock(entityId).orElseThrow(NoSuchElementException::new);
+		if (entity.deleted()) {
+			// the entity is undeleted first; no version is written while it stays deleted (s17-entity-delete D3)
+			throw new DeletedEntityException();
+		}
 		if (expectedVersion == null) {
 			throw new PreconditionRequiredException();
 		}

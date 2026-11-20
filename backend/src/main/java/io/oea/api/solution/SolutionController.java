@@ -4,6 +4,7 @@ import io.oea.api.ContractViolationResponse;
 import io.oea.api.generated.SolutionsApi;
 import io.oea.api.generated.model.DeltaConflict;
 import io.oea.api.generated.model.DeltaConflictResolution;
+import io.oea.api.generated.model.DeletionConflict;
 import io.oea.api.generated.model.EntityVersionDataType;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PropertyValue;
@@ -88,7 +89,17 @@ public class SolutionController implements SolutionsApi {
 		return ResponseEntity.ok(new SolutionGoLivePreview().solutionId(preview.solutionId())
 			.counts(counts(preview.counts()))
 			.conflicts(preview.conflicts().stream().map(SolutionController::conflict).toList())
+			.deletionConflicts(deletionConflicts(preview.deletionConflicts()))
 			.violations(preview.violations().stream().map(SolutionController::violation).toList()));
+	}
+
+	static List<DeletionConflict> deletionConflicts(List<SolutionGoLive.DeletionConflict> conflicts) {
+		return conflicts.stream()
+			.map((conflict) -> new DeletionConflict().deltaId(conflict.deltaId())
+				.deltaType(DeletionConflict.DeltaTypeEnum.fromValue(conflict.deltaType()))
+				.entityId(conflict.entityId())
+				.entityName(conflict.entityName()))
+			.toList();
 	}
 
 	static SolutionGoLiveViolation violation(SolutionGoLive.Violation violation) {
@@ -386,7 +397,8 @@ public class SolutionController implements SolutionsApi {
 			.changes(delta.changes().stream().map(SolutionController::change).toList())
 			.conflicts(conflicts(delta.conflicts()))
 			.createdAt(delta.createdAt().atOffset(ZoneOffset.UTC))
-			.updatedAt((delta.updatedAt() != null) ? delta.updatedAt().atOffset(ZoneOffset.UTC) : null);
+			.updatedAt((delta.updatedAt() != null) ? delta.updatedAt().atOffset(ZoneOffset.UTC) : null)
+			.entityDeleted(delta.entityDeleted());
 	}
 
 	private static SolutionDeltaChange change(SolutionDeltas.Change change) {

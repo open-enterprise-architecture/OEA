@@ -164,7 +164,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-123](req/REQ-123-connection-anchor-points.md) | Anchor Points on Connections | functional | must | [US-123](user-stories/US-123-connection-anchor-points.md) |
 | [REQ-144](req/REQ-144-shape-palette-panel.md) | Collapsible Shape Palette Panel in Diagram Editor | functional | must | – |
 | [REQ-145](req/REQ-145-shape-drag-entity-lookup.md) | Shape Drag-to-Canvas with Entity Lookup and Inline Creation | functional | must | – |
-| [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
+| [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Remove from Diagram (DEL) vs. Delete from Repository (Ctrl+DEL) via Context Menu | functional | must | – |
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
 | [REQ-181](req/REQ-181-electron-hardening-local-data.md) | Electron runtime hardening and local data protection | constraint | must | – |
 
@@ -311,7 +311,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-098](req/REQ-098-version-history-timeline.md) | Version history as a chronological timeline | functional | must | [US-098](user-stories/US-098-version-history-timeline.md) |
 | [REQ-099](req/REQ-099-version-history-diff-view.md) | Version history field-by-field diff | functional | must | [US-099](user-stories/US-099-version-history-diff.md) |
 | [REQ-100](req/REQ-100-version-history-snapshot-retrieval.md) | Historical entity state as an immutable snapshot | functional | must | [US-100](user-stories/US-100-version-history-snapshot.md) |
-| [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
+| [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Remove from Diagram (DEL) vs. Delete from Repository (Ctrl+DEL) via Context Menu | functional | must | – |
 | [REQ-147](req/REQ-147-api-completeness-automation.md) | API Completeness and Automation Suitability (API-First) | interface | must | – |
 | [REQ-151](req/REQ-151-audit-schema-separation.md) | Audit Data Storage Immutable and Schema-Separated | compliance | must | – |
 | [REQ-160](req/REQ-160-visibility-on-all-read-channels.md) | Property visibility enforced on every read channel | functional | must | – |
@@ -330,7 +330,7 @@ frontmatter and reference sections of the artifacts.
 | [REQ-101](req/REQ-101-entity-full-restore.md) | Full restore of an entity to an earlier state | functional | should | [US-101](user-stories/US-101-entity-full-restore.md) |
 | [REQ-102](req/REQ-102-restore-audit-snapshot.md) | Audit snapshot before every restore | functional | should | [US-102](user-stories/US-102-restore-audit-snapshot.md) |
 | [REQ-103](req/REQ-103-restore-atomic-transaction.md) | Restore as an atomic transaction | functional | should | [US-103](user-stories/US-103-restore-transaction.md) |
-| [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Delete from Diagram (DEL) vs. Delete Entity (Ctrl+DEL) via Context Menu | functional | must | – |
+| [REQ-146](req/REQ-146-diagram-delete-vs-entity-delete.md) | Remove from Diagram (DEL) vs. Delete from Repository (Ctrl+DEL) via Context Menu | functional | must | – |
 | [REQ-162](req/REQ-162-property-write-protection-all-paths.md) | Property write protection on all write paths | business-rule | must | [US-152](user-stories/US-152-solution-go-live.md), [US-153](user-stories/US-153-resolve-open-issues.md) |
 | [REQ-190](req/REQ-190-soft-deleted-data-retention.md) | Retention of soft-deleted data | compliance | should | – |
 | [REQ-204](req/REQ-204-diagram-checkpoints.md) | Named checkpoints of diagrams | functional | should | – |

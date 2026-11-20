@@ -152,6 +152,29 @@ public class GoLiveSteps {
 		assertThat(ok(this.preview).path("conflicts")).isEmpty();
 	}
 
+	@Given("the architect undeletes {string}")
+	public void undeletes(String entity) throws Exception {
+		int id = this.deltas.entityId(entity);
+		HttpResponse<String> restored = instance().send("POST", "/api/v1/entities/" + id + "/undelete", null,
+				instance().architect(),
+				java.util.Map.of("If-Match", "\"" + instance().oidc().single("SELECT version FROM entities WHERE id = " + id) + "\""));
+		assertThat(restored.statusCode()).as(restored.body()).isEqualTo(200);
+	}
+
+	@Then("the preview lists a deletion conflict of type {string} for {string}")
+	public void deletionConflict(String type, String entity) throws Exception {
+		JsonNode conflicts = ok(this.preview).path("deletionConflicts");
+		assertThat(conflicts).hasSize(1);
+		assertThat(conflicts.get(0).path("deltaType").asString()).isEqualTo(type);
+		assertThat(conflicts.get(0).path("entityId").asInt()).isEqualTo(this.deltas.entityId(entity));
+	}
+
+	@Then("the preview lists no deletion conflict")
+	public void noDeletionConflict() throws Exception {
+		preview();
+		assertThat(ok(this.preview).path("deletionConflicts")).isEmpty();
+	}
+
 	@Then("the resolution answers {int}")
 	public void resolutionAnswers(int status) {
 		assertThat(this.resolution.statusCode()).as(this.resolution.body()).isEqualTo(status);

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import DiagramPage from '../pages/DiagramPage.vue'
-import { diagram, diagramApi, edge, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, type DiagramApi } from '../test/diagrams'
+import { diagram, diagramApi, edge, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_ARCHITECT, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, type DiagramApi } from '../test/diagrams'
 
 // SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
 // us-074-diagram-entity-details and D5 of us-074-diagram-connections): the canvas of a diagram with the
@@ -222,5 +222,29 @@ export const EdgesReadOnly: Story = {
     await userEvent.click(await canvas.findByRole('button', { name: 'Connection SAP ERP → Salesforce' }))
     await expect(await canvas.findByText('You may view the values, but not change them.')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: 'Add connected element' })).toBeNull()
+  },
+}
+
+/** "Delete from repository" shows what the deletion takes along: children, connections and the active solutions (s17-entity-delete). */
+export const DeleteFromRepository: Story = {
+  args: {
+    id: ID,
+    fetchFn: diagramApi({
+      me: ME_DIAGRAM_ARCHITECT,
+      shapes: SHAPES,
+      edges: EDGES,
+      deletion: { previews: { 12: { childCount: 3, connectionCount: 4, solutions: [{ id: 's1', name: 'Finance Upgrade', deltaCount: 2 }] } } },
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('SAP ERP'))
+    await userEvent.keyboard('{Control>}{Delete}{/Control}')
+    const dialog = within(await within(document.body).findByTestId('repository-delete-dialog'))
+    await expect(await dialog.findByText('3 children are deleted with it, on all levels.')).toBeInTheDocument()
+    await expect(dialog.getByText('4 connections are deleted with it.')).toBeInTheDocument()
+    await expect(dialog.getByText('Finance Upgrade: 2 changes')).toBeInTheDocument()
+    await userEvent.click(dialog.getByRole('button', { name: 'Delete from repository' }))
+    await waitFor(() => expect(canvas.queryByText('SAP ERP')).toBeNull())
   },
 }

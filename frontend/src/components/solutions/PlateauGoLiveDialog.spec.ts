@@ -104,4 +104,23 @@ describe('Plateau go-live', () => {
     expect(document.body.textContent).toContain('ERP-Core')
     wrapper.unmount()
   })
+
+  // spec solution/plateau-go-live "Deletion conflicts stop a plateau go-live" (s17-entity-delete)
+  it('lists the deletion conflicts per solution and blocks the confirmation', async () => {
+    const { wrapper } = await mountPage(plateauApi({ goLive: goLivePreview({ deletions: true }) }))
+    await openDialog(wrapper)
+    expect(el('plateau-go-live-deleted')!.textContent).toContain('one deleted entity')
+    expect(el('plateau-go-live-deletion-conflicts')!.textContent).toContain('ERP Extension: ERP-Core')
+    await type(TARGET_NAME)
+    expect(el<HTMLButtonElement>('plateau-go-live-confirm')!.disabled).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('shows no deletion conflict without one', async () => {
+    const { wrapper } = await mountPage()
+    await openDialog(wrapper)
+    expect(el('plateau-go-live-deleted')).toBeNull()
+    expect(el('plateau-go-live-deletion-conflicts')).toBeNull()
+    wrapper.unmount()
+  })
 })

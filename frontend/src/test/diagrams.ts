@@ -18,6 +18,8 @@ function me(displayName: string, id: number, permissions: string[]) {
 export const ME_DIAGRAM_WRITER = me('Anna', 7, ['portal:read', 'entity:read', 'entity:write'])
 /** Holds `entity:restore` as well: lists and restores deleted diagrams. */
 export const ME_DIAGRAM_RESTORER = me('Kurt', 8, ['portal:read', 'entity:read', 'entity:write', 'entity:restore', 'viewpoint:manage'])
+/** Holds `entity:delete` as well: deletes entities from the repository on the canvas. */
+export const ME_DIAGRAM_ARCHITECT = me('Kurt', 8, ['portal:read', 'entity:read', 'entity:write', 'entity:delete', 'entity:restore'])
 /** Holds `viewpoint:manage` and `entity:read`: places diagrams in the navigation tree. */
 export const ME_DIAGRAM_MANAGER = me('Michael', 9, ['portal:read', 'entity:read', 'viewpoint:manage'])
 /** Holds `entity:read` only. */
@@ -294,6 +296,12 @@ export interface DiagramApiOptions {
   blockedEntities?: number[]
   /** the page size of the fake entity search */
   searchPageSize?: number
+  /** the deletion: what the preview names per entity, the IDs a deletion takes along, and a rejection of the preview or the deletion */
+  deletion?: {
+    previews?: Record<number, { childCount: number; connectionCount: number; solutions?: { id: string; name: string; deltaCount: number }[]; cascade?: number[] }>
+    rejectPreview?: { status: number; type?: string }
+    rejectDelete?: { status: number; type?: string; extra?: Record<string, unknown> }
+  }
 }
 
 export type DiagramApi = typeof fetch & {
@@ -483,6 +491,42 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         missingMandatory: mandatoryMissing(entity),
       }
       return respond(200, details)
+    }
+    const preview = /^\/api\/v1\/entities\/(\d+)\/deletion$/.exec(path)
+    if (preview && method === 'GET') {
+      const entity = state.entities[Number(preview[1])]
+      if (options.deletion?.rejectPreview) {
+        return problem(options.deletion.rejectPreview.status, options.deletion.rejectPreview.type ?? 'validation-failed')
+      }
+      if (!entity) {
+        return problem(404, 'not-found')
+      }
+      const found = options.deletion?.previews?.[entity.id]
+      return respond(200, {
+        entity: { id: entity.id, name: entity.name, version: entity.version },
+        childCount: found?.childCount ?? 0,
+        connectionCount: found?.connectionCount ?? 0,
+        solutions: found?.solutions ?? [],
+      })
+    }
+    const removal = /^\/api\/v1\/entities\/(\d+)$/.exec(path)
+    if (removal && method === 'DELETE') {
+      const entity = state.entities[Number(removal[1])]
+      if (options.deletion?.rejectDelete) {
+        return problem(options.deletion.rejectDelete.status, options.deletion.rejectDelete.type ?? 'validation-failed', options.deletion.rejectDelete.extra)
+      }
+      if (!entity) {
+        return problem(404, 'not-found')
+      }
+      if (version !== entity.version) {
+        return problem(412, 'stale-version', { currentVersion: entity.version })
+      }
+      const deleted = [entity.id, ...(options.deletion?.previews?.[entity.id]?.cascade ?? [])]
+      for (const id of deleted) delete state.entities[id]
+      const gone = new Set(state.shapes.filter((entry) => deleted.includes(entry.entity.id)).map((entry) => entry.id))
+      state.shapes = state.shapes.filter((entry) => !gone.has(entry.id))
+      state.edges = state.edges.filter((entry) => !deleted.includes(entry.connection.id) && !gone.has(entry.sourceShapeId) && !gone.has(entry.targetShapeId))
+      return respond(200, { deleted })
     }
     const query = /^\/api\/v1\/views\/diagrams\/([^/]+)\/connections\/query$/.exec(path)
     if (query && method === 'POST') {

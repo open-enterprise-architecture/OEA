@@ -46,8 +46,9 @@ function screen(
   deltas: SolutionDelta[] = DELTAS,
   me: unknown = ME_SOLUTION_ARCHITECT,
   conflicts: Record<number, SolutionDeltaConflict[]> = {},
+  deletedEntities: number[] = [],
 ): Story {
-  const fetchFn = navigationApi({ fallback: solutionApi({ landscape, deltas, me, conflicts, parallelChangeMetatypes: [APPLICATION] }).fetch })
+  const fetchFn = navigationApi({ fallback: solutionApi({ landscape, deltas, me, conflicts, deletedEntities, parallelChangeMetatypes: [APPLICATION] }).fetch })
   return {
     render: () => ({
       components: { AppHeader, SolutionPage },
@@ -132,6 +133,20 @@ export const Conflicts: Story = {
     await expect(
       await canvas.findByText('Saved. CRM-Legacy is also changed in: Solution A, Integration Platform. Please coordinate with their owners.'),
     ).toBeInTheDocument()
+  },
+}
+
+/** A change whose entity was deleted in the repository is marked, named in the go-live confirmation and blocks it (s17-entity-delete). */
+export const DeletionConflict: Story = {
+  ...screen('5d000000-0000-4000-8000-000000000002', undefined, DELTAS_WITH_MODIFIED, ME_SOLUTION_ARCHITECT, {}, [MODIFIED_ERP.entityId!]),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Entity deleted')).toBeInTheDocument()
+    await expect(canvas.getByText('1 change concerns a deleted entity. Remove it or restore the entity before the go-live.')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Go live' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByTestId('go-live-deletion-conflicts')).toBeInTheDocument()
+    await expect(body.getByTestId('go-live-confirm-button')).toBeDisabled()
   },
 }
 

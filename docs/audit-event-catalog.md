@@ -971,14 +971,36 @@ Open issues of a solution were resolved with a value, or by removing or discardi
 
 ### `entity.deleted`
 
-An entity was soft-deleted (ADR-019): by the go-live of a solution for a delta `retiring`, or as a connection of such an entity (change us-152-solution-go-live); as the automatically created composition connection of a previous parent, or as a structuring aid (change us-135-component-hierarchy). The entity leaves catalogs and baselines; its history stays.
+An entity was soft-deleted (ADR-019): directly with "Delete from repository" (`deleteEntity`, change s17-entity-delete; its children and connections follow as `entity.cascade-deleted`); by the go-live of a solution for a delta `retiring`, or as a connection of such an entity (change us-152-solution-go-live); as the automatically created composition connection of a previous parent, or as a structuring aid (change us-135-component-hierarchy). The entity leaves catalogs and baselines; its history stays.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person who took the solution live, changed the parent or deleted the structuring aid |
 | Target | `entity`, ID of the entity; `entity_id` and `entity_name` |
-| Details | `solutionId` (go-live) or `cause`: `parent-changed` (the connection of the previous parent) or `structuring-aid-deleted`; `metatypeId`, `version` (the last version, unchanged) |
+| Details | `solutionId` (go-live) or `cause`: `parent-changed` (the connection of the previous parent) or `structuring-aid-deleted`, none for the direct deletion, which names `childCount` and `connectionCount` instead; `metatypeId`, `version` (the last version, unchanged) |
+
+### `entity.cascade-deleted`
+
+A child or a connection was deleted with the entity of a "Delete from repository" ([REQ-146](../requirements/req/REQ-146-diagram-delete-vs-entity-delete.md), ADR-019; change s17-entity-delete). Written in the transaction of the deletion, one per child on any level and one per connection; the entity itself is audited as `entity.deleted`. Rejected deletions (403, 404, 409, 412, 422, 428) are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the deleting person (`entity:delete`) |
+| Target | `entity`, ID of the child or connection; `entity_id` and `entity_name` (empty for modeled persons) |
+| Details | `triggeredByEntityId` (the entity whose deletion took it along), `metatypeId`, `version` (unchanged) |
+
+### `entity.undeleted`
+
+A deleted entity was restored with its cascade, by `restoreDeletedEntity` or by a batch `upsert` of its external ID (ADR-019, #70; change s17-entity-delete). Distinct from `entity.restored`, the restore of a version. One event per restored entity and connection, in the transaction of the restore; a connection that stays deleted is not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the restoring person (`entity:restore`) |
+| Target | `entity`, ID of the restored entity; `entity_id` and `entity_name` (empty for modeled persons) |
+| Details | `batchId` for a batch upsert, `metatypeId`, `version` (unchanged, or the new version when the restore placed the entity at the top level), `triggeredByEntityId` for the rows restored with another entity |
 
 ### `entity.parent-changed`
 
@@ -989,7 +1011,7 @@ The parent of an element entity was set, changed or cleared, or its structuring 
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person who changed the hierarchy |
 | Target | `entity`, ID of the child; `entity_id` and `entity_name` (empty for modeled persons) |
-| Details | `version` (after the change), `fromParentId` and `toParentId` where there was or is a parent, `createdConnectionId`, `removedConnectionId` where there are such; IDs only, no names |
+| Details | `version` (after the change), `fromParentId` and `toParentId` where there was or is a parent, `cause` `undeleted` and `reason` (`Parent deleted` or `Hierarchy too deep`) when a restore placed the entity at the top level, `createdConnectionId`, `removedConnectionId` where there are such; IDs only, no names |
 | Changes | one `audit.event_changes` row for the system field `parent_entity_id` with the old and the new parent ID as text |
 
 ## Planned Event Types

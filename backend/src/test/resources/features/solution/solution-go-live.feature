@@ -108,6 +108,42 @@ Feature: Go-live of a solution in project mode
     And "CRM-Legacy" and the connection "CRM to ERP" are deleted
     And the solution is in status "implemented" after the go-live
 
+  # Requirement: Deltas on deleted entities (s17-entity-delete)
+
+  Scenario Outline: Conflict after a deletion
+    Given the architect <capture>
+    And "<entity>" is deleted from the catalog
+    When the architect previews the go-live
+    Then the preview lists a deletion conflict of type "<type>" for "<entity>"
+    When the architect takes the solution live
+    Then the go-live answers 409 of type "entity-deleted"
+    And the solution is in status "draft" after the go-live
+
+    Examples:
+      | capture                                     | entity     | type     |
+      | modified "ERP-Core" with "Users" "20"       | ERP-Core   | modified |
+      | retired "CRM-Legacy"                        | CRM-Legacy | retiring |
+
+  Scenario: Resolved by removing the delta
+    Given the architect modified "ERP-Core" with "Users" "20"
+    And "ERP-Core" is deleted from the catalog
+    When the architect removes the delta of "ERP-Core"
+    And the architect takes the solution live
+    Then the go-live answers 200
+
+  Scenario: Resolved by restoring the entity
+    Given the architect modified "ERP-Core" with "Users" "20"
+    And "ERP-Core" is deleted from the catalog
+    And the architect undeletes "ERP-Core"
+    When the architect takes the solution live
+    Then the go-live answers 200
+    And the catalog value "Users" of "ERP-Core" reads "20"
+
+  Scenario: Entities that are not deleted
+    Given the architect modified "ERP-Core" with "Users" "20"
+    And "CRM-Legacy" is deleted from the catalog
+    Then the preview lists no deletion conflict
+
   # Requirement: Open issues of a go-live
 
   @AC4

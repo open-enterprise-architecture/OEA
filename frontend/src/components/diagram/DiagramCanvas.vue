@@ -20,6 +20,7 @@ import ConnectedElementDialog from './ConnectedElementDialog.vue'
 import ConnectionEdges, { type EdgeDraw } from './ConnectionEdges.vue'
 import ConnectionOfferDialog, { type OfferedConnection } from './ConnectionOfferDialog.vue'
 import ConnectionTypeDialog from './ConnectionTypeDialog.vue'
+import DeleteFromRepositoryDialog from './DeleteFromRepositoryDialog.vue'
 import EntityDetailsPanel from './EntityDetailsPanel.vue'
 import {
   abbreviation,
@@ -78,8 +79,11 @@ import EntityShape from './EntityShape.vue'
 // us-074-diagram-entity-details) opens on the selected shape; its changes of the entity are kept
 // here with the unsaved changes and saved with the layout. The edges (design D5 of
 // us-074-diagram-connections) are lines between shapes: drawn from a handle to another shape, shown on
-// request when an existing entity is placed, or added with a connected new element.
-const props = defineProps<{ view: DiagramView; version: number; editable: boolean; fetchFn?: typeof fetch }>()
+// request when an existing entity is placed, or added with a connected new element. A holder of
+// entity:delete may delete the entity of a shape or edge from the repository (design D6 of
+// s17-entity-delete): after the confirmation it is deleted at once, outside the explicit save, and the
+// shapes and edges of everything deleted leave the canvas.
+const props = defineProps<{ view: DiagramView; version: number; editable: boolean; canDelete?: boolean; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ saved: [view: DiagramView]; reload: []; dirty: [dirty: boolean] }>()
 const { t } = useI18n()
 
@@ -112,6 +116,9 @@ const connectedLoading = ref(false)
 const connectedFailed = ref(false)
 const offer = ref<{ source: CanvasShape; target: CanvasShape; id: number; name: string; metatypeId: string }[]>([])
 const offerOpen = ref(false)
+// "Delete from repository": the entity to delete and its confirmation
+const deleting = ref<number>()
+const deleteOpen = ref(false)
 /** the answers of the metamodel for pairs of metatypes, for the session of the editor */
 const allowedCache = new Map<string, AllowedConnectionResult>()
 // the details panel: the changes of the saved entities, the messages of a rejected save, and what a save answered 409
@@ -501,6 +508,46 @@ function addConnected(connectionId: string, targetId: string) {
   selectShape(shape.id)
 }
 
+/** The stored entity or connection of the selected shape or edge; none for a new one that is not saved yet. */
+const deletableEntityId = computed(() => (selectedShape.value ? selectedShape.value.entityId : selectedEdge.value?.connectionId))
+
+function startRepositoryDelete() {
+  const entityId = deletableEntityId.value
+  if (!props.canDelete || entityId === undefined || selectedShape.value?.editing) {
+    return
+  }
+  menu.value = undefined
+  deleting.value = entityId
+  deleteOpen.value = true
+}
+
+/**
+ * The entity and its cascade were deleted: their shapes and edges leave the canvas, with the edges
+ * and unsaved connections that end at them and the unsaved changes of those entities. The other
+ * unsaved changes stay; the stored shapes stay hidden in the repository and show again after a restore.
+ */
+function repositoryDeleted(ids: number[]) {
+  const gone = new Set(ids)
+  const removed = new Set(shapes.value.filter((shape) => shape.entityId !== undefined && gone.has(shape.entityId)).map((shape) => shape.id))
+  const keepShape = (shape: CanvasShape) => !removed.has(shape.id)
+  const keepEdge = (edge: CanvasEdge) =>
+    !(edge.connectionId !== undefined && gone.has(edge.connectionId)) && !removed.has(edge.sourceShapeId) && !removed.has(edge.targetShapeId)
+  shapes.value = shapes.value.filter(keepShape)
+  saved.value = saved.value.filter(keepShape)
+  edges.value = edges.value.filter(keepEdge)
+  savedEdges.value = savedEdges.value.filter(keepEdge)
+  edits.value = Object.fromEntries(Object.entries(edits.value).filter(([id]) => !gone.has(Number(id))))
+  pruneEdits()
+  if (selectedId.value && removed.has(selectedId.value)) {
+    selectedId.value = undefined
+  }
+  if (selectedEdgeId.value && !edges.value.some((edge) => edge.id === selectedEdgeId.value)) {
+    selectedEdgeId.value = undefined
+  }
+  deleting.value = undefined
+  notice.value = undefined
+}
+
 function removeSelected() {
   if (!props.editable) {
     return
@@ -539,7 +586,7 @@ function select(event: NodeMouseEvent) {
 }
 
 function contextMenu(event: NodeMouseEvent) {
-  if (!props.editable || !(event.event instanceof MouseEvent)) {
+  if (!(props.editable || props.canDelete) || !(event.event instanceof MouseEvent)) {
     return
   }
   event.event.preventDefault()
@@ -548,7 +595,7 @@ function contextMenu(event: NodeMouseEvent) {
 }
 
 function edgeMenu(id: string, event: MouseEvent) {
-  if (!props.editable) {
+  if (!(props.editable || props.canDelete)) {
     return
   }
   selectEdge(id)
@@ -566,6 +613,11 @@ function keydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     menu.value = undefined
     panelOpen.value = false
+  }
+  if (event.key === 'Delete' && event.ctrlKey && props.canDelete && (selectedId.value || selectedEdgeId.value) && !(event.target instanceof HTMLInputElement)) {
+    event.preventDefault()
+    startRepositoryDelete()
+    return
   }
   if (!props.editable || (!selectedId.value && !selectedEdgeId.value) || event.target instanceof HTMLInputElement) {
     return
@@ -810,7 +862,10 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       </template>
     </UAlert>
 
-    <p :id="`${flowId}-hint`" class="sr-only">{{ editable ? `${t('diagrams.canvas.hint')} ${t('diagrams.canvas.hintEdges')}` : t('diagrams.canvas.hintReadOnly') }}</p>
+    <p :id="`${flowId}-hint`" class="sr-only">
+      {{ editable ? `${t('diagrams.canvas.hint')} ${t('diagrams.canvas.hintEdges')}` : t('diagrams.canvas.hintReadOnly') }}
+      {{ canDelete ? t('diagrams.canvas.hintDelete') : '' }}
+    </p>
     <div class="flex flex-col gap-3 lg:flex-row">
       <div class="min-w-0 flex-1">
         <div
@@ -869,17 +924,21 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
     </div>
 
     <div v-if="menu" role="menu" class="fixed z-50 min-w-48 rounded-md border border-accented bg-default p-1 shadow-lg" :style="{ left: `${menu.x}px`, top: `${menu.y}px` }" data-testid="canvas-menu">
-      <button type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-remove" @click="removeSelected">
+      <button v-if="editable" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-remove" @click="removeSelected">
         {{ t('diagrams.canvas.remove') }}
       </button>
       <button type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-details" @click="panelOpen = true">
         {{ t('diagrams.canvas.details') }}
       </button>
-      <button v-if="!menu.edge" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-connected" @click="openConnected">
+      <button v-if="editable && !menu.edge" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-connected" @click="openConnected">
         {{ t('diagrams.canvas.addConnected') }}
+      </button>
+      <button v-if="canDelete && deletableEntityId !== undefined" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm text-error hover:bg-elevated" data-testid="canvas-menu-delete-repository" @click="startRepositoryDelete">
+        {{ t('diagrams.repositoryDelete.action') }}
       </button>
     </div>
 
+    <DeleteFromRepositoryDialog v-if="canDelete" v-model:open="deleteOpen" :entity-id="deleting" :fetch-fn="fetchFn" @deleted="repositoryDeleted" />
     <AddExistingDialog v-if="editable" v-model:open="adding" :diagram-id="view.diagram.id" :fetch-fn="fetchFn" @pick="addExisting" />
     <ConnectionTypeDialog v-if="editable" v-model:open="typeOpen" :options="typeChoice?.options ?? []" @pick="(option) => typeChoice && drawConnection(typeChoice.source, typeChoice.target, option)" />
     <ConnectedElementDialog v-if="editable" v-model:open="connectedOpen" :options="connectedList" :loading="connectedLoading" :failed="connectedFailed" @add="addConnected" />

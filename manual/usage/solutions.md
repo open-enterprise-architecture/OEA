@@ -81,6 +81,8 @@ When the initiative is done, *Go live* takes the solution into the catalog. It n
 2. A confirmation shows how many entities are created, changed and retired, and how many connections of retired entities are retired with them. The go-live cannot be undone.
 3. After *Go live*, new entities are in the catalog, modified entities have the new values, and retired entities and their connections are deleted from the catalog; their history stays. The solution is *Implemented* and can no longer be changed.
 
+If an entity of a change was deleted from the repository, the change is marked *Entity deleted*, the confirmation names it, and the go-live is not possible: remove the change, or restore the entity (see [Delete from repository](./diagrams#the-canvas)). This applies to changes that modify and to changes that retire an entity.
+
 Values that no longer fit the metamodel, for example a required property that was added after the capture, do not stop the go-live. They are taken over and listed under *Open issues* on the page of the solution.
 
 If the solution kept a property as a snapshot after a [metamodel change](../administration/metamodel-editing#removing-a-property), the dialog *Resolve conflicts* also lists each value of it, with *Discard the value* or *Resolve later as an open issue*. These values do not stop the go-live either.

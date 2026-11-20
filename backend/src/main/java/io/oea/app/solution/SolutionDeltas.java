@@ -215,11 +215,12 @@ public class SolutionDeltas {
 
 	/**
 	 * A captured delta; for {@code modified} and {@code retiring} the current name and metatype, and
-	 * the conflicts with other active solutions (US-044).
+	 * the conflicts with other active solutions (US-044). {@code entityDeleted} marks a deletion
+	 * conflict: the entity of a delta of an active solution is deleted in the repository.
 	 */
 	public record Delta(UUID id, Type type, Integer entityId, String name, UUID metatypeId, String metatypeName,
 			String description, List<Value> properties, List<Change> changes,
-			List<SolutionConflicts.Conflict> conflicts, Instant createdAt, Instant updatedAt) {
+			List<SolutionConflicts.Conflict> conflicts, Instant createdAt, Instant updatedAt, boolean entityDeleted) {
 	}
 
 	/** A computed change before it is stored: a system field or a property, with typed values. */
@@ -599,7 +600,7 @@ public class SolutionDeltas {
 					delta.metatypeName(), delta.description(), values.getOrDefault(delta.id(), List.of()),
 					changes.getOrDefault(delta.id(), List.of()),
 					(delta.entityId() != null) ? conflicts.getOrDefault(delta.entityId(), List.of()) : List.of(),
-					delta.createdAt(), delta.updatedAt()))
+					delta.createdAt(), delta.updatedAt(), delta.entityDeleted()))
 			.toList();
 	}
 
@@ -641,7 +642,7 @@ public class SolutionDeltas {
 	private static Delta delta(DeltaStore.DeltaRow row) {
 		return new Delta(row.id(), Type.of(row.type()), row.entityId(), row.name(), row.metatypeId(),
 				row.metatypeName(), row.description(), List.of(), List.of(), List.of(), row.createdAt(),
-				row.updatedAt());
+				row.updatedAt(), row.entityDeleted());
 	}
 
 	/**

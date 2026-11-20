@@ -1031,7 +1031,10 @@
         "loadFailed": "Die Entität konnte nicht geladen werden."
       },
       "more": "Weitere laden",
-      "shown": "{shown} von {total} Änderungen"
+      "shown": "{shown} von {total} Änderungen",
+      "entityDeleted": "Entität gelöscht",
+      "entityDeletedHint": "Die Entität dieser Änderung wurde im Repository gelöscht. Entferne die Änderung oder stelle die Entität vor dem Go-live wieder her.",
+      "deletionNotice": "Keine Änderung betrifft eine gelöschte Entität. | {n} Änderung betrifft eine gelöschte Entität. Entferne sie oder stelle die Entität vor dem Go-live wieder her. | {n} Änderungen betreffen gelöschte Entitäten. Entferne sie oder stelle die Entitäten vor dem Go-live wieder her."
     },
     "diff": {
       "open": "Vergleichen",
@@ -1074,7 +1077,7 @@
       "cancel": "Abbrechen",
       "done": "Die Solution ist live.",
       "failed": "Die Solution konnte nicht live geschaltet werden.",
-      "entityDeleted": "Eine Entität einer Änderung wurde inzwischen gelöscht. Entferne ihr Delta und schalte erneut live.",
+      "entityDeleted": "Eine Entität einer Änderung ist gelöscht. Entferne die Änderung oder stelle die Entität wieder her und schalte erneut live.",
       "merge": {
         "title": "Konflikte auflösen",
         "intro": "Diese Felder wurden im Katalog geändert, nachdem die Solution sie erfasst hat. Wähle, welcher Wert live geht.",
@@ -1102,7 +1105,8 @@
         }
       },
       "entityBlocked": "Eine Entität, die diese Lösung ändert, hat offene Punkte einer anderen Lösung. Löse sie zuerst.",
-      "notInMetamodel": "{n} Wert, den nur diese Lösung behält, wird ein offener Punkt | {n} Werte, die nur diese Lösung behält, werden offene Punkte"
+      "notInMetamodel": "{n} Wert, den nur diese Lösung behält, wird ein offener Punkt | {n} Werte, die nur diese Lösung behält, werden offene Punkte",
+      "deletionConflicts": "{n} Änderung betrifft eine gelöschte Entität ({names}). Entferne die Änderung oder stelle die Entität vor dem Go-live wieder her. | {n} Änderungen betreffen gelöschte Entitäten ({names}). Entferne die Änderungen oder stelle die Entitäten vor dem Go-live wieder her."
     },
     "openIssues": {
       "action": "Auflösen",
@@ -1389,7 +1393,10 @@
       "notNext": "Nur das Plateau, das auf die Baseline folgt, kann live gehen.",
       "forbidden": "Du darfst Plateaus nicht live schalten.",
       "failed": "Das Go-live ist fehlgeschlagen; nichts wurde geändert.",
-      "loadFailed": "Die Vorschau des Go-lives konnte nicht geladen werden."
+      "loadFailed": "Die Vorschau des Go-lives konnte nicht geladen werden.",
+      "deletionConflicts": "Eine Lösung hat Änderungen an gelöschten Entitäten ({names}). Entferne die Änderungen oder stelle die Entitäten zuerst wieder her.",
+      "deletionCount": "eine gelöschte Entität | {n} gelöschte Entitäten",
+      "entityDeleted": "Eine Entität ihrer Lösungen ist gelöscht. Entferne die Änderung oder stelle die Entität zuerst wieder her."
     }
   },
   "diagrams": {
@@ -1492,7 +1499,8 @@
       "hintEdges": "Wähle eine Kante mit Tab oder per Klick: Ein Doppelklick fügt einen Knickpunkt hinzu, ein Doppelklick auf einen Knickpunkt entfernt ihn, Entf entfernt die Kante aus dem Diagramm.",
       "connectFrom": "Von hier auf eine andere Form ziehen, um eine Verbindung zu zeichnen",
       "forbiddenConnection": "Du darfst Verbindungen dieses Typs nicht anlegen. Eine Verbindung eines Scoping-Typs braucht die Berechtigung, Sichtbarkeitsbereiche zuzuweisen.",
-      "details": "Details"
+      "details": "Details",
+      "hintDelete": "Strg+Entf löscht die gewählte Entität aus dem Repository."
     },
     "details": {
       "label": "Details der gewählten Entität",
@@ -1531,6 +1539,25 @@
       "chooseHint": "Wähle die Verbindungen, die als Kanten angezeigt werden sollen.",
       "addSelected": "Ausgewählte anzeigen",
       "offerFailed": "Die vorhandenen Verbindungen konnten nicht gesucht werden."
+    },
+    "repositoryDelete": {
+      "action": "Aus Repository löschen",
+      "title": "„{name}“ aus dem Repository löschen?",
+      "hint": "Die Entität und alles, was mit ihr gelöscht wird, verschwinden aus allen Katalogen und Diagrammen. Wer die Berechtigung zum Wiederherstellen hat, kann sie zurückholen.",
+      "loading": "Die Auswirkungen des Löschens werden gelesen…",
+      "children": "Es werden keine Kinder mitgelöscht. | 1 Kind wird mitgelöscht. | {count} Kinder werden mitgelöscht, auf allen Ebenen.",
+      "connections": "Es wird keine Verbindung mitgelöscht. | 1 Verbindung wird mitgelöscht. | {count} Verbindungen werden mitgelöscht.",
+      "solutionsTitle": "Keine aktive Lösung hat Änderungen an diesen Entitäten | 1 aktive Lösung hat Änderungen an diesen Entitäten | {count} aktive Lösungen haben Änderungen an diesen Entitäten",
+      "solutionsHint": "Ihre Änderungen werden zu Konflikten, die die Lösung vor ihrem Go-live auflöst.",
+      "solution": "{name}: {count} Änderung | {name}: {count} Änderungen",
+      "notDeletable": "Diese Entität kann hier nicht gelöscht werden. Eine Gliederungshilfe wird mit einer eigenen Aktion gelöscht, und eine automatische Kompositionsverbindung verschwindet, wenn sich der Elternteil ihres Kindes ändert.",
+      "gone": "Die Entität existiert nicht oder wurde schon gelöscht.",
+      "forbidden": "Du darfst diese Entität nicht löschen. Eine Verbindung eines Scoping-Typs braucht außerdem die Berechtigung, Sichtbarkeitsbereiche zuzuweisen.",
+      "loadFailed": "Die Auswirkungen des Löschens konnten nicht geladen werden.",
+      "changed": "„{name}“ wurde geändert, nachdem du diese Bestätigung geöffnet hast. Lies die Auswirkungen des Löschens neu, bevor du löschst.",
+      "again": "Neu lesen",
+      "blocked": "{names} hat offene Punkte einer Lösung und kann nicht gelöscht werden. Löse sie zuerst auf.",
+      "failed": "Die Entität konnte nicht gelöscht werden."
     }
   },
   "dashboards": {

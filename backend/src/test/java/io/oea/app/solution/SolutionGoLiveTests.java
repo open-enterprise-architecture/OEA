@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -319,6 +320,124 @@ class SolutionGoLiveTests {
 			.contentType("application/json")
 			.content(newEntity("Later").toString())
 			.exchange()).hasStatus(HttpStatus.CONFLICT);
+	}
+
+	// Requirement: Deltas on deleted entities (s17-entity-delete)
+
+	@ParameterizedTest
+	@ValueSource(strings = { "modified", "retiring" })
+	void deletionConflictInThePreviewAndTheGoLive(String type) {
+		int entity = "modified".equals(type) ? this.erp : this.crm;
+		String delta = capture("modified".equals(type) ? modified(entity, "New") : retiring(entity)).path("id")
+			.asString();
+		deleteInTheRepository(entity);
+
+		JsonNode preview = ok(preview(this.michael));
+		assertThat(preview.path("deletionConflicts")).hasSize(1);
+		JsonNode conflict = preview.path("deletionConflicts").get(0);
+		assertThat(conflict.path("deltaId").asString()).isEqualTo(delta);
+		assertThat(conflict.path("deltaType").asString()).isEqualTo(type);
+		assertThat(conflict.path("entityId").asInt()).isEqualTo(entity);
+		assertThat(conflict.path("entityName").asString()).isEqualTo("modified".equals(type) ? "ERP-Core" : "CRM-Legacy");
+
+		MvcTestResult result = goLive(this.michael);
+
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.CONFLICT);
+		assertThat(json(result).path("type").asString()).isEqualTo("urn:oea:problem:entity-deleted");
+		assertThat(json(result).path("deltaIds").get(0).asString()).isEqualTo(delta);
+		assertThat(status()).isEqualTo("draft");
+		assertThat(description(this.erp)).isEqualTo("Old");
+		assertThat(deleted(this.connection)).isFalse();
+	}
+
+	@Test
+	void deletionConflictResolvedByRemovingTheDelta() {
+		String delta = capture(modified(this.erp, "New")).path("id").asString();
+		capture(retiring(this.crm));
+		deleteInTheRepository(this.erp);
+		assertThat(goLive(this.michael)).hasStatus(HttpStatus.CONFLICT);
+
+		assertThat(this.mvc.delete()
+			.uri("/api/v1/solutions/" + this.solution + "/deltas/" + delta)
+			.cookie(cookie(this.michael))
+			.header(CsrfOriginFilter.HEADER, this.michael.csrfToken())
+			.exchange()).hasStatus(HttpStatus.NO_CONTENT);
+
+		assertThat(ok(preview(this.michael)).path("deletionConflicts")).isEmpty();
+		ok(goLive(this.michael));
+		assertThat(deleted(this.crm)).isTrue();
+		assertThat(status()).isEqualTo("implemented");
+	}
+
+	@Test
+	void deletionConflictResolvedByRestoringTheEntity() {
+		capture(modified(this.erp, "New"));
+		TestSession kurt = this.principals.personWithIdpRole("enterprise-architect");
+		MvcTestResult deletion = this.mvc.delete()
+			.uri("/api/v1/entities/" + this.erp)
+			.cookie(cookie(kurt))
+			.header(CsrfOriginFilter.HEADER, kurt.csrfToken())
+			.header("If-Match", "\"1\"")
+			.exchange();
+		assertThat(deletion).as(() -> content(deletion)).hasStatus(HttpStatus.OK);
+		assertThat(goLive(this.michael)).hasStatus(HttpStatus.CONFLICT);
+
+		MvcTestResult restore = this.mvc.post()
+			.uri("/api/v1/entities/" + this.erp + "/undelete")
+			.cookie(cookie(kurt))
+			.header(CsrfOriginFilter.HEADER, kurt.csrfToken())
+			.header("If-Match", "\"1\"")
+			.exchange();
+		assertThat(restore).as(() -> content(restore)).hasStatus(HttpStatus.OK);
+
+		assertThat(ok(preview(this.michael)).path("deletionConflicts")).isEmpty();
+		ok(goLive(this.michael));
+		assertThat(description(this.erp)).isEqualTo("New");
+	}
+
+	@Test
+	void aDeltaNewAndDeltasOfActiveEntitiesAreNoDeletionConflict() {
+		capture(newEntity("Salesforce"));
+		capture(modified(this.erp, "New"));
+		// an unrelated entity is deleted
+		int other = entity(this.application, "Other-" + suffix(), "");
+		deleteInTheRepository(other);
+
+		assertThat(ok(preview(this.michael)).path("deletionConflicts")).isEmpty();
+		ok(goLive(this.michael));
+		assertThat(description(this.erp)).isEqualTo("New");
+	}
+
+	@Test
+	void retiredConnectionsRecordTheRetiredEntityAsOriginAndComeBackWithIt() {
+		capture(retiring(this.crm));
+		ok(goLive(this.michael));
+		assertThat(origin(this.crm)).isNull();
+		assertThat(origin(this.connection)).isEqualTo(this.crm);
+		assertThat(this.jdbc.queryForObject("""
+				SELECT count(DISTINCT deleted_at) FROM entities WHERE id IN (?, ?)""", Integer.class, this.crm,
+				this.connection)).isOne();
+
+		TestSession kurt = this.principals.personWithIdpRole("enterprise-architect");
+		MvcTestResult restore = this.mvc.post()
+			.uri("/api/v1/entities/" + this.crm + "/undelete")
+			.cookie(cookie(kurt))
+			.header(CsrfOriginFilter.HEADER, kurt.csrfToken())
+			.header("If-Match", "\"1\"")
+			.exchange();
+
+		JsonNode restored = ok(restore).path("restored");
+		assertThat(restored).hasSize(2);
+		assertThat(deleted(this.crm)).isFalse();
+		assertThat(deleted(this.connection)).isFalse();
+	}
+
+	private void deleteInTheRepository(int entity) {
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.michaelId, entity);
+	}
+
+	private Integer origin(int id) {
+		return this.jdbc.queryForObject("SELECT deleted_with_entity_id FROM entities WHERE id = ?", Integer.class, id);
 	}
 
 	@Test

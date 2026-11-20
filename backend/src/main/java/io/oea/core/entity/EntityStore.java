@@ -147,9 +147,29 @@ public class EntityStore {
 	 * baseline, and its history stays.
 	 */
 	public void softDelete(int id, long personId, Instant now, String reason) {
+		softDelete(id, personId, now, reason, null);
+	}
+
+	/**
+	 * As {@link #softDelete(int, long, Instant, String)}, recording the entity whose deletion takes
+	 * this one along ({@code null} for none), so that its restore restores this one too (V49).
+	 */
+	public void softDelete(int id, long personId, Instant now, String reason, Integer originId) {
 		this.jdbc.update("""
-				UPDATE entities SET deleted_at = ?, deleted_by = ?, deletion_reason = ? WHERE id = ? AND deleted_at IS NULL""",
-				Timestamp.from(now), personId, reason, id);
+				UPDATE entities SET deleted_at = ?, deleted_by = ?, deletion_reason = ?, deleted_with_entity_id = ?
+				WHERE id = ? AND deleted_at IS NULL""", Timestamp.from(now), personId, reason, originId, id);
+	}
+
+	/**
+	 * The entities with these IDs, locked in ID order for the rest of the transaction (deleting
+	 * and restoring a cascade); unknown IDs are left out.
+	 */
+	public List<StoredEntity> lockAll(java.util.Collection<Integer> ids) {
+		if (ids.isEmpty()) {
+			return List.of();
+		}
+		return this.jdbc.query(SELECT + " WHERE id = ANY(?) ORDER BY id FOR UPDATE", EntityStore::entity,
+				(Object) ids.toArray(Integer[]::new));
 	}
 
 	/** The active connections whose source or target is the entity, by ID. */

@@ -279,6 +279,84 @@ class PlateauGoLiveTests {
 			.isEqualTo("Analytics ERP");
 	}
 
+	// Requirement: Deletion conflicts stop a plateau go-live (s17-entity-delete)
+
+	@ParameterizedTest
+	@ValueSource(strings = { "modified", "retiring" })
+	void deletionConflictInThePreviewStopsTheGoLive(String type) {
+		String erpSolution = solution("ERP Extension", this.target, "approved");
+		JsonNode delta = capture(erpSolution, "modified".equals(type) ? modified(this.erp, "Core ERP") : retiring(this.erp));
+		String other = solution("CRM Replacement", this.target, "approved");
+		capture(other, modified(this.crm, "Fresh CRM"));
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.kurtId, this.erp);
+
+		JsonNode preview = ok(call(HttpMethod.GET, path(this.target), null, this.kurt));
+
+		JsonNode conflicts = solutionOf(preview, erpSolution).path("deletionConflicts");
+		assertThat(conflicts).hasSize(1);
+		assertThat(conflicts.get(0).path("deltaId").asString()).isEqualTo(delta.path("id").asString());
+		assertThat(conflicts.get(0).path("deltaType").asString()).isEqualTo(type);
+		assertThat(conflicts.get(0).path("entityId").asInt()).isEqualTo(this.erp);
+		assertThat(conflicts.get(0).path("entityName").asString()).startsWith("ERP-Core");
+		assertThat(solutionOf(preview, other).path("deletionConflicts")).isEmpty();
+		MvcTestResult result = call(HttpMethod.POST, path(this.target), confirm(plateauName(this.target)), this.kurt);
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.CONFLICT);
+		assertThat(body(result).path("type").asString()).endsWith("entity-deleted");
+		assertThat(body(result).path("deltaIds").get(0).asString()).isEqualTo(delta.path("id").asString());
+		assertThat(plateauStatus(this.target)).isEqualTo("target");
+		assertThat(status(erpSolution)).isEqualTo("approved");
+		assertThat(status(other)).as("no solution goes live").isEqualTo("approved");
+		assertThat(this.jdbc.queryForObject("SELECT description FROM entities WHERE id = ?", String.class, this.crm))
+			.isEqualTo("");
+	}
+
+	@Test
+	void restoringTheEntityResolvesTheDeletionConflict() {
+		String erpSolution = solution("ERP Extension", this.target, "approved");
+		capture(erpSolution, modified(this.erp, "Core ERP"));
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.kurtId, this.erp);
+		assertThat(call(HttpMethod.POST, path(this.target), confirm(plateauName(this.target)), this.kurt))
+			.hasStatus(HttpStatus.CONFLICT);
+
+		ok(call(HttpMethod.POST, "/api/v1/entities/" + this.erp + "/undelete", null, this.kurt, "\"1\""));
+
+		assertThat(solutionOf(ok(call(HttpMethod.GET, path(this.target), null, this.kurt)), erpSolution)
+			.path("deletionConflicts")).isEmpty();
+		ok(call(HttpMethod.POST, path(this.target), confirm(plateauName(this.target)), this.kurt));
+		assertThat(status(erpSolution)).isEqualTo("implemented");
+	}
+
+	@Test
+	void entityRetiredByAnEarlierSolutionOfThePlateauKeepsTodaysHandling() {
+		String first = solution("CRM Replacement", this.target, "approved");
+		String second = solution("CRM Cleanup", this.target, "approved");
+		capture(first, retiring(this.crm));
+		capture(second, retiring(this.crm));
+
+		// a later delta retiring the same entity is skipped, no deletion conflict
+		JsonNode preview = ok(call(HttpMethod.GET, path(this.target), null, this.kurt));
+		assertThat(solutionOf(preview, second).path("deletionConflicts")).isEmpty();
+		ok(call(HttpMethod.POST, path(this.target), confirm(plateauName(this.target)), this.kurt));
+		assertThat(deleted(this.crm)).isTrue();
+		assertThat(status(second)).isEqualTo("implemented");
+	}
+
+	@Test
+	void laterModifiedDeltaOfAnEntityRetiredByAnEarlierSolutionStillStopsTheGoLive() {
+		String first = solution("CRM Replacement", this.target, "approved");
+		String second = solution("CRM Cleanup", this.target, "approved");
+		capture(first, retiring(this.crm));
+		capture(second, modified(this.crm, "Cleaned"));
+
+		MvcTestResult result = call(HttpMethod.POST, path(this.target), confirm(plateauName(this.target)), this.kurt);
+
+		assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.CONFLICT);
+		assertThat(body(result).path("type").asString()).endsWith("entity-deleted");
+		assertThat(deleted(this.crm)).as("the earlier solution is rolled back").isFalse();
+		assertThat(status(first)).isEqualTo("approved");
+		assertThat(plateauStatus(this.target)).isEqualTo("target");
+	}
+
 	// Requirement: Atomic plateau go-live
 
 	@Test
@@ -431,6 +509,24 @@ class PlateauGoLiveTests {
 		List<String> names = new ArrayList<>();
 		solutions.forEach((solution) -> names.add(solution.path("name").asString()));
 		return names;
+	}
+
+	private static JsonNode solutionOf(JsonNode preview, String solution) {
+		for (JsonNode candidate : preview.path("solutions")) {
+			if (solution.equals(candidate.path("id").asString())) {
+				return candidate;
+			}
+		}
+		throw new AssertionError("no solution " + solution + " in " + preview);
+	}
+
+	private MvcTestResult call(HttpMethod method, String path, JsonNode body, TestSession session, String ifMatch) {
+		var request = this.mvc.method(method)
+			.uri(path)
+			.cookie(new Cookie(SessionCookie.NAME, session.token()))
+			.header(CsrfOriginFilter.HEADER, session.csrfToken())
+			.header("If-Match", ifMatch);
+		return request.exchange();
 	}
 
 	private MvcTestResult call(HttpMethod method, String path, JsonNode body, TestSession session) {

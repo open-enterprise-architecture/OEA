@@ -81,6 +81,8 @@ Ist die Initiative umgesetzt, übernimmt *Live schalten* die Lösung in den Kata
 2. Eine Bestätigung zeigt, wie viele Entitäten angelegt, geändert und stillgelegt werden und wie viele Verbindungen stillgelegter Entitäten mit stillgelegt werden. Das Live-Schalten kann nicht rückgängig gemacht werden.
 3. Nach *Live schalten* stehen neue Entitäten im Katalog, geänderte Entitäten haben die neuen Werte, und stillgelegte Entitäten samt ihren Verbindungen sind aus dem Katalog gelöscht; ihre Historie bleibt. Die Lösung ist *Umgesetzt* und kann nicht mehr geändert werden.
 
+Wurde eine Entität einer Änderung aus dem Repository gelöscht, ist die Änderung mit *Entität gelöscht* markiert, die Bestätigung nennt sie, und das Live-Schalten ist nicht möglich: Entferne die Änderung oder stelle die Entität wieder her (siehe [Aus Repository löschen](./diagrams#the-canvas)). Das gilt für Änderungen, die eine Entität ändern, und für solche, die sie ausser Betrieb nehmen.
+
 Werte, die nicht mehr zum Metamodell passen, zum Beispiel eine Pflichteigenschaft, die nach dem Erfassen hinzukam, halten das Live-Schalten nicht auf. Sie werden übernommen und auf der Seite der Lösung unter *Offene Punkte* geführt.
 
 Hat die Lösung nach einer [Metamodell-Änderung](../administration/metamodel-editing#removing-a-property) eine Eigenschaft als Snapshot behalten, listet der Dialog *Konflikte auflösen* auch jeden Wert davon, mit *Wert verwerfen* oder *Später als offenen Punkt lösen*. Auch diese Werte halten das Live-Schalten nicht auf.

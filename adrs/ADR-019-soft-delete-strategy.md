@@ -146,6 +146,18 @@ Deleted entities (`deleted_at IS NOT NULL`) do **not** appear in active plateau 
 - **Admin UI for trash bin**: List of all deleted entities with restore function; own UC
 - **Cascade ambiguity handling**: UX for the case where cascade restore is not fully possible (a connected element is still deleted)
 
+## Amendment 2026-11-20 (change s17-entity-delete)
+
+Implementing the deletion ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md), [REQ-146](../requirements/req/REQ-146-diagram-delete-vs-entity-delete.md), issue #70) refined this decision. Where it differs from the text above, this amendment applies.
+
+- **Cascade:** deleting an element entity deletes its children on all levels (at most 10) and every connection with the entity or a child as endpoint, in one transaction with one time and actor. The cascade always applies; the planned query parameters `cascade` and `reason` are dropped. A connection is deleted alone. A structuring aid (its own operation) and an automatic composition connection (the parent change removes it) are not deleted through `deleteEntity` (422).
+- **Cascade origin:** the rows taken along record the entity whose deletion took them along in the column `entities.deleted_with_entity_id` (migration V49) and the reason `cascade: entity <id> deleted`. The entity itself has no origin. The restore finds exactly its cascade by origin and deletion time instead of time and actor, so two deletions in the same instant are never mixed. Entities deleted before V49 have no origin and are restored alone.
+- **Restore:** `POST /api/v1/entities/{id}/undelete` (the path `/restore` restores a version) restores the entity, its descendants and the connections of the same cascade with unchanged versions. A connection whose other endpoint is still deleted, or an automatic composition connection whose child has another parent, stays deleted and is named in the answer. An element whose parent is deleted, or whose subtree would end more than 10 levels below the root, is placed at the top level as a new version. A version restore of a deleted entity answers 409 `entity-deleted`.
+- **Audit events:** `entity.deleted` for the entity, `entity.cascade-deleted` for each part of the cascade (with `triggeredByEntityId`) and `entity.undeleted` on restore, distinct from `entity.restored` of the version restore.
+- **Permissions:** `entity:delete` deletes, `entity:restore` restores; a deleted or restored set with a connection of a scoping type also needs `visibility-scope:assign`. Open issues on any part of the cascade block the deletion (409 `entity-blocked`).
+- **External IDs (#70):** the unique index keeps covering deleted rows, so the external ID of a deleted entity stays reserved. A batch `upsert` of that external ID restores the entity and updates it when the writer holds `entity:restore`; otherwise, and always for `create-only` and `skip-existing`, the item is rejected with `EXTERNAL_ID_DELETED`.
+- **Solutions:** a delta `modified` or `retiring` of a deleted entity is a deletion conflict; the go-live of a solution and of a plateau answer 409 `entity-deleted` until the delta is removed or the entity restored. The go-live records the retired entity as origin of the connections it retires with it.
+
 ## References
 
 **Related ADRs**: [ADR-016](./ADR-016-persistence-strategy.md) (persistence; `entities` table schema)
