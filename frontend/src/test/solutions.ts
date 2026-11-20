@@ -216,6 +216,7 @@ function newDelta(id: string, name: string, metatypeId: string, description: str
     conflicts: [],
     createdAt: '2026-11-12T10:00:00Z',
     updatedAt: null,
+    entityDeleted: false,
   }
 }
 
@@ -233,6 +234,7 @@ function retiringDelta(id: string, entity: SolutionLandscapeEntry): SolutionDelt
     conflicts: [],
     createdAt: '2026-11-12T10:00:00Z',
     updatedAt: null,
+    entityDeleted: false,
   }
 }
 
@@ -459,6 +461,8 @@ export interface SolutionApi {
   deltaQueries: URLSearchParams[]
   /** the conflicts per entity ID; a test changes them "meanwhile" */
   conflicts: Record<number, SolutionDeltaConflict[]>
+  /** the entity IDs deleted in the repository: their deltas are deletion conflicts, the go-live answers 409 `entity-deleted` */
+  deletedEntities: number[]
   posts: Record<string, unknown>[]
   landscapeQueries: URLSearchParams[]
   deltaPosts: Record<string, unknown>[]
@@ -484,6 +488,8 @@ export function solutionApi(
     conflicts?: Record<number, SolutionDeltaConflict[]>
     /** the metatypes that show parallel changes in the baseline */
     parallelChangeMetatypes?: string[]
+    /** the IDs of entities deleted in the repository (deletion conflicts of their deltas) */
+    deletedEntities?: number[]
     /** the field conflicts the go-live finds until they are resolved (US-152) */
     goLiveConflicts?: DeltaConflict[]
     /** the open issues the go-live leaves */
@@ -506,6 +512,8 @@ export function solutionApi(
   const diffQueries: URLSearchParams[] = []
   const deltaQueries: URLSearchParams[] = []
   const conflicts: Record<number, SolutionDeltaConflict[]> = { ...(options.conflicts ?? {}) }
+  const deletedEntities: number[] = [...(options.deletedEntities ?? [])]
+  const deletionOf = () => deltas.filter((delta) => delta.entityId !== null && deletedEntities.includes(delta.entityId))
   const goLiveConflicts = [...(options.goLiveConflicts ?? [])]
   const issues = [...(options.openIssues ?? [])]
   const goLives: string[] = []
@@ -515,6 +523,7 @@ export function solutionApi(
   const withConflicts = (delta: SolutionDelta): SolutionDelta => ({
     ...delta,
     conflicts: delta.entityId !== null ? (conflicts[delta.entityId] ?? []) : [],
+    entityDeleted: delta.entityId !== null && deletedEntities.includes(delta.entityId),
   })
   // one page of a list in the order of the delta list, with the counts, by page number or cursor
   const paged = <T>(all: T[], params: URLSearchParams, key: 'items' | 'entries') => {
@@ -777,9 +786,18 @@ export function solutionApi(
         kind: issue.kind,
       }))
       if (method === 'GET') {
-        return json({ solutionId: found.id, counts, conflicts: goLiveConflicts, violations })
+        return json({
+          solutionId: found.id,
+          counts,
+          conflicts: goLiveConflicts,
+          deletionConflicts: deletionOf().map((delta) => ({ deltaId: delta.id, deltaType: delta.deltaType, entityId: delta.entityId, entityName: delta.name })),
+          violations,
+        })
       }
       goLives.push(found.id)
+      if (deletionOf().length > 0) {
+        return json({ type: 'urn:oea:problem:entity-deleted', title: 'Entity deleted', status: 409, deltaIds: deletionOf().map((delta) => delta.id) }, 409)
+      }
       const fieldConflicts = goLiveConflicts.filter((conflict) => conflict.kind !== 'not-in-metamodel')
       if (fieldConflicts.length > 0) {
         return json({ type: 'urn:oea:problem:merge-required', title: 'Merge required', status: 409, conflicts: fieldConflicts }, 409)
@@ -843,6 +861,7 @@ export function solutionApi(
     diffQueries,
     deltaQueries,
     conflicts,
+    deletedEntities,
     posts,
     landscapeQueries,
     deltaPosts,

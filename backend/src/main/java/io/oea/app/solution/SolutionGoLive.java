@@ -173,8 +173,17 @@ public class SolutionGoLive {
 			String kind) {
 	}
 
+	/**
+	 * A delta {@code modified} or {@code retiring} whose entity is deleted in the repository: a
+	 * deletion conflict that stops the go-live until the delta is removed or the entity restored
+	 * (design D5 of s17-entity-delete).
+	 */
+	public record DeletionConflict(UUID deltaId, String deltaType, int entityId, String entityName) {
+	}
+
 	/** What a go-live would do. */
-	public record Preview(UUID solutionId, Counts counts, List<Conflict> conflicts, List<Violation> violations) {
+	public record Preview(UUID solutionId, Counts counts, List<Conflict> conflicts,
+			List<DeletionConflict> deletionConflicts, List<Violation> violations) {
 	}
 
 	/** The outcome of a go-live. */
@@ -191,8 +200,8 @@ public class SolutionGoLive {
 	/** The plan of a go-live: the deltas, the rules of today and what the deltas would do. */
 	private record Plan(GoLiveStore.SolutionRow solution, List<DeltaRow> deltas, MetatypeRules rules,
 			Map<Integer, StoredEntity> entities, Map<Integer, Map<UUID, TypedValue>> current, Counts counts,
-			Set<Integer> retiredConnections, List<RawConflict> conflicts, List<RawViolation> violations,
-			List<RawConflict> snapshotValues) {
+			Set<Integer> retiredConnections, Map<Integer, Integer> connectionOrigins, List<RawConflict> conflicts,
+			List<RawViolation> violations, List<RawConflict> snapshotValues, List<DeletionConflict> deletions) {
 
 		/** Whether the field of the delta holds a value only a snapshot keeps. */
 		boolean snapshotOnly(DeltaRow delta, FieldRow field) {
@@ -222,12 +231,12 @@ public class SolutionGoLive {
 		GoLiveStore.SolutionRow solution = this.store.find(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
-		Plan plan = plan(solution, false, ahead(solution.id()));
+		Plan plan = plan(solution, false, ahead(solution.id()), false);
 		PropertyAccess.Snapshot reader = this.access.of(principal);
 		String language = this.languages.language(principal);
 		List<RawConflict> all = new ArrayList<>(plan.conflicts());
 		all.addAll(plan.snapshotValues());
-		return new Preview(solutionId, plan.counts(), conflicts(plan, all, reader, language),
+		return new Preview(solutionId, plan.counts(), conflicts(plan, all, reader, language), plan.deletions(),
 				violations(plan, language));
 	}
 
@@ -237,7 +246,7 @@ public class SolutionGoLive {
 	 * @throws NoSuchElementException for an unknown solution (404)
 	 * @throws SolutionCompletedException for an implemented or archived solution (409)
 	 * @throws MergeRequiredException for unresolved field conflicts (409)
-	 * @throws EntityDeletedException for a delta whose entity was deleted meanwhile (409)
+	 * @throws EntityDeletedException for a delta {@code modified} or {@code retiring} whose entity is deleted (409)
 	 */
 	@Transactional
 	public Result goLive(OeaPrincipal principal, UUID solutionId) {
@@ -245,15 +254,17 @@ public class SolutionGoLive {
 			// a solution of a plateau goes live with its plateau (US-157 AC3)
 			throw new PlateauSolutionException();
 		}
-		return goLiveOne(principal, solutionId);
+		return goLiveOne(principal, solutionId, false);
 	}
 
 	/**
 	 * Takes one solution live in the transaction of the caller; {@link PlateauGoLive} calls it for
-	 * each solution of a plateau, in the order of the go-live.
+	 * each solution of a plateau, in the order of the go-live. In a plateau the deletion conflicts
+	 * were checked for all solutions before anything was written, so a delta {@code retiring} of an
+	 * entity that an earlier solution retired meanwhile is skipped.
 	 */
 	@Transactional
-	Result goLiveOne(OeaPrincipal principal, UUID solutionId) {
+	Result goLiveOne(OeaPrincipal principal, UUID solutionId, boolean skipRetiringOfDeleted) {
 		Long person = principal.personId();
 		if (person == null) {
 			throw new PermissionDeniedException();
@@ -261,7 +272,7 @@ public class SolutionGoLive {
 		GoLiveStore.SolutionRow solution = this.store.lock(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
-		Plan plan = plan(solution, true, ahead(solution.id()));
+		Plan plan = plan(solution, true, ahead(solution.id()), skipRetiringOfDeleted);
 		Set<Integer> touched = new TreeSet<>();
 		plan.deltas()
 			.stream()
@@ -289,11 +300,11 @@ public class SolutionGoLive {
 			switch (delta.type()) {
 				case "new" -> createdEntities.put(delta.id(), create(principal, delta, plan, context));
 				case "modified" -> modify(principal, delta, plan, context);
-				default -> retire(principal, delta.entityId(), solution, now);
+				default -> retire(principal, delta.entityId(), solution, now, null);
 			}
 		}
 		for (int connection : plan.retiredConnections()) {
-			retire(principal, connection, solution, now);
+			retire(principal, connection, solution, now, plan.connectionOrigins().get(connection));
 		}
 		Map<Integer, Set<UUID>> missing = new HashMap<>();
 		for (RawViolation violation : plan.violations()) {
@@ -345,7 +356,7 @@ public class SolutionGoLive {
 		GoLiveStore.SolutionRow solution = this.store.lock(solutionId)
 			.orElseThrow(() -> new NoSuchElementException("solution " + solutionId));
 		requireOpen(solution);
-		Plan plan = plan(solution, true, ahead(solution.id()));
+		Plan plan = plan(solution, true, ahead(solution.id()), true);
 		DeltaRow delta = plan.deltas()
 			.stream()
 			.filter((candidate) -> candidate.id().equals(deltaId))
@@ -431,9 +442,13 @@ public class SolutionGoLive {
 
 	/**
 	 * What the deltas would do with the rules of today: counts, conflicts and violations. With
-	 * {@code lock}, the entities of the deltas are locked in ID order (design D4).
+	 * {@code lock}, the entities of the deltas are locked in ID order (design D4) and a delta of a
+	 * deleted entity stops the go-live. A delta {@code retiring} of a deleted entity is such a
+	 * deletion conflict too (design D5 of s17-entity-delete), unless an earlier solution of the
+	 * plateau retires the entity ({@code ahead}) or {@code skipRetiringOfDeleted} says that the
+	 * conflicts were checked before and the entity was retired meanwhile.
 	 */
-	private Plan plan(GoLiveStore.SolutionRow solution, boolean lock, Ahead ahead) {
+	private Plan plan(GoLiveStore.SolutionRow solution, boolean lock, Ahead ahead, boolean skipRetiringOfDeleted) {
 		List<DeltaRow> rows = this.store.deltas(solution.id());
 		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock));
 		List<SnapshotStore.SnapshotRow> kept = this.snapshots.of(solution.id());
@@ -442,6 +457,7 @@ public class SolutionGoLive {
 		rows.stream().map(DeltaRow::entityId).filter(Objects::nonNull).forEach(ids::add);
 		Map<Integer, StoredEntity> stored = new HashMap<>();
 		List<UUID> deleted = new ArrayList<>();
+		List<DeletionConflict> deletions = new ArrayList<>();
 		for (int id : ids) {
 			StoredEntity entity = (lock ? this.entities.lock(id) : this.entities.find(id)).orElse(null);
 			if (entity != null) {
@@ -466,6 +482,13 @@ public class SolutionGoLive {
 			if (entity == null || entity.deleted() || ahead.retired().contains(delta.entityId())) {
 				if ("modified".equals(delta.type())) {
 					deleted.add(delta.id());
+				}
+				if (entity != null && entity.deleted() && !ahead.retired().contains(delta.entityId())) {
+					// a deletion conflict: the entity is deleted in the repository (D5)
+					deletions.add(new DeletionConflict(delta.id(), delta.type(), entity.id(), entity.name()));
+					if ("retiring".equals(delta.type()) && !skipRetiringOfDeleted) {
+						deleted.add(delta.id());
+					}
 				}
 				continue;
 			}
@@ -492,17 +515,19 @@ public class SolutionGoLive {
 			throw new EntityDeletedException(deleted);
 		}
 		Set<Integer> retiredConnections = new TreeSet<>();
-		for (int entityId : retiring) {
+		Map<Integer, Integer> origins = new HashMap<>();
+		for (int entityId : new TreeSet<>(retiring)) {
 			for (int connection : this.entities.activeConnectionsOf(entityId)) {
 				if (!retiring.contains(connection)) {
 					retiredConnections.add(connection);
+					origins.putIfAbsent(connection, entityId);
 				}
 			}
 		}
 		Counts counts = new Counts(created, modified, retiring.size(), retiredConnections.size(),
 				snapshotValues.size());
-		return new Plan(solution, rows, rules, stored, current, counts, retiredConnections, conflicts, violations,
-				snapshotValues);
+		return new Plan(solution, rows, rules, stored, current, counts, retiredConnections, origins, conflicts,
+				violations, snapshotValues, List.copyOf(deletions));
 	}
 
 	/**
@@ -651,11 +676,15 @@ public class SolutionGoLive {
 				stored, context);
 	}
 
-	/** Soft-deletes an entity and audits {@code entity.deleted}. */
-	private void retire(OeaPrincipal principal, int entityId, GoLiveStore.SolutionRow solution, Instant now) {
+	/**
+	 * Soft-deletes an entity and audits {@code entity.deleted}; {@code originId} is the retired
+	 * entity that takes a connection along, so that restoring it restores the connection too.
+	 */
+	private void retire(OeaPrincipal principal, int entityId, GoLiveStore.SolutionRow solution, Instant now,
+			Integer originId) {
 		StoredEntity entity = this.entities.find(entityId).orElseThrow();
 		this.deletion.delete(principal, entity, now, "Retired by the solution " + solution.name(),
-				Map.entry("solutionId", solution.id().toString()));
+				Map.entry("solutionId", solution.id().toString()), originId);
 	}
 
 	/** The typed own value of a resolution; an empty value removes a property value. */

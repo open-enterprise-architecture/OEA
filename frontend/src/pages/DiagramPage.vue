@@ -32,6 +32,8 @@ const deleting = ref(false)
 const granted = computed(() => (session.me?.permissions ?? []).map((entry) => entry.permission))
 const canRead = computed(() => granted.value.includes('entity:read'))
 const canWrite = computed(() => granted.value.includes('entity:write'))
+// deleting an entity from the repository on the canvas (REQ-146; design D6 of s17-entity-delete)
+const canDelete = computed(() => granted.value.includes('entity:delete'))
 // placing the diagram in the navigation tree needs viewpoint:manage and entity:read (US-095; design D5 of us-074-diagrams)
 const canPlace = computed(() => granted.value.includes('viewpoint:manage') && granted.value.includes('entity:read'))
 
@@ -150,6 +152,7 @@ async function removed() {
         :view="view"
         :version="diagram.version"
         :editable="canWrite"
+        :can-delete="canDelete"
         :fetch-fn="fetchFn"
         @saved="saved"
         @reload="load"

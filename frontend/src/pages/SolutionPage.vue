@@ -289,6 +289,8 @@ onMounted(async () => {
   }
 })
 
+const deletedDeltas = computed(() => deltas.value.filter((delta) => delta.entityDeleted).length)
+
 const createdAt = computed(() =>
   solution.value ? new Date(solution.value.createdAt).toLocaleString(currentLanguage(), { dateStyle: 'medium', timeStyle: 'short' }) : '',
 )
@@ -403,6 +405,14 @@ const createdAt = computed(() =>
         <dd v-else>{{ t('solutions.projectMode') }}</dd>
       </dl>
       <UAlert
+        v-if="deletedDeltas > 0"
+        data-testid="solution-deletion-conflicts"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-trash-2"
+        :description="t('solutions.deltas.deletionNotice', { n: deletedDeltas }, deletedDeltas)"
+      />
+      <UAlert
         v-if="conflicted > 0"
         data-testid="solution-conflicts"
         color="warning"
@@ -506,11 +516,25 @@ const createdAt = computed(() =>
               icon="i-lucide-triangle-alert"
               :description="t('solutions.goLive.violations', { n: preview.violations.length }, preview.violations.length)"
             />
+            <UAlert
+              v-if="preview.deletionConflicts.length > 0"
+              data-testid="go-live-deletion-conflicts"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-trash-2"
+              :description="
+                t(
+                  'solutions.goLive.deletionConflicts',
+                  { n: preview.deletionConflicts.length, names: preview.deletionConflicts.map((entry) => entry.entityName).join(', ') },
+                  preview.deletionConflicts.length,
+                )
+              "
+            />
             <p class="text-sm font-medium text-error">{{ t('solutions.goLive.irreversible') }}</p>
             <UAlert v-if="goLiveFailure" color="error" variant="subtle" :description="goLiveFailure" />
             <div class="flex justify-end gap-2">
               <UButton data-testid="go-live-cancel" color="neutral" variant="outline" :label="t('solutions.goLive.cancel')" @click="confirming = false" />
-              <UButton data-testid="go-live-confirm-button" icon="i-lucide-rocket" :label="t('solutions.goLive.confirm')" :loading="goingLive" @click="confirmGoLive" />
+              <UButton data-testid="go-live-confirm-button" icon="i-lucide-rocket" :disabled="preview.deletionConflicts.length > 0" :label="t('solutions.goLive.confirm')" :loading="goingLive" @click="confirmGoLive" />
             </div>
           </div>
         </template>

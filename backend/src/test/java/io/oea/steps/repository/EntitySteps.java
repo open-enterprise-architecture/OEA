@@ -406,6 +406,45 @@ public class EntitySteps {
 			.allSatisfy((error) -> assertThat(error.path("field").asString()).matches("entities\\[\\d+]\\..+"));
 	}
 
+	// External ID of a deleted entity (s17-entity-delete, #70)
+
+	@Given("the entity with the external ID {string} is deleted")
+	public void deleted(String externalId) throws Exception {
+		String id = shared.oidc().single("SELECT id FROM entities WHERE external_id = '" + externalId + "'");
+		String version = shared.oidc().single("SELECT version FROM entities WHERE external_id = '" + externalId + "'");
+		HttpResponse<String> deletion = shared.send("DELETE", "/api/v1/entities/" + id, null, shared.architect(),
+				Map.of("If-Match", "\"" + version + "\""));
+		assertThat(deletion.statusCode()).as(deletion.body()).isEqualTo(200);
+	}
+
+	@When("the enterprise architect upserts {string} with the description {string}")
+	public void upsertWithDescription(String externalId, String description) throws Exception {
+		ObjectNode entity = entity("Application Component", "Restored " + externalId, externalId);
+		entity.put("description", description);
+		send(batch(entity));
+	}
+
+	@Then("the item is reported as {string} and restored")
+	public void itemRestored(String status) {
+		JsonNode item = item(0);
+		assertThat(item.path("status").asString()).as(item.toString()).isEqualTo(status);
+		assertThat(item.path("restored").asBoolean()).isTrue();
+	}
+
+	@Then("the entity with the external ID {string} is active with the description {string}")
+	public void activeWithDescription(String externalId, String description) throws Exception {
+		assertThat(shared.oidc().single("SELECT (deleted_at IS NULL)::text FROM entities WHERE external_id = '" + externalId + "'"))
+			.isEqualTo("true");
+		assertThat(shared.oidc().single("SELECT description FROM entities WHERE external_id = '" + externalId + "'"))
+			.isEqualTo(description);
+	}
+
+	@Then("the entity with the external ID {string} is still deleted")
+	public void stillDeleted(String externalId) throws Exception {
+		assertThat(shared.oidc().single("SELECT (deleted_at IS NOT NULL)::text FROM entities WHERE external_id = '" + externalId + "'"))
+			.isEqualTo("true");
+	}
+
 	private void send(ObjectNode request) throws Exception {
 		this.response = shared.post(BATCH, request.toString(), shared.architect(), Map.of());
 	}

@@ -47,7 +47,11 @@ import io.oea.app.security.ReauthenticationRequiredException;
 import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.EntityDeletedException;
+import io.oea.app.entity.ConnectionNotRestorableException;
+import io.oea.app.entity.DeletedEntityException;
 import io.oea.app.entity.EntityBlockedException;
+import io.oea.app.entity.EntityNotDeletedException;
+import io.oea.app.entity.InvalidDeletionException;
 import io.oea.app.entity.EntityVersionConflictException;
 import io.oea.app.solution.InvalidPlateauException;
 import io.oea.app.solution.InvalidSolutionException;
@@ -371,6 +375,35 @@ public class ApiExceptionHandler {
 		ProblemDetail problem = problem(HttpStatus.CONFLICT, "entity-deleted", "Entity deleted", ex.getMessage());
 		problem.setProperty("deltaIds", ex.getDeltaIds().stream().map(UUID::toString).toList());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+	}
+
+	/** A write that needs an active entity addressed a deleted one (design D3 of s17-entity-delete). */
+	@ExceptionHandler(DeletedEntityException.class)
+	ResponseEntity<ProblemDetail> deletedEntity(DeletedEntityException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "entity-deleted", "Entity deleted", ex.getMessage()));
+	}
+
+	/** The undelete of an entity that is not deleted (design D3 of s17-entity-delete). */
+	@ExceptionHandler(EntityNotDeletedException.class)
+	ResponseEntity<ProblemDetail> entityNotDeleted(EntityNotDeletedException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(problem(HttpStatus.CONFLICT, "entity-not-deleted", "Entity not deleted", ex.getMessage()));
+	}
+
+	/** A connection restored directly whose endpoint is deleted or whose parent changed (design D3 of s17-entity-delete). */
+	@ExceptionHandler(ConnectionNotRestorableException.class)
+	ResponseEntity<ProblemDetail> connectionNotRestorable(ConnectionNotRestorableException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "connection-not-restorable", "Connection not restorable",
+				ex.getMessage());
+		problem.setProperty("reason", ex.getReason());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+	}
+
+	/** A deletion the operation does not offer (design D2 of s17-entity-delete). */
+	@ExceptionHandler(InvalidDeletionException.class)
+	ResponseEntity<ProblemDetail> invalidDeletion(InvalidDeletionException ex) {
+		return catalogProblem("validation-failed", "Invalid deletion", ex.getMessage(), ex.getInvalidFields());
 	}
 
 	/** A metamodel change without a decision per affected solution (design D9 of us-153-open-issues). */

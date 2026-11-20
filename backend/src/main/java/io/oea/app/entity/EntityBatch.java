@@ -2,6 +2,7 @@ package io.oea.app.entity;
 
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.security.OeaPrincipal;
+import io.oea.app.security.PermissionResolver;
 import io.oea.audit.AuditEvent;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.EntityStore.StoredEntity;
@@ -13,8 +14,10 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -53,9 +56,15 @@ public class EntityBatch {
 
 	private final EntityBlocks blocks;
 
+	private final EntityUndeletion undeletion;
+
+	private final PermissionResolver permissions;
+
 	public EntityBatch(MetatypeRuleStore ruleStore, MetatypeStore metatypes, EntityStore store, EntityWriter writer, Clock clock,
 			EntityBatchProperties properties, PlatformTransactionManager transactionManager, PropertyWriteAccess writeAccess,
-			EntityBlocks blocks) {
+			EntityBlocks blocks, EntityUndeletion undeletion, PermissionResolver permissions) {
+		this.undeletion = undeletion;
+		this.permissions = permissions;
 		this.blocks = blocks;
 		this.writeAccess = writeAccess;
 		this.ruleStore = ruleStore;
@@ -91,13 +100,21 @@ public class EntityBatch {
 
 	}
 
-	/** The result of an item; {@code connection} marks an item of {@code connections}. */
+	/**
+	 * The result of an item; {@code connection} marks an item of {@code connections}, {@code restored}
+	 * an upsert that restored the deleted entity of its external ID first (#70).
+	 */
 	public record ItemResult(int index, ItemStatus status, Integer entityId, String externalId, List<Issue> errors,
-			List<Issue> warnings, boolean connection) {
+			List<Issue> warnings, boolean connection, boolean restored) {
 
 		public ItemResult(int index, ItemStatus status, Integer entityId, String externalId, List<Issue> errors,
 				List<Issue> warnings) {
-			this(index, status, entityId, externalId, errors, warnings, false);
+			this(index, status, entityId, externalId, errors, warnings, false, false);
+		}
+
+		public ItemResult(int index, ItemStatus status, Integer entityId, String externalId, List<Issue> errors,
+				List<Issue> warnings, boolean connection) {
+			this(index, status, entityId, externalId, errors, warnings, connection, false);
 		}
 
 		static ItemResult error(int index, String externalId, List<Issue> errors, List<Issue> warnings) {
@@ -112,7 +129,12 @@ public class EntityBatch {
 						? new Issue("connectionMetatypeId", issue.code(), issue.message()) : issue)
 				.toList();
 			return new ItemResult(this.index, this.status, this.entityId, this.externalId, renamed, this.warnings,
-					true);
+					true, this.restored);
+		}
+
+		ItemResult withRestored() {
+			return new ItemResult(this.index, this.status, this.entityId, this.externalId, this.errors,
+					this.warnings, this.connection, true);
 		}
 
 	}
@@ -127,7 +149,26 @@ public class EntityBatch {
 
 	/** An item checked and locked, ready to be written; or its final result. */
 	private record Prepared(int index, StoredEntity existing, Map<UUID, TypedValue> stored,
-			EntityValidator.Checked checked, ItemResult result) {
+			EntityValidator.Checked checked, ItemResult result, boolean restored) {
+
+		Prepared(int index, StoredEntity existing, Map<UUID, TypedValue> stored, EntityValidator.Checked checked,
+				ItemResult result) {
+			this(index, existing, stored, checked, result, false);
+		}
+
+	}
+
+	/**
+	 * Whether the writer may restore the deleted entity of an external ID ({@code entity:restore}),
+	 * and what the restore needs: the principal and the batch ID for the audit (#70, design D4 of
+	 * s17-entity-delete).
+	 */
+	private record Restoring(OeaPrincipal principal, boolean allowed, UUID batchId) {
+	}
+
+	private Restoring restoring(OeaPrincipal principal, EntityWriter.WriteContext context) {
+		return new Restoring(principal, this.permissions.permissions(principal).contains("entity:restore"),
+				context.batchId());
 	}
 
 	/**
@@ -377,6 +418,7 @@ public class EntityBatch {
 	private List<ItemResult> writeEach(OeaPrincipal principal, Request request, MetatypeRules rules,
 			Map<Integer, ItemResult> duplicates, Map<Integer, ItemResult> connectionDuplicates,
 			EntityWriter.WriteContext context) {
+		Restoring restoring = restoring(principal, context);
 		List<ItemResult> results = new ArrayList<>();
 		for (int i = 0; i < request.entities().size(); i++) {
 			if (duplicates.containsKey(i)) {
@@ -387,7 +429,7 @@ public class EntityBatch {
 			EntityInput input = request.entities().get(i);
 			try {
 				results.add(this.transaction.execute((status) -> {
-					Prepared prepared = prepare(index, input, request.strategy(), rules);
+					Prepared prepared = prepare(index, input, request.strategy(), rules, restoring);
 					return (prepared.result() != null) ? prepared.result() : write(principal, input, prepared, context);
 				}));
 			}
@@ -404,7 +446,8 @@ public class EntityBatch {
 			ConnectionInput input = request.connections().get(i);
 			try {
 				results.add(this.transaction.execute((status) -> {
-					PreparedConnection prepared = prepareConnection(index, input, request.strategy(), rules, Map.of());
+					PreparedConnection prepared = prepareConnection(index, input, request.strategy(), rules, Map.of(),
+							EntityValidator.Necessity.ENFORCE, restoring);
 					return (prepared.result() != null) ? prepared.result()
 							: writeConnection(principal, input, prepared, context);
 				}));
@@ -441,12 +484,14 @@ public class EntityBatch {
 	private List<ItemResult> writeAtomically(OeaPrincipal principal, Request request, MetatypeRules rules,
 			Map<Integer, ItemResult> duplicates, Map<Integer, ItemResult> connectionDuplicates,
 			EntityWriter.WriteContext context) {
+		Restoring restoring = restoring(principal, context);
 		return this.transaction.execute((status) -> {
 			List<Prepared> prepared = new ArrayList<>();
+			Set<Integer> restoredConnections = new HashSet<>();
 			List<Issue> errors = new ArrayList<>();
 			for (int i = 0; i < request.entities().size(); i++) {
 				Prepared item = duplicates.containsKey(i) ? new Prepared(i, null, Map.of(), null, duplicates.get(i))
-						: prepare(i, request.entities().get(i), request.strategy(), rules);
+						: prepare(i, request.entities().get(i), request.strategy(), rules, restoring);
 				prepared.add(item);
 				if (item.result() != null && item.result().status() == ItemStatus.ERROR) {
 					String path = "entities[" + i + "]";
@@ -464,7 +509,11 @@ public class EntityBatch {
 			for (int i = 0; i < request.connections().size(); i++) {
 				ConnectionInput connection = request.connections().get(i);
 				PreparedConnection checked = connectionDuplicates.containsKey(i) ? null
-						: prepareConnection(i, connection, request.strategy(), rules, pending);
+						: prepareConnection(i, connection, request.strategy(), rules, pending,
+								EntityValidator.Necessity.ENFORCE, restoring);
+				if (checked != null && checked.prepared() != null && checked.prepared().restored()) {
+					restoredConnections.add(i);
+				}
 				ItemResult result = (checked == null) ? connectionDuplicates.get(i) : checked.result();
 				if (checked != null && result == null && checked.prepared().existing() == null
 						&& connection.entity().externalId() != null) {
@@ -500,7 +549,9 @@ public class EntityBatch {
 							item.result().errors().stream().map((error) -> error.within(path)).toList());
 				}
 				try {
-					results.add((item.result() != null) ? item.result() : writeConnection(principal, input, item, context));
+					ItemResult written = (item.result() != null) ? item.result()
+							: writeConnection(principal, input, item, context);
+					results.add(restoredConnections.contains(i) ? written.withRestored() : written);
 				}
 				catch (DuplicateKeyException ex) {
 					throw new AtomicBatchFailedException(List.of(concurrentWrite().within("connections[" + i + "]")));
@@ -510,7 +561,8 @@ public class EntityBatch {
 		});
 	}
 
-	private Prepared prepare(int index, EntityInput input, Strategy strategy, MetatypeRules rules) {
+	private Prepared prepare(int index, EntityInput input, Strategy strategy, MetatypeRules rules,
+			Restoring restoring) {
 		if (BuiltInMetatypes.STRUCTURING_AID.equals(input.metatypeId())) {
 			// structuring aids are written by their own operation only (US-136)
 			return finished(index, ItemResult.error(index, input.externalId(), List.of(new Issue("metatypeId",
@@ -519,10 +571,14 @@ public class EntityBatch {
 		StoredEntity existing = (input.externalId() != null)
 				? this.store.lockByExternalId(input.externalId()).orElse(null) : null;
 		Map<UUID, TypedValue> stored = Map.of();
+		boolean restore = false;
 		if (existing != null) {
 			if (existing.deleted()) {
-				return finished(index, ItemResult.error(index, input.externalId(), List.of(new Issue("externalId",
-						"EXTERNAL_ID_DELETED", "The external ID belongs to a deleted entity.")), List.of()));
+				if (!mayRestore(strategy, restoring)) {
+					return finished(index, ItemResult.error(index, input.externalId(), List.of(new Issue("externalId",
+							"EXTERNAL_ID_DELETED", "The external ID belongs to a deleted entity.")), List.of()));
+				}
+				restore = true;
 			}
 			if (strategy == Strategy.CREATE_ONLY) {
 				return finished(index, ItemResult.error(index, input.externalId(), List.of(new Issue("externalId",
@@ -543,7 +599,18 @@ public class EntityBatch {
 		if (!checked.valid()) {
 			return finished(index, ItemResult.error(index, input.externalId(), checked.errors(), checked.warnings()));
 		}
-		return new Prepared(index, existing, stored, checked, null);
+		if (restore) {
+			// the item is valid: restore the deleted entity with its cascade, then update it (#70)
+			this.undeletion.restore(restoring.principal(), existing.id(), restoring.batchId());
+			existing = this.store.find(existing.id()).orElseThrow();
+			stored = this.store.values(existing.id());
+		}
+		return new Prepared(index, existing, stored, checked, null, restore);
+	}
+
+	/** Only an {@code upsert} of a writer with {@code entity:restore} restores the entity of a deleted external ID. */
+	private static boolean mayRestore(Strategy strategy, Restoring restoring) {
+		return strategy == Strategy.UPSERT && restoring != null && restoring.allowed();
 	}
 
 	private ItemResult write(OeaPrincipal principal, EntityInput input, Prepared prepared,
@@ -556,7 +623,7 @@ public class EntityBatch {
 			case UNCHANGED -> ItemStatus.UNCHANGED;
 		};
 		return new ItemResult(prepared.index(), status, written.entityId(), input.externalId(), List.of(),
-				prepared.checked().warnings());
+				prepared.checked().warnings(), false, prepared.restored());
 	}
 
 	/** A metatype as named in answers: ID, name and abbreviation. */
@@ -602,18 +669,28 @@ public class EntityBatch {
 	/** Checks a connection: strategy, endpoints, the connection metatype and its properties. */
 	private PreparedConnection prepareConnection(int index, ConnectionInput input, Strategy strategy,
 			MetatypeRules rules, Map<String, Pending> pending) {
-		return prepareConnection(index, input, strategy, rules, pending, EntityValidator.Necessity.ENFORCE);
+		return prepareConnection(index, input, strategy, rules, pending, EntityValidator.Necessity.ENFORCE, null);
 	}
 
 	private PreparedConnection prepareConnection(int index, ConnectionInput input, Strategy strategy,
 			MetatypeRules rules, Map<String, Pending> pending, EntityValidator.Necessity necessity) {
+		return prepareConnection(index, input, strategy, rules, pending, necessity, null);
+	}
+
+	private PreparedConnection prepareConnection(int index, ConnectionInput input, Strategy strategy,
+			MetatypeRules rules, Map<String, Pending> pending, EntityValidator.Necessity necessity,
+			Restoring restoring) {
 		String externalId = input.entity().externalId();
 		StoredEntity existing = (externalId != null) ? this.store.lockByExternalId(externalId).orElse(null) : null;
 		Map<UUID, TypedValue> stored = Map.of();
+		boolean restore = false;
 		if (existing != null) {
 			if (existing.deleted()) {
-				return connectionResult(ItemResult.error(index, externalId, List.of(new Issue("externalId",
-						"EXTERNAL_ID_DELETED", "The external ID belongs to a deleted entity.")), List.of()));
+				if (!mayRestore(strategy, restoring)) {
+					return connectionResult(ItemResult.error(index, externalId, List.of(new Issue("externalId",
+							"EXTERNAL_ID_DELETED", "The external ID belongs to a deleted entity.")), List.of()));
+				}
+				restore = true;
 			}
 			if (strategy == Strategy.CREATE_ONLY) {
 				return connectionResult(ItemResult.error(index, externalId, List.of(new Issue("externalId",
@@ -665,7 +742,18 @@ public class EntityBatch {
 		}
 		EntityWriter.Endpoints endpoints = (source.id() != null && target.id() != null)
 				? new EntityWriter.Endpoints(source.id(), target.id()) : null;
-		return new PreparedConnection(new Prepared(index, existing, stored, checked, null), endpoints, null);
+		if (restore) {
+			// the endpoints are active and unchanged: restore the deleted connection, then update it (#70)
+			try {
+				this.undeletion.restore(restoring.principal(), existing.id(), restoring.batchId());
+			}
+			catch (ConnectionNotRestorableException ex) {
+				return connectionResult(ItemResult.error(index, externalId, List.of(new Issue("externalId",
+						"EXTERNAL_ID_DELETED", "The external ID belongs to a deleted entity.")), List.of()));
+			}
+			existing = this.store.find(existing.id()).orElseThrow();
+		}
+		return new PreparedConnection(new Prepared(index, existing, stored, checked, null, restore), endpoints, null);
 	}
 
 	/** Finds an endpoint by ID or external ID, also among the pending entities of an atomic batch. */
@@ -713,7 +801,7 @@ public class EntityBatch {
 			case UNCHANGED -> ItemStatus.UNCHANGED;
 		};
 		return new ItemResult(prepared.prepared().index(), status, written.entityId(), input.entity().externalId(),
-				List.of(), prepared.prepared().checked().warnings(), true);
+				List.of(), prepared.prepared().checked().warnings(), true, prepared.prepared().restored());
 	}
 
 	/** Later occurrences of an external ID within the batch (design D4). */

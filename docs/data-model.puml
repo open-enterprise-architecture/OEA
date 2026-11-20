@@ -1277,6 +1277,11 @@ package "Repository" #FCE4EC {
     .. default order of a catalog and its keyset seek (V22, s9-catalog-query-performance D7) ..
     + deleted_by       : BIGINT           {FK→persons.id}
     + deletion_reason  : TEXT
+    + deleted_with_entity_id : INTEGER    {FK→entities.id}
+    .. s17-entity-delete (V49): the entity whose deletion took this row along (its children on all ..
+    .. levels and the connections of both); NULL for the deleted entity itself, for rows deleted ..
+    .. before V49 and for active rows (CHECK: only on a deleted row). The restore finds its cascade ..
+    .. by origin and deleted_at; INDEX entities_deleted_with WHERE deleted_with_entity_id IS NOT NULL ..
   }
 
   class entity_connections <<Table>> #F8BBD9 {

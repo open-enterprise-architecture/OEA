@@ -365,6 +365,46 @@ class SolutionDeltasTests {
 		assertThat(deltas()).isEqualTo(3);
 	}
 
+	// Requirement: Deltas on deleted entities (s17-entity-delete, solution/solution-go-live)
+
+	@Test
+	void deltaOfADeletedEntityIsMarked() {
+		int crm = entity(this.application, "CRM-Legacy");
+		int erp = erp();
+		int other = entity(this.application, "Other");
+		created(create(this.michael, this.solution, retiring(crm)));
+		created(create(this.michael, this.solution, modified(erp, null, null, value(this.release, "v5"))));
+		created(create(this.michael, this.solution, retiring(other)));
+		created(create(this.michael, this.solution, newEntity("Salesforce", null, value(this.owner, "Sales"))));
+		assertThat(markers()).containsExactlyInAnyOrder("Salesforce=false", "CRM-Legacy=false", "ERP-Core=false", "Other=false");
+
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id IN (?, ?)", this.michaelId, crm,
+				erp);
+
+		assertThat(markers()).containsExactlyInAnyOrder("Salesforce=false", "CRM-Legacy=true", "ERP-Core=true", "Other=false");
+	}
+
+	@Test
+	void deletedEntityOfACompletedSolutionIsNoConflict() throws SQLException {
+		int crm = entity(this.application, "CRM-Legacy");
+		created(create(this.michael, this.solution, retiring(crm)));
+		this.jdbc.update("UPDATE entities SET deleted_at = now(), deleted_by = ? WHERE id = ?", this.michaelId, crm);
+		assertThat(markers()).containsExactly("CRM-Legacy=true");
+
+		setStatus(this.solution, "implemented");
+
+		assertThat(markers()).containsExactly("CRM-Legacy=false");
+	}
+
+	private List<String> markers() {
+		List<String> markers = new ArrayList<>();
+		for (JsonNode item : list(this.michael, this.solution).path("items")) {
+			assertThat(item.has("entityDeleted")).isTrue();
+			markers.add(item.path("name").asString() + "=" + item.path("entityDeleted").asBoolean());
+		}
+		return markers;
+	}
+
 	// Spec solution/solution-conflicts: "Conflicts of a delta", "Warning never blocks", "Conflicts in
 	// the delta list and the diff" and "Warning disappears" (US-044 AC1–AC5, REQ-042; us-044 D1)
 

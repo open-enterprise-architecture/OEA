@@ -122,6 +122,15 @@ async function confirmRemoval() {
       <template #name-cell="{ row }">
         <div class="flex flex-col gap-1">
           <span>{{ row.original.name }}</span>
+          <UBadge
+            v-if="row.original.entityDeleted"
+            :data-testid="`delta-entity-deleted-${row.original.id}`"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-trash-2"
+            :label="t('solutions.deltas.entityDeleted')"
+            :title="t('solutions.deltas.entityDeletedHint')"
+          />
           <SolutionConflicts :conflicts="row.original.conflicts ?? []" />
         </div>
       </template>

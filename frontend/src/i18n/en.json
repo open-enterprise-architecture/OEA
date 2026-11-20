@@ -1031,7 +1031,10 @@
         "loadFailed": "The entity could not be loaded."
       },
       "more": "Load more",
-      "shown": "{shown} of {total} changes"
+      "shown": "{shown} of {total} changes",
+      "entityDeleted": "Entity deleted",
+      "entityDeletedHint": "The entity of this change was deleted in the repository. Remove the change or restore the entity before the go-live.",
+      "deletionNotice": "No change concerns a deleted entity. | {n} change concerns a deleted entity. Remove it or restore the entity before the go-live. | {n} changes concern deleted entities. Remove them or restore the entities before the go-live."
     },
     "diff": {
       "open": "Compare",
@@ -1074,7 +1077,7 @@
       "cancel": "Cancel",
       "done": "The solution went live.",
       "failed": "The solution could not go live.",
-      "entityDeleted": "An entity of a modification was deleted meanwhile. Remove its delta and go live again.",
+      "entityDeleted": "An entity of a change is deleted. Remove the change or restore the entity and go live again.",
       "merge": {
         "title": "Resolve conflicts",
         "intro": "These fields were changed in the catalog after the solution captured them. Choose which value goes live.",
@@ -1102,7 +1105,8 @@
         }
       },
       "entityBlocked": "An entity this solution changes has open issues of another solution. Resolve them first.",
-      "notInMetamodel": "{n} value only this solution keeps becomes an open issue | {n} values only this solution keeps become open issues"
+      "notInMetamodel": "{n} value only this solution keeps becomes an open issue | {n} values only this solution keeps become open issues",
+      "deletionConflicts": "{n} change concerns a deleted entity ({names}). Remove the change or restore the entity before the go-live. | {n} changes concern deleted entities ({names}). Remove the changes or restore the entities before the go-live."
     },
     "openIssues": {
       "action": "Resolve",
@@ -1389,7 +1393,10 @@
       "notNext": "Only the plateau that succeeds the baseline can go live.",
       "forbidden": "You may not take plateaus live.",
       "failed": "The go-live failed; nothing was changed.",
-      "loadFailed": "The go-live preview could not be loaded."
+      "loadFailed": "The go-live preview could not be loaded.",
+      "deletionConflicts": "A solution has changes of deleted entities ({names}). Remove the changes or restore the entities first.",
+      "deletionCount": "one deleted entity | {n} deleted entities",
+      "entityDeleted": "An entity of its solutions is deleted. Remove the change or restore the entity first."
     }
   },
   "diagrams": {
@@ -1492,7 +1499,8 @@
       "hintEdges": "Select an edge with Tab or a click: a double click adds a bend point, a double click on a bend point removes it, Delete removes the edge from the diagram.",
       "connectFrom": "Drag from here to another shape to draw a connection",
       "forbiddenConnection": "You may not create connections of this type. A connection of a scoping type needs the permission to assign visibility scopes.",
-      "details": "Details"
+      "details": "Details",
+      "hintDelete": "Ctrl+Delete deletes the selected entity from the repository."
     },
     "details": {
       "label": "Details of the selected entity",
@@ -1531,6 +1539,25 @@
       "chooseHint": "Choose the connections to show as edges.",
       "addSelected": "Show selected",
       "offerFailed": "The existing connections could not be searched."
+    },
+    "repositoryDelete": {
+      "action": "Delete from repository",
+      "title": "Delete “{name}” from the repository?",
+      "hint": "The entity and everything deleted with it leave all catalogs and diagrams. A person with the permission to restore can bring them back.",
+      "loading": "Reading what the deletion takes along…",
+      "children": "No children are deleted with it. | 1 child is deleted with it. | {count} children are deleted with it, on all levels.",
+      "connections": "No connection is deleted with it. | 1 connection is deleted with it. | {count} connections are deleted with it.",
+      "solutionsTitle": "No active solution has changes to these entities | 1 active solution has changes to these entities | {count} active solutions have changes to these entities",
+      "solutionsHint": "Their changes become conflicts that the solution resolves before its go-live.",
+      "solution": "{name}: {count} change | {name}: {count} changes",
+      "notDeletable": "This entity cannot be deleted here. A structuring aid is deleted with its own action, and an automatic composition connection goes away when the parent of its child changes.",
+      "gone": "The entity does not exist or was already deleted.",
+      "forbidden": "You may not delete this entity. A connection of a scoping type also needs the permission to assign visibility scopes.",
+      "loadFailed": "What the deletion takes along could not be loaded.",
+      "changed": "“{name}” was changed after you opened this confirmation. Read what the deletion takes along again before you delete.",
+      "again": "Read again",
+      "blocked": "{names} has open issues of a solution and cannot be deleted. Resolve them first.",
+      "failed": "The entity could not be deleted."
     }
   },
   "dashboards": {

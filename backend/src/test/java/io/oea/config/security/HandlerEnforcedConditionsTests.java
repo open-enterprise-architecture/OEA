@@ -17,6 +17,7 @@ import jakarta.servlet.http.Cookie;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,6 +126,31 @@ class HandlerEnforcedConditionsTests {
 					INSERT INTO diagrams (id, name, viewpoint_id, created_by, updated_by)
 					VALUES (?::uuid, 'Probe diagram', ?::uuid, ?, ?)""", "00000000-0000-4000-8000-0000000d1a01", viewpoint,
 					owner, owner);
+		}
+		// the connections of the scoping type that the probes of the deletion address (s17-entity-delete): an active one
+		// to delete and a deleted one to restore, between two elements
+		if (this.jdbc.queryForObject("SELECT count(*) FROM entities WHERE id = 2000000001", Integer.class) == 0) {
+			Long owner = this.jdbc.queryForObject("""
+					INSERT INTO persons (name, email, status) VALUES ('Probe deletion owner', 'probe-deletion@example.org',
+					'active') RETURNING id""", Long.class);
+			UUID element = this.jdbc.queryForObject("""
+					INSERT INTO metatypes (config_id, name, is_connection)
+					VALUES ('00000000-0000-0000-0000-000000000001', 'Probe Deletion Element', false) RETURNING id""",
+					UUID.class);
+			this.jdbc.update("""
+					INSERT INTO entities (id, metatype_id, name, created_by) VALUES
+					(2000000003, ?, 'Probe source', ?), (2000000004, ?, 'Probe target', ?)""", element, owner, element,
+					owner);
+			this.jdbc.update("""
+					INSERT INTO entities (id, metatype_id, name, created_by) VALUES (2000000001, ?::uuid, 'Probe assignment', ?)""",
+					PROBE_SCOPING_TYPE, owner);
+			this.jdbc.update("""
+					INSERT INTO entities (id, metatype_id, name, created_by, deleted_at, deleted_by)
+					VALUES (2000000002, ?::uuid, 'Probe deleted assignment', ?, now(), ?)""", PROBE_SCOPING_TYPE, owner,
+					owner);
+			this.jdbc.update("""
+					INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id) VALUES
+					(2000000001, 2000000003, 2000000004), (2000000002, 2000000003, 2000000004)""");
 		}
 		if (this.jdbc.queryForObject("SELECT count(*) FROM machine_credentials WHERE client_id = ?::uuid", Integer.class,
 				AdminController.PROBE_SERVICE_ACCOUNT) == 0) {

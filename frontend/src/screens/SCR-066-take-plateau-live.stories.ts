@@ -97,3 +97,15 @@ export const Conflicts: Story = {
     await expect(body.getByRole('button', { name: 'Resolve' })).toBeInTheDocument()
   },
 }
+
+/** A solution holds a change of a deleted entity: it is listed and the go-live cannot be confirmed (s17-entity-delete). */
+export const DeletionConflict: Story = {
+  ...screen(plateauApi({ goLive: goLivePreview({ deletions: true }) }).fetch),
+  play: async (context) => {
+    await screen(plateauApi({ goLive: goLivePreview({ deletions: true }) }).fetch, 'Target Cloud Migration 2027').play!(context)
+    const body = within(context.canvasElement.ownerDocument.body)
+    await expect(await body.findByText('one deleted entity')).toBeInTheDocument()
+    await expect(body.getByTestId('plateau-go-live-deletion-conflicts')).toBeInTheDocument()
+    await expect(body.getByRole('button', { name: 'Confirm go-live' })).toBeDisabled()
+  },
+}

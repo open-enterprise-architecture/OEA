@@ -78,3 +78,21 @@ Feature: Batch write of entities
     When the enterprise architect sends a batch with one entity "dry-run:1" and dryRun
     Then the batch is rejected with 422
     And no entity with the prefix "dry-run" exists
+
+  # Requirement: External ID of a deleted entity (#70)
+
+  @US-141 @ADR-019
+  Scenario: Restored by an upsert
+    Given an "Application Component" "Deleted ERP" with external ID "restore:1" exists
+    And the entity with the external ID "restore:1" is deleted
+    When the enterprise architect upserts "restore:1" with the description "New description"
+    Then the item is reported as "updated" and restored
+    And the entity with the external ID "restore:1" is active with the description "New description"
+
+  @US-141 @ADR-019
+  Scenario: Create-only never restores
+    Given an "Application Component" "Deleted CRM" with external ID "restore:2" exists
+    And the entity with the external ID "restore:2" is deleted
+    When the enterprise architect writes "Changed" with external ID "restore:2" with strategy "create-only"
+    Then the item is rejected with the code "EXTERNAL_ID_DELETED" for the field "externalId"
+    And the entity with the external ID "restore:2" is still deleted

@@ -69,7 +69,7 @@ Nur das Plateau, das direkt auf die Baseline folgt, kann live gehen; es zeigt *L
 
 Gib den genauen Namen des Plateaus ein und wähle *Go-live bestätigen*. Das Go-live kann nicht rückgängig gemacht werden.
 
-Alle aktiven Lösungen des Plateaus gehen in einem Schritt live, in der Reihenfolge, in der ihre Änderungen zuletzt bearbeitet wurden, jede so, wie eine einzelne [Lösung live geht](./solutions#go-live). Wurde ein Feld, das eine Lösung ändert, inzwischen geändert, im Katalog oder durch eine Lösung, die vor ihr live geht, listet der Dialog den Konflikt bei dieser Lösung; *Auflösen* öffnet *Konflikte auflösen*. Solange nicht jeder Konflikt aufgelöst ist, geht nichts live. Schlägt beim Go-live etwas fehl, ändert sich nichts.
+Alle aktiven Lösungen des Plateaus gehen in einem Schritt live, in der Reihenfolge, in der ihre Änderungen zuletzt bearbeitet wurden, jede so, wie eine einzelne [Lösung live geht](./solutions#go-live). Wurde ein Feld, das eine Lösung ändert, inzwischen geändert, im Katalog oder durch eine Lösung, die vor ihr live geht, listet der Dialog den Konflikt bei dieser Lösung; *Auflösen* öffnet *Konflikte auflösen*. Solange nicht jeder Konflikt aufgelöst ist, geht nichts live. Auch eine Änderung einer Entität, die aus dem Repository gelöscht wurde, hält das Go-live auf: Der Dialog listet sie bei ihrer Lösung, und die Lösung muss die Änderung entfernen oder die Entität muss zuerst wiederhergestellt werden. Schlägt beim Go-live etwas fehl, ändert sich nichts.
 
 Nach dem Go-live:
 

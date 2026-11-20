@@ -69,7 +69,7 @@ Only the plateau that follows the baseline directly can go live; it shows *Go li
 
 Type the exact name of the plateau, then choose *Confirm go-live*. The go-live cannot be undone.
 
-All active solutions of the plateau go live in one step, in the order in which their changes were last edited, each as a single [solution goes live](./solutions#go-live). If a field a solution changes was changed meanwhile, in the catalog or by a solution that goes live before it, the dialog lists the conflict at that solution; *Resolve* opens *Resolve conflicts*. Until every conflict is resolved, nothing goes live. If anything fails during the go-live, nothing changes.
+All active solutions of the plateau go live in one step, in the order in which their changes were last edited, each as a single [solution goes live](./solutions#go-live). If a field a solution changes was changed meanwhile, in the catalog or by a solution that goes live before it, the dialog lists the conflict at that solution; *Resolve* opens *Resolve conflicts*. Until every conflict is resolved, nothing goes live. A change of an entity that was deleted from the repository stops the go-live as well: the dialog lists it at its solution, and the solution has to remove the change or the entity has to be restored first. If anything fails during the go-live, nothing changes.
 
 After the go-live:
 

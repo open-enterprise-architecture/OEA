@@ -87,7 +87,7 @@ export const GO_LIVE_SOLUTIONS = [
 ]
 
 /** The preview of the go-live of Target Cloud Migration 2027, with conflicts of a solution if given. */
-export function goLivePreview(options: { conflicts?: DeltaConflict[]; warnings?: boolean } = {}): PlateauGoLivePreview {
+export function goLivePreview(options: { conflicts?: DeltaConflict[]; warnings?: boolean; deletions?: boolean } = {}): PlateauGoLivePreview {
   const counts = { created: 1, modified: 2, retired: 1, retiredConnections: 0, notInMetamodel: 0 }
   const warnings = options.warnings ?? true
   return {
@@ -99,6 +99,8 @@ export function goLivePreview(options: { conflicts?: DeltaConflict[]; warnings?:
       status: warnings ? solution.status : 'approved',
       counts,
       conflicts: index === 1 ? (options.conflicts ?? []) : [],
+      deletionConflicts:
+        index === 1 && options.deletions ? [{ deltaId: '5d000000-0000-4000-8000-0000000000d1', deltaType: 'modified' as const, entityId: 12, entityName: 'ERP-Core' }] : [],
     })),
     violations: [],
     warnings: warnings ? { notApproved: ['CRM Replacement'], openIssues: 2 } : { notApproved: [], openIssues: 0 },
@@ -175,6 +177,9 @@ export function plateauApi(
       goLives.push({ id, name })
       const found = plateaus.find((candidate) => candidate.id === id)!
       if (name !== found.name) return invalid('name', 'Enter the exact name of the plateau to confirm the go-live.')
+      if (preview.solutions.some((solution) => solution.deletionConflicts.length > 0)) {
+        return json({ type: 'urn:oea:problem:entity-deleted', title: 'Entity deleted', status: 409, deltaIds: [] }, 409)
+      }
       if (preview.solutions.some((solution) => solution.conflicts.length > 0)) {
         return json({ type: 'urn:oea:problem:merge-required', title: 'Merge required', status: 409 }, 409)
       }

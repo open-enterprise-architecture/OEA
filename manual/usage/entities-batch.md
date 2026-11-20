@@ -20,7 +20,7 @@ curl "${auth[@]}" -X POST "$OEA/entities/batch" \
 
 ## How items are written
 
-- `externalId` identifies an entity from the source system. With the strategy `upsert`, an unknown ID creates the entity and a known one updates it; `create-only` and `skip-existing` behave as named.
+- `externalId` identifies an entity from the source system. With the strategy `upsert`, an unknown ID creates the entity and a known one updates it; `create-only` and `skip-existing` behave as named. The external ID of a deleted entity stays reserved: an `upsert` of a writer who also holds `entity:restore` restores the entity with the items it was deleted with and then updates it (`restored: true` in the result of the item); in every other case the item is rejected with `EXTERNAL_ID_DELETED`, and an atomic batch changes nothing.
 - On update, fields and properties missing in the item stay unchanged; an empty value removes a property value. An unchanged item is reported as `unchanged` and creates no version.
 - With `atomic=false` (default), every item is written on its own and the answer reports a status per item. With `atomic=true`, all items are written or none (`422` with the errors per item).
 - A request contains at most `oea.entities.batch.max-items` entities (default and maximum 500) and at most 10 MB.

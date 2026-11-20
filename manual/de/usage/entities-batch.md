@@ -20,7 +20,7 @@ curl "${auth[@]}" -X POST "$OEA/entities/batch" \
 
 ## Wie Einträge geschrieben werden
 
-- `externalId` identifiziert eine Entität aus dem Quellsystem. Mit der Strategie `upsert` legt eine unbekannte ID die Entität an, eine bekannte aktualisiert sie; `create-only` und `skip-existing` verhalten sich wie benannt.
+- `externalId` identifiziert eine Entität aus dem Quellsystem. Mit der Strategie `upsert` legt eine unbekannte ID die Entität an, eine bekannte aktualisiert sie; `create-only` und `skip-existing` verhalten sich wie benannt. Die externe ID einer gelöschten Entität bleibt reserviert: Ein `upsert` einer schreibenden Person, die auch `entity:restore` hat, stellt die Entität mit den Elementen wieder her, mit denen sie gelöscht wurde, und aktualisiert sie dann (`restored: true` im Ergebnis des Elements); in jedem anderen Fall wird das Element mit `EXTERNAL_ID_DELETED` abgelehnt, und ein atomarer Batch ändert nichts.
 - Beim Aktualisieren bleiben Felder und Eigenschaften, die im Eintrag fehlen, unverändert; ein leerer Wert entfernt einen Eigenschaftswert. Ein unveränderter Eintrag wird als `unchanged` gemeldet und erzeugt keine Version.
 - Mit `atomic=false` (Standard) wird jeder Eintrag einzeln geschrieben, und die Antwort meldet einen Status pro Eintrag. Mit `atomic=true` werden alle Einträge geschrieben oder keiner (`422` mit den Fehlern pro Eintrag).
 - Ein Request enthält höchstens `oea.entities.batch.max-items` Entitäten (Standard und Maximum 500) und höchstens 10 MB.

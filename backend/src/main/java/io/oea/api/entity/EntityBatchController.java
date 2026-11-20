@@ -10,6 +10,12 @@ import io.oea.api.generated.model.BatchWriteResponseSummary;
 import io.oea.api.generated.model.ConnectionDetail;
 import io.oea.api.generated.model.ConnectionEndpoint;
 import io.oea.api.generated.model.ConnectionWrite;
+import io.oea.api.generated.model.EntityDeletionPreview;
+import io.oea.api.generated.model.EntityDeletionResult;
+import io.oea.api.generated.model.EntityDeletionSolution;
+import io.oea.api.generated.model.EntityDeletionTarget;
+import io.oea.api.generated.model.EntityNotRestored;
+import io.oea.api.generated.model.EntityUndeleteResult;
 import io.oea.api.generated.model.EntityParentResult;
 import io.oea.api.generated.model.EntityParentResultComposition;
 import io.oea.api.generated.model.EntityParentUpdate;
@@ -20,7 +26,9 @@ import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.app.entity.ConnectionInput;
 import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.entity.EntityBatch;
+import io.oea.app.deletion.EntityDeletions;
 import io.oea.app.entity.EntityInput;
+import io.oea.app.entity.EntityUndeletion;
 import io.oea.app.entity.Issue;
 import io.oea.app.hierarchy.EntityHierarchy;
 import io.oea.app.metamodel.PropertyVisibility;
@@ -51,10 +59,57 @@ public class EntityBatchController implements EntitiesWriteApi {
 
 	private final EntityHierarchy hierarchy;
 
-	public EntityBatchController(EntityBatch batch, PropertyVisibility visibility, EntityHierarchy hierarchy) {
+	private final EntityDeletions deletions;
+
+	public EntityBatchController(EntityBatch batch, PropertyVisibility visibility, EntityHierarchy hierarchy,
+			EntityDeletions deletions) {
 		this.batch = batch;
 		this.visibility = visibility;
 		this.hierarchy = hierarchy;
+		this.deletions = deletions;
+	}
+
+	/** What deleting an entity would do (REQ-146, design D2 of s17-entity-delete). */
+	@Override
+	public ResponseEntity<EntityDeletionPreview> previewEntityDeletion(Integer id) {
+		EntityDeletions.Preview preview = this.deletions.preview(principal(), id);
+		return ResponseEntity.ok(new EntityDeletionPreview()
+			.entity(new EntityDeletionTarget().id(preview.entityId()).name(preview.name()).version(preview.version()))
+			.childCount(preview.childCount())
+			.connectionCount(preview.connectionCount())
+			.solutions(preview.solutions()
+				.stream()
+				.map((solution) -> new EntityDeletionSolution().id(solution.id())
+					.name(solution.name())
+					.deltaCount(solution.deltaCount()))
+				.toList()));
+	}
+
+	@Override
+	@ConditionsEnforcedByHandler(value = "PropertyVisibility.requireScopeAssignment in EntityDeletions.delete: a "
+			+ "connection of a scoping type in the deleted set needs visibility-scope:assign; checked before the "
+			+ "open-issue block and before anything is written", probeRole = "enterprise-architect",
+			probePath = "/api/v1/entities/2000000001", probeBody = "{}")
+	public ResponseEntity<EntityDeletionResult> deleteEntity(Integer id, String ifMatch) {
+		return ResponseEntity.ok(new EntityDeletionResult()
+			.deleted(this.deletions.delete(principal(), id, EntityHistoryController.expectedVersion(ifMatch))));
+	}
+
+	@Override
+	@ConditionsEnforcedByHandler(value = "PropertyVisibility.requireScopeAssignment in EntityUndeletion.restore: a "
+			+ "connection of a scoping type in the restored set needs visibility-scope:assign; checked before "
+			+ "anything is written", probeRole = "enterprise-architect",
+			probePath = "/api/v1/entities/2000000002/undelete", probeBody = "{}")
+	public ResponseEntity<EntityUndeleteResult> restoreDeletedEntity(Integer id, String ifMatch) {
+		EntityUndeletion.Result result = this.deletions.undelete(principal(), id,
+				EntityHistoryController.expectedVersion(ifMatch));
+		return ResponseEntity.ok(new EntityUndeleteResult().restored(result.restored())
+			.movedToTopLevel(result.movedToTopLevel())
+			.notRestored(result.notRestored()
+				.stream()
+				.map((entry) -> new EntityNotRestored().entityId(entry.entityId())
+					.reason(EntityNotRestored.ReasonEnum.fromValue(entry.reason())))
+				.toList()));
 	}
 
 	/** The parent of an element entity (US-135, design D2 and D3 of us-135-component-hierarchy). */
@@ -180,6 +235,7 @@ public class EntityBatchController implements EntitiesWriteApi {
 					: BatchWriteItemResult.ItemTypeEnum.ENTITY)
 			.id(item.entityId())
 			.externalId(item.externalId())
+			.restored(item.restored())
 			.errors(item.errors().stream().map(BatchValidationErrors::validationError).toList())
 			.warnings(item.warnings().stream().map(BatchValidationErrors::validationError).toList());
 		if (!item.errors().isEmpty()) {

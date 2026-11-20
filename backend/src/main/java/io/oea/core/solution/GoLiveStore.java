@@ -55,6 +55,28 @@ public class GoLiveStore {
 	}
 
 	/** An open issue with the name of its entity. */
+	/** An active solution with the number of its deltas on a set of entities. */
+	public record SolutionDeltaCount(UUID id, String name, int deltaCount) {
+	}
+
+	/**
+	 * The solutions that are not {@code implemented} or {@code archived} and hold a delta
+	 * {@code modified} or {@code retiring} on one of these entities, by name regardless of case,
+	 * then by ID, each with the number of those deltas (the deletion preview).
+	 */
+	public List<SolutionDeltaCount> activeSolutionsWithDeltasOn(java.util.Collection<Integer> entityIds) {
+		if (entityIds.isEmpty()) {
+			return List.of();
+		}
+		return this.jdbc.query("""
+				SELECT s.id, s.name, count(*) FROM solutions s JOIN entity_deltas d ON d.solution_id = s.id
+				WHERE s.status NOT IN ('implemented', 'archived') AND d.delta_type IN ('modified', 'retiring')
+				AND d.entity_id = ANY(?)
+				GROUP BY s.id, s.name ORDER BY lower(s.name), s.id""",
+				(rs, n) -> new SolutionDeltaCount(rs.getObject(1, UUID.class), rs.getString(2), rs.getInt(3)),
+				(Object) entityIds.toArray(Integer[]::new));
+	}
+
 	/** The solution, without a lock. */
 	public Optional<SolutionRow> find(UUID id) {
 		return this.jdbc.query("SELECT id, name, status FROM solutions WHERE id = ?", GoLiveStore::solution, id)

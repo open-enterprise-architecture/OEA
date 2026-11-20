@@ -2823,6 +2823,76 @@ components:
         parentEntityId: { type: [integer, 'null'] }
         version:        { type: integer }
 
+    EntityDeletionPreview:
+      type: object
+      required: [entity, childCount, connectionCount, solutions]
+      description: What `deleteEntity` would do (US-074, REQ-146)
+      properties:
+        entity:          { $ref: '#/components/schemas/EntityDeletionTarget' }
+        childCount:      { type: integer, minimum: 0, description: "Active children of the entity on all levels" }
+        connectionCount: { type: integer, minimum: 0, description: "Active connections with the entity or one of its children as endpoint, deleted with them" }
+        solutions:
+          type: array
+          description: Active solutions (not `implemented` or `archived`) with a delta `modified` or `retiring` on any entity of the set, by name
+          items: { $ref: '#/components/schemas/EntityDeletionSolution' }
+
+    EntityDeletionTarget:
+      type: object
+      required: [id, name, version]
+      description: The entity to delete; `version` is the `If-Match` of the deletion
+      properties:
+        id:      { type: integer }
+        name:    { type: string }
+        version: { type: integer, minimum: 1 }
+
+    EntityDeletionSolution:
+      type: object
+      required: [id, name, deltaCount]
+      description: An active solution with deltas `modified` or `retiring` on the set to delete
+      properties:
+        id:         { type: string, format: uuid }
+        name:       { type: string }
+        deltaCount: { type: integer, minimum: 1, description: "The number of those deltas" }
+
+    EntityDeletionResult:
+      type: object
+      required: [deleted]
+      description: Outcome of `deleteEntity`
+      properties:
+        deleted:
+          type: array
+          description: The IDs of everything deleted – the entity first, then its children and the connections
+          items: { type: integer }
+
+    EntityUndeleteResult:
+      type: object
+      required: [restored, movedToTopLevel, notRestored]
+      description: Outcome of `restoreDeletedEntity`
+      properties:
+        restored:
+          type: array
+          description: The IDs of everything restored – the entity first
+          items: { type: integer }
+        movedToTopLevel:
+          type: array
+          description: Restored element entities that were placed at the top level, as a new version (parent deleted, or more than 10 levels)
+          items: { type: integer }
+        notRestored:
+          type: array
+          description: Connections of the cascade that stay deleted
+          items: { $ref: '#/components/schemas/EntityNotRestored' }
+
+    EntityNotRestored:
+      type: object
+      required: [entityId, reason]
+      description: A connection of a cascade that stays deleted
+      properties:
+        entityId: { type: integer }
+        reason:
+          type: string
+          enum: [endpoint-deleted, parent-changed]
+          description: "The other endpoint is still deleted (`endpoint-deleted`), or the child of an automatic composition connection has another parent (`parent-changed`)"
+
     ConnectionDetail:
       type: object
       required: [id, name, metatype, version, source, target]
@@ -2880,6 +2950,11 @@ components:
             `unchanged`: the entity exists with identical values; no new version is written.
         id:         { type: [integer, 'null'], description: "Internal ID after create/update" }
         externalId: { type: [string, 'null'] }
+        restored:
+          type: boolean
+          description: |
+            `true` when the external ID belonged to a deleted entity that this `upsert` item
+            restored with its cascade before updating it (#70, `entity:restore`)
         error:      { type: [string, 'null'], description: "Error message for status=error" }
         errors:
           type: array
@@ -3997,9 +4072,19 @@ components:
         label:      { type: string }
         kind:       { type: string, enum: [mandatory-missing, invalid-value] }
 
+    DeletionConflict:
+      type: object
+      required: [deltaId, deltaType, entityId, entityName]
+      description: A delta `modified` or `retiring` whose entity is deleted in the repository; remove the delta or restore the entity
+      properties:
+        deltaId:    { type: string, format: uuid }
+        deltaType:  { type: string, enum: [modified, retiring] }
+        entityId:   { type: integer }
+        entityName: { type: string }
+
     PlateauGoLiveSolution:
       type: object
-      required: [id, name, status, counts, conflicts]
+      required: [id, name, status, counts, conflicts, deletionConflicts]
       description: An active solution that goes live with its plateau, in the order of the go-live (US-157)
       properties:
         id:        { type: string, format: uuid }
@@ -4010,6 +4095,10 @@ components:
           type: array
           description: Field conflicts of its deltas at its turn; they must be resolved before the go-live
           items: { $ref: '#/components/schemas/DeltaConflict' }
+        deletionConflicts:
+          type: array
+          description: Deltas `modified` or `retiring` of entities deleted in the repository; the go-live is rejected (409 `entity-deleted`) until each delta is removed or its entity restored
+          items: { $ref: '#/components/schemas/DeletionConflict' }
 
     PlateauGoLivePreview:
       type: object
@@ -4054,7 +4143,7 @@ components:
 
     SolutionGoLivePreview:
       type: object
-      required: [solutionId, counts, conflicts, violations]
+      required: [solutionId, counts, conflicts, deletionConflicts, violations]
       properties:
         solutionId: { type: string, format: uuid }
         counts:     { $ref: '#/components/schemas/SolutionGoLiveCounts' }
@@ -4062,6 +4151,10 @@ components:
           type: array
           description: Field conflicts that must be resolved before the go-live
           items: { $ref: '#/components/schemas/DeltaConflict' }
+        deletionConflicts:
+          type: array
+          description: Deltas `modified` or `retiring` of entities deleted in the repository; the go-live is rejected (409 `entity-deleted`) until each delta is removed or its entity restored
+          items: { $ref: '#/components/schemas/DeletionConflict' }
         violations:
           type: array
           description: Metamodel violations that the go-live takes as open issues; they do not block
@@ -4272,7 +4365,7 @@ components:
 
     SolutionDelta:
       type: object
-      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, changes, conflicts, createdAt, updatedAt]
+      required: [id, deltaType, entityId, name, metatypeId, metatypeName, description, properties, changes, conflicts, createdAt, updatedAt, entityDeleted]
       properties:
         id:           { type: string, format: uuid }
         deltaType:    { $ref: '#/components/schemas/SolutionDeltaType' }
@@ -4295,6 +4388,9 @@ components:
           items: { $ref: '#/components/schemas/SolutionDeltaConflict' }
         createdAt:    { type: string, format: date-time }
         updatedAt:    { type: [string, 'null'], format: date-time, description: "Last edit of a delta `modified`" }
+        entityDeleted:
+          type: boolean
+          description: "Whether the entity of a delta `modified` or `retiring` is deleted in the repository: a deletion conflict that stops the go-live; `false` for `new`"
 
     SolutionDeltaCounts:
       type: object
@@ -6588,8 +6684,9 @@ paths:
           description: |
             The plateau is not the next one (`plateau-not-next`); unresolved field conflicts
             (`merge-required`, extension member `conflicts`, each with `solutionId`); a delta of
-            an entity with an open issue (`entity-blocked`); a delta `modified` whose entity was
-            deleted or is retired by an earlier solution (`entity-deleted`)
+            an entity with an open issue (`entity-blocked`); a delta `modified` or `retiring` whose
+            entity is deleted, or a delta `modified` whose entity is retired by an earlier solution
+            (`entity-deleted`, extension member `deltaIds`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -6814,8 +6911,8 @@ paths:
         '409':
           description: |
             Unresolved field conflicts (`merge-required`, extension member `conflicts` with the
-            `DeltaConflict` entries), a delta `modified` whose entity was deleted meanwhile
-            (`entity-deleted`, extension member `deltaIds`), a delta of an entity with an open
+            `DeltaConflict` entries), a delta `modified` or `retiring` whose entity is deleted
+            (`entity-deleted`, extension member `deltaIds`; remove the delta or restore the entity), a delta of an entity with an open
             issue (`entity-blocked`, extension members `entities` and `deltaIds`), a completed
             solution (`solution-completed`), or a solution of a plateau (`plateau-solution`)
           content:
@@ -9105,6 +9202,11 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The entity is deleted (`urn:oea:problem:entity-deleted`); undelete it first with `restoreDeletedEntity`
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
     post:
       operationId: restoreEntity
@@ -9158,7 +9260,8 @@ paths:
           description: |
             The entity has an open issue of a solution (`urn:oea:problem:entity-blocked`,
             US-153 AC1); extension member `entities` with `entityId`, `entityName` and its
-            `issues` (`EntityOpenIssue`). Nothing changes.
+            `issues` (`EntityOpenIssue`); or the entity is deleted (`urn:oea:problem:entity-deleted`):
+            undelete it first with `restoreDeletedEntity`. Nothing changes.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -12738,28 +12841,157 @@ paths:
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       operationId: deleteEntity
-      summary: Soft-delete entity
-      description: 'Soft-deletes one entity. Not implemented yet. Requires entity:delete.'
+      summary: Delete an entity from the repository (US-074, REQ-146, UC-10)
+      description: |
+        Soft-deletes an element entity or a connection (ADR-019). The entity, its children on all
+        levels (at most 10) and every active connection with the entity or one of the children as
+        endpoint are deleted in one transaction, with one time and actor; the cascade always
+        applies. Deleted entities leave catalogs and baselines, their history and audit trail
+        stay, and their external IDs stay reserved (#70). The entity itself has no cascade origin;
+        the others record it as the entity whose deletion took them along, the reason
+        `cascade: entity <id> deleted` and the audit event `entity.cascade-deleted`; the entity
+        is audited as `entity.deleted`. Versions do not change. The answer lists every deleted ID,
+        the entity first, then children and connections, so that a client can remove them.
+
+        A connection is deleted alone. A structuring aid (its own operation `deleteStructuringAid`
+        moves the children to the top level) and an automatic composition connection (changing the
+        parent removes it) give 422 naming `entityId`.
+
+        `If-Match` with the current version is required: 428 without it, 412 `stale-version` when
+        the entity changed meanwhile. An open issue of a solution on the entity, a child or a
+        connection gives 409 `entity-blocked`. Deleting a set that holds a connection of a type
+        used as `scopingConnectionType` also needs `visibility-scope:assign` (REQ-161). Deltas
+        `modified` and `retiring` of active solutions on the deleted entities become deletion
+        conflicts of those solutions (`previewEntityDeletion` names them beforehand).
       tags: [Entities – Write]
-      x-oea-authorization: {"access": "permission", "permissions": ["entity:delete"]}
-      x-oea-status: planned
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:delete"], "conditions": [{"when": "the deleted set holds a connection of a type used as scopingConnectionType", "permissions": ["visibility-scope:assign"]}]}
       parameters:
         - $ref: '#/components/parameters/EntityIdParam'
-        - name: reason
-          in: query
-          schema: { type: string }
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
       responses:
-        '204':
-          description: Soft-deleted
+        '200':
+          description: The entity and its cascade are deleted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntityDeletionResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404':
-          description: Not found
+          description: Unknown or already deleted entity
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+        '409':
+          description: |
+            The entity, a child or a connection has an open issue of a solution
+            (`urn:oea:problem:entity-blocked`, extension member `entities`). Nothing changes.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '422':
+          description: |
+            A structuring aid or an automatic composition connection (problem type
+            `urn:oea:problem:validation-failed` naming `entityId`); nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /entities/{id}/deletion:
+    get:
+      operationId: previewEntityDeletion
+      summary: Preview of the deletion of an entity (US-074, REQ-146, SCR-021)
+      description: |
+        What `deleteEntity` would do: the name and current version of the entity (the `If-Match`
+        of the deletion), the number of its children on all levels, the number of active
+        connections deleted with it and its children, and the active solutions (not `implemented`
+        or `archived`) with a delta `modified` or `retiring` on any entity of the set, each with
+        the number of such deltas. Changes nothing and locks nothing. An unknown or deleted entity
+        gives 404, a structuring aid or an automatic composition connection 422 naming
+        `entityId`.
+      tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:delete"]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+      responses:
+        '200':
+          description: The preview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntityDeletionPreview' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Unknown or deleted entity
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: A structuring aid or an automatic composition connection (`validation-failed` naming `entityId`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /entities/{id}/undelete:
+    post:
+      operationId: restoreDeletedEntity
+      summary: Restore a deleted entity with its cascade (REQ-159, ADR-019)
+      description: |
+        Undeletes an entity (the path `/entities/{id}/restore` restores a version). The entity
+        and what its deletion took along are restored in one transaction: its descendants with
+        the same cascade origin and deletion time, and the connections of that cascade with an
+        endpoint among them, whose endpoints are active afterwards. Versions do not change, and
+        each restored entity is audited as `entity.undeleted`. An entity deleted before the
+        cascade origin existed is restored alone. Rows deleted earlier or by another deletion are
+        never restored, even in the same instant.
+
+        A connection whose other endpoint is still deleted (`endpoint-deleted`), or an automatic
+        composition connection whose child no longer has that parent (`parent-changed`), stays
+        deleted and is listed in `notRestored`. An element entity whose parent is deleted, or
+        whose subtree would end more than 10 levels below the root, is placed at the top level as
+        a new version (audited as `entity.parent-changed`) and listed in `movedToTopLevel`.
+        A connection restored directly needs both endpoints active (409
+        `connection-not-restorable`, extension member `reason` `endpoint-deleted`).
+
+        `If-Match` with the version of the deleted entity is required: 428 without it, 412
+        `stale-version` when it differs. Restoring a set that holds a connection of a type used
+        as `scopingConnectionType` also needs `visibility-scope:assign` (REQ-161). The version
+        restore (`restoreEntity`) of a deleted entity answers 409 `entity-deleted`: undelete first.
+      tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:restore"], "conditions": [{"when": "the restored set holds a connection of a type used as scopingConnectionType", "permissions": ["visibility-scope:assign"]}]}
+      parameters:
+        - $ref: '#/components/parameters/EntityIdParam'
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      responses:
+        '200':
+          description: The entity and its cascade are restored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntityUndeleteResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Unknown entity
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: |
+            The entity is not deleted (`urn:oea:problem:entity-not-deleted`), or a connection
+            restored directly has a deleted endpoint (`urn:oea:problem:connection-not-restorable`,
+            extension member `reason`); nothing changes
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /entities/by-external-id/{externalId}:
     put:
@@ -12856,8 +13088,16 @@ paths:
         `role-restricted` property, set or removed, needs one of its write roles, and a value of
         a `connection-scoped` property an existing entity in the writer's scope; otherwise the
         whole batch is rejected with 403 (REQ-126, REQ-127). A property not named keeps its value.
+
+        An item whose external ID belongs to a deleted entity is rejected with
+        `EXTERNAL_ID_DELETED`, and an atomic batch changes nothing. Only an `upsert` item of a
+        writer who also holds `entity:restore` restores the entity with its cascade and then
+        updates it (`restored: true`, audited as `entity.undeleted`, #70); `create-only` and
+        `skip-existing` never restore, and the external ID is never reused by a new entity. A
+        restored set that holds a connection of a scoping type needs `visibility-scope:assign`
+        (403). A connection item is restored only with active endpoints.
       tags: [Entities – Write]
-      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}, {"when": "an upsert item names the external ID of a deleted entity", "permissions": ["entity:restore"]}]}
       parameters:
         - name: dryRun
           in: query

@@ -38,7 +38,18 @@ public class EntityDeletion {
 	 */
 	public void delete(OeaPrincipal principal, StoredEntity entity, Instant now, String reason,
 			Map.Entry<String, String> cause) {
-		this.entities.softDelete(entity.id(), principal.personId(), now, reason);
+		delete(principal, entity, now, reason, cause, null);
+	}
+
+	/**
+	 * Deletes the entity as part of the deletion of another one: {@code originId} is the entity
+	 * whose deletion takes it along, so that restoring that entity restores this one with the
+	 * same deletion time (V49). The go-live passes the retired entity for the connections it
+	 * retires with it.
+	 */
+	public void delete(OeaPrincipal principal, StoredEntity entity, Instant now, String reason,
+			Map.Entry<String, String> cause, Integer originId) {
+		this.entities.softDelete(entity.id(), principal.personId(), now, reason, originId);
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put(cause.getKey(), cause.getValue());
 		details.put("metatypeId", entity.metatypeId().toString());

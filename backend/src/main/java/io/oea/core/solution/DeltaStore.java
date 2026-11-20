@@ -37,7 +37,7 @@ public class DeltaStore {
 
 	/** A delta with the current name and metatype of its entity, without values and conflicts. */
 	public record DeltaRow(UUID id, String type, Integer entityId, String name, UUID metatypeId, String metatypeName,
-			String description, Instant createdAt, Instant updatedAt) {
+			String description, Instant createdAt, Instant updatedAt, boolean entityDeleted) {
 	}
 
 	/** Another active solution that holds a delta for the same entity, with its owner. */
@@ -117,8 +117,10 @@ public class DeltaStore {
 		}
 		return this.jdbc.query("""
 				SELECT d.id, d.delta_type, d.entity_id, coalesce(d.name, e.name), m.id, m.name, d.description, d.created_at,
-				       d.updated_at
+				       d.updated_at, coalesce(e.deleted_at IS NOT NULL AND d.delta_type <> 'new'
+				                AND sol.status NOT IN ('implemented', 'archived'), false)
 				FROM entity_deltas d
+				JOIN solutions sol ON sol.id = d.solution_id
 				LEFT JOIN entities e ON e.id = d.entity_id
 				JOIN metatypes m ON m.id = coalesce(d.metatype_id, e.metatype_id)
 				WHERE d.solution_id = ?""" + where + " ORDER BY " + RANK + ", " + SORT_NAME + ", d.id::text" + paging,
@@ -126,7 +128,8 @@ public class DeltaStore {
 					java.sql.Timestamp updated = rs.getTimestamp(9);
 					return new DeltaRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, Integer.class),
 							rs.getString(4), rs.getObject(5, UUID.class), rs.getString(6), rs.getString(7),
-							rs.getTimestamp(8).toInstant(), (updated != null) ? updated.toInstant() : null);
+							rs.getTimestamp(8).toInstant(), (updated != null) ? updated.toInstant() : null,
+							rs.getBoolean(10));
 				}, arguments.toArray());
 	}
 
