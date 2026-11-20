@@ -9,15 +9,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Size limit of request bodies (REQ-186, REQ-184 AC2; design D1 of s2b-backend-hardening): a
  * declared length above the limit is rejected with 413 before the body is read; a body without
  * declared length fails with {@link RequestTooLargeException} once it exceeds the limit, which
- * the exception handler answers with 413. The limit depends on the path; other paths get the
- * default.
+ * the exception handler answers with 413. The limit depends on the path, by exact path or by pattern; other
+ * paths get the default.
  */
 public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
@@ -29,9 +31,33 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
 	private final Map<String, Limit> limitsByPath;
 
+	private final List<PatternLimit> limitsByPattern;
+
+	/** A limit for the paths that match a pattern, tried after the exact paths. */
+	public record PatternLimit(Pattern path, Limit limit) {
+	}
+
 	public RequestSizeLimitFilter(Limit defaultLimit, Map<String, Limit> limitsByPath) {
+		this(defaultLimit, limitsByPath, List.of());
+	}
+
+	public RequestSizeLimitFilter(Limit defaultLimit, Map<String, Limit> limitsByPath,
+			List<PatternLimit> limitsByPattern) {
 		this.defaultLimit = defaultLimit;
 		this.limitsByPath = Map.copyOf(limitsByPath);
+		this.limitsByPattern = List.copyOf(limitsByPattern);
+	}
+
+	private Limit limit(String path) {
+		Limit exact = this.limitsByPath.get(path);
+		if (exact != null) {
+			return exact;
+		}
+		return this.limitsByPattern.stream()
+			.filter((candidate) -> candidate.path().matcher(path).matches())
+			.map(PatternLimit::limit)
+			.findFirst()
+			.orElse(this.defaultLimit);
 	}
 
 	/** Thrown while reading a body beyond the limit; answered with 413. */
@@ -57,7 +83,7 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
-		Limit limit = this.limitsByPath.getOrDefault(RequestPaths.normalized(request), this.defaultLimit);
+		Limit limit = limit(RequestPaths.normalized(request));
 		if (request.getContentLengthLong() > limit.maximumBytes()) {
 			Problems.write(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, limit.problemType(),
 					limit.title());

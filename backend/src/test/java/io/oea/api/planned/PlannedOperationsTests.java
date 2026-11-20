@@ -30,7 +30,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Spec platform/api-contract, requirement "Answer of planned operations" (s2b-ci-and-contract
- * D2): {@code createEntity} and {@code getDiagramView} are planned and have no own controller.
+ * D2): {@code createEntity} is planned and has no own controller. The diagram view path is used for
+ * the authentication and authorization of a request; {@code getDiagramView} is implemented since
+ * us-074-diagram-canvas.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

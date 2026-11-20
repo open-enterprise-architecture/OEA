@@ -98,7 +98,8 @@ public class ViewpointController implements ViewpointsApi {
 							.toList());
 	}
 
-	private static ViewpointConfig viewpoint(Viewpoints.Viewpoint row) {
+	/** The viewpoint as the contract's {@code ViewpointConfig}; shared with the diagram view. */
+	public static ViewpointConfig viewpoint(Viewpoints.Viewpoint row) {
 		return new ViewpointConfig().id(row.id())
 			.name(row.name())
 			.description(row.description())

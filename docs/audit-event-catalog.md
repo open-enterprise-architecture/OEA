@@ -868,6 +868,17 @@ A diagram was created, renamed or its description changed, deleted or restored (
 | Target | `diagram`, ID of the diagram |
 | Details | `name` and `viewpointId`; for `diagram.updated` also `fields`, the changed fields among `name` and `description` (empty when nothing changed); for `diagram.deleted` by a viewpoint deletion or a package re-import also `cause` `viewpoint-deleted` and, for a diagram that was deleted before, `wasDeleted` `true` |
 
+### `diagram.layout-saved`
+
+The layout of a diagram was saved: all its shapes in drawing order, with the entities created on the canvas ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md); change us-074-diagram-canvas, business object [Diagram](../business-objects/diagram.md), BR-DG-08). Every accepted save is audited and raises the version of the diagram, also when nothing differs. A rejected save (invalid shape or new entity, stale or missing version, missing permission, unknown or deleted diagram, too many shapes) is not audited and changes nothing. Each new entity of the save is audited as [`entity.created`](#entitycreated--entityupdated) with the same details as a batch create.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person or service account with `entity:write` |
+| Target | `diagram`, ID of the diagram |
+| Details | `name` of the diagram, the new `version`, and the numbers `added`, `changed` (entity, position, size or drawing order differ) and `removed` shapes and `entitiesCreated`. Shapes of a deleted entity are hidden and not counted |
+
 ### `plateau.created` / `plateau.updated`
 
 A plateau was created or edited ([US-084](../requirements/user-stories/US-084-create-plateau.md), [US-155](../requirements/user-stories/US-155-plateau-basis.md), [REQ-084](../requirements/req/REQ-084-create-plateau.md); change us-084-plateaus). The first baseline turns plateau mode on. Rejected writes (a broken rule, a realized plateau, a plateau in use, missing permission) are not audited.

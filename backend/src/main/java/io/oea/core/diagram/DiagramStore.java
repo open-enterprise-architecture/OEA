@@ -92,6 +92,13 @@ public class DiagramStore {
 				WHERE id = ?""", name, description, Timestamp.from(now), personId, id);
 	}
 
+	/** Raises the version without another change (a saved layout) and returns the new version. */
+	public int touch(UUID id, long personId, Instant now) {
+		return this.jdbc.queryForObject("""
+				UPDATE diagrams SET version = version + 1, updated_at = ?, updated_by = ? WHERE id = ?
+				RETURNING version""", Integer.class, Timestamp.from(now), personId, id);
+	}
+
 	/** Marks the diagram as deleted and raises the version. */
 	public void markDeleted(UUID id, long personId, Instant now) {
 		this.jdbc.update("""

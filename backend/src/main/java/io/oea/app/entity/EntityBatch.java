@@ -18,8 +18,10 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -154,6 +156,58 @@ public class EntityBatch {
 		List<ItemResult> results = request.atomic()
 				? writeAtomically(principal, request, rules, duplicates, connectionDuplicates, context)
 				: writeEach(principal, request, rules, duplicates, connectionDuplicates, context);
+		return new Result(context.batchId(), results);
+	}
+
+	/**
+	 * Creates new entities in the transaction of the caller (design D3 of us-074-diagram-canvas): the
+	 * steps of an atomic batch create with one batch ID, so that version, history and the
+	 * {@code entity.created} events are those of a batch. A mandatory property without value is a
+	 * warning {@code MANDATORY_MISSING}, so the entity is created incomplete; every other rule
+	 * applies as in the batch. All faulty inputs are collected before anything is written; a failure
+	 * leaves nothing behind.
+	 *
+	 * @return one result per input, in order, each {@code CREATED} with the ID of the new entity
+	 * @throws IllegalTransactionStateException without a surrounding transaction
+	 * @throws AtomicBatchFailedException with the issues of all faulty inputs, paths {@code entities[i]...}
+	 * @throws io.oea.app.security.PermissionDeniedException for a restricted property the principal may not write
+	 */
+	public Result createInTransaction(OeaPrincipal principal, List<EntityInput> inputs, AuditEvent.Agent agent) {
+		if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+			throw new IllegalTransactionStateException("The entities are created in the transaction of the caller.");
+		}
+		PropertyAccess.Snapshot access = this.writeAccess.require(principal, inputs);
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+			.forWriter(PropertyWriteAccess.writer(access));
+		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), agent);
+		List<EntityValidator.Checked> checked = new ArrayList<>();
+		List<Issue> errors = new ArrayList<>();
+		for (int i = 0; i < inputs.size(); i++) {
+			EntityInput input = inputs.get(i);
+			List<Issue> issues = new ArrayList<>();
+			if (BuiltInMetatypes.STRUCTURING_AID.equals(input.metatypeId())) {
+				issues.add(new Issue("metatypeId", "METATYPE_NOT_ALLOWED",
+						"Structuring aids are created with their own operation."));
+				checked.add(null);
+			}
+			else {
+				EntityValidator.Checked item = EntityValidator.check(input, rules, null, Map.of(), this.store::isActive,
+						false, EntityValidator.Necessity.WARN);
+				issues.addAll(item.errors());
+				checked.add(item);
+			}
+			String path = "entities[" + i + "]";
+			issues.forEach((issue) -> errors.add(issue.within(path)));
+		}
+		if (!errors.isEmpty()) {
+			throw new AtomicBatchFailedException(errors);
+		}
+		List<ItemResult> results = new ArrayList<>();
+		for (int i = 0; i < inputs.size(); i++) {
+			EntityWriter.Written written = this.writer.write(principal, checked.get(i), null, Map.of(), context);
+			results.add(new ItemResult(i, ItemStatus.CREATED, written.entityId(), inputs.get(i).externalId(),
+					List.of(), checked.get(i).warnings()));
+		}
 		return new Result(context.batchId(), results);
 	}
 

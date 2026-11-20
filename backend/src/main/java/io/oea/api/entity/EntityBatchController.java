@@ -192,7 +192,7 @@ public class EntityBatchController implements EntitiesWriteApi {
 	 * ADR-033 §7: agent headers are informational only; control characters are removed and the
 	 * value is limited to 100 characters.
 	 */
-	static String informational(String header) {
+	public static String informational(String header) {
 		if (header == null) {
 			return null;
 		}

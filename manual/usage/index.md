@@ -14,7 +14,7 @@ covers:
 - [Portal](./portal): read the shared catalogs, for example with the role `portal-reader`
 - [Solutions](./solutions): create a solution for a change initiative and describe its architecture vision
 - [Dashboards](./dashboards): arrange text and catalog tables in a grid, for yourself or for everyone
-- [Diagrams](./diagrams): create, find, rename, delete and restore diagrams
+- [Diagrams](./diagrams): create, find, rename, delete and restore diagrams, and place elements on their canvas
 - [Writing entities in batch](./entities-batch): create and update entities from a source system through the API
 
 What you see and may do depends on your roles. If a page tells you that you have no access, ask an administrator for a role (see [Roles and permissions](../administration/roles-and-permissions)).

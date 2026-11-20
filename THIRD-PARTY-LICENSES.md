@@ -10,7 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 43 |
+| MIT | 45 |
 | Apache-2.0 | 98 |
 | BSD-3-Clause | 11 |
 | BSD-2-Clause | 3 |
@@ -138,7 +138,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (45)
+## Frontend Bundle (47)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -158,6 +158,8 @@ License texts and notices: the backend jar contains the license and notice files
 | @tanstack/vue-table (`@tanstack/vue-table`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
 | @tanstack/vue-virtual (`@tanstack/vue-virtual`) | 3.13.45 | MIT | – | <https://github.com/TanStack/virtual> |
 | @unhead/vue (`@unhead/vue`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
+| @vue-flow/core (`@vue-flow/core`) | 1.48.2 | MIT | – | <https://github.com/bcakmakoglu/vue-flow> |
+| @vue-flow/node-resizer (`@vue-flow/node-resizer`) | 1.5.1 | MIT | – | <https://github.com/bcakmakoglu/vue-flow/packages/plugins/node-resizer> |
 | @vue/reactivity (`@vue/reactivity`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | @vue/runtime-core (`@vue/runtime-core`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
 | @vue/runtime-dom (`@vue/runtime-dom`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
