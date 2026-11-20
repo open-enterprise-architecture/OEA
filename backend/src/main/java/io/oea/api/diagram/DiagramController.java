@@ -7,6 +7,10 @@ import io.oea.api.generated.model.DeletedDiagramPage;
 import io.oea.api.generated.model.Diagram;
 import io.oea.api.generated.model.DiagramCreate;
 import io.oea.api.generated.model.DiagramEntity;
+import io.oea.api.generated.model.DiagramEntityDetails;
+import io.oea.api.generated.model.DiagramEntityField;
+import io.oea.api.generated.model.PropertyValue;
+import io.oea.api.generated.model.PropertyValueValueRef;
 import io.oea.api.generated.model.DiagramEntityPage;
 import io.oea.api.generated.model.DiagramPage;
 import io.oea.api.generated.model.DiagramShape;
@@ -119,9 +123,16 @@ public class DiagramController implements DiagramsApi {
 				: request.getNewEntities()
 					.stream()
 					.map((entity) -> new DiagramViews.NewEntityInput(entity.getKey(), entity.getMetatypeId(),
-							entity.getName()))
+							entity.getName(), entity.getDescription(), properties(entity.getProperties())))
 					.toList();
-		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities,
+		List<DiagramViews.EntityUpdateInput> updates = (request.getEntityUpdates() == null) ? List.of()
+				: request.getEntityUpdates()
+					.stream()
+					.map((update) -> new DiagramViews.EntityUpdateInput(update.getEntityId(),
+							update.getExpectedVersion(), update.getName(), update.getDescription(),
+							properties(update.getProperties())))
+					.toList();
+		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities, updates,
 				new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
 						EntityBatchController.informational(xAgentRun))));
 	}
@@ -129,7 +140,10 @@ public class DiagramController implements DiagramsApi {
 	@Override
 	public ResponseEntity<DiagramEntityPage> searchDiagramEntities(UUID id, String q, UUID metatypeId, Integer page,
 			Integer pageSize) {
-		DiagramViews.EntityPage result = this.views.search(id, q, metatypeId, page(page), size(pageSize));
+		return entityPage(this.views.search(id, q, metatypeId, page(page), size(pageSize)));
+	}
+
+	private static ResponseEntity<DiagramEntityPage> entityPage(DiagramViews.EntityPage result) {
 		return ResponseEntity.ok(new DiagramEntityPage(result.items()
 			.stream()
 			.map((found) -> new DiagramEntity(found.id(), found.name(), new MetatypeSummary().id(found.metatype().id())
@@ -137,6 +151,57 @@ public class DiagramController implements DiagramsApi {
 				.abbreviation(found.metatype().abbreviation())))
 			.toList(), new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
 					result.totalPages())));
+	}
+
+	@Override
+	public ResponseEntity<DiagramEntityDetails> getDiagramEntityDetails(UUID id, Integer entityId) {
+		DiagramViews.Details details = this.views.details(principal(), id, entityId);
+		return ResponseEntity.ok(new DiagramEntityDetails(details.id(), details.name(), details.description(),
+				new MetatypeSummary().id(details.metatypeId())
+					.name(details.metatypeName())
+					.abbreviation(details.metatypeAbbreviation()),
+				details.version(), details.properties().stream().map(DiagramController::value).toList(),
+				details.fields()
+					.stream()
+					.map((field) -> new DiagramEntityField(field.propertyDefId(), field.readable(), field.writable()))
+					.toList(),
+				details.missingMandatory()));
+	}
+
+	@Override
+	public ResponseEntity<DiagramEntityPage> searchDiagramReferenceTargets(UUID id, UUID propertyDefId, String q,
+			Integer page, Integer pageSize) {
+		return entityPage(this.views.referenceTargets(id, propertyDefId, q, page(page), size(pageSize)));
+	}
+
+	private static List<io.oea.app.entity.EntityInput.PropertyInput> properties(
+			List<io.oea.api.generated.model.PropertyWriteValue> properties) {
+		return (properties == null) ? List.of()
+				: properties.stream()
+					.map((property) -> new io.oea.app.entity.EntityInput.PropertyInput(property.getPropertyDefId(),
+							property.getValue()))
+					.toList();
+	}
+
+	private static PropertyValue value(DiagramViews.Value value) {
+		PropertyValue result = new PropertyValue().propertyDefId(value.propertyDefId())
+			.propertyName(value.propertyName())
+			.dataType(PropertyValue.DataTypeEnum.fromValue(value.dataType()))
+			.redacted(value.redacted());
+		DiagramViews.Typed typed = value.typed();
+		if (typed != null) {
+			result.valueText(typed.text())
+				.valueInt(typed.integer())
+				.valueBool(typed.bool())
+				.valueDate(typed.date())
+				.valueEnum(typed.enumValue());
+			if (typed.reference() != null) {
+				result.valueRef(new PropertyValueValueRef().id(typed.reference().id())
+					.name(typed.reference().name())
+					.metatypeAbbr(typed.reference().metatypeAbbreviation()));
+			}
+		}
+		return result;
 	}
 
 	private static ResponseEntity<DiagramView> view(DiagramViews.View view) {

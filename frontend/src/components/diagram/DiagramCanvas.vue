@@ -8,12 +8,17 @@ import {
   CANVAS_LIMITS,
   saveDiagramView,
   type DiagramEntity,
+  type DiagramEntityDetails,
   type DiagramView,
 } from '../../api/diagramView'
-import { rateLimitMessage } from '../../api/problem'
+import { rateLimitMessage, type BlockedEntity } from '../../api/problem'
 import AddExistingDialog from './AddExistingDialog.vue'
+import EntityDetailsPanel from './EntityDetailsPanel.vue'
 import {
   abbreviation,
+  applyEdit,
+  applyNewEntityEdit,
+  editBlocked,
   fromView,
   hasUnsavedChanges,
   isUnsaved,
@@ -30,6 +35,8 @@ import {
   visualHint,
   writeRequest,
   type CanvasShape,
+  type EntityEdits,
+  type FieldChange,
   type ShapeData,
 } from './canvasModel'
 import EntityShape from './EntityShape.vue'
@@ -37,7 +44,9 @@ import EntityShape from './EntityShape.vue'
 // The canvas editor of a diagram (SCR-021, US-074; design D6 of us-074-diagram-canvas): pan and
 // zoom, the palette of the viewpoint, "Add existing", moving, resizing and removing shapes, and
 // "Save" of the whole layout. A reader sees the canvas read-only. Positions and sizes are kept in
-// pt (canvasModel.ts); the canvas draws them in px.
+// pt (canvasModel.ts); the canvas draws them in px. The details panel (design D3 of
+// us-074-diagram-entity-details) opens on the selected shape; its changes of the entity are kept
+// here with the unsaved changes and saved with the layout.
 const props = defineProps<{ view: DiagramView; version: number; editable: boolean; fetchFn?: typeof fetch }>()
 const emit = defineEmits<{ saved: [view: DiagramView]; reload: []; dirty: [dirty: boolean] }>()
 const { t } = useI18n()
@@ -59,8 +68,19 @@ const failure = ref<string>()
 const rejected = ref(false)
 const notice = ref<string>()
 const menu = ref<{ x: number; y: number }>()
+// the details panel: the changes of the saved entities, the messages of a rejected save, and what a save answered 409
+const edits = ref<EntityEdits>({})
+const panelOpen = ref(false)
+const reloadToken = ref(0)
+const fieldErrors = ref(new Map<string, string>())
+const staleEntities = ref<{ entityId: number; name: string; currentVersion: number }[]>([])
+const blockedEntities = ref<BlockedEntity[]>([])
 
-const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value))
+const selectedShape = computed(() => shapes.value.find((shape) => shape.id === selectedId.value))
+const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value, edits.value))
+watch(selectedId, (id) => {
+  panelOpen.value = id !== undefined
+})
 watch(dirty, (value) => emit('dirty', value))
 
 watch(
@@ -74,6 +94,12 @@ function adopt(view: DiagramView) {
   selectedId.value = shapes.value.some((shape) => shape.id === selectedId.value) ? selectedId.value : undefined
   failure.value = undefined
   rejected.value = false
+  edits.value = {}
+  fieldErrors.value = new Map()
+  staleEntities.value = []
+  blockedEntities.value = []
+  // an open panel reads its entity again: it has a new version after a save
+  reloadToken.value += 1
 }
 
 const metatypeNames = computed(() => new Map(props.view.viewpoint.allowedMetatypes.map((type) => [type.id, type.name])))
@@ -115,7 +141,7 @@ const nodes = computed(() =>
       hint: visualHint(props.view, shape.metatypeId),
       editable: props.editable,
       editing: shape.editing === true,
-      unsaved: isUnsaved(shape, saved.value),
+      unsaved: isUnsaved(shape, saved.value, edits.value),
       missingMandatory: shape.missingMandatory,
       error: shape.error,
       metatypeName: metatypeNames.value.get(shape.metatypeId) ?? '',
@@ -184,7 +210,13 @@ function removeSelected() {
     return
   }
   const id = selectedId.value
+  const removed = shapes.value.find((shape) => shape.id === id)
   shapes.value = shapes.value.filter((shape) => shape.id !== id)
+  if (removed?.entityId !== undefined && !shapes.value.some((shape) => shape.entityId === removed.entityId)) {
+    // the changes of an entity that is no longer shown are not saved
+    const { [removed.entityId]: _dropped, ...rest } = edits.value
+    edits.value = rest
+  }
   selectedId.value = undefined
   menu.value = undefined
   notice.value = undefined
@@ -226,6 +258,7 @@ function focusIn(event: FocusEvent) {
 function keydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     menu.value = undefined
+    panelOpen.value = false
   }
   if (!props.editable || !selectedId.value || event.target instanceof HTMLInputElement) {
     return
@@ -266,11 +299,65 @@ function dragPalette(event: DragEvent, metatypeId: string) {
   }
 }
 
+/** A field of the entity of the selected shape was changed in the details panel. */
+function changed(change: FieldChange, version: number) {
+  const shape = selectedShape.value
+  if (!props.editable || !shape) {
+    return
+  }
+  fieldErrors.value = new Map([...fieldErrors.value].filter(([key]) => !key.startsWith(`${shape.entityId ?? shape.newEntity?.key}|`)))
+  if (shape.newEntity) {
+    update(shape.id, (entry) => applyNewEntityEdit(entry, change))
+    return
+  }
+  const entityId = shape.entityId!
+  if (change.value !== undefined && editBlocked(edits.value, entityId)) {
+    notice.value = t('diagrams.details.tooManyChanges', { count: CANVAS_LIMITS.entityUpdates })
+    return
+  }
+  notice.value = undefined
+  edits.value = applyEdit(edits.value, entityId, version, change)
+  if (change.field === 'name') {
+    // the shapes of the entity show the name entered, and the saved one again when it is back
+    const name = change.value ?? saved.value.find((entry) => entry.entityId === entityId)?.name ?? shape.name
+    shapes.value = shapes.value.map((entry) => (entry.entityId === entityId ? { ...entry, name } : entry))
+  }
+}
+
+/** The panel read an entity: the shapes show its name and which mandatory values it misses. */
+function loaded(details: DiagramEntityDetails | undefined) {
+  if (!details) {
+    return
+  }
+  const refresh = (entry: CanvasShape): CanvasShape =>
+    entry.entityId === details.id && !edits.value[details.id]
+      ? { ...entry, name: details.name, missingMandatory: [...details.missingMandatory] }
+      : entry
+  shapes.value = shapes.value.map(refresh)
+  saved.value = saved.value.map(refresh)
+}
+
+/** "Reload entity" after a version conflict: the changes of this entity are discarded, the others stay. */
+function reloadEntity(entityId: number) {
+  const { [entityId]: _discarded, ...rest } = edits.value
+  edits.value = rest
+  staleEntities.value = staleEntities.value.filter((entry) => entry.entityId !== entityId)
+  fieldErrors.value = new Map([...fieldErrors.value].filter(([key]) => !key.startsWith(`${entityId}|`)))
+  const shape = shapes.value.find((entry) => entry.entityId === entityId)
+  if (shape) {
+    selectedId.value = shape.id
+    panelOpen.value = true
+  }
+  reloadToken.value += 1
+}
+
 async function save() {
-  const request = writeRequest(shapes.value)
+  const request = writeRequest(shapes.value, edits.value)
   saving.value = true
   failure.value = undefined
   rejected.value = false
+  staleEntities.value = []
+  blockedEntities.value = []
   try {
     const outcome = await saveDiagramView(props.view.diagram.id, request, props.version, props.fetchFn)
     if (outcome.ok) {
@@ -281,12 +368,23 @@ async function save() {
     const rejection = outcome.rejection
     if (rejection.status === 412) {
       conflict.value = true
+    } else if (rejection.status === 409 && rejection.problemType === 'entity-version-conflict') {
+      staleEntities.value = (rejection.conflicts ?? []).map((entry) => ({
+        entityId: entry.entityId,
+        name: shapes.value.find((shape) => shape.entityId === entry.entityId)?.name ?? String(entry.entityId),
+        currentVersion: entry.currentVersion,
+      }))
+    } else if (rejection.status === 409 && rejection.problemType === 'entity-blocked') {
+      blockedEntities.value = rejection.entities ?? []
     } else if (rejection.status === 422) {
       const marks = rejectedShapes(rejection.errors ?? [], request, shapes.value)
-      shapes.value = shapes.value.map((shape) => (marks.has(shape.id) ? { ...shape, error: marks.get(shape.id) } : shape))
+      shapes.value = shapes.value.map((shape) => (marks.shapes.has(shape.id) ? { ...shape, error: marks.shapes.get(shape.id) } : shape))
+      fieldErrors.value = marks.fields
       rejected.value = true
     } else if (rejection.status === 403) {
       failure.value = t('diagrams.canvas.forbidden')
+    } else if (rejection.status === 413) {
+      failure.value = t('diagrams.canvas.tooLarge')
     } else if (rejection.status === 404) {
       failure.value = t('diagrams.gone')
     } else {
@@ -352,40 +450,83 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
     <UAlert v-if="notice" data-testid="canvas-notice" color="warning" variant="subtle" :description="notice" />
     <UAlert v-if="failure" data-testid="canvas-failure" color="error" variant="subtle" :description="failure" />
     <UAlert v-if="rejected" data-testid="canvas-rejected" color="error" variant="subtle" :description="t('diagrams.canvas.rejected')" />
+    <UAlert v-if="staleEntities.length > 0" data-testid="canvas-entity-conflict" color="error" variant="subtle" :title="t('diagrams.canvas.entityConflictTitle')">
+      <template #description>
+        <p>{{ t('diagrams.canvas.entityConflict', { names: staleEntities.map((entry) => entry.name).join(', ') }) }}</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <UButton
+            v-for="entry in staleEntities"
+            :key="entry.entityId"
+            size="xs"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-refresh-cw"
+            :label="t('diagrams.canvas.reloadEntity', { name: entry.name })"
+            :data-testid="`canvas-entity-reload-${entry.entityId}`"
+            @click="reloadEntity(entry.entityId)"
+          />
+        </div>
+      </template>
+    </UAlert>
+    <UAlert v-if="blockedEntities.length > 0" data-testid="canvas-entity-blocked" color="error" variant="subtle" :title="t('diagrams.canvas.blockedTitle')">
+      <template #description>
+        <p v-for="entry in blockedEntities" :key="entry.entityId">
+          {{ t('diagrams.canvas.blocked', { name: entry.entityName, issues: entry.issues.map((issue) => `${issue.label} (${issue.solutionName})`).join(', ') }) }}
+        </p>
+      </template>
+    </UAlert>
 
     <p :id="`${flowId}-hint`" class="sr-only">{{ editable ? t('diagrams.canvas.hint') : t('diagrams.canvas.hintReadOnly') }}</p>
-    <div
-      ref="surface"
-      class="h-[32rem] overflow-hidden rounded-md border border-accented"
-      role="region"
-      :aria-label="t('diagrams.canvas.label')"
-      :aria-describedby="`${flowId}-hint`"
-      data-testid="canvas-surface"
-      @keydown="keydown"
-      @focusin="focusIn"
-    >
-      <VueFlow
-        :id="flowId"
-        :nodes="nodes"
-        :nodes-draggable="editable"
-        :nodes-connectable="false"
-        :delete-key-code="null"
-        disable-keyboard-a11y
-        :zoom-on-double-click="false"
-        :min-zoom="0.1"
-        :max-zoom="4"
-        :fit-view-on-init="view.shapes.length > 0"
-        @node-drag-stop="dragStop"
-        @node-click="select"
-        @node-context-menu="contextMenu"
-        @pane-click="selectedId = undefined"
-        @dragover="dragOver"
-        @drop="drop"
-      >
-        <template #node-entity="nodeProps">
-          <EntityShape :id="nodeProps.id" :data="nodeProps.data" :selected="nodeProps.selected" />
-        </template>
-      </VueFlow>
+    <div class="flex flex-col gap-3 lg:flex-row">
+      <div class="min-w-0 flex-1">
+        <div
+          ref="surface"
+          class="h-[32rem] overflow-hidden rounded-md border border-accented"
+          role="region"
+          :aria-label="t('diagrams.canvas.label')"
+          :aria-describedby="`${flowId}-hint`"
+          data-testid="canvas-surface"
+          @keydown="keydown"
+          @focusin="focusIn"
+        >
+          <VueFlow
+            :id="flowId"
+            :nodes="nodes"
+            :nodes-draggable="editable"
+            :nodes-connectable="false"
+            :delete-key-code="null"
+            disable-keyboard-a11y
+            :zoom-on-double-click="false"
+            :min-zoom="0.1"
+            :max-zoom="4"
+            :fit-view-on-init="view.shapes.length > 0"
+            @node-drag-stop="dragStop"
+            @node-click="select"
+            @node-context-menu="contextMenu"
+            @pane-click="selectedId = undefined"
+            @dragover="dragOver"
+            @drop="drop"
+          >
+            <template #node-entity="nodeProps">
+              <EntityShape :id="nodeProps.id" :data="nodeProps.data" :selected="nodeProps.selected" />
+            </template>
+          </VueFlow>
+        </div>
+
+      </div>
+      <EntityDetailsPanel
+        v-if="panelOpen && selectedShape && !selectedShape.editing"
+        :diagram-id="view.diagram.id"
+        :shape="selectedShape"
+        :editable="editable"
+        :edit="selectedShape.entityId !== undefined ? edits[selectedShape.entityId] : undefined"
+        :errors="fieldErrors"
+        :reload-token="reloadToken"
+        :fetch-fn="fetchFn"
+        @change="changed"
+        @close="panelOpen = false"
+        @loaded="loaded"
+      />
     </div>
 
     <div v-if="menu" role="menu" class="fixed z-50 min-w-48 rounded-md border border-accented bg-default p-1 shadow-lg" :style="{ left: `${menu.x}px`, top: `${menu.y}px` }" data-testid="canvas-menu">

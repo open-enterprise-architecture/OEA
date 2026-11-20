@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import DiagramPage from '../pages/DiagramPage.vue'
-import { diagram, diagramApi, METATYPE_COMPONENT, METATYPE_PROCESS, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, shape } from '../test/diagrams'
+import { diagram, diagramApi, METATYPE_COMPONENT, METATYPE_PROCESS, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, type DiagramApi } from '../test/diagrams'
 
-// SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas): the canvas of a diagram
-// with the palette of its viewpoint, "Add existing", moving, resizing and removing shapes, "Save" and
-// the read-only view of a reader (docs/screens/SCREENS.md). The first story is the screen image.
+// SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
+// us-074-diagram-entity-details): the canvas of a diagram with the palette of its viewpoint, "Add
+// existing", moving, resizing and removing shapes, "Save", the details panel of the selected shape
+// and the read-only view of a reader (docs/screens/SCREENS.md). The first story is the screen image.
 const meta: Meta<typeof DiagramPage> = {
   title: 'Screens/SCR-021 Diagram editor',
   component: DiagramPage,
@@ -32,6 +33,9 @@ export const Canvas: Story = {
     await expect(canvas.getByRole('button', { name: 'Add existing' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Save' })).toBeDisabled()
     await expect(canvas.getByText('Incomplete: Process Owner')).toBeInTheDocument()
+    // the details panel of the selected shape names the missing value
+    await userEvent.click(canvas.getByText('Invoice Approval'))
+    await expect(await canvas.findByText('Required values missing: Process Owner')).toBeInTheDocument()
   },
 }
 
@@ -52,7 +56,8 @@ export const Unsaved: Story = {
     const canvas = within(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Add Application Component' }))
     await userEvent.type(await canvas.findByRole('textbox', { name: 'Name of the new Application Component' }), 'CRM Cloud{Enter}')
-    await expect(await canvas.findByText('CRM Cloud')).toBeInTheDocument()
+    // the name is in the shape and in the details panel of the new entity
+    await expect((await canvas.findAllByText('CRM Cloud')).length).toBeGreaterThan(0)
     await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled()
   },
@@ -88,5 +93,64 @@ export const ReadOnly: Story = {
     await expect(canvas.queryByRole('button', { name: 'Add existing' })).toBeNull()
     await expect(canvas.queryByRole('button', { name: 'Save' })).toBeNull()
     await expect(canvas.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument()
+  },
+}
+
+/** The details panel of a shape shows the values in the form of the metatype; changing one is an unsaved change. */
+export const DetailsEditing: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('SAP ERP'))
+    await expect(await canvas.findByRole('complementary', { name: 'Details of the selected entity' })).toBeInTheDocument()
+    await expect(await canvas.findByText(/Version 4/)).toBeInTheDocument()
+    const description = await canvas.findByDisplayValue('Core ERP for finance and logistics')
+    await userEvent.clear(description)
+    await userEvent.type(description, 'Core ERP, retiring in 2028')
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled()
+  },
+}
+
+/** An incomplete entity: the required value is marked and named, and entering it removes the mark. */
+export const DetailsIncomplete: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('Invoice Approval'))
+    await expect(await canvas.findByText('Required values missing: Process Owner')).toBeInTheDocument()
+    await userEvent.type(await canvas.findByLabelText(/Process Owner/), 'Anna')
+    await waitFor(() => expect(canvas.queryByText('Required values missing: Process Owner')).toBeNull())
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(canvas.queryByText('Incomplete: Process Owner')).toBeNull())
+  },
+}
+
+/** A reader sees the values without input fields, and a value the reader may not read as "Restricted". */
+export const DetailsReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: SHAPES, redactedProperties: [PROP_INVESTMENT] }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('SAP ERP'))
+    await expect(await canvas.findByText('You may view the values, but not change them.')).toBeInTheDocument()
+    await expect(canvas.getByText('Restricted')).toBeInTheDocument()
+    await expect(canvas.queryByDisplayValue('Core ERP for finance and logistics')).toBeNull()
+  },
+}
+
+/** Someone else changed the entity meanwhile: the save names it, keeps the changes and offers to reload it. */
+export const VersionConflict: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES }) },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('SAP ERP'))
+    const description = await canvas.findByDisplayValue('Core ERP for finance and logistics')
+    await userEvent.type(description, ' (mine)')
+    const api = args.fetchFn as DiagramApi
+    api.state.entities[12]!.version = 5
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(await canvas.findByText(/SAP ERP was changed by someone else/)).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Reload SAP ERP and discard my changes of it' })).toBeInTheDocument()
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
   },
 }

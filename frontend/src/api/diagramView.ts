@@ -12,6 +12,9 @@ export type DiagramShapeWrite = components['schemas']['DiagramShapeWrite']
 export type DiagramNewEntity = components['schemas']['DiagramNewEntity']
 export type DiagramEntity = components['schemas']['DiagramEntity']
 export type DiagramEntityPage = components['schemas']['DiagramEntityPage']
+export type DiagramEntityDetails = components['schemas']['DiagramEntityDetails']
+export type DiagramEntityField = components['schemas']['DiagramEntityField']
+export type DiagramEntityUpdate = components['schemas']['DiagramEntityUpdate']
 
 /** The limits of the contract (design D1 and D2 of us-074-diagram-canvas), in pt. */
 export const CANVAS_LIMITS = {
@@ -20,7 +23,10 @@ export const CANVAS_LIMITS = {
   sizeMax: 2000,
   shapes: 2000,
   newEntities: 500,
+  /** the changed entities of one save (design D2 of us-074-diagram-entity-details) */
+  entityUpdates: 500,
   entityName: 255,
+  entityDescription: 2000,
   search: 255,
   searchPageSize: 20,
 }
@@ -86,6 +92,38 @@ export async function searchDiagramEntities(id: string, query: EntitySearchQuery
   if (query.page) search.set('page', String(query.page))
   search.set('pageSize', String(query.pageSize ?? CANVAS_LIMITS.searchPageSize))
   const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/entities?${search.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DiagramEntityPage }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/** GET /views/diagrams/{id}/entities/{entityId}: the details of a shown entity; `undefined` for a 404. */
+export async function fetchDiagramEntityDetails(
+  id: string,
+  entityId: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<DiagramEntityDetails | undefined> {
+  const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/entities/${entityId}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (response.status === 404) {
+    return undefined
+  }
+  if (!response.ok) {
+    throw new RequestRejected(await readRejection(response))
+  }
+  return (await response.json()) as DiagramEntityDetails
+}
+
+/** GET /views/diagrams/{id}/reference-targets: the entities a reference property may point to, by name. */
+export async function searchDiagramReferenceTargets(
+  id: string,
+  propertyDefId: string,
+  term: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<DiagramEntityPage>> {
+  const search = new URLSearchParams({ propertyDefId, pageSize: String(CANVAS_LIMITS.searchPageSize) })
+  if (term.trim().length > 0) search.set('q', term.trim())
+  const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/reference-targets?${search.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
   if (response.ok) {
     return { ok: true, value: (await response.json()) as DiagramEntityPage }
   }

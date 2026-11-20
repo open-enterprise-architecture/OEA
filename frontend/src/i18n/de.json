@@ -1475,7 +1475,31 @@
       "leaveTitle": "Ungespeicherte Änderungen",
       "leave": "Das Layout hat ungespeicherte Änderungen. Verwerfen und die Seite verlassen?",
       "discard": "Änderungen verwerfen",
-      "viewFailed": "Die Zeichenfläche konnte nicht geladen werden."
+      "viewFailed": "Die Zeichenfläche konnte nicht geladen werden.",
+      "entityConflictTitle": "Entität geändert",
+      "entityConflict": "{names} wurde zwischenzeitlich von jemand anderem geändert. Deine Änderungen daran wurden nicht gespeichert; die übrigen Änderungen bleiben erhalten.",
+      "reloadEntity": "{name} neu laden und meine Änderungen daran verwerfen",
+      "blockedTitle": "Entität gesperrt",
+      "blocked": "{name} hat offene Punkte einer Lösung und kann nicht geändert werden: {issues}. Löse sie zuerst auf; deine Änderungen bleiben erhalten.",
+      "tooLarge": "Das Speichern ist zu groß. Speichere weniger Änderungen auf einmal."
+    },
+    "details": {
+      "label": "Details der gewählten Entität",
+      "close": "Details schließen",
+      "loading": "Die Details werden geladen…",
+      "loadFailed": "Die Details konnten nicht geladen werden.",
+      "gone": "Die Entität wird nicht mehr im Diagramm gezeigt oder wurde gelöscht.",
+      "newEntity": "Neue Entität, wird mit dem nächsten Speichern angelegt",
+      "version": "Version {version}",
+      "name": "Name",
+      "description": "Beschreibung",
+      "noValue": "Kein Wert",
+      "restricted": "Eingeschränkt",
+      "readOnly": "Du kannst die Werte ansehen, aber nicht ändern.",
+      "missing": "Pflichtwerte fehlen: {properties}",
+      "valueMissing": "Pflichtwert fehlt",
+      "notChangeable": "du darfst ihn nicht ändern",
+      "tooManyChanges": "Ein Speichern ändert höchstens {count} Entitäten. Speichere zuerst, dann ändere weitere Entitäten."
     }
   },
   "dashboards": {

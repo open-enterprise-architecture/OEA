@@ -9,7 +9,11 @@ import {
   diagramView,
   METATYPE_COMPONENT,
   METATYPE_PROCESS,
+  ME_DIAGRAM_READER,
   ME_DIAGRAM_WRITER,
+  PROP_INVESTMENT,
+  PROP_OWNER,
+  PROP_STATUS,
   shape,
   type DiagramApiOptions,
 } from '../../test/diagrams'
@@ -393,5 +397,217 @@ describe('DiagramCanvas', () => {
     const { wrapper } = await mountCanvas([])
     await wrapper.get(`[data-testid="palette-${METATYPE_PROCESS}"]`).trigger('click')
     expect(wrapper.get('[data-testid="shape-name-input"]').attributes('maxlength')).toBe(String(CANVAS_LIMITS.entityName))
+  })
+
+  // spec diagram/diagram-entity-details "Details panel" and "Change entities with the diagram"
+  describe('details panel', () => {
+    const APPROVAL = 'd1000000-0000-4000-8000-000000000003'
+    const CRM = 'd1000000-0000-4000-8000-000000000002'
+    const SHAPES = [
+      shape(),
+      shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 300 }),
+      shape({ id: APPROVAL, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS }, x: 150, y: 150, missingMandatory: ['Process Owner'] }),
+    ]
+
+    function panel(wrapper: VueWrapper) {
+      return wrapper.find('[data-testid="entity-details"]')
+    }
+
+    async function opened(wrapper: VueWrapper, id: string, title: string) {
+      await selectShape(wrapper, id)
+      await vi.waitFor(() => expect(panel(wrapper).exists() && panel(wrapper).find('[data-testid="details-loading"]').exists()).toBe(false))
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="details-title"]').text()).toBe(title))
+    }
+
+    async function describe_(wrapper: VueWrapper, text: string) {
+      const area = wrapper.get('[data-testid="details-description"]')
+      await (area.element.tagName === 'TEXTAREA' ? area : area.get('textarea')).setValue(text)
+      await flushPromises()
+    }
+
+    async function save(wrapper: VueWrapper) {
+      await wrapper.get('[data-testid="canvas-save"]').trigger('click')
+      await flushPromises()
+    }
+
+    it('opens on the selected shape and closes with Escape; it is not there without a selection', async () => {
+      const { wrapper } = await mountCanvas(SHAPES)
+      expect(panel(wrapper).exists()).toBe(false)
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      expect(panel(wrapper).exists()).toBe(true)
+      await panel(wrapper).trigger('keydown', { key: 'Escape' })
+      expect(panel(wrapper).exists()).toBe(false)
+      await selectShape(wrapper, CRM)
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="details-title"]').text()).toBe('Salesforce'))
+    })
+
+    it('counts the change of a field as an unsaved change and saves it with the entity version read', async () => {
+      const { wrapper, fetchFn } = await mountCanvas(SHAPES)
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(false)
+      await describe_(wrapper, 'Renamed ERP')
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(true)
+      expect(node(wrapper, SHAPE).attributes('data-unsaved')).toBe('true')
+      await save(wrapper)
+      expect(body(fetchFn).entityUpdates).toEqual([{ entityId: 12, expectedVersion: 4, description: 'Renamed ERP' }])
+      expect(fetchFn.state.entities[12]).toMatchObject({ version: 5, description: 'Renamed ERP' })
+      // the changes are cleared, and the panel shows the new version
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(false)
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="details-meta"]').text()).toContain('Version 5'))
+    })
+
+    it('sends only the changed fields: a value changed and one changed back is not sent', async () => {
+      const { wrapper, fetchFn } = await mountCanvas(SHAPES)
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      const status = wrapper.get('[data-testid="details-field-Status"]').findComponent({ name: 'PropertyInput' })
+      status.vm.$emit('update:modelValue', 'retiring')
+      await flushPromises()
+      const investment = wrapper.get('[data-testid="details-field-Investment"]').findComponent({ name: 'PropertyInput' })
+      investment.vm.$emit('update:modelValue', '1')
+      investment.vm.$emit('update:modelValue', '5000000')
+      await flushPromises()
+      await save(wrapper)
+      expect(body(fetchFn).entityUpdates).toEqual([{ entityId: 12, expectedVersion: 4, properties: [{ propertyDefId: PROP_STATUS, value: 'retiring' }] }])
+    })
+
+    it('sends the description and values of a new entity with it', async () => {
+      const { wrapper, fetchFn } = await mountCanvas([])
+      await place(wrapper, METATYPE_PROCESS, 'Order Entry')
+      await vi.waitFor(() => expect(wrapper.find('[data-testid="details-field-Process Owner"]').exists()).toBe(true))
+      expect(wrapper.get('[data-testid="details-missing"]').text()).toContain('Process Owner')
+      wrapper.get('[data-testid="details-field-Process Owner"]').findComponent({ name: 'PropertyInput' }).vm.$emit('update:modelValue', 'Anna')
+      await flushPromises()
+      await describe_(wrapper, 'Takes orders')
+      await save(wrapper)
+      expect(body(fetchFn).newEntities?.[0]).toMatchObject({ name: 'Order Entry', description: 'Takes orders', properties: [{ propertyDefId: PROP_OWNER, value: 'Anna' }] })
+      expect(body(fetchFn)).not.toHaveProperty('entityUpdates')
+      // the new entity is not incomplete
+      expect(wrapper.find('[data-testid="shape-incomplete"]').exists()).toBe(false)
+    })
+
+    it('completes an incomplete entity and its shape is no longer marked', async () => {
+      const { wrapper, fetchFn } = await mountCanvas(SHAPES)
+      expect(wrapper.find('[data-testid="shape-incomplete"]').exists()).toBe(true)
+      await opened(wrapper, APPROVAL, 'Invoice Approval')
+      expect(wrapper.get('[data-testid="details-missing"]').text()).toContain('Process Owner')
+      wrapper.get('[data-testid="details-field-Process Owner"]').findComponent({ name: 'PropertyInput' }).vm.$emit('update:modelValue', 'Anna')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="details-missing"]').exists()).toBe(false)
+      await save(wrapper)
+      expect(body(fetchFn).entityUpdates).toEqual([{ entityId: 14, expectedVersion: 1, properties: [{ propertyDefId: PROP_OWNER, value: 'Anna' }] }])
+      expect(wrapper.find('[data-testid="shape-incomplete"]').exists()).toBe(false)
+    })
+
+    it('marks the field and the shape a 422 names, and keeps the changes', async () => {
+      const { wrapper } = await mountCanvas(SHAPES)
+      await opened(wrapper, APPROVAL, 'Invoice Approval')
+      await describe_(wrapper, 'Only a description')
+      await save(wrapper)
+      expect(wrapper.get('[data-testid="details-error"]').text()).toContain('Process Owner has no value')
+      expect(node(wrapper, APPROVAL).get('[data-testid="shape-error"]').text()).toContain('Process Owner has no value')
+      expect(wrapper.find('[data-testid="canvas-rejected"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(true)
+      // a change of the entity clears the message of its fields
+      await describe_(wrapper, 'Another description')
+      expect(wrapper.find('[data-testid="details-error"]').exists()).toBe(false)
+    })
+
+    it('names the entity changed meanwhile on a 409 and reloads it without losing the other changes', async () => {
+      const { wrapper, fetchFn } = await mountCanvas(SHAPES)
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      await describe_(wrapper, 'My text for ERP')
+      await opened(wrapper, CRM, 'Salesforce')
+      await describe_(wrapper, 'My text for CRM')
+      // someone else changes SAP ERP meanwhile
+      fetchFn.state.entities[12]!.version = 5
+      fetchFn.state.entities[12]!.description = 'From someone else'
+      await save(wrapper)
+      const alert = wrapper.get('[data-testid="canvas-entity-conflict"]')
+      expect(alert.text()).toContain('SAP ERP was changed by someone else')
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(true)
+      expect(fetchFn.state.entities[13]!.version).toBe(1)
+      await wrapper.get('[data-testid="canvas-entity-reload-12"]').trigger('click')
+      await flushPromises()
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="details-meta"]').text()).toContain('Version 5'))
+      expect(wrapper.find('[data-testid="canvas-entity-conflict"]').exists()).toBe(false)
+      // only the changes of SAP ERP are discarded: its panel shows the other user's text
+      expect((wrapper.get('[data-testid="details-field-description"] textarea').element as HTMLTextAreaElement).value).toBe('From someone else')
+      await save(wrapper)
+      expect(body(fetchFn).entityUpdates).toEqual([{ entityId: 13, expectedVersion: 1, description: 'My text for CRM' }])
+      expect(fetchFn.state.entities[13]).toMatchObject({ version: 2, description: 'My text for CRM' })
+    })
+
+    it('names the entity with open issues on a 409 and keeps the changes', async () => {
+      const { wrapper } = await mountCanvas(SHAPES, true, { blockedEntities: [12] })
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      await describe_(wrapper, 'Blocked change')
+      await save(wrapper)
+      expect(wrapper.get('[data-testid="canvas-entity-blocked"]').text()).toContain('SAP ERP has open issues')
+      expect(wrapper.get('[data-testid="canvas-entity-blocked"]').text()).toContain('CRM Replacement')
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(true)
+    })
+
+    it.each([
+      [403, 'You may not change the layout of diagrams.'],
+      [413, 'The save is too large. Save fewer changes at once.'],
+    ])('shows a general message for %i and keeps the changes', async (status, message) => {
+      const { wrapper } = await mountCanvas(SHAPES, true, { rejectSave: { status, type: status === 413 ? 'request-too-large' : 'forbidden' } })
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      await describe_(wrapper, 'Changed')
+      await save(wrapper)
+      expect(wrapper.get('[data-testid="canvas-failure"]').text()).toBe(message)
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(true)
+    })
+
+    it('shows a reader the panel read-only and marks nothing as changed', async () => {
+      const { wrapper } = await mountCanvas(SHAPES, false, { me: ME_DIAGRAM_READER })
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      expect(wrapper.find('[data-testid="details-read-only"]').exists()).toBe(true)
+      expect(panel(wrapper).find('input, textarea').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="canvas-unsaved"]').exists()).toBe(false)
+    })
+
+    it('accepts the change of the last entity of a save and refuses the next one with a notice', async () => {
+      // the real limit of 500 is checked in canvasModel.spec.ts; a small one keeps this spec fast
+      const limits = CANVAS_LIMITS as { entityUpdates: number }
+      const original = limits.entityUpdates
+      limits.entityUpdates = 1
+      try {
+        const { wrapper, fetchFn } = await mountCanvas(SHAPES)
+        await opened(wrapper, SHAPE, 'SAP ERP')
+        await describe_(wrapper, 'First')
+        await opened(wrapper, CRM, 'Salesforce')
+        await describe_(wrapper, 'Second')
+        expect(wrapper.get('[data-testid="canvas-notice"]').text()).toContain('1')
+        await save(wrapper)
+        expect(body(fetchFn).entityUpdates?.map((entry) => entry.entityId)).toEqual([12])
+        // a further change of the entity that already has changes is fine
+        await opened(wrapper, CRM, 'Salesforce')
+        await describe_(wrapper, 'Second')
+        expect(wrapper.find('[data-testid="canvas-notice"]').exists()).toBe(false)
+      } finally {
+        limits.entityUpdates = original
+      }
+    })
+
+    it('shows the restricted property read-only and still saves the other changes', async () => {
+      const { wrapper, fetchFn } = await mountCanvas(SHAPES, true, { readOnlyProperties: [PROP_INVESTMENT] })
+      await opened(wrapper, SHAPE, 'SAP ERP')
+      expect(wrapper.get('[data-testid="details-field-Investment"]').findComponent({ name: 'PropertyInput' }).exists()).toBe(false)
+      await describe_(wrapper, 'Changed')
+      await save(wrapper)
+      expect(body(fetchFn).entityUpdates?.[0]).not.toHaveProperty('properties')
+    })
+
+    it('drops the changes of an entity whose shape is removed from the diagram', async () => {
+      const { wrapper, fetchFn } = await mountCanvas(SHAPES)
+      await opened(wrapper, CRM, 'Salesforce')
+      await describe_(wrapper, 'Gone')
+      await wrapper.get('[data-testid="canvas-remove"]').trigger('click')
+      await flushPromises()
+      expect(panel(wrapper).exists()).toBe(false)
+      await save(wrapper)
+      expect(body(fetchFn)).not.toHaveProperty('entityUpdates')
+    })
   })
 })

@@ -1475,7 +1475,31 @@
       "leaveTitle": "Unsaved changes",
       "leave": "The layout has unsaved changes. Discard them and leave the page?",
       "discard": "Discard changes",
-      "viewFailed": "The canvas could not be loaded."
+      "viewFailed": "The canvas could not be loaded.",
+      "entityConflictTitle": "Entity changed",
+      "entityConflict": "{names} was changed by someone else meanwhile. Your changes of it were not saved; the other changes are kept.",
+      "reloadEntity": "Reload {name} and discard my changes of it",
+      "blockedTitle": "Entity blocked",
+      "blocked": "{name} has open issues of a solution and cannot be changed: {issues}. Resolve them first; your changes are kept.",
+      "tooLarge": "The save is too large. Save fewer changes at once."
+    },
+    "details": {
+      "label": "Details of the selected entity",
+      "close": "Close details",
+      "loading": "Loading the details…",
+      "loadFailed": "The details could not be loaded.",
+      "gone": "The entity is no longer shown in the diagram or was deleted.",
+      "newEntity": "New entity, created with the next save",
+      "version": "Version {version}",
+      "name": "Name",
+      "description": "Description",
+      "noValue": "No value",
+      "restricted": "Restricted",
+      "readOnly": "You may view the values, but not change them.",
+      "missing": "Required values missing: {properties}",
+      "valueMissing": "Required value missing",
+      "notChangeable": "you may not change it",
+      "tooManyChanges": "A save changes at most {count} entities. Save first, then change further entities."
     }
   },
   "dashboards": {

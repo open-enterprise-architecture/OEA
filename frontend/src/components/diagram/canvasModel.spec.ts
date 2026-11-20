@@ -2,9 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import { diagramView, ENTITIES, METATYPE_COMPONENT, METATYPE_PROCESS, shape } from '../../test/diagrams'
 import {
+  applyEdit,
+  applyNewEntityEdit,
   defaultSize,
+  editBlocked,
+  editedCount,
+  type EntityEdits,
   fromView,
   hasUnsavedChanges,
+  isUnsaved,
   keyStep,
   limitPosition,
   limitSize,
@@ -128,9 +134,95 @@ describe('canvasModel', () => {
       request,
       [existing, fresh],
     )
-    expect(marks.get(existing.id)).toBe('The entity is deleted.')
-    expect(marks.get(fresh.id)).toBe('Not allowed.')
-    expect(marks.size).toBe(2)
+    expect(marks.shapes.get(existing.id)).toBe('The entity is deleted.')
+    expect(marks.shapes.get(fresh.id)).toBe('Not allowed.')
+    expect(marks.shapes.size).toBe(2)
+  })
+
+  it('maps the errors of the entity changes and of the values of new entities to shapes and fields', () => {
+    const existing = fromView(shape())
+    const fresh = { ...placeNew(view, METATYPE_PROCESS, { x: 0, y: 0 }), name: 'Invoice Approval', editing: false }
+    const edits = applyEdit({}, 12, 3, { field: 'property', propertyDefId: 'p1', value: 'x' })
+    const request = writeRequest([existing, applyNewEntityEdit(fresh, { field: 'property', propertyDefId: 'p2', value: 'y' })], edits)
+    const marked = rejectedShapes(
+      [
+        { field: 'entityUpdates[0].properties[0].value', message: 'Not a number.' },
+        { field: 'entityUpdates[0].properties', message: 'The mandatory property has no value.' },
+        { field: 'newEntities[0].properties[0].value', message: 'Too long.' },
+      ],
+      request,
+      [existing, fresh],
+    )
+    expect(marked.shapes.get(existing.id)).toBe('Not a number.')
+    expect(marked.shapes.get(fresh.id)).toBe('Too long.')
+    expect(marked.fields.get('12|p1')).toBe('Not a number.')
+    expect(marked.fields.get('12|')).toBe('The mandatory property has no value.')
+    expect(marked.fields.get(`${fresh.newEntity!.key}|p2`)).toBe('Too long.')
+  })
+
+  describe('changes of entities', () => {
+    it('sends only the changed fields with the version read, and nothing for an entity without changes', () => {
+      const first = fromView(shape())
+      const other = fromView(shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT } }))
+      let edits = applyEdit({}, 12, 4, { field: 'description', value: ' Renamed ERP' })
+      edits = applyEdit(edits, 12, 9, { field: 'property', propertyDefId: 'p1', value: 'retiring' })
+      expect(edits[12]).toEqual({ version: 4, description: ' Renamed ERP', name: undefined, properties: { p1: 'retiring' } })
+      const request = writeRequest([first, other], edits)
+      expect(request.entityUpdates).toEqual([
+        { entityId: 12, expectedVersion: 4, description: ' Renamed ERP', properties: [{ propertyDefId: 'p1', value: 'retiring' }] },
+      ])
+    })
+
+    it('trims the name, sends an empty value as removal and leaves out the changes of an entity without a shape', () => {
+      const first = fromView(shape())
+      let edits = applyEdit({}, 12, 1, { field: 'name', value: '  SAP S/4  ' })
+      edits = applyEdit(edits, 12, 1, { field: 'property', propertyDefId: 'p1', value: '' })
+      edits = applyEdit(edits, 99, 1, { field: 'description', value: 'gone' })
+      expect(writeRequest([first], edits).entityUpdates).toEqual([
+        { entityId: 12, expectedVersion: 1, name: 'SAP S/4', properties: [{ propertyDefId: 'p1', value: '' }] },
+      ])
+    })
+
+    it('drops a field that is back at the value read, and the entry of an entity without changes', () => {
+      let edits = applyEdit({}, 12, 1, { field: 'description', value: 'x' })
+      edits = applyEdit(edits, 12, 1, { field: 'description', value: undefined })
+      expect(edits).toEqual({})
+      expect(writeRequest([fromView(shape())], edits)).not.toHaveProperty('entityUpdates')
+    })
+
+    it('counts a change of an entity as an unsaved change of the diagram', () => {
+      const a = fromView(shape())
+      const edits = applyEdit({}, 12, 1, { field: 'description', value: 'x' })
+      expect(hasUnsavedChanges([a], [a], {})).toBe(false)
+      expect(hasUnsavedChanges([a], [a], edits)).toBe(true)
+      expect(isUnsaved(a, [a], edits)).toBe(true)
+      expect(isUnsaved(a, [a], {})).toBe(false)
+    })
+
+    it('sends the description and the values of a new entity, and no empty ones', () => {
+      const created = { ...placeNew(view, METATYPE_PROCESS, { x: 0, y: 0 }), name: 'Invoice Approval', editing: false }
+      const filled = applyNewEntityEdit(applyNewEntityEdit(applyNewEntityEdit(created, { field: 'description', value: 'Approves' }), { field: 'property', propertyDefId: 'p1', value: 'Anna' }), { field: 'property', propertyDefId: 'p2', value: '' })
+      expect(writeRequest([filled]).newEntities).toEqual([
+        { key: created.newEntity!.key, metatypeId: METATYPE_PROCESS, name: 'Invoice Approval', description: 'Approves', properties: [{ propertyDefId: 'p1', value: 'Anna' }] },
+      ])
+      expect(writeRequest([created]).newEntities![0]).not.toHaveProperty('properties')
+    })
+
+    // the limit of 500 changed entities: the 500th is accepted, the 501st refused
+    it.each([
+      [499, 1000, false],
+      [500, 1000, true],
+      [500, 7, false],
+      [501, 1000, true],
+    ])('with %i changed entities, a change of entity %i is blocked: %s', (count, entityId, blocked) => {
+      let edits: EntityEdits = {}
+      for (let id = 1; id <= count; id++) {
+        edits = applyEdit(edits, id, 1, { field: 'description', value: 'x' })
+      }
+      // entity 7 is among the changed ones, entity 1000 is not (for 499 the 500th is still free)
+      expect(editedCount(edits)).toBe(count)
+      expect(editBlocked(edits, entityId)).toBe(blocked)
+    })
   })
 
   // limits of a save (spec "Shapes of a diagram"): both sides of 2000 shapes and of 500 new entities

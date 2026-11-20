@@ -48,6 +48,7 @@ import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.app.solution.EntityDeletedException;
 import io.oea.app.entity.EntityBlockedException;
+import io.oea.app.entity.EntityVersionConflictException;
 import io.oea.app.solution.InvalidPlateauException;
 import io.oea.app.solution.InvalidSolutionException;
 import io.oea.app.solution.PlateauInUseException;
@@ -427,6 +428,22 @@ public class ApiExceptionHandler {
 		if (!ex.getDeltaIds().isEmpty()) {
 			problem.setProperty("deltaIds", ex.getDeltaIds().stream().map(UUID::toString).toList());
 		}
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+	}
+
+	/** An interactive entity write with a version that is no longer current (issue #69). */
+	@ExceptionHandler(EntityVersionConflictException.class)
+	ResponseEntity<ProblemDetail> entityVersionConflict(EntityVersionConflictException ex) {
+		ProblemDetail problem = problem(HttpStatus.CONFLICT, "entity-version-conflict", "Entity changed meanwhile",
+				ex.getMessage());
+		problem.setProperty("invalidFields",
+				ex.getConflicts().stream().map((conflict) -> "entityUpdates[" + conflict.index() + "]").toList());
+		problem.setProperty("conflicts", ex.getConflicts().stream().map((conflict) -> {
+			Map<String, Object> shown = new LinkedHashMap<>();
+			shown.put("entityId", conflict.entityId());
+			shown.put("currentVersion", conflict.currentVersion());
+			return shown;
+		}).toList());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
 	}
 

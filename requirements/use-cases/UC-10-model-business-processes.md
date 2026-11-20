@@ -96,7 +96,7 @@ The business analyst persona can model business processes directly in the OEA to
    - Assign an **organizational unit** (`bpmn-lane-belongs-to-org-unit`)
    - Assign one or more **roles** (`bpmn-lane-performs-role`)
 5. Anna places **tasks** (UserTask, ServiceTask, BusinessRuleTask etc.) within the lanes; elements are automatically linked to the lane via `bpmn-contained-in`
-6. For UserTasks, Anna opens the detail panel and assigns a **person** from the repository (`bpmn-task-assigned-to`)
+6. For UserTasks, Anna opens the detail panel and assigns a **person** from the repository (`bpmn-task-assigned-to`). The detail panel of every shape shows the name, description and property values of its entity; Anna changes them there and saves them with the diagram (change `us-074-diagram-entity-details`; the assignment of persons follows with `us-075-lane-assignments`)
 7. Anna connects elements with **SequenceFlow** connections; gateways (exclusive, parallel, inclusive) are inserted via the palette
 8. Anna optionally selects "Link to application": a task-to-application connection links the process step with the supporting system in the EA repository
 9. Anna saves the diagram; all entities and connections are persisted atomically
