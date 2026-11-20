@@ -233,4 +233,9 @@ public final class MetatypeRules {
 		return this.metatypes.get(id);
 	}
 
+	/** The property definition with this ID, mapped or not, or {@code null} (only for loaded rules). */
+	public Definition definition(UUID id) {
+		return this.definitions.get(id);
+	}
+
 }

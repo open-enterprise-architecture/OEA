@@ -1,5 +1,5 @@
 import type { DeletedDiagram, Diagram } from '../api/diagrams'
-import type { DiagramEntity, DiagramShape, DiagramView, DiagramViewWrite } from '../api/diagramView'
+import type { DiagramEntity, DiagramEntityDetails, DiagramShape, DiagramView, DiagramViewWrite } from '../api/diagramView'
 import type { Viewpoint } from '../api/metamodel'
 import type { RecordedRequest } from './fetch'
 
@@ -110,6 +110,82 @@ export const ENTITIES: DiagramEntity[] = [
   { id: 14, name: 'Invoice Approval', metatype: { id: METATYPE_PROCESS, name: 'Business Process', abbreviation: 'BP' } },
 ]
 
+export const PROP_STATUS = 'e1000000-0000-4000-8000-000000000001'
+export const PROP_INVESTMENT = 'e1000000-0000-4000-8000-000000000002'
+export const PROP_HOSTED_ON = 'e1000000-0000-4000-8000-000000000003'
+export const PROP_OWNER = 'e1000000-0000-4000-8000-000000000004'
+
+function mapping(id: string, name: string, dataType: string, necessity: string, sortOrder: number, extra: Record<string, unknown> = {}) {
+  return {
+    id: `f${id.slice(1)}`,
+    necessity,
+    validFrom: '2026-01-01',
+    sortOrder,
+    state: 'active',
+    propertyDefinition: { id, name, label: name, dataType, enumValues: [], refMetatype: null, ...extra },
+  }
+}
+
+/** The active mappings of "Application Component" and "Business Process" as getMetatype answers them. */
+export const COMPONENT_MAPPINGS = [
+  mapping(PROP_STATUS, 'Status', 'enum', 'optional', 1, {
+    enumValues: [
+      { id: '9d000000-0000-4000-8000-0000000000a1', value: 'active', sortOrder: 1 },
+      { id: '9d000000-0000-4000-8000-0000000000a2', value: 'retiring', sortOrder: 2 },
+    ],
+  }),
+  mapping(PROP_INVESTMENT, 'Investment', 'integer', 'optional', 2),
+  mapping(PROP_HOSTED_ON, 'Hosted on', 'reference', 'optional', 3, { refMetatype: { id: METATYPE_COMPONENT, name: 'Application Component' } }),
+]
+export const PROCESS_MAPPINGS = [mapping(PROP_OWNER, 'Process Owner', 'string', 'mandatory', 1)]
+
+const MAPPINGS: Record<string, ReturnType<typeof mapping>[]> = { [METATYPE_COMPONENT]: COMPONENT_MAPPINGS, [METATYPE_PROCESS]: PROCESS_MAPPINGS }
+
+/** The state of an entity of the fake: version, fields and the values by property definition ID as text. */
+export interface FakeEntity {
+  id: number
+  name: string
+  description: string
+  metatypeId: string
+  version: number
+  values: Record<string, string>
+}
+
+/** The saved entities "SAP ERP" (version 4, with values), "Salesforce" and the incomplete "Invoice Approval". */
+export function fakeEntities(): Record<number, FakeEntity> {
+  return {
+    12: { id: 12, name: 'SAP ERP', description: 'Core ERP for finance and logistics', metatypeId: METATYPE_COMPONENT, version: 4, values: { [PROP_STATUS]: 'active', [PROP_INVESTMENT]: '5000000' } },
+    13: { id: 13, name: 'Salesforce', description: '', metatypeId: METATYPE_COMPONENT, version: 1, values: {} },
+    14: { id: 14, name: 'Invoice Approval', description: '', metatypeId: METATYPE_PROCESS, version: 1, values: {} },
+  }
+}
+
+const DEFINITIONS = Object.fromEntries([...COMPONENT_MAPPINGS, ...PROCESS_MAPPINGS].map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition]))
+
+function propertyValue(defId: string, text: string, redacted: boolean) {
+  const definition = DEFINITIONS[defId]!
+  const base = { propertyDefId: defId, propertyName: definition.name, label: definition.label, dataType: definition.dataType, redacted }
+  if (redacted) return { ...base, valueText: null, valueInt: null, valueBool: null, valueDate: null, valueEnum: null, valueRef: null }
+  switch (definition.dataType) {
+    case 'integer':
+      return { ...base, valueInt: Number(text) }
+    case 'boolean':
+      return { ...base, valueBool: text === 'true' }
+    case 'enum':
+      return { ...base, valueEnum: text }
+    case 'reference': {
+      const target = ENTITIES.find((entity) => String(entity.id) === text)
+      return { ...base, valueRef: { id: Number(text), name: target?.name ?? text, metatypeAbbr: 'AC' } }
+    }
+    default:
+      return { ...base, valueText: text }
+  }
+}
+
+function mandatoryMissing(entity: FakeEntity): string[] {
+  return (MAPPINGS[entity.metatypeId] ?? []).filter((entry) => entry.necessity === 'mandatory' && !entity.values[entry.propertyDefinition.id]).map((entry) => entry.propertyDefinition.name)
+}
+
 /** A shape of the view; the entity defaults to "SAP ERP". */
 export function shape(overrides: Partial<DiagramShape> = {}): DiagramShape {
   return {
@@ -153,14 +229,22 @@ export interface DiagramApiOptions {
   entities?: DiagramEntity[]
   /** the names of the mandatory properties a new entity of a metatype misses (an entity created on the canvas is incomplete) */
   missingMandatory?: Record<string, string[]>
-  /** a save answers this status instead of saving (412 or 422 with `errors`) */
-  rejectSave?: { status: number; errors?: { field: string; code: string; message: string }[] }
+  /** a save answers this status instead of saving (412, 422 with `errors`, 403, 413, or 409 with the members of its problem) */
+  rejectSave?: { status: number; type?: string; errors?: { field: string; code: string; message: string }[]; extra?: Record<string, unknown> }
+  /** the saved entities of the details panel; default `fakeEntities()` */
+  entityStates?: Record<number, FakeEntity>
+  /** the properties the caller may not write (`writable: false`), e.g. a restricted one */
+  readOnlyProperties?: string[]
+  /** the properties whose value the caller may not read (redacted) */
+  redactedProperties?: string[]
+  /** the entities with an open issue: a change of one answers 409 `entity-blocked` */
+  blockedEntities?: number[]
   /** the page size of the fake entity search */
   searchPageSize?: number
 }
 
 export type DiagramApi = typeof fetch & {
-  state: { diagrams: Diagram[]; deleted: DeletedDiagram[]; shapes: DiagramShape[]; saves: DiagramViewWrite[] }
+  state: { diagrams: Diagram[]; deleted: DeletedDiagram[]; shapes: DiagramShape[]; saves: DiagramViewWrite[]; entities: Record<number, FakeEntity> }
 }
 
 /**
@@ -174,6 +258,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     deleted: (options.deleted ?? []).map((entry) => structuredClone(entry)),
     shapes: (options.shapes ?? []).map((entry) => structuredClone(entry)),
     saves: [] as DiagramViewWrite[],
+    entities: structuredClone(options.entityStates ?? fakeEntities()),
   }
   let counter = 100
   let entityCounter = 200
@@ -222,25 +307,115 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         }
         const request = body as unknown as DiagramViewWrite
         if (options.rejectSave) {
-          return problem(options.rejectSave.status, 'validation-failed', { errors: options.rejectSave.errors ?? [], invalidFields: (options.rejectSave.errors ?? []).map((error) => error.field) })
+          return problem(options.rejectSave.status, options.rejectSave.type ?? 'validation-failed', {
+            errors: options.rejectSave.errors ?? [],
+            invalidFields: (options.rejectSave.errors ?? []).map((error) => error.field),
+            ...options.rejectSave.extra,
+          })
+        }
+        const updates = request.entityUpdates ?? []
+        const stale = updates.flatMap((update, index) => {
+          const entity = state.entities[update.entityId]
+          return entity && entity.version !== update.expectedVersion ? [{ index, entityId: update.entityId, currentVersion: entity.version }] : []
+        })
+        if (stale.length > 0) {
+          return problem(409, 'entity-version-conflict', { conflicts: stale.map(({ entityId, currentVersion }) => ({ entityId, currentVersion })), invalidFields: stale.map((entry) => `entityUpdates[${entry.index}]`) })
+        }
+        const blocked = updates.filter((update) => options.blockedEntities?.includes(update.entityId))
+        if (blocked.length > 0) {
+          return problem(409, 'entity-blocked', {
+            entities: blocked.map((update) => ({
+              entityId: update.entityId,
+              entityName: state.entities[update.entityId]?.name ?? '',
+              issues: [{ id: 'a0000000-0000-4000-8000-000000000001', field: 'Owner', label: 'Owner', kind: 'mandatory-missing', solutionId: 'b0000000-0000-4000-8000-000000000001', solutionName: 'CRM Replacement' }],
+            })),
+          })
+        }
+        // the changed entities must be complete (strict), as the server requires
+        const incomplete = updates.flatMap((update, index) => {
+          const entity = state.entities[update.entityId]
+          if (!entity) return []
+          const after = { ...entity, values: { ...entity.values } }
+          for (const property of update.properties ?? []) {
+            if (property.value === '') delete after.values[property.propertyDefId]
+            else after.values[property.propertyDefId] = property.value
+          }
+          return mandatoryMissing(after).length > 0 ? [{ field: `entityUpdates[${index}].properties`, code: 'MANDATORY_MISSING', message: `The mandatory property ${mandatoryMissing(after)[0]} has no value.` }] : []
+        })
+        if (incomplete.length > 0) {
+          return problem(422, 'validation-failed', { errors: incomplete, invalidFields: incomplete.map((error) => error.field) })
         }
         state.saves.push(structuredClone(request))
-        const created = new Map<string, { id: number; name: string; metatypeId: string }>()
+        for (const update of updates) {
+          const entity = state.entities[update.entityId]
+          if (!entity) continue
+          if (update.name !== undefined) entity.name = update.name
+          if (update.description !== undefined) entity.description = update.description
+          for (const property of update.properties ?? []) {
+            if (property.value === '') delete entity.values[property.propertyDefId]
+            else entity.values[property.propertyDefId] = property.value
+          }
+          entity.version += 1
+        }
+        const created = new Map<string, { id: number; name: string; metatypeId: string; values: Record<string, string> }>()
         for (const entity of request.newEntities ?? []) {
           entityCounter += 1
-          created.set(entity.key, { id: entityCounter, name: entity.name, metatypeId: entity.metatypeId })
+          const values = Object.fromEntries((entity.properties ?? []).map((property) => [property.propertyDefId, property.value]))
+          created.set(entity.key, { id: entityCounter, name: entity.name, metatypeId: entity.metatypeId, values })
+          state.entities[entityCounter] = { id: entityCounter, name: entity.name, description: entity.description ?? '', metatypeId: entity.metatypeId, version: 1, values }
         }
         state.shapes = request.shapes.map((entry) => {
           const own = entry.newEntityKey ? created.get(entry.newEntityKey) : undefined
-          const known = ENTITIES.find((entity) => entity.id === entry.entityId)
+          const known = state.entities[entry.entityId ?? -1] ?? ENTITIES.map((entity) => ({ id: entity.id, name: entity.name, metatypeId: entity.metatype.id })).find((entity) => entity.id === entry.entityId)
           const entity = own
             ? { id: own.id, name: own.name, metatypeId: own.metatypeId }
-            : { id: entry.entityId!, name: known?.name ?? `Entity ${entry.entityId}`, metatypeId: known?.metatype.id ?? METATYPE_COMPONENT }
-          return { id: entry.id, entity, x: entry.x, y: entry.y, width: entry.width, height: entry.height, missingMandatory: own ? (options.missingMandatory?.[own.metatypeId] ?? []) : [] }
+            : { id: entry.entityId!, name: known?.name ?? `Entity ${entry.entityId}`, metatypeId: known?.metatypeId ?? METATYPE_COMPONENT }
+          const saved = state.entities[entity.id]
+          const missing = own
+            ? (options.missingMandatory?.[own.metatypeId] ?? []).filter((name) => !Object.keys(own.values).some((id) => DEFINITIONS[id]?.name === name))
+            : saved
+              ? mandatoryMissing(saved)
+              : []
+          return { id: entry.id, entity, x: entry.x, y: entry.y, width: entry.width, height: entry.height, missingMandatory: missing }
         })
         found.version += 1
         return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes }, { ETag: `"${found.version}"` })
       }
+    }
+    const detail = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities\/(\d+)$/.exec(path)
+    if (detail && method === 'GET') {
+      const entity = state.entities[Number(detail[2])]
+      if (!entity || !state.shapes.some((entry) => entry.entity.id === entity.id)) {
+        return problem(404, 'not-found')
+      }
+      const writer = ((options.me as { permissions: { permission: string }[] }).permissions ?? []).some((entry) => entry.permission === 'entity:write')
+      const type = ENTITIES.find((candidate) => candidate.metatype.id === entity.metatypeId)?.metatype
+      const details: DiagramEntityDetails = {
+        id: entity.id,
+        name: entity.name,
+        description: entity.description,
+        metatype: type ?? { id: entity.metatypeId, name: 'Entity', abbreviation: '' },
+        version: entity.version,
+        properties: Object.entries(entity.values).map(([defId, text]) => propertyValue(defId, text, options.redactedProperties?.includes(defId) ?? false)) as DiagramEntityDetails['properties'],
+        fields: (MAPPINGS[entity.metatypeId] ?? []).map((entry) => ({
+          propertyDefId: entry.propertyDefinition.id,
+          readable: !options.redactedProperties?.includes(entry.propertyDefinition.id),
+          writable: writer && !options.readOnlyProperties?.includes(entry.propertyDefinition.id),
+        })),
+        missingMandatory: mandatoryMissing(entity),
+      }
+      return respond(200, details)
+    }
+    const targets = /^\/api\/v1\/views\/diagrams\/([^/]+)\/reference-targets$/.exec(path)
+    if (targets && method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').toLowerCase()
+      const items = ENTITIES.filter((entity) => entity.metatype.id === METATYPE_COMPONENT && entity.name.toLowerCase().includes(q))
+      return respond(200, { items, page: { page: 0, pageSize: 20, totalElements: items.length, totalPages: 1 } })
+    }
+    const metatype = /^\/api\/v1\/metamodel\/metatypes\/([^/]+)$/.exec(path)
+    if (metatype && method === 'GET') {
+      const type = viewpointConfig().allowedMetatypes.find((candidate) => candidate.id === metatype[1])
+      return type ? respond(200, { ...type, propertyMappings: MAPPINGS[type.id] ?? [] }) : problem(404, 'not-found')
     }
     const search = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities$/.exec(path)
     if (search && method === 'GET') {

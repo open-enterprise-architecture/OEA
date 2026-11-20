@@ -9,6 +9,15 @@ type Problem = components['schemas']['Problem'] & {
   currentVersion?: number
   errors?: { field: string; message: string }[]
   solutions?: AffectedSolution[]
+  conflicts?: { entityId: number; currentVersion: number }[]
+  entities?: BlockedEntity[]
+}
+
+/** An entity with open issues of a solution (409 `entity-blocked`, US-153). */
+export interface BlockedEntity {
+  entityId: number
+  entityName: string
+  issues: { id: string; field: string; label: string; kind: string; solutionId: string; solutionName: string }[]
 }
 
 /**
@@ -42,6 +51,10 @@ export interface Rejection {
   errors?: { field: string; message: string }[]
   /** `solution-decision-required`: the active solutions that need a decision */
   solutions?: AffectedSolution[]
+  /** `entity-version-conflict` (409): the entities that have another version now */
+  conflicts?: { entityId: number; currentVersion: number }[]
+  /** `entity-blocked` (409): the entities with open issues */
+  entities?: BlockedEntity[]
   detail?: string
 }
 
@@ -92,6 +105,8 @@ export async function readRejection(response: Response): Promise<Rejection> {
     currentVersion: problem?.currentVersion,
     errors: problem?.errors ?? [],
     solutions: problem?.solutions,
+    conflicts: problem?.conflicts,
+    entities: problem?.entities,
     detail: problem?.detail,
   }
 }

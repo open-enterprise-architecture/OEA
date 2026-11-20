@@ -791,14 +791,14 @@ Security administration changed how changes to fields a role may not read appear
 
 ### `property-override-access`
 
-A catalog or portal query, or a read of a version's state or diff, returned values that the caller can read only through a role on the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md) AC2; change us-128-override-role-list D3, change us-099-version-diff D2). One event per query (page) or read; values readable through a read role or the connection scope do not count, and a page without such values writes none. Written in its own transaction, as the query is read-only.
+A catalog or portal query, or a read of a version's state or diff, or of the details of an entity shown in a diagram (`getDiagramEntityDetails`, change us-074-diagram-entity-details), returned values that the caller can read only through a role on the override role list ([REQ-128](../requirements/req/REQ-128-property-visibility-admin-override.md) AC2; change us-128-override-role-list D3, change us-099-version-diff D2). One event per query (page) or read; values readable through a read role or the connection scope do not count, and a page without such values writes none. Written in its own transaction, as the query is read-only.
 
 | Field | Value |
 |---|---|
 | Category / severity / outcome | `security` / `warning` / `success` |
 | Actor | the reader |
-| Target | `catalog`, ID of the catalog; `entity`, ID of the entity for the channel `history` |
-| Details | `channel` (`catalog`, `portal`, `dashboard` or `history`), `page` (`0` for `history`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
+| Target | `catalog`, ID of the catalog; `entity`, ID of the entity for the channel `history`; `diagram`, ID of the diagram for the channel `diagram` |
+| Details | `channel` (`catalog`, `portal`, `dashboard`, `history` or `diagram`), `page` (`0` for `history` and `diagram`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
 
 ### `visibility.person-metatype-changed`
 
@@ -870,7 +870,7 @@ A diagram was created, renamed or its description changed, deleted or restored (
 
 ### `diagram.layout-saved`
 
-The layout of a diagram was saved: all its shapes in drawing order, with the entities created on the canvas ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md); change us-074-diagram-canvas, business object [Diagram](../business-objects/diagram.md), BR-DG-08). Every accepted save is audited and raises the version of the diagram, also when nothing differs. A rejected save (invalid shape or new entity, stale or missing version, missing permission, unknown or deleted diagram, too many shapes) is not audited and changes nothing. Each new entity of the save is audited as [`entity.created`](#entitycreated--entityupdated) with the same details as a batch create.
+The layout of a diagram was saved: all its shapes in drawing order, with the entities created on the canvas ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md); change us-074-diagram-canvas, business object [Diagram](../business-objects/diagram.md), BR-DG-08). Every accepted save is audited and raises the version of the diagram, also when nothing differs. A rejected save (invalid shape or new entity, stale or missing version, missing permission, unknown or deleted diagram, too many shapes) is not audited and changes nothing. Each new entity of the save is audited as [`entity.created`](#entitycreated--entityupdated) with the same details as a batch create, each entity changed with the layout (name, description, values; change us-074-diagram-entity-details) as [`entity.updated`](#entitycreated--entityupdated) with the same details and changes as a batch update (one batch ID for the entities of the save); an update without an effective change writes no event. A save rejected for a stale entity version (409 `entity-version-conflict`), an entity with an open issue (409 `entity-blocked`) or a missing mandatory value (422) is not audited and changes nothing; a denied restricted property is audited as `authz.denied`.
 
 | Field | Value |
 |---|---|

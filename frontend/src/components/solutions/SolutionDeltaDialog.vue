@@ -3,9 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchMetatype, fetchMetatypes, type PropertyMapping } from '../../api/metamodel'
 import { rateLimitMessage, type Rejection } from '../../api/problem'
-import { createSolutionDelta, type SolutionDelta } from '../../api/solutions'
+import { createSolutionDelta, fetchSolutionLandscape, type SolutionDelta } from '../../api/solutions'
 import { label, labelKeys } from '../../i18n/labels'
-import PropertyInput from './PropertyInput.vue'
+import PropertyInput, { type ReferenceChoice } from '../PropertyInput.vue'
 
 // The dialog "New entity" of SCR-061 (US-040 AC1, AC4; design D9 of us-040-entity-deltas): an
 // element metatype, name, description and one field per active property mapping of the
@@ -17,6 +17,16 @@ const { t } = useI18n()
 
 const NAME_MAX = 255
 const DESCRIPTION_MAX = 2000
+
+/** The candidates of a reference: the entities of the baseline whose metatype the property references. */
+function searchBaseline(mapping: PropertyMapping): (term: string) => Promise<ReferenceChoice[]> {
+  return async (term) => {
+    const refMetatype = mapping.propertyDefinition.refMetatype?.id
+    if (!refMetatype) return []
+    const outcome = await fetchSolutionLandscape(props.solutionId, { q: term, metatypeId: refMetatype, pageSize: 50 }, props.fetchFn)
+    return outcome.ok ? outcome.value.items.map((entry) => ({ label: entry.name, value: String(entry.id) })) : []
+  }
+}
 
 const metatypes = ref<{ label: string; value: string }[]>([])
 const metatype = ref<string>()
@@ -165,8 +175,7 @@ async function save() {
       <PropertyInput
         v-model="values[mapping.propertyDefinition.id]"
         :mapping="mapping"
-        :solution-id="props.solutionId"
-        :fetch-fn="props.fetchFn"
+        :search-references="searchBaseline(mapping)"
       />
     </UFormField>
 

@@ -4,9 +4,14 @@ import io.oea.app.diagram.Diagrams;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.EntityBatch;
 import io.oea.app.entity.EntityInput;
+import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.Issue;
 import io.oea.app.entity.MetatypeRules;
+import io.oea.app.entity.PropertyWriteAccess;
+import io.oea.app.metamodel.OverrideAccessAudit;
+import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.metamodel.Viewpoints;
+import io.oea.app.security.PermissionResolver;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.Sessions;
@@ -18,7 +23,12 @@ import io.oea.core.diagram.DiagramShapeStore.ShapeWrite;
 import io.oea.core.diagram.DiagramShapeStore.ShownShape;
 import io.oea.core.diagram.DiagramShapeStore.StoredShape;
 import io.oea.core.entity.EntitySearchStore;
+import io.oea.core.entity.EntityStore;
+import io.oea.core.entity.LabeledValue;
 import io.oea.core.entity.MetatypeRuleStore;
+import io.oea.core.entity.PropertyValueStore;
+import io.oea.core.entity.TypedValue;
+import io.oea.core.metamodel.MetatypeStore;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -68,8 +78,28 @@ public class DiagramViews {
 
 	private final Clock clock;
 
+	private final EntityStore entityStore;
+
+	private final PropertyValueStore valueStore;
+
+	private final MetatypeStore metatypes;
+
+	private final PropertyAccess access;
+
+	private final PermissionResolver permissions;
+
+	private final OverrideAccessAudit overrideAudit;
+
 	DiagramViews(Diagrams diagrams, Viewpoints viewpoints, EntityBatch entities, DiagramShapeStore shapes,
-			EntitySearchStore search, MetatypeRuleStore ruleStore, AuditWriter audit, Clock clock) {
+			EntitySearchStore search, MetatypeRuleStore ruleStore, AuditWriter audit, Clock clock,
+			EntityStore entityStore, PropertyValueStore valueStore, MetatypeStore metatypes, PropertyAccess access,
+			PermissionResolver permissions, OverrideAccessAudit overrideAudit) {
+		this.entityStore = entityStore;
+		this.valueStore = valueStore;
+		this.metatypes = metatypes;
+		this.access = access;
+		this.permissions = permissions;
+		this.overrideAudit = overrideAudit;
 		this.diagrams = diagrams;
 		this.viewpoints = viewpoints;
 		this.entities = entities;
@@ -102,8 +132,47 @@ public class DiagramViews {
 			BigDecimal width, BigDecimal height) {
 	}
 
-	/** A new entity to create with the save. */
-	public record NewEntityInput(UUID key, UUID metatypeId, String name) {
+	/** A new entity to create with the save, with an optional description and values. */
+	public record NewEntityInput(UUID key, UUID metatypeId, String name, String description,
+			List<EntityInput.PropertyInput> properties) {
+
+		public NewEntityInput {
+			properties = (properties != null) ? List.copyOf(properties) : List.of();
+		}
+
+	}
+
+	/** A change of a shown entity with the entity version read; see {@link EntityBatch.EntityUpdate}. */
+	public record EntityUpdateInput(int entityId, int expectedVersion, String name, String description,
+			List<EntityInput.PropertyInput> properties) {
+
+		public EntityUpdateInput {
+			properties = (properties != null) ? List.copyOf(properties) : List.of();
+		}
+
+	}
+
+	/** A reference to an entity in a value. */
+	public record Reference(int id, String name, String metatypeAbbreviation) {
+	}
+
+	/** A typed value: at most one component is set. */
+	public record Typed(String text, Long integer, Boolean bool, LocalDate date, String enumValue,
+			Reference reference) {
+	}
+
+	/** A value of the entity; {@code typed} is {@code null} when {@code redacted}. */
+	public record Value(UUID propertyDefId, String propertyName, String dataType, boolean redacted, Typed typed) {
+	}
+
+	/** Whether the caller may read and change the value of a mapped property of the entity. */
+	public record Field(UUID propertyDefId, boolean readable, boolean writable) {
+	}
+
+	/** The details of an entity shown in the diagram. */
+	public record Details(int id, String name, String description, UUID metatypeId, String metatypeName,
+			String metatypeAbbreviation, int version, List<Value> properties, List<Field> fields,
+			List<String> missingMandatory) {
 	}
 
 	/**
@@ -148,17 +217,120 @@ public class DiagramViews {
 	}
 
 	/**
+	 * The details of an entity that a shape of the diagram shows (design D1 of
+	 * us-074-diagram-entity-details): system fields, the values with the redaction of the other
+	 * reads, per mapped property whether the caller may read and change it, and the missing
+	 * mandatory properties.
+	 *
+	 * @throws NoSuchElementException for an unknown or deleted diagram, an unknown or deleted entity
+	 *         and an entity without a shape in the diagram (404)
+	 */
+	@Transactional(readOnly = true)
+	public Details details(OeaPrincipal principal, UUID id, int entityId) {
+		this.diagrams.get(id);
+		List<ShownShape> shown = this.shapes.shown(id)
+			.stream()
+			.filter((shape) -> shape.entityId() == entityId)
+			.toList();
+		if (shown.isEmpty()) {
+			throw new NoSuchElementException("entity " + entityId);
+		}
+		EntityStore.StoredEntity entity = this.entityStore.find(entityId)
+			.filter((found) -> !found.deleted())
+			.orElseThrow(() -> new NoSuchElementException("entity " + entityId));
+		PropertyAccess.Snapshot snapshot = this.access.of(principal);
+		boolean mayWrite = this.permissions.permissions(principal).contains("entity:write");
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+			.forWriter(PropertyWriteAccess.writer(snapshot));
+		MetatypeRules.Metatype metatype = rules.metatype(entity.metatypeId());
+		List<Value> values = new ArrayList<>();
+		Map<UUID, String> overridden = new LinkedHashMap<>();
+		for (PropertyValueStore.NamedValue named : this.valueStore.labeledValues(List.of(entityId))
+			.getOrDefault(entityId, List.of())) {
+			if (snapshot.readableFor(named.propertyDefId(), entityId)) {
+				values.add(new Value(named.propertyDefId(), named.propertyName(), named.dataType(), false,
+						typed(named.value())));
+				if (snapshot.throughOverrideFor(named.propertyDefId(), entityId)) {
+					overridden.put(named.propertyDefId(), named.propertyName());
+				}
+			}
+			else {
+				values.add(new Value(named.propertyDefId(), named.propertyName(), named.dataType(), true, null));
+			}
+		}
+		List<Field> fields = new ArrayList<>();
+		if (metatype != null) {
+			metatype.mappings().keySet().forEach((definition) -> fields.add(new Field(definition,
+					snapshot.readableFor(definition, entityId),
+					mayWrite && PropertyWriteAccess.writer(snapshot).test(definition, entityId))));
+		}
+		MetatypeStore.NameRow name = this.metatypes.nameAndAbbreviation(entity.metatypeId());
+		List<String> missing = missingMandatory(shown).getOrDefault(entityId, List.of());
+		if (!overridden.isEmpty()) {
+			Map<UUID, List<Integer>> entities = new LinkedHashMap<>();
+			overridden.keySet().forEach((definition) -> entities.put(definition, List.of(entityId)));
+			this.overrideAudit.append(principal, "diagram", 0, "diagram", id.toString(), overridden, entities);
+		}
+		return new Details(entity.id(), entity.name(), entity.description(), entity.metatypeId(), name.name(),
+				name.abbreviation(), entity.version(), values, fields, missing);
+	}
+
+	private static Typed typed(LabeledValue labeled) {
+		TypedValue value = (labeled != null) ? labeled.value() : null;
+		if (value == null) {
+			return null;
+		}
+		Reference reference = (value.reference() != null)
+				? new Reference(value.reference(), labeled.referenceName(), labeled.referenceAbbreviation()) : null;
+		return new Typed(value.text(), value.integer(), value.bool(), value.date(), value.enumValue(), reference);
+	}
+
+	/**
+	 * One page of the active element entities of exactly the metatype that the reference property
+	 * references, by name ignoring case, then ID; {@code q} filters by a name part (wildcards literal).
+	 *
+	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
+	 * @throws DiagramViewException naming {@code propertyDefId} for an unknown property definition or
+	 *         one that is not a reference property (422)
+	 */
+	@Transactional(readOnly = true)
+	public EntityPage referenceTargets(UUID id, UUID propertyDefId, String q, int page, int pageSize) {
+		this.diagrams.get(id);
+		MetatypeRules.Definition definition = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+			.definition(propertyDefId);
+		if (definition == null || !"reference".equals(definition.dataType()) || definition.refMetatypeId() == null) {
+			throw new DiagramViewException(DiagramViewException.Reason.INVALID,
+					"The property definition is unknown or not a reference property.",
+					List.of(new Issue("propertyDefId", "NOT_A_REFERENCE_PROPERTY",
+							"The property definition is unknown or not a reference property.")));
+		}
+		List<UUID> types = List.of(definition.refMetatypeId());
+		String like = (q != null && !q.isBlank()) ? "%" + escape(q) + "%" : null;
+		long total = this.search.count(types, like);
+		List<Found> items = this.search.page(types, like, pageSize, (long) page * pageSize)
+			.stream()
+			.map((found) -> new Found(found.id(), found.name(),
+					new Viewpoints.Type(found.metatypeId(), found.metatypeName(), found.metatypeAbbreviation())))
+			.toList();
+		int totalPages = Math.toIntExact((total + pageSize - 1) / pageSize);
+		return new EntityPage(items, page, pageSize, total, totalPages);
+	}
+
+	/**
 	 * Saves the layout of the diagram with the expected version and returns the new view.
 	 *
 	 * @throws PermissionDeniedException for a principal without a person (403)
 	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
 	 * @throws io.oea.app.diagram.DiagramChangeException for a missing (428) or stale (412) version
-	 * @throws DiagramViewException for a value with more than two decimals (400) or shapes and new
-	 *         entities that violate a rule, the faulty entity writes included (422)
+	 * @throws DiagramViewException for a value with more than two decimals (400) or shapes, new
+	 *         entities and entity changes that violate a rule, the faulty entity writes included (422)
+	 * @throws io.oea.app.entity.EntityVersionConflictException for a changed entity with another
+	 *         version than expected (409)
+	 * @throws io.oea.app.entity.EntityBlockedException for a changed entity with an open issue (409)
 	 */
 	@Transactional
 	public View save(OeaPrincipal principal, UUID id, Long expectedVersion, List<ShapeInput> shapeInputs,
-			List<NewEntityInput> newEntities, AuditEvent.Agent agent) {
+			List<NewEntityInput> newEntities, List<EntityUpdateInput> updates, AuditEvent.Agent agent) {
 		if (principal.personId() == null) {
 			throw new PermissionDeniedException();
 		}
@@ -169,9 +341,11 @@ public class DiagramViews {
 		viewpoint.metatypes().forEach((type) -> allowed.add(type.id()));
 		List<StoredShape> stored = this.shapes.stored(id);
 		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, stored);
+		errors.addAll(validateUpdates(updates, shapeInputs));
 		if (!errors.isEmpty()) {
 			throw invalid(errors);
 		}
+		update(principal, updates, agent);
 		Map<UUID, Integer> created = create(principal, newEntities, agent);
 		List<ShapeWrite> writes = new ArrayList<>();
 		for (ShapeInput shape : shapeInputs) {
@@ -279,6 +453,41 @@ public class DiagramViews {
 		return errors;
 	}
 
+	/** Each change names an entity that a shape of the request shows, once (design D2 step 2). */
+	private static List<Issue> validateUpdates(List<EntityUpdateInput> updates, List<ShapeInput> shapeInputs) {
+		List<Issue> errors = new ArrayList<>();
+		Set<Integer> shown = new HashSet<>();
+		shapeInputs.stream().filter((shape) -> shape.entityId() != null).forEach((shape) -> shown.add(shape.entityId()));
+		Set<Integer> seen = new HashSet<>();
+		for (int i = 0; i < updates.size(); i++) {
+			int entityId = updates.get(i).entityId();
+			String path = "entityUpdates[" + i + "].entityId";
+			if (!shown.contains(entityId)) {
+				errors.add(new Issue(path, "ENTITY_NOT_SHOWN", "No shape of the request shows the entity."));
+			}
+			else if (!seen.add(entityId)) {
+				errors.add(new Issue(path, "DUPLICATE_ENTITY", "The entity is changed earlier in the request."));
+			}
+		}
+		return errors;
+	}
+
+	private void update(OeaPrincipal principal, List<EntityUpdateInput> updates, AuditEvent.Agent agent) {
+		if (updates.isEmpty()) {
+			return;
+		}
+		List<EntityBatch.EntityUpdate> inputs = updates.stream()
+			.map((update) -> new EntityBatch.EntityUpdate(update.entityId(), update.expectedVersion(), update.name(),
+					update.description(), update.properties()))
+			.toList();
+		try {
+			this.entities.updateInTransaction(principal, inputs, agent);
+		}
+		catch (AtomicBatchFailedException ex) {
+			throw invalid(ex.getErrors());
+		}
+	}
+
 	private Map<UUID, Integer> create(OeaPrincipal principal, List<NewEntityInput> newEntities,
 			AuditEvent.Agent agent) {
 		Map<UUID, Integer> created = new HashMap<>();
@@ -286,8 +495,8 @@ public class DiagramViews {
 			return created;
 		}
 		List<EntityInput> inputs = newEntities.stream()
-			.map((entity) -> new EntityInput(entity.name(), entity.metatypeId(), null, null, null, null, null,
-					List.of()))
+			.map((entity) -> new EntityInput(entity.name(), entity.metatypeId(), null, entity.description(), null,
+					null, null, entity.properties()))
 			.toList();
 		try {
 			EntityBatch.Result result = this.entities.createInTransaction(principal, inputs, agent);
@@ -308,7 +517,7 @@ public class DiagramViews {
 
 	private static DiagramViewException invalid(List<Issue> errors) {
 		return new DiagramViewException(DiagramViewException.Reason.INVALID,
-				errors.size() + " shape(s) or new entity(ies) are invalid; nothing was saved.", errors);
+				errors.size() + " shape(s), new entity(ies) or entity change(s) are invalid; nothing was saved.", errors);
 	}
 
 	private record Counts(int added, int changed, int removed) {

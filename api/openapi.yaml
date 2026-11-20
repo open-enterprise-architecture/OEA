@@ -1813,12 +1813,36 @@ components:
 
     DiagramNewEntity:
       type: object
-      description: An entity created on the canvas, with name and metatype only
+      description: |
+        An entity created on the canvas: name and metatype, optionally a description and property
+        values (US-074 step 6). A mandatory property without a value does not block the entity; it
+        is created incomplete (owner decision 2026-11-20).
       required: [key, metatypeId, name]
       properties:
         key:        { type: string, format: uuid, description: "Chosen by the client; the shapes refer to it with `newEntityKey`" }
         metatypeId: { type: string, format: uuid, description: "An element metatype that the diagram's viewpoint allows" }
         name:       { type: string, maxLength: 255, description: "The entity name, as in an entity write: not blank, at most 255 characters (a blank name answers 422)" }
+        description: { type: string, maxLength: 2000, description: "The entity description, at most 2000 characters" }
+        properties:
+          type: array
+          description: The values of the new entity, as in an entity write; a restricted property needs the write access of the caller (403 otherwise)
+          items: { $ref: '#/components/schemas/PropertyWriteValue' }
+
+    DiagramEntityUpdate:
+      type: object
+      description: |
+        A change of an entity that a shape of the request shows, written with the entity version
+        the client read (issue #69). A field or property that is not named keeps its value; an
+        empty `value` removes a value. Mandatory properties are required for the changed entity.
+      required: [entityId, expectedVersion]
+      properties:
+        entityId:        { type: integer, minimum: 1, description: "An entity shown by a shape of the same request, at most once" }
+        expectedVersion: { type: integer, minimum: 1, description: "The entity version the client read; another current version rejects the save with 409 `entity-version-conflict`" }
+        name:            { type: string, maxLength: 255, description: "A blank name answers 422" }
+        description:     { type: string, maxLength: 2000 }
+        properties:
+          type: array
+          items: { $ref: '#/components/schemas/PropertyWriteValue' }
 
     DiagramViewWrite:
       type: object
@@ -1834,6 +1858,11 @@ components:
           maxItems: 500
           description: The entities to create with this save; each is shown by at least one shape
           items: { $ref: '#/components/schemas/DiagramNewEntity' }
+        entityUpdates:
+          type: array
+          maxItems: 500
+          description: The changes of shown entities, each with the entity version read; written in the same transaction as the layout
+          items: { $ref: '#/components/schemas/DiagramEntityUpdate' }
 
     DiagramViewProblem:
       allOf:
@@ -1849,6 +1878,78 @@ components:
               type: array
               description: One entry per problem, with the codes of the entity write (e.g. `REQUIRED`) and `field` as in `invalidFields`
               items: { $ref: '#/components/schemas/ValidationError' }
+
+    DiagramEntityConflictProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          description: |
+            The 409 of a save: `urn:oea:problem:entity-version-conflict` names the stale entities in
+            `conflicts` and `invalidFields` (`entityUpdates[i]`); `urn:oea:problem:entity-blocked`
+            names the blocked entities and their open issues in `entities`.
+          properties:
+            invalidFields:
+              type: array
+              items: { type: string }
+            conflicts:
+              type: array
+              items: { $ref: '#/components/schemas/DiagramEntityConflict' }
+            entities:
+              type: array
+              items: { $ref: '#/components/schemas/DiagramBlockedEntity' }
+
+    DiagramEntityConflict:
+      type: object
+      required: [entityId, currentVersion]
+      properties:
+        entityId:       { type: integer, minimum: 1 }
+        currentVersion: { type: integer, minimum: 1 }
+
+    DiagramBlockedEntity:
+      type: object
+      required: [entityId, entityName, issues]
+      properties:
+        entityId:   { type: integer, minimum: 1 }
+        entityName: { type: string }
+        issues:
+          type: array
+          items: { $ref: '#/components/schemas/EntityOpenIssue' }
+
+    DiagramEntityField:
+      type: object
+      description: Whether the caller may read and change the value of one mapped property of the entity
+      required: [propertyDefId, readable, writable]
+      properties:
+        propertyDefId: { type: string, format: uuid }
+        readable:      { type: boolean }
+        writable:      { type: boolean, description: "`false` for a caller without `entity:write`, for a restricted property without the write access, and for a connection-scoped one outside the caller's scope" }
+
+    DiagramEntityDetails:
+      type: object
+      description: |
+        The details of an entity shown in a diagram, for the details panel (SCR-021): the system
+        fields, the values the entity has (redacted as in the other reads, REQ-160) and per active
+        mapped property of its metatype the access of the caller. Data type, enumeration values,
+        limits and necessity of the properties come from `getMetatype`.
+      required: [id, name, description, metatype, version, properties, fields, missingMandatory]
+      properties:
+        id:          { type: integer, minimum: 1 }
+        name:        { type: string }
+        description: { type: string }
+        metatype:    { $ref: '#/components/schemas/MetatypeSummary' }
+        version:     { type: integer, minimum: 1, description: "The entity version; to be sent as `expectedVersion` of a change" }
+        properties:
+          type: array
+          description: The values the entity has; a value the caller may not read is redacted
+          items: { $ref: '#/components/schemas/PropertyValue' }
+        fields:
+          type: array
+          description: One entry per active mapped property of the metatype, in the order of the metatype
+          items: { $ref: '#/components/schemas/DiagramEntityField' }
+        missingMandatory:
+          type: array
+          description: Names of the mandatory properties without a value, ordered by name, as in `DiagramShape`
+          items: { type: string }
 
     DiagramEntity:
       type: object
@@ -8013,6 +8114,21 @@ paths:
         sizes 1 to 2000 pt, both with at most two decimals (400 otherwise). At most 2000 shapes and
         500 new entities; the body is limited to 2 MB (413). The 422 names the shapes and new
         entities with their reasons. `X-Agent-Id` and `X-Agent-Run` are informational (ADR-033 §7).
+
+        The save also writes the changes of shown entities (`entityUpdates`, at most 500: entity,
+        expected version, optionally name, description and values) and the description and values
+        of the new entities, in the same transaction, with the checks and the audit of a batch
+        update (`entity.updated`): metamodel and property visibility (403 for the whole save),
+        mandatory values required for a changed entity (422 `MANDATORY_MISSING`), history. A
+        change names an entity that a shape of the same request shows, once (422 otherwise). A
+        changed entity with an open issue of a solution answers 409 `entity-blocked`; an entity
+        whose current version differs from `expectedVersion` answers 409
+        `entity-version-conflict` naming every such entity with its current version. Only the
+        first applies, in this order: 400, 412 or 428, 422 of the layout, 403, 422 of a deleted
+        entity, 409 `entity-version-conflict`, 409 `entity-blocked`, 422 of the changes, then 403
+        and 422 of the new entities. Name at most 255 and description at most 2000 characters (400
+        otherwise). The batch API stays without a version check. A save of only entity changes also
+        raises the version of the diagram.
       tags: [Diagrams]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"]}
       parameters:
@@ -8038,11 +8154,21 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '409':
+          description: |
+            An entity of `entityUpdates` has another version than expected
+            (`urn:oea:problem:entity-version-conflict`, extension members `conflicts` and
+            `invalidFields`), or has an open issue of a solution (`urn:oea:problem:entity-blocked`,
+            extension member `entities`). Nothing is changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DiagramEntityConflictProblem' }
         '413': { $ref: '#/components/responses/PayloadTooLarge' }
         '422':
           description: |
-            A shape or a new entity violates a rule (problem type `urn:oea:problem:validation-failed`);
-            `invalidFields` and `errors` name them. Nothing is changed.
+            A shape, a new entity or an entity change violates a rule (problem type
+            `urn:oea:problem:validation-failed`); `invalidFields` and `errors` name them, e.g.
+            `entityUpdates[2].properties` with `MANDATORY_MISSING`. Nothing is changed.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/DiagramViewProblem' }
@@ -8086,6 +8212,81 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: The `metatypeId` is not an element metatype that the viewpoint allows (`invalidFields`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/DiagramValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /views/diagrams/{id}/entities/{entityId}:
+    get:
+      operationId: getDiagramEntityDetails
+      summary: Details of an entity shown in a diagram (US-074, SCR-021 details panel)
+      description: |
+        Name, description, metatype, version, the values the entity has (a value the caller may not
+        read is redacted, REQ-160), per active mapped property of the metatype whether the caller
+        may read and change it, and the mandatory properties without a value. Only an entity that a
+        shape of the diagram shows can be read this way: an unknown or deleted diagram, an unknown
+        or deleted entity and an entity without a shape answer 404. Data type, enumeration values,
+        limits and necessity of the properties come from `getMetatype`. Read only, not audited,
+        except `property-override-access` for values read through an override role.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: entityId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DiagramEntityDetails' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /views/diagrams/{id}/reference-targets:
+    get:
+      operationId: searchDiagramReferenceTargets
+      summary: Search the targets of a reference property (US-074, SCR-021 details panel)
+      description: |
+        One page of the element entities that are not deleted and have exactly the metatype that
+        the reference property `propertyDefId` references, ordered by name ignoring case, then by
+        ID. `q` keeps the entities whose name contains it, ignoring case, with `%` and `_` matched
+        literally. A `pageSize` outside 1-200, a `page` below 0 and a `q` over 255 characters
+        answer 400; an unknown property definition or one that is not of data type `reference` 422
+        naming `propertyDefId`; an unknown or deleted diagram 404. Read only, not audited.
+      tags: [Diagrams]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      parameters:
+        - $ref: '#/components/parameters/UuidIdParam'
+        - name: propertyDefId
+          in: query
+          required: true
+          description: The reference property whose targets are searched
+          schema: { type: string, format: uuid }
+        - name: q
+          in: query
+          description: Part of the entity name, compared ignoring case; blank means no filter
+          schema: { type: string, maxLength: 255 }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: One page of entities
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DiagramEntityPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: The `propertyDefId` is unknown or not a reference property (`invalidFields`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/DiagramValidationProblem' }

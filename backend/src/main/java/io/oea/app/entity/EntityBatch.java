@@ -211,6 +211,119 @@ public class EntityBatch {
 		return new Result(context.batchId(), results);
 	}
 
+	/**
+	 * A change of an existing entity with the version the client read (design D2 of
+	 * us-074-diagram-entity-details). A {@code null} name, description or property list leaves the
+	 * field unchanged; an empty property value removes the value.
+	 */
+	public record EntityUpdate(int entityId, int expectedVersion, String name, String description,
+			List<EntityInput.PropertyInput> properties) {
+
+		public EntityUpdate {
+			properties = (properties != null) ? List.copyOf(properties) : List.of();
+		}
+
+	}
+
+	/**
+	 * Updates existing entities in the transaction of the caller, each with the version the client
+	 * read (issue #69): the steps of an atomic batch update with one batch ID, so that version,
+	 * history and the {@code entity.updated} events are those of a batch update. Mandatory
+	 * properties are required, so an incomplete entity must be completed when it is changed. The
+	 * order of the answers is: 403 for a restricted property, 422 for a deleted entity, 409 for a
+	 * stale version, 409 for an open issue, 422 for the values. An update without an effective
+	 * change leaves the entity as it is, its version is still checked. Nothing is written on a
+	 * failure.
+	 *
+	 * @return one result per update, in order, each {@code UPDATED} or {@code UNCHANGED}
+	 * @throws IllegalTransactionStateException without a surrounding transaction
+	 * @throws io.oea.app.security.PermissionDeniedException for a restricted property the principal may not write
+	 * @throws AtomicBatchFailedException with the issues of all faulty updates, paths {@code entityUpdates[i]...}
+	 * @throws EntityVersionConflictException naming every entity with another version
+	 * @throws EntityBlockedException for an entity with an open issue of a solution
+	 */
+	public Result updateInTransaction(OeaPrincipal principal, List<EntityUpdate> updates, AuditEvent.Agent agent) {
+		if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+			throw new IllegalTransactionStateException("The entities are updated in the transaction of the caller.");
+		}
+		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), agent);
+		if (updates.isEmpty()) {
+			return new Result(context.batchId(), List.of());
+		}
+		PropertyAccess.Snapshot access = null;
+		for (EntityUpdate update : updates) {
+			access = this.writeAccess.require(principal, update.properties(), update.entityId());
+		}
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+			.forWriter(PropertyWriteAccess.writer(access));
+		// lock in ascending ID order, so that two saves cannot wait for each other
+		Map<Integer, StoredEntity> locked = new HashMap<>();
+		updates.stream().map(EntityUpdate::entityId).distinct().sorted().forEach((id) -> {
+			StoredEntity entity = this.store.lock(id).orElse(null);
+			if (entity != null && !entity.deleted()) {
+				locked.put(id, entity);
+			}
+		});
+		List<Issue> errors = new ArrayList<>();
+		for (int i = 0; i < updates.size(); i++) {
+			if (!locked.containsKey(updates.get(i).entityId())) {
+				errors.add(new Issue("entityUpdates[" + i + "].entityId", "ENTITY_NOT_FOUND",
+						"The entity does not exist or is deleted."));
+			}
+		}
+		if (!errors.isEmpty()) {
+			throw new AtomicBatchFailedException(errors);
+		}
+		List<EntityVersionConflictException.Conflict> conflicts = new ArrayList<>();
+		for (int i = 0; i < updates.size(); i++) {
+			StoredEntity entity = locked.get(updates.get(i).entityId());
+			if (entity.version() != updates.get(i).expectedVersion()) {
+				conflicts.add(new EntityVersionConflictException.Conflict(i, entity.id(), entity.version()));
+			}
+		}
+		if (!conflicts.isEmpty()) {
+			throw new EntityVersionConflictException(conflicts);
+		}
+		this.blocks.check(principal, locked.keySet());
+		List<EntityValidator.Checked> checked = new ArrayList<>();
+		List<Map<UUID, TypedValue>> stored = new ArrayList<>();
+		for (int i = 0; i < updates.size(); i++) {
+			EntityUpdate update = updates.get(i);
+			StoredEntity existing = locked.get(update.entityId());
+			Map<UUID, TypedValue> values = this.store.values(existing.id());
+			stored.add(values);
+			List<Issue> issues = new ArrayList<>();
+			if (BuiltInMetatypes.STRUCTURING_AID.equals(existing.metatypeId())) {
+				issues.add(new Issue("metatypeId", "METATYPE_NOT_ALLOWED",
+						"Structuring aids are changed with their own operation."));
+				checked.add(null);
+			}
+			else {
+				EntityInput input = new EntityInput((update.name() != null) ? update.name() : existing.name(),
+						existing.metatypeId(), null, update.description(), null, null, null, update.properties());
+				EntityValidator.Checked item = EntityValidator.check(input, rules, existing, values,
+						this.store::isActive, false, EntityValidator.Necessity.ENFORCE);
+				issues.addAll(item.errors());
+				checked.add(item);
+			}
+			String path = "entityUpdates[" + i + "]";
+			issues.forEach((issue) -> errors.add(issue.within(path)));
+		}
+		if (!errors.isEmpty()) {
+			throw new AtomicBatchFailedException(errors);
+		}
+		List<ItemResult> results = new ArrayList<>();
+		for (int i = 0; i < updates.size(); i++) {
+			StoredEntity existing = locked.get(updates.get(i).entityId());
+			EntityWriter.Written written = this.writer.write(principal, checked.get(i), existing, stored.get(i),
+					context);
+			results.add(new ItemResult(i,
+					(written.status() == EntityWriter.Status.UPDATED) ? ItemStatus.UPDATED : ItemStatus.UNCHANGED,
+					written.entityId(), null, List.of(), checked.get(i).warnings()));
+		}
+		return new Result(context.batchId(), results);
+	}
+
 	private List<ItemResult> writeEach(OeaPrincipal principal, Request request, MetatypeRules rules,
 			Map<Integer, ItemResult> duplicates, Map<Integer, ItemResult> connectionDuplicates,
 			EntityWriter.WriteContext context) {

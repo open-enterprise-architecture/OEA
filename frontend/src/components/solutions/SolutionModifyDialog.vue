@@ -5,13 +5,14 @@ import { fetchMetatype, type PropertyMapping } from '../../api/metamodel'
 import { rateLimitMessage, type Rejection } from '../../api/problem'
 import {
   createSolutionDelta,
+  fetchSolutionLandscape,
   fetchSolutionLandscapeEntity,
   updateSolutionDelta,
   type SolutionDelta,
   type SolutionDeltaValue,
   type SolutionLandscapeEntity,
 } from '../../api/solutions'
-import PropertyInput from './PropertyInput.vue'
+import PropertyInput, { type ReferenceChoice } from '../PropertyInput.vue'
 
 // The dialog "Modify entity" of SCR-061 (US-041 AC1, AC2; design D6 of us-041-modified-delta):
 // per field the current value of the catalog, read-only, and an input for the new value. The
@@ -24,6 +25,16 @@ const { t } = useI18n()
 
 const NAME_MAX = 255
 const DESCRIPTION_MAX = 2000
+
+/** The candidates of a reference: the entities of the baseline whose metatype the property references. */
+function searchBaseline(mapping: PropertyMapping): (term: string) => Promise<ReferenceChoice[]> {
+  return async (term) => {
+    const refMetatype = mapping.propertyDefinition.refMetatype?.id
+    if (!refMetatype) return []
+    const outcome = await fetchSolutionLandscape(props.solutionId, { q: term, metatypeId: refMetatype, pageSize: 50 }, props.fetchFn)
+    return outcome.ok ? outcome.value.items.map((entry) => ({ label: entry.name, value: String(entry.id) })) : []
+  }
+}
 
 const entity = ref<SolutionLandscapeEntity>()
 const mappings = ref<PropertyMapping[]>([])
@@ -170,8 +181,7 @@ async function save() {
         <PropertyInput
           v-model="values[mapping.propertyDefinition.id]"
           :mapping="mapping"
-          :solution-id="props.solutionId"
-          :fetch-fn="props.fetchFn"
+          :search-references="searchBaseline(mapping)"
         />
       </UFormField>
     </template>
