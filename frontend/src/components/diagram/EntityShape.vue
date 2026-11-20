@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Handle, Position } from '@vue-flow/core'
 import { NodeResizer, type OnResizeEnd } from '@vue-flow/node-resizer'
 import { nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -40,6 +41,10 @@ function resizeEnd(event: OnResizeEnd) {
     :data-incomplete="data.missingMandatory.length > 0 ? 'true' : undefined"
     :title="data.error ?? (data.missingMandatory.length > 0 ? t('diagrams.canvas.incomplete', { properties: data.missingMandatory.join(', ') }) : undefined)"
   >
+    <template v-if="data.connectable && !data.editing">
+      <Handle id="left" type="source" :position="Position.Left" class="size-2.5! border-default! bg-primary!" aria-hidden="true" :title="t('diagrams.canvas.connectFrom')" />
+      <Handle id="right" type="source" :position="Position.Right" class="size-2.5! border-default! bg-primary!" aria-hidden="true" :title="t('diagrams.canvas.connectFrom')" />
+    </template>
     <NodeResizer v-if="data.editable && !data.editing" :min-width="24" :min-height="16" :is-visible="selected" @resize-end="resizeEnd" />
     <div class="flex items-center gap-1">
       <span v-if="data.abbreviation" class="shrink-0 rounded-sm bg-elevated px-1 font-mono text-[10px] text-default" :title="data.metatypeName">{{ data.abbreviation }}</span>

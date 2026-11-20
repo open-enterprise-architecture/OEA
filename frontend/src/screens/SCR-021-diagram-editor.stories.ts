@@ -1,12 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import DiagramPage from '../pages/DiagramPage.vue'
-import { diagram, diagramApi, METATYPE_COMPONENT, METATYPE_PROCESS, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, type DiagramApi } from '../test/diagrams'
+import { diagram, diagramApi, edge, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, type DiagramApi } from '../test/diagrams'
 
 // SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
-// us-074-diagram-entity-details): the canvas of a diagram with the palette of its viewpoint, "Add
-// existing", moving, resizing and removing shapes, "Save", the details panel of the selected shape
-// and the read-only view of a reader (docs/screens/SCREENS.md). The first story is the screen image.
+// us-074-diagram-entity-details and D5 of us-074-diagram-connections): the canvas of a diagram with the
+// palette of its viewpoint, "Add existing", moving, resizing and removing shapes, the edges between
+// them, the offer of existing connections, "Add connected element", "Save", the details panel of the
+// selected shape or edge and the read-only view of a reader (docs/screens/SCREENS.md). The first story
+// is the screen image.
 const meta: Meta<typeof DiagramPage> = {
   title: 'Screens/SCR-021 Diagram editor',
   component: DiagramPage,
@@ -23,15 +25,19 @@ const SHAPES = [
   shape({ id: 'd1000000-0000-4000-8000-000000000003', entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS }, x: 180, y: 180, width: 90, height: 30, missingMandatory: ['Process Owner'] }),
 ]
 
-/** A holder of `entity:write`: the palette, "Add existing", "Remove from diagram" and "Save" around the shapes. */
+/** The connection "SAP ERP → Salesforce" with a bend point, shown as an edge between the two shapes. */
+const EDGES = [edge({ points: [{ x: 200, y: 120 }] })]
+
+/** A holder of `entity:write`: the palette, "Add existing", "Remove from diagram" and "Save" around the shapes and edges. */
 export const Canvas: Story = {
-  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES }) },
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES, edges: EDGES }) },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('SAP ERP')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Add Application Component' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Add existing' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await expect(canvas.getByRole('button', { name: 'Connection SAP ERP → Salesforce' })).toBeInTheDocument()
     await expect(canvas.getByText('Incomplete: Process Owner')).toBeInTheDocument()
     // the details panel of the selected shape names the missing value
     await userEvent.click(canvas.getByText('Invoice Approval'))
@@ -152,5 +158,69 @@ export const VersionConflict: Story = {
     await expect(await canvas.findByText(/SAP ERP was changed by someone else/)).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Reload SAP ERP and discard my changes of it' })).toBeInTheDocument()
     await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+  },
+}
+
+/** An edge is reached with Tab or a click; its details show the connection with its type, version and values. */
+export const EdgeDetails: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES, edges: EDGES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Connection SAP ERP → Salesforce' }))
+    await expect(await canvas.findByRole('complementary', { name: 'Details of the selected entity' })).toBeInTheDocument()
+    await expect(await canvas.findByText(/Version 2/)).toBeInTheDocument()
+    await expect(await canvas.findByDisplayValue('Orders to the CRM')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Remove from diagram' })).toBeEnabled()
+  },
+}
+
+/** Placing the second end of a connection offers it; nothing is added until "Show all" or "Choose…". */
+export const OfferedConnections: Story = {
+  args: {
+    id: ID,
+    fetchFn: diagramApi({
+      me: ME_DIAGRAM_WRITER,
+      shapes: [SHAPES[1]!],
+      offers: [{ connection: { id: 21, name: 'SAP ERP → Salesforce', metatypeId: METATYPE_FLOW }, sourceEntityId: 12, targetEntityId: 13 }],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add existing' }))
+    const dialog = within(await within(document.body).findByTestId('add-existing-dialog'))
+    await userEvent.type(await dialog.findByRole('textbox'), 'SAP ERP')
+    await userEvent.click(await dialog.findByRole('button', { name: /SAP ERP/ }, { timeout: 4000 }))
+    await expect(await canvas.findByText('1 connection available')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Connection SAP ERP → Salesforce' })).toBeNull()
+    await userEvent.click(await canvas.findByRole('button', { name: 'Show all' }))
+    await expect(await canvas.findByRole('button', { name: 'Connection SAP ERP → Salesforce' })).toBeInTheDocument()
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+  },
+}
+
+/** "Add connected element" places a new element at the default length of the connection type, joined by a new connection. */
+export const ConnectedElement: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES, edges: EDGES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByText('SAP ERP'))
+    await userEvent.click(canvas.getByRole('button', { name: 'Add connected element' }))
+    const dialog = within(await within(document.body).findByTestId('connected-dialog'))
+    await waitFor(() => expect(dialog.getByRole('button', { name: 'Add' })).toBeEnabled())
+    await userEvent.click(dialog.getByRole('button', { name: 'Add' }))
+    await userEvent.type(await canvas.findByRole('textbox', { name: /Name of the new/ }), 'Billing{Enter}')
+    await expect(await canvas.findByRole('button', { name: 'Connection SAP ERP → Billing' })).toBeInTheDocument()
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+  },
+}
+
+/** A reader sees the edges and their details, but cannot draw, move or remove them. */
+export const EdgesReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: SHAPES, edges: EDGES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Connection SAP ERP → Salesforce' }))
+    await expect(await canvas.findByText('You may view the values, but not change them.')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Add connected element' })).toBeNull()
   },
 }

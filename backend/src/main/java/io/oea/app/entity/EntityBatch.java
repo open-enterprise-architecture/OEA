@@ -212,6 +212,54 @@ public class EntityBatch {
 	}
 
 	/**
+	 * Creates new connections in the transaction of the caller (design D3 step 4 of
+	 * us-074-diagram-connections): the connection steps of an atomic batch create with one batch ID,
+	 * so that endpoint checks, the name "Source → Target" of a blank name, version, history and the
+	 * {@code entity.created} events are those of a batch connection. A mandatory property without
+	 * value is a warning {@code MANDATORY_MISSING}, so the connection is created incomplete. The
+	 * endpoints are named by entity ID and must exist at this point. All faulty inputs are collected
+	 * before anything is written.
+	 *
+	 * @return one result per input, in order, each {@code CREATED} with the ID of the new connection
+	 * @throws IllegalTransactionStateException without a surrounding transaction
+	 * @throws AtomicBatchFailedException with the issues of all faulty inputs, paths {@code connections[i]...}
+	 * @throws io.oea.app.security.PermissionDeniedException for a restricted property the principal may not write
+	 */
+	public Result createConnectionsInTransaction(OeaPrincipal principal, List<ConnectionInput> inputs,
+			AuditEvent.Agent agent) {
+		if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+			throw new IllegalTransactionStateException("The connections are created in the transaction of the caller.");
+		}
+		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), agent);
+		if (inputs.isEmpty()) {
+			return new Result(context.batchId(), List.of());
+		}
+		PropertyAccess.Snapshot access = this.writeAccess.require(principal,
+				inputs.stream().map(ConnectionInput::entity).toList());
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+			.forWriter(PropertyWriteAccess.writer(access));
+		List<PreparedConnection> prepared = new ArrayList<>();
+		List<Issue> errors = new ArrayList<>();
+		for (int i = 0; i < inputs.size(); i++) {
+			PreparedConnection item = prepareConnection(i, inputs.get(i), Strategy.CREATE_ONLY, rules, Map.of(),
+					EntityValidator.Necessity.WARN);
+			prepared.add(item);
+			if (item.result() != null && item.result().status() == ItemStatus.ERROR) {
+				String path = "connections[" + i + "]";
+				item.result().errors().forEach((error) -> errors.add(error.within(path)));
+			}
+		}
+		if (!errors.isEmpty()) {
+			throw new AtomicBatchFailedException(errors);
+		}
+		List<ItemResult> results = new ArrayList<>();
+		for (int i = 0; i < inputs.size(); i++) {
+			results.add(writeConnection(principal, inputs.get(i), prepared.get(i), context));
+		}
+		return new Result(context.batchId(), results);
+	}
+
+	/**
 	 * A change of an existing entity with the version the client read (design D2 of
 	 * us-074-diagram-entity-details). A {@code null} name, description or property list leaves the
 	 * field unchanged; an empty property value removes the value.
@@ -301,8 +349,10 @@ public class EntityBatch {
 			else {
 				EntityInput input = new EntityInput((update.name() != null) ? update.name() : existing.name(),
 						existing.metatypeId(), null, update.description(), null, null, null, update.properties());
+				MetatypeRules.Metatype current = rules.metatype(existing.metatypeId());
 				EntityValidator.Checked item = EntityValidator.check(input, rules, existing, values,
-						this.store::isActive, false, EntityValidator.Necessity.ENFORCE);
+						this.store::isActive, current != null && current.connection(),
+						EntityValidator.Necessity.ENFORCE);
 				issues.addAll(item.errors());
 				checked.add(item);
 			}
@@ -552,6 +602,11 @@ public class EntityBatch {
 	/** Checks a connection: strategy, endpoints, the connection metatype and its properties. */
 	private PreparedConnection prepareConnection(int index, ConnectionInput input, Strategy strategy,
 			MetatypeRules rules, Map<String, Pending> pending) {
+		return prepareConnection(index, input, strategy, rules, pending, EntityValidator.Necessity.ENFORCE);
+	}
+
+	private PreparedConnection prepareConnection(int index, ConnectionInput input, Strategy strategy,
+			MetatypeRules rules, Map<String, Pending> pending, EntityValidator.Necessity necessity) {
 		String externalId = input.entity().externalId();
 		StoredEntity existing = (externalId != null) ? this.store.lockByExternalId(externalId).orElse(null) : null;
 		Map<UUID, TypedValue> stored = Map.of();
@@ -603,7 +658,7 @@ public class EntityBatch {
 					entity.properties());
 		}
 		EntityValidator.Checked checked = EntityValidator.check(entity, rules, existing, stored, this.store::isActive,
-				true);
+				true, necessity);
 		errors.addAll(checked.errors());
 		if (!errors.isEmpty()) {
 			return connectionResult(ItemResult.error(index, externalId, errors, checked.warnings()));

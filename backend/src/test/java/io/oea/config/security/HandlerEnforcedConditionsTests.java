@@ -112,6 +112,20 @@ class HandlerEnforcedConditionsTests {
 					VALUES (?::uuid, 'Probe dashboard', 'instance', ?, ?, ?)""", "00000000-0000-4000-8000-0000000d0001",
 					owner, owner, owner);
 		}
+		// the diagram that the probe of the layout save addresses (us-074-diagram-connections)
+		if (this.jdbc.queryForObject("SELECT count(*) FROM diagrams WHERE id = ?::uuid", Integer.class,
+				"00000000-0000-4000-8000-0000000d1a01") == 0) {
+			Long owner = this.jdbc.queryForObject("""
+					INSERT INTO persons (name, email, status) VALUES ('Probe diagram owner', 'probe-diagrams@example.org',
+					'active') RETURNING id""", Long.class);
+			String viewpoint = this.jdbc.queryForObject("""
+					INSERT INTO viewpoints (id, name, notation, created_by) VALUES (gen_random_uuid(), 'Probe viewpoint',
+					'bpmn2', ?) RETURNING id::text""", String.class, owner);
+			this.jdbc.update("""
+					INSERT INTO diagrams (id, name, viewpoint_id, created_by, updated_by)
+					VALUES (?::uuid, 'Probe diagram', ?::uuid, ?, ?)""", "00000000-0000-4000-8000-0000000d1a01", viewpoint,
+					owner, owner);
+		}
 		if (this.jdbc.queryForObject("SELECT count(*) FROM machine_credentials WHERE client_id = ?::uuid", Integer.class,
 				AdminController.PROBE_SERVICE_ACCOUNT) == 0) {
 			Long person = this.jdbc.queryForObject("""

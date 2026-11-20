@@ -3,7 +3,7 @@ package io.oea.app.diagramview;
 import io.oea.app.diagram.Diagrams;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.EntityBatch;
-import io.oea.app.entity.EntityInput;
+import io.oea.app.entity.ConnectionInput;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.Issue;
 import io.oea.app.entity.MetatypeRules;
@@ -17,6 +17,10 @@ import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.diagram.DiagramEdgeStore;
+import io.oea.core.diagram.DiagramEdgeStore.EdgeWrite;
+import io.oea.core.diagram.DiagramEdgeStore.ShownEdge;
+import io.oea.core.diagram.DiagramEdgeStore.StoredEdge;
 import io.oea.core.diagram.DiagramShapeStore;
 import io.oea.core.diagram.DiagramShapeStore.EntityRef;
 import io.oea.core.diagram.DiagramShapeStore.ShapeWrite;
@@ -42,14 +46,16 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The canvas of a diagram (US-074, UC-10; design D2 to D4 of us-074-diagram-canvas): the view with
- * its shapes in drawing order, the search of the entities the viewpoint allows, and the atomic save
- * of the layout with the entities created on the canvas. The permissions are checked from the
+ * The canvas of a diagram (US-074, UC-10; design D2 to D4 of us-074-diagram-canvas and D2 to D4 of
+ * us-074-diagram-connections): the view with its shapes in drawing order and its edges, the search
+ * of the entities the viewpoint allows, the connections to offer, and the atomic save of the
+ * layout with the entities and connections created on the canvas. The permissions are checked from the
  * contract. A save locks the diagram, validates everything, creates the new entities through the
  * entity write of {@code app.entity} in the same transaction, replaces the shapes, raises the
  * version and audits {@code diagram.layout-saved}; a failure changes nothing.
@@ -60,7 +66,12 @@ public class DiagramViews {
 	/** The most decimals of a position or size, in pt. */
 	static final int MAX_DECIMALS = 2;
 
+	/** The most connections that {@link #connections} returns. */
+	public static final int MAX_OFFERED_CONNECTIONS = 5000;
+
 	private static final Pattern INDEXED = Pattern.compile("^entities\\[(\\d+)]");
+
+	private static final Pattern INDEXED_CONNECTION = Pattern.compile("^connections\\[(\\d+)](?:\\.(\\w+))?");
 
 	private final Diagrams diagrams;
 
@@ -69,6 +80,8 @@ public class DiagramViews {
 	private final EntityBatch entities;
 
 	private final DiagramShapeStore shapes;
+
+	private final DiagramEdgeStore edges;
 
 	private final EntitySearchStore search;
 
@@ -91,7 +104,7 @@ public class DiagramViews {
 	private final OverrideAccessAudit overrideAudit;
 
 	DiagramViews(Diagrams diagrams, Viewpoints viewpoints, EntityBatch entities, DiagramShapeStore shapes,
-			EntitySearchStore search, MetatypeRuleStore ruleStore, AuditWriter audit, Clock clock,
+			DiagramEdgeStore edges, EntitySearchStore search, MetatypeRuleStore ruleStore, AuditWriter audit, Clock clock,
 			EntityStore entityStore, PropertyValueStore valueStore, MetatypeStore metatypes, PropertyAccess access,
 			PermissionResolver permissions, OverrideAccessAudit overrideAudit) {
 		this.entityStore = entityStore;
@@ -104,6 +117,7 @@ public class DiagramViews {
 		this.viewpoints = viewpoints;
 		this.entities = entities;
 		this.shapes = shapes;
+		this.edges = edges;
 		this.search = search;
 		this.ruleStore = ruleStore;
 		this.audit = audit;
@@ -115,8 +129,52 @@ public class DiagramViews {
 			BigDecimal width, BigDecimal height, List<String> missingMandatory) {
 	}
 
-	/** The diagram with its viewpoint and its shapes in drawing order. */
-	public record View(Diagrams.Diagram diagram, Viewpoints.Viewpoint viewpoint, List<Shape> shapes) {
+	/** A bend point of an edge in pt. */
+	public record Point(BigDecimal x, BigDecimal y) {
+	}
+
+	/**
+	 * An edge in the view: a connection from a shape of its source to a shape of its target entity;
+	 * {@code missingMandatory} names the mandatory properties of the connection without a value.
+	 */
+	public record Edge(UUID id, int connectionId, String connectionName, UUID metatypeId, UUID sourceShapeId,
+			UUID targetShapeId, List<Point> points, List<String> missingMandatory) {
+	}
+
+	/** The diagram with its viewpoint, its shapes in drawing order and its edges. */
+	public record View(Diagrams.Diagram diagram, Viewpoints.Viewpoint viewpoint, List<Shape> shapes,
+			List<Edge> edges) {
+	}
+
+	/** A connection to offer when an entity is placed. */
+	public record Offer(int connectionId, String name, UUID metatypeId, int sourceEntityId, int targetEntityId) {
+	}
+
+	/** The connections to offer; {@code truncated} when more than {@link #MAX_OFFERED_CONNECTIONS} matched. */
+	public record Offers(List<Offer> items, boolean truncated) {
+	}
+
+	/**
+	 * An edge to save: exactly one of {@code connectionId} and {@code newConnectionKey} is set
+	 * (checked).
+	 */
+	public record EdgeInput(UUID id, Integer connectionId, UUID newConnectionKey, UUID sourceShapeId,
+			UUID targetShapeId, List<Point> points) {
+
+		public EdgeInput {
+			points = (points != null) ? List.copyOf(points) : List.of();
+		}
+
+	}
+
+	/** A new connection to create with the save; its endpoints are those of the shapes of its first edge. */
+	public record NewConnectionInput(UUID key, UUID metatypeId, String name, String description,
+			List<EntityInput.PropertyInput> properties) {
+
+		public NewConnectionInput {
+			properties = (properties != null) ? List.copyOf(properties) : List.of();
+		}
+
 	}
 
 	/** An entity the viewpoint allows. */
@@ -222,17 +280,14 @@ public class DiagramViews {
 	 * reads, per mapped property whether the caller may read and change it, and the missing
 	 * mandatory properties.
 	 *
-	 * @throws NoSuchElementException for an unknown or deleted diagram, an unknown or deleted entity
-	 *         and an entity without a shape in the diagram (404)
+	 * @throws NoSuchElementException for an unknown or deleted diagram, an unknown or deleted entity,
+	 *         and an entity without a shape and a connection without a shown edge in the diagram (404)
 	 */
 	@Transactional(readOnly = true)
 	public Details details(OeaPrincipal principal, UUID id, int entityId) {
 		this.diagrams.get(id);
-		List<ShownShape> shown = this.shapes.shown(id)
-			.stream()
-			.filter((shape) -> shape.entityId() == entityId)
-			.toList();
-		if (shown.isEmpty()) {
+		boolean byShape = this.shapes.shown(id).stream().anyMatch((shape) -> shape.entityId() == entityId);
+		if (!byShape && !this.edges.shownConnections(id, List.of(entityId)).contains(entityId)) {
 			throw new NoSuchElementException("entity " + entityId);
 		}
 		EntityStore.StoredEntity entity = this.entityStore.find(entityId)
@@ -265,7 +320,8 @@ public class DiagramViews {
 					mayWrite && PropertyWriteAccess.writer(snapshot).test(definition, entityId))));
 		}
 		MetatypeStore.NameRow name = this.metatypes.nameAndAbbreviation(entity.metatypeId());
-		List<String> missing = missingMandatory(shown).getOrDefault(entityId, List.of());
+		List<String> missing = missingMandatory(Map.of(entityId, entity.metatypeId()))
+			.getOrDefault(entityId, List.of());
 		if (!overridden.isEmpty()) {
 			Map<UUID, List<Integer>> entities = new LinkedHashMap<>();
 			overridden.keySet().forEach((definition) -> entities.put(definition, List.of(entityId)));
@@ -273,6 +329,28 @@ public class DiagramViews {
 		}
 		return new Details(entity.id(), entity.name(), entity.description(), entity.metatypeId(), name.name(),
 				name.abbreviation(), entity.version(), values, fields, missing);
+	}
+
+	/**
+	 * The connections to offer when entities are placed (design D2 of us-074-diagram-connections):
+	 * not deleted, of a type the viewpoint allows, with one end among {@code entityIds} and the
+	 * other among {@code entityIds} or {@code shownEntityIds}, by connection ID, at most
+	 * {@link #MAX_OFFERED_CONNECTIONS}.
+	 *
+	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
+	 */
+	@Transactional(readOnly = true)
+	public Offers connections(UUID id, List<Integer> entityIds, List<Integer> shownEntityIds) {
+		Diagrams.Diagram diagram = this.diagrams.get(id);
+		Viewpoints.Viewpoint viewpoint = this.viewpoints.get(diagram.viewpoint().id());
+		List<UUID> types = viewpoint.connectionTypes().stream().map(Viewpoints.Type::id).toList();
+		DiagramEdgeStore.FoundPage found = this.edges.find(entityIds, shownEntityIds, types,
+				MAX_OFFERED_CONNECTIONS);
+		return new Offers(found.items()
+			.stream()
+			.map((item) -> new Offer(item.connectionId(), item.name(), item.metatypeId(), item.sourceId(),
+					item.targetId()))
+			.toList(), found.truncated());
 	}
 
 	private static Typed typed(LabeledValue labeled) {
@@ -330,53 +408,83 @@ public class DiagramViews {
 	 */
 	@Transactional
 	public View save(OeaPrincipal principal, UUID id, Long expectedVersion, List<ShapeInput> shapeInputs,
-			List<NewEntityInput> newEntities, List<EntityUpdateInput> updates, AuditEvent.Agent agent) {
+			List<NewEntityInput> newEntities, List<EntityUpdateInput> updates, List<EdgeInput> edgeInputs,
+			List<NewConnectionInput> newConnections, AuditEvent.Agent agent) {
 		if (principal.personId() == null) {
 			throw new PermissionDeniedException();
 		}
-		checkDecimals(shapeInputs);
+		checkNumbers(shapeInputs, edgeInputs);
 		Diagrams.Diagram diagram = this.diagrams.lockForLayout(id, expectedVersion);
 		Viewpoints.Viewpoint viewpoint = this.viewpoints.get(diagram.viewpoint().id());
 		Set<UUID> allowed = new HashSet<>();
 		viewpoint.metatypes().forEach((type) -> allowed.add(type.id()));
+		Set<UUID> allowedConnections = new HashSet<>();
+		viewpoint.connectionTypes().forEach((type) -> allowedConnections.add(type.id()));
 		List<StoredShape> stored = this.shapes.stored(id);
+		List<StoredEdge> storedEdges = this.edges.stored(id);
 		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, stored);
-		errors.addAll(validateUpdates(updates, shapeInputs));
+		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, allowedConnections, storedEdges));
+		errors.addAll(validateUpdates(updates, shapeInputs, edgeInputs));
 		if (!errors.isEmpty()) {
 			throw invalid(errors);
 		}
 		update(principal, updates, agent);
 		Map<UUID, Integer> created = create(principal, newEntities, agent);
+		Map<UUID, Integer> createdConnections = createConnections(principal, shapeInputs, edgeInputs, newConnections,
+				created, agent);
 		List<ShapeWrite> writes = new ArrayList<>();
 		for (ShapeInput shape : shapeInputs) {
 			int entityId = (shape.entityId() != null) ? shape.entityId() : created.get(shape.newEntityKey());
 			writes.add(new ShapeWrite(shape.id(), entityId, shape.x(), shape.y(), shape.width(), shape.height()));
 		}
+		List<EdgeWrite> edgeWrites = new ArrayList<>();
+		for (EdgeInput edge : edgeInputs) {
+			int connectionId = (edge.connectionId() != null) ? edge.connectionId()
+					: createdConnections.get(edge.newConnectionKey());
+			edgeWrites.add(new EdgeWrite(edge.id(), connectionId, edge.sourceShapeId(), edge.targetShapeId(),
+					edge.points().stream().map((point) -> new DiagramEdgeStore.Point(point.x(), point.y())).toList()));
+		}
+		this.edges.deleteExcept(id, keptEdges(stored, storedEdges, writes, edgeWrites));
 		this.shapes.replace(id, writes);
+		this.edges.upsert(id, edgeWrites);
 		int version = this.diagrams.layoutSaved(principal, id);
-		audit(principal, id, diagram.name(), version, count(stored, writes), created.size());
+		audit(principal, id, diagram.name(), version, count(stored, writes), countEdges(storedEdges, edgeWrites),
+				created.size(), createdConnections.size());
 		return buildView(this.diagrams.get(id));
 	}
 
-	private static void checkDecimals(List<ShapeInput> shapes) {
+	/**
+	 * Checks the numbers of the request that the contract cannot: at most two decimals of a position,
+	 * size or bend point. The controller calls it before the scoping check, so that the 400 comes
+	 * first (design D3 step 0).
+	 *
+	 * @throws DiagramViewException for a value with more than two decimals (400)
+	 */
+	public void checkNumbers(List<ShapeInput> shapes, List<EdgeInput> edges) {
 		List<Issue> errors = new ArrayList<>();
 		for (int i = 0; i < shapes.size(); i++) {
 			ShapeInput shape = shapes.get(i);
-			decimals(errors, i, "x", shape.x());
-			decimals(errors, i, "y", shape.y());
-			decimals(errors, i, "width", shape.width());
-			decimals(errors, i, "height", shape.height());
+			decimals(errors, "shapes[" + i + "].x", shape.x());
+			decimals(errors, "shapes[" + i + "].y", shape.y());
+			decimals(errors, "shapes[" + i + "].width", shape.width());
+			decimals(errors, "shapes[" + i + "].height", shape.height());
+		}
+		for (int i = 0; i < edges.size(); i++) {
+			List<Point> points = edges.get(i).points();
+			for (int j = 0; j < points.size(); j++) {
+				decimals(errors, "edges[" + i + "].points[" + j + "].x", points.get(j).x());
+				decimals(errors, "edges[" + i + "].points[" + j + "].y", points.get(j).y());
+			}
 		}
 		if (!errors.isEmpty()) {
 			throw new DiagramViewException(DiagramViewException.Reason.INVALID_REQUEST,
-					"A position or size has more than " + MAX_DECIMALS + " decimals.", errors);
+					"A position, size or bend point has more than " + MAX_DECIMALS + " decimals.", errors);
 		}
 	}
 
-	private static void decimals(List<Issue> errors, int index, String field, BigDecimal value) {
+	private static void decimals(List<Issue> errors, String field, BigDecimal value) {
 		if (value.stripTrailingZeros().scale() > MAX_DECIMALS) {
-			errors.add(new Issue("shapes[" + index + "]." + field, "TOO_MANY_DECIMALS",
-					"The value has at most " + MAX_DECIMALS + " decimals."));
+			errors.add(new Issue(field, "TOO_MANY_DECIMALS", "The value has at most " + MAX_DECIMALS + " decimals."));
 		}
 	}
 
@@ -453,17 +561,126 @@ public class DiagramViews {
 		return errors;
 	}
 
-	/** Each change names an entity that a shape of the request shows, once (design D2 step 2). */
-	private static List<Issue> validateUpdates(List<EntityUpdateInput> updates, List<ShapeInput> shapeInputs) {
+	/** The entity a shape shows: an existing one by ID, or a new one by key. */
+	private record Shown(Integer entityId, UUID newEntityKey) {
+	}
+
+	private List<Issue> validateEdges(UUID diagramId, List<ShapeInput> shapeInputs, List<EdgeInput> edgeInputs,
+			List<NewConnectionInput> newConnections, Set<UUID> allowedConnections, List<StoredEdge> storedEdges) {
+		List<Issue> errors = new ArrayList<>();
+		Map<UUID, Shown> shapes = new HashMap<>();
+		shapeInputs.forEach((shape) -> shapes.put(shape.id(), new Shown(shape.entityId(), shape.newEntityKey())));
+		Map<UUID, StoredEdge> storedById = new HashMap<>();
+		storedEdges.forEach((edge) -> storedById.put(edge.id(), edge));
+		Map<UUID, Integer> keys = new HashMap<>();
+		for (int i = 0; i < newConnections.size(); i++) {
+			NewConnectionInput connection = newConnections.get(i);
+			if (keys.putIfAbsent(connection.key(), i) != null) {
+				errors.add(new Issue("newConnections[" + i + "].key", "DUPLICATE_KEY",
+						"The key occurs earlier in the new connections."));
+			}
+			if (!allowedConnections.contains(connection.metatypeId())) {
+				errors.add(new Issue("newConnections[" + i + "].metatypeId", "METATYPE_NOT_ALLOWED",
+						"The viewpoint of the diagram does not allow this connection metatype."));
+			}
+		}
+		List<Integer> connectionIds = edgeInputs.stream().map(EdgeInput::connectionId).filter((c) -> c != null).distinct().toList();
+		Map<Integer, EntityRef> refs = this.shapes.entities(connectionIds);
+		Map<Integer, DiagramEdgeStore.Endpoints> endpoints = this.edges.endpoints(connectionIds);
+		Set<UUID> foreign = this.edges.idsOfOtherDiagrams(diagramId, edgeInputs.stream().map(EdgeInput::id).toList());
+		Set<UUID> ids = new HashSet<>();
+		// the endpoints of the first edge of each new connection
+		Map<UUID, Shown[]> firstEnds = new HashMap<>();
+		for (int i = 0; i < edgeInputs.size(); i++) {
+			EdgeInput edge = edgeInputs.get(i);
+			String path = "edges[" + i + "]";
+			if (!ids.add(edge.id())) {
+				errors.add(new Issue(path + ".id", "DUPLICATE_EDGE_ID", "The edge ID occurs earlier in the request."));
+			}
+			if (foreign.contains(edge.id())) {
+				errors.add(new Issue(path + ".id", "EDGE_ID_IN_USE", "The edge ID belongs to another diagram."));
+			}
+			Shown source = shapes.get(edge.sourceShapeId());
+			Shown target = shapes.get(edge.targetShapeId());
+			if (source == null) {
+				errors.add(new Issue(path + ".sourceShapeId", "SHAPE_NOT_IN_LAYOUT",
+						"The source shape is not a shape of the saved layout."));
+			}
+			if (target == null) {
+				errors.add(new Issue(path + ".targetShapeId", "SHAPE_NOT_IN_LAYOUT",
+						"The target shape is not a shape of the saved layout."));
+			}
+			if ((edge.connectionId() == null) == (edge.newConnectionKey() == null)) {
+				errors.add(new Issue(path, "CONNECTION_REFERENCE_INVALID",
+						"An edge names exactly one of connectionId and newConnectionKey."));
+			}
+			else if (edge.newConnectionKey() != null) {
+				if (!keys.containsKey(edge.newConnectionKey())) {
+					errors.add(new Issue(path + ".newConnectionKey", "NEW_CONNECTION_UNKNOWN",
+							"The key names no connection of newConnections."));
+				}
+				else if (source != null && target != null) {
+					Shown[] first = firstEnds.putIfAbsent(edge.newConnectionKey(), new Shown[] { source, target });
+					if (first != null && (!first[0].equals(source) || !first[1].equals(target))) {
+						errors.add(new Issue(path, "NEW_CONNECTION_ENDPOINTS_DIFFER",
+								"All edges of a new connection join shapes of the same source and target entity."));
+					}
+				}
+			}
+			else {
+				EntityRef ref = refs.get(edge.connectionId());
+				DiagramEdgeStore.Endpoints ends = endpoints.get(edge.connectionId());
+				StoredEdge kept = storedById.get(edge.id());
+				if (ref == null || ref.deleted()) {
+					errors.add(new Issue(path + ".connectionId", "CONNECTION_NOT_FOUND",
+							"The connection does not exist or is deleted."));
+				}
+				else if (!ref.connection() || ends == null) {
+					errors.add(new Issue(path + ".connectionId", "ENTITY_NOT_CONNECTION",
+							"An edge shows a connection, not an element entity."));
+				}
+				else {
+					if (source != null && !Integer.valueOf(ends.sourceId()).equals(source.entityId())) {
+						errors.add(new Issue(path + ".sourceShapeId", "SOURCE_SHAPE_MISMATCH",
+								"The source shape does not show the source entity of the connection."));
+					}
+					if (target != null && !Integer.valueOf(ends.targetId()).equals(target.entityId())) {
+						errors.add(new Issue(path + ".targetShapeId", "TARGET_SHAPE_MISMATCH",
+								"The target shape does not show the target entity of the connection."));
+					}
+					if (!allowedConnections.contains(ref.metatypeId())
+							&& !(kept != null && kept.connectionId() == edge.connectionId())) {
+						// a stored edge that keeps its connection is accepted when the viewpoint changed
+						errors.add(new Issue(path + ".connectionId", "METATYPE_NOT_ALLOWED",
+								"The viewpoint of the diagram does not allow the metatype of the connection."));
+					}
+				}
+			}
+		}
+		Set<UUID> referenced = new HashSet<>();
+		edgeInputs.stream().filter((edge) -> edge.newConnectionKey() != null).forEach((edge) -> referenced.add(edge.newConnectionKey()));
+		for (int i = 0; i < newConnections.size(); i++) {
+			if (!referenced.contains(newConnections.get(i).key())) {
+				errors.add(new Issue("newConnections[" + i + "]", "NEW_CONNECTION_UNUSED",
+						"No edge shows the new connection."));
+			}
+		}
+		return errors;
+	}
+
+	/** Each change names an entity that a shape or a connection that an edge of the request shows, once. */
+	private static List<Issue> validateUpdates(List<EntityUpdateInput> updates, List<ShapeInput> shapeInputs,
+			List<EdgeInput> edgeInputs) {
 		List<Issue> errors = new ArrayList<>();
 		Set<Integer> shown = new HashSet<>();
 		shapeInputs.stream().filter((shape) -> shape.entityId() != null).forEach((shape) -> shown.add(shape.entityId()));
+		edgeInputs.stream().filter((edge) -> edge.connectionId() != null).forEach((edge) -> shown.add(edge.connectionId()));
 		Set<Integer> seen = new HashSet<>();
 		for (int i = 0; i < updates.size(); i++) {
 			int entityId = updates.get(i).entityId();
 			String path = "entityUpdates[" + i + "].entityId";
 			if (!shown.contains(entityId)) {
-				errors.add(new Issue(path, "ENTITY_NOT_SHOWN", "No shape of the request shows the entity."));
+				errors.add(new Issue(path, "ENTITY_NOT_SHOWN", "No shape or edge of the request shows the entity."));
 			}
 			else if (!seen.add(entityId)) {
 				errors.add(new Issue(path, "DUPLICATE_ENTITY", "The entity is changed earlier in the request."));
@@ -515,9 +732,129 @@ public class DiagramViews {
 		return created;
 	}
 
+	/** Creates the new connections after the new entities; the endpoints are those of the first edge of each. */
+	private Map<UUID, Integer> createConnections(OeaPrincipal principal, List<ShapeInput> shapeInputs,
+			List<EdgeInput> edgeInputs, List<NewConnectionInput> newConnections, Map<UUID, Integer> createdEntities,
+			AuditEvent.Agent agent) {
+		Map<UUID, Integer> created = new HashMap<>();
+		if (newConnections.isEmpty()) {
+			return created;
+		}
+		Map<UUID, ShapeInput> shapes = new HashMap<>();
+		shapeInputs.forEach((shape) -> shapes.put(shape.id(), shape));
+		Map<UUID, EdgeInput> first = new HashMap<>();
+		edgeInputs.stream()
+			.filter((edge) -> edge.newConnectionKey() != null)
+			.forEach((edge) -> first.putIfAbsent(edge.newConnectionKey(), edge));
+		List<ConnectionInput> inputs = new ArrayList<>();
+		for (NewConnectionInput connection : newConnections) {
+			EdgeInput edge = first.get(connection.key());
+			EntityInput entity = new EntityInput(connection.name(), connection.metatypeId(), null,
+					connection.description(), null, null, null, connection.properties());
+			inputs.add(new ConnectionInput(entity, entityOf(shapes.get(edge.sourceShapeId()), createdEntities), null,
+					entityOf(shapes.get(edge.targetShapeId()), createdEntities), null));
+		}
+		try {
+			EntityBatch.Result result = this.entities.createConnectionsInTransaction(principal, inputs, agent);
+			for (int i = 0; i < newConnections.size(); i++) {
+				created.put(newConnections.get(i).key(), result.items().get(i).entityId());
+			}
+		}
+		catch (AtomicBatchFailedException ex) {
+			// "connections[i].sourceId" of the entity write is "newConnections[i]" with the batch code
+			throw invalid(ex.getErrors().stream().map(DiagramViews::connectionIssue).toList());
+		}
+		return created;
+	}
+
+	private static int entityOf(ShapeInput shape, Map<UUID, Integer> createdEntities) {
+		return (shape.entityId() != null) ? shape.entityId() : createdEntities.get(shape.newEntityKey());
+	}
+
+	private static Issue connectionIssue(Issue issue) {
+		Matcher matcher = INDEXED_CONNECTION.matcher(issue.field());
+		if (!matcher.find()) {
+			return issue;
+		}
+		String base = "newConnections[" + matcher.group(1) + "]";
+		String field = matcher.group(2);
+		String rest = issue.field().substring(matcher.end());
+		String path = (field == null || field.equals("sourceId") || field.equals("targetId")) ? base : base + "." + field + rest;
+		return new Issue(path, issue.code(), issue.message());
+	}
+
+	/**
+	 * The stored edges that stay besides those of the request: a hidden edge whose two shapes keep
+	 * their entity (design D1, step 1). The others that the request does not contain are removed.
+	 */
+	private static Set<UUID> keptEdges(List<StoredShape> storedShapes, List<StoredEdge> storedEdges,
+			List<ShapeWrite> writes, List<EdgeWrite> edgeWrites) {
+		Set<UUID> keep = new HashSet<>();
+		edgeWrites.forEach((edge) -> keep.add(edge.id()));
+		Map<UUID, StoredShape> before = new HashMap<>();
+		storedShapes.forEach((shape) -> before.put(shape.id(), shape));
+		Map<UUID, ShapeWrite> after = new HashMap<>();
+		writes.forEach((write) -> after.put(write.id(), write));
+		for (StoredEdge edge : storedEdges) {
+			if (edge.hidden() && keepsEntity(before, after, edge.sourceShapeId())
+					&& keepsEntity(before, after, edge.targetShapeId())) {
+				keep.add(edge.id());
+			}
+		}
+		return keep;
+	}
+
+	private static boolean keepsEntity(Map<UUID, StoredShape> before, Map<UUID, ShapeWrite> after, UUID shapeId) {
+		StoredShape old = before.get(shapeId);
+		ShapeWrite write = after.get(shapeId);
+		if (old == null) {
+			return false;
+		}
+		// a shape that the request does not contain stays only while its entity is deleted
+		return (write != null) ? write.entityId() == old.entityId() : old.hidden();
+	}
+
+	private record EdgeCounts(int added, int changed, int removed) {
+	}
+
+	/** The added, changed and removed edges; the hidden stored edges are not part of the view. */
+	private static EdgeCounts countEdges(List<StoredEdge> stored, List<EdgeWrite> writes) {
+		Map<UUID, StoredEdge> before = new LinkedHashMap<>();
+		stored.stream().filter((edge) -> !edge.hidden()).forEach((edge) -> before.put(edge.id(), edge));
+		Set<UUID> after = new HashSet<>();
+		writes.forEach((write) -> after.add(write.id()));
+		int added = 0;
+		int changed = 0;
+		for (EdgeWrite write : writes) {
+			StoredEdge old = before.get(write.id());
+			if (old == null) {
+				added++;
+			}
+			else if (old.connectionId() != write.connectionId() || !old.sourceShapeId().equals(write.sourceShapeId())
+					|| !old.targetShapeId().equals(write.targetShapeId()) || !samePoints(old.points(), write.points())) {
+				changed++;
+			}
+		}
+		int removed = (int) before.keySet().stream().filter((id) -> !after.contains(id)).count();
+		return new EdgeCounts(added, changed, removed);
+	}
+
+	private static boolean samePoints(List<DiagramEdgeStore.Point> a, List<DiagramEdgeStore.Point> b) {
+		if (a.size() != b.size()) {
+			return false;
+		}
+		for (int i = 0; i < a.size(); i++) {
+			if (a.get(i).x().compareTo(b.get(i).x()) != 0 || a.get(i).y().compareTo(b.get(i).y()) != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private static DiagramViewException invalid(List<Issue> errors) {
 		return new DiagramViewException(DiagramViewException.Reason.INVALID,
-				errors.size() + " shape(s), new entity(ies) or entity change(s) are invalid; nothing was saved.", errors);
+				errors.size() + " shape(s), edge(s), new entity(ies), new connection(s) or entity change(s) are invalid; "
+						+ "nothing was saved.", errors);
 	}
 
 	private record Counts(int added, int changed, int removed) {
@@ -553,26 +890,34 @@ public class DiagramViews {
 	private View buildView(Diagrams.Diagram diagram) {
 		Viewpoints.Viewpoint viewpoint = this.viewpoints.get(diagram.viewpoint().id());
 		List<ShownShape> shown = this.shapes.shown(diagram.id());
-		Map<Integer, List<String>> missing = missingMandatory(shown);
+		List<ShownEdge> shownEdges = this.edges.shown(diagram.id());
+		Map<Integer, UUID> metatypes = new HashMap<>();
+		shown.forEach((shape) -> metatypes.put(shape.entityId(), shape.metatypeId()));
+		shownEdges.forEach((edge) -> metatypes.put(edge.connectionId(), edge.metatypeId()));
+		Map<Integer, List<String>> missing = missingMandatory(metatypes);
 		List<Shape> view = shown.stream()
 			.map((shape) -> new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
 					shape.y(), shape.width(), shape.height(), missing.getOrDefault(shape.entityId(), List.of())))
 			.toList();
-		return new View(diagram, viewpoint, view);
+		List<Edge> edgeView = shownEdges.stream()
+			.map((edge) -> new Edge(edge.id(), edge.connectionId(), edge.connectionName(), edge.metatypeId(),
+					edge.sourceShapeId(), edge.targetShapeId(),
+					edge.points().stream().map((point) -> new Point(point.x(), point.y())).toList(),
+					missing.getOrDefault(edge.connectionId(), List.of())))
+			.toList();
+		return new View(diagram, viewpoint, view, edgeView);
 	}
 
 	/**
 	 * The names of the mandatory properties of the current metatype of each entity that have no
 	 * value, ordered by name ignoring case. Incompleteness is computed, not stored (design D3).
 	 */
-	private Map<Integer, List<String>> missingMandatory(List<ShownShape> shown) {
+	private Map<Integer, List<String>> missingMandatory(Map<Integer, UUID> metatypes) {
 		Map<Integer, List<String>> missing = new HashMap<>();
-		if (shown.isEmpty()) {
+		if (metatypes.isEmpty()) {
 			return missing;
 		}
 		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock));
-		Map<Integer, UUID> metatypes = new HashMap<>();
-		shown.forEach((shape) -> metatypes.put(shape.entityId(), shape.metatypeId()));
 		Map<Integer, Set<UUID>> values = this.shapes.valueProperties(metatypes.keySet());
 		metatypes.forEach((entityId, metatypeId) -> {
 			MetatypeRules.Metatype metatype = rules.metatype(metatypeId);
@@ -600,7 +945,8 @@ public class DiagramViews {
 		return search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 
-	private void audit(OeaPrincipal principal, UUID id, String name, int version, Counts counts, int entitiesCreated) {
+	private void audit(OeaPrincipal principal, UUID id, String name, int version, Counts counts,
+			EdgeCounts edgeCounts, int entitiesCreated, int connectionsCreated) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
 		details.put("version", version);
@@ -608,6 +954,10 @@ public class DiagramViews {
 		details.put("changed", counts.changed());
 		details.put("removed", counts.removed());
 		details.put("entitiesCreated", entitiesCreated);
+		details.put("edgesAdded", edgeCounts.added());
+		details.put("edgesChanged", edgeCounts.changed());
+		details.put("edgesRemoved", edgeCounts.removed());
+		details.put("connectionsCreated", connectionsCreated);
 		this.audit.append(new AuditEvent("diagram.layout-saved", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "diagram", id.toString(),
 				details));

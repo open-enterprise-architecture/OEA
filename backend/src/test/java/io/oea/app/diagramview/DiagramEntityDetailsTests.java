@@ -708,7 +708,7 @@ class DiagramEntityDetailsTests {
 	}
 
 	@Test
-	void theLargestSaveWithEntityChangesIsAcceptedAndOneAboveTwoMegabytesAnswers413() {
+	void theLargestSaveWithEntityChangesIsAcceptedAndOneAboveFourMegabytesAnswers413() {
 		UUID wide = metatype("Wide " + suffix(), "WI");
 		this.jdbc.update("INSERT INTO viewpoint_metatypes (viewpoint_id, metatype_id) VALUES (?, ?)", this.viewpoint, wide);
 		List<UUID> properties = new ArrayList<>();
@@ -739,7 +739,7 @@ class DiagramEntityDetailsTests {
 			.header(CsrfOriginFilter.HEADER, this.anna.csrfToken())
 			.header("If-Match", "\"2\"")
 			.contentType("application/json")
-			.content(text + " ".repeat(2 * 1024 * 1024))
+			.content(text + " ".repeat(4 * 1024 * 1024 - text.length() + 1))
 			.exchange();
 		assertThat(status(tooLarge)).isEqualTo(413);
 	}

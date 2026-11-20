@@ -8,9 +8,9 @@ Defines the details of an entity shown in a diagram: reading them, searching ref
 
 ### Requirement: Read the details of a shown entity
 
-A principal with `entity:read` SHALL read for an entity shown in a diagram its name, description, metatype, version, property values and the missing mandatory properties; values the reader may not read SHALL be redacted, and each mapped property SHALL say whether the reader may read and change it. An entity without a shape in the diagram, a deleted entity or a deleted diagram SHALL answer 404.
+A principal with `entity:read` SHALL read for an entity shown in a diagram by a shape or an edge its name, description, metatype, version, values and missing mandatory properties; unreadable values SHALL be redacted, and each mapped property SHALL say whether the reader may read and change it. An entity without a shape or edge in the diagram, a deleted entity or a deleted diagram SHALL answer 404.
 
-Trace: UC-10 step 6, US-074, REQ-160, owner decisions 2026-11-19 and 2026-11-20
+Trace: UC-10 step 6, US-074, REQ-160, owner decisions 2026-11-19 and 2026-11-20, diagram/diagram-connections
 
 #### Scenario: Details of a shown entity
 
@@ -24,10 +24,16 @@ Trace: UC-10 step 6, US-074, REQ-160, owner decisions 2026-11-19 and 2026-11-20
 - **WHEN** Franz, without that role, reads the details of "SAP ERP"
 - **THEN** "Investment" is redacted
 
+#### Scenario: Connection shown by an edge
+
+- **GIVEN** "Order to Cash" has an edge of the connection "SAP ERP → CRM Cloud"
+- **WHEN** Franz reads the details of "SAP ERP → CRM Cloud" in "Order to Cash"
+- **THEN** he gets its name, description, metatype, version and values
+
 #### Scenario: Entity not shown
 
-- **WHEN** Franz reads the details of an entity that has no shape in "Order to Cash"
-- **THEN** the response is 404
+- **WHEN** Franz reads the details of an entity that has no shape and of a connection that has no edge in "Order to Cash"
+- **THEN** each response is 404
 
 ### Requirement: Reference targets for the details
 
@@ -48,7 +54,7 @@ Trace: UC-10 step 6, US-074, repository/entity-write (property values checked ag
 
 ### Requirement: Change entities with the diagram
 
-A save of the diagram SHALL carry changes of shown entities (name, description, property values) with the entity version read, and values of new entities. They SHALL be written like every entity write: metamodel and visibility checked, mandatory values required, an entity with an open issue rejected, versioned, audited, atomic with the layout.
+A save of the diagram SHALL carry changes of entities shown by a shape or an edge (name, description, property values; not the endpoints) with the entity version read, and values of new entities and connections. They SHALL be written like every entity write: metamodel and visibility checked, mandatory values required, an entity with an open issue rejected, versioned, audited, atomic with the layout.
 
 Trace: UC-10 step 6, US-074, repository/entity-write, solution/solution-go-live, owner decisions 2026-11-19 and 2026-11-20
 
@@ -81,9 +87,14 @@ Trace: UC-10 step 6, US-074, repository/entity-write, solution/solution-go-live,
 - **WHEN** Anna changes "SAP ERP" with the diagram
 - **THEN** the response is 409 `entity-blocked` naming "SAP ERP" and its open issue, and nothing changes
 
+#### Scenario: Connection changed
+
+- **WHEN** Anna changes the description of the connection "SAP ERP → CRM Cloud" shown by an edge and saves
+- **THEN** the connection has the description in a new version, audited as an entity change
+
 #### Scenario: Entity not shown
 
-- **WHEN** an API call changes an entity that has no shape in the saved layout
+- **WHEN** an API call changes an entity that has no shape and no edge in the saved layout
 - **THEN** the response is 422 naming the change, and nothing changes
 
 #### Scenario: Limits
@@ -111,14 +122,19 @@ Trace: #69, repository/entity-write, owner decision 2026-11-19
 
 ### Requirement: Details panel
 
-Selecting a shape SHALL open the details panel of its entity on the canvas page, with name, description, metatype and the property values in the form of the entity's metatype. Holders of `entity:write` SHALL change the values they may write; the changes SHALL count as unsaved changes of the diagram, and missing mandatory values SHALL be marked. A reader SHALL see the panel read-only.
+Selecting a shape or an edge SHALL open the details panel of its entity on the canvas page, with name, description, metatype and the property values in the form of the entity's metatype. Holders of `entity:write` SHALL change the values they may write; the changes SHALL count as unsaved changes of the diagram, and missing mandatory values SHALL be marked. A reader SHALL see the panel read-only.
 
-Trace: UC-10 step 6, US-074, SCR-021, owner decisions 2026-11-19 and 2026-11-20
+Trace: UC-10 step 6, US-074, SCR-021, owner decisions 2026-11-19 and 2026-11-20, diagram/diagram-connections
 
 #### Scenario: Edit and save
 
 - **WHEN** Anna selects "SAP ERP", changes "Status" to "retiring" and chooses "Save"
 - **THEN** the diagram and the entity are saved in one step, and the panel shows the new version
+
+#### Scenario: Edge selected
+
+- **WHEN** Anna selects the edge of "SAP ERP → CRM Cloud"
+- **THEN** the panel shows the connection with its metatype and values, editable for her
 
 #### Scenario: Mandatory marked
 

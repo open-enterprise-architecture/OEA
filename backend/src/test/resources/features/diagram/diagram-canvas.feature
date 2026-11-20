@@ -244,3 +244,21 @@ Feature: Diagram canvas
     When the enterprise architect saves the layout of "Dgc Audit" with "Dgc Audit ERP" added twice and "Dgc Audit CRM" removed
     Then the canvas answer is 200
     And "diagram.layout-saved" is audited for "Dgc Audit" with 2 added, 0 changed, 1 removed and 0 created entities
+
+  @AC6
+  Scenario: Edges audited
+    Given the diagram element metatypes "Dcn Component" and "Dcn Data" exist
+    And the diagram viewpoint "Dgc Process Model" allows the metatypes "Dcn Component"
+    And the diagram "Dgc Edge Audit" exists in the viewpoint "Dgc Process Model"
+    And the canvas entity "Dgc Edge ERP" of the metatype "Dcn Component" exists
+    And the canvas entity "Dgc Edge CRM" of the metatype "Dcn Component" exists
+    And the connection type "Dgc Flow" joins "Dcn Component" and "Dcn Component"
+    And the diagram viewpoint "Dgc Process Model" allows the connection types "Dgc Flow"
+    And the diagram "Dgc Edge Audit" shows the entity "Dgc Edge ERP" at 1, 1 with 90 x 30 pt
+    And the diagram "Dgc Edge Audit" shows the entity "Dgc Edge CRM" at 300, 1 with 90 x 30 pt
+    And the connection "Dgc Edge Old" of the type "Dgc Flow" runs from "Dgc Edge CRM" to "Dgc Edge ERP"
+    And the diagram "Dgc Edge Audit" shows the connection "Dgc Edge Old"
+    When the enterprise architect draws a new connection of the type "Dgc Flow" from the shape of "Dgc Edge ERP" to the shape of "Dgc Edge CRM" in "Dgc Edge Audit", removes the edge of "Dgc Edge Old" and saves
+    Then the connection answer is 200
+    And the layout of "Dgc Edge Audit" is audited with 1 added edges, 1 removed edges and 1 created connections
+    And one "entity.created" audit event names the entity "Dgc Edge ERP → Dgc Edge CRM"

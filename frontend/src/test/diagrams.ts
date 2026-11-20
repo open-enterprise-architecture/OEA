@@ -1,5 +1,5 @@
 import type { DeletedDiagram, Diagram } from '../api/diagrams'
-import type { DiagramEntity, DiagramEntityDetails, DiagramShape, DiagramView, DiagramViewWrite } from '../api/diagramView'
+import type { AllowedConnectionResult, DiagramConnectionOffer, DiagramEdge, DiagramEntity, DiagramEntityDetails, DiagramShape, DiagramView, DiagramViewWrite } from '../api/diagramView'
 import type { Viewpoint } from '../api/metamodel'
 import type { RecordedRequest } from './fetch'
 
@@ -70,6 +70,9 @@ export const DIAGRAMS: Diagram[] = [
 export const METATYPE_COMPONENT = 'c1000000-0000-4000-8000-000000000001'
 export const METATYPE_PROCESS = 'c1000000-0000-4000-8000-000000000002'
 export const METATYPE_OUTSIDER = 'c1000000-0000-4000-8000-000000000003'
+/** Connection types of the viewpoint: "Flow" stores a length of 150 pt, "Association" has none (90 pt). */
+export const METATYPE_FLOW = 'c1000000-0000-4000-8000-000000000011'
+export const METATYPE_ASSOCIATION = 'c1000000-0000-4000-8000-000000000012'
 
 type ViewpointConfig = Viewpoint
 
@@ -86,16 +89,24 @@ export function viewpointConfig(): ViewpointConfig {
     viewpointType: 'user-defined',
     sourcePackage: null,
     mappings: [],
-    sizes: [{ metatypeId: METATYPE_COMPONENT, width: 120, height: 40, length: null }],
+    sizes: [
+      { metatypeId: METATYPE_COMPONENT, width: 120, height: 40, length: null },
+      { metatypeId: METATYPE_FLOW, width: null, height: null, length: 150 },
+    ],
     effectiveMappings: [
       { metatypeId: METATYPE_COMPONENT, notationElement: 'generic:Box', width: 120, height: 40, length: null, sizeStored: true, visualHint: '#2563eb', fallback: true },
       { metatypeId: METATYPE_PROCESS, notationElement: 'generic:Box', width: 90, height: 30, length: null, sizeStored: false, visualHint: null, fallback: true },
+      { metatypeId: METATYPE_FLOW, notationElement: 'generic:Arrow', width: null, height: null, length: 150, sizeStored: true, visualHint: '#16a34a', fallback: true },
+      { metatypeId: METATYPE_ASSOCIATION, notationElement: 'generic:Arrow', width: null, height: null, length: 90, sizeStored: false, visualHint: null, fallback: true },
     ],
     allowedMetatypes: [
       { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' },
       { id: METATYPE_PROCESS, name: 'Business Process', abbreviation: 'BP' },
     ],
-    allowedRelations: [],
+    allowedRelations: [
+      { id: METATYPE_ASSOCIATION, name: 'Association', abbreviation: 'AS' },
+      { id: METATYPE_FLOW, name: 'Flow', abbreviation: 'FL' },
+    ],
     diagramCount: 1,
     version: 1,
     createdAt: '2026-11-19T09:00:00Z',
@@ -139,7 +150,29 @@ export const COMPONENT_MAPPINGS = [
 ]
 export const PROCESS_MAPPINGS = [mapping(PROP_OWNER, 'Process Owner', 'string', 'mandatory', 1)]
 
-const MAPPINGS: Record<string, ReturnType<typeof mapping>[]> = { [METATYPE_COMPONENT]: COMPONENT_MAPPINGS, [METATYPE_PROCESS]: PROCESS_MAPPINGS }
+export const PROP_PROTOCOL = 'e1000000-0000-4000-8000-000000000005'
+/** "Flow" has a mandatory "Protocol": a connection drawn on the canvas is incomplete until it has one. */
+export const FLOW_MAPPINGS = [mapping(PROP_PROTOCOL, 'Protocol', 'string', 'mandatory', 1)]
+
+const MAPPINGS: Record<string, ReturnType<typeof mapping>[]> = { [METATYPE_COMPONENT]: COMPONENT_MAPPINGS, [METATYPE_PROCESS]: PROCESS_MAPPINGS, [METATYPE_FLOW]: FLOW_MAPPINGS }
+
+/**
+ * The connection types between two metatypes of the fake metamodel: "Flow" runs from a component to a
+ * component or a process, "Association" joins two components in both directions.
+ */
+export function allowedConnections(source: string, target: string): AllowedConnectionResult {
+  const options: AllowedConnectionResult['options'] = []
+  const flow = { id: METATYPE_FLOW, name: 'Flow', abbreviation: 'FL' }
+  const association = { id: METATYPE_ASSOCIATION, name: 'Association', abbreviation: 'AS' }
+  if (source === METATYPE_COMPONENT && target === METATYPE_COMPONENT) {
+    options.push({ connectionMetatype: flow, direction: 'source-to-target' }, { connectionMetatype: association, direction: 'bidirectional' })
+  } else if (source === METATYPE_COMPONENT && target === METATYPE_PROCESS) {
+    options.push({ connectionMetatype: flow, direction: 'source-to-target' })
+  } else if (source === METATYPE_PROCESS && target === METATYPE_COMPONENT) {
+    options.push({ connectionMetatype: flow, direction: 'target-to-source' })
+  }
+  return { allowed: options.length > 0, options }
+}
 
 /** The state of an entity of the fake: version, fields and the values by property definition ID as text. */
 export interface FakeEntity {
@@ -157,10 +190,11 @@ export function fakeEntities(): Record<number, FakeEntity> {
     12: { id: 12, name: 'SAP ERP', description: 'Core ERP for finance and logistics', metatypeId: METATYPE_COMPONENT, version: 4, values: { [PROP_STATUS]: 'active', [PROP_INVESTMENT]: '5000000' } },
     13: { id: 13, name: 'Salesforce', description: '', metatypeId: METATYPE_COMPONENT, version: 1, values: {} },
     14: { id: 14, name: 'Invoice Approval', description: '', metatypeId: METATYPE_PROCESS, version: 1, values: {} },
+    21: { id: 21, name: 'SAP ERP → Salesforce', description: 'Orders to the CRM', metatypeId: METATYPE_FLOW, version: 2, values: { [PROP_PROTOCOL]: 'REST' } },
   }
 }
 
-const DEFINITIONS = Object.fromEntries([...COMPONENT_MAPPINGS, ...PROCESS_MAPPINGS].map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition]))
+const DEFINITIONS = Object.fromEntries([...COMPONENT_MAPPINGS, ...PROCESS_MAPPINGS, ...FLOW_MAPPINGS].map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition]))
 
 function propertyValue(defId: string, text: string, redacted: boolean) {
   const definition = DEFINITIONS[defId]!
@@ -200,9 +234,22 @@ export function shape(overrides: Partial<DiagramShape> = {}): DiagramShape {
   }
 }
 
-/** The view of a diagram with the given shapes, for the component specs of the canvas. */
-export function diagramView(shapes: DiagramShape[] = [], overrides: Partial<Diagram> = {}): DiagramView {
-  return { diagram: diagram(overrides), viewpoint: viewpointConfig(), shapes }
+/** An edge of the view; the connection defaults to "SAP ERP → Salesforce" between the shapes of the stories. */
+export function edge(overrides: Partial<DiagramEdge> = {}): DiagramEdge {
+  return {
+    id: 'f1000000-0000-4000-8000-000000000001',
+    connection: { id: 21, name: 'SAP ERP → Salesforce', metatypeId: METATYPE_FLOW },
+    sourceShapeId: 'd1000000-0000-4000-8000-000000000001',
+    targetShapeId: 'd1000000-0000-4000-8000-000000000002',
+    points: [],
+    missingMandatory: [],
+    ...overrides,
+  }
+}
+
+/** The view of a diagram with the given shapes and edges, for the component specs of the canvas. */
+export function diagramView(shapes: DiagramShape[] = [], overrides: Partial<Diagram> = {}, edges: DiagramEdge[] = []): DiagramView {
+  return { diagram: diagram(overrides), viewpoint: viewpointConfig(), shapes, edges }
 }
 
 function respond(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -225,6 +272,12 @@ export interface DiagramApiOptions {
   pageSize?: number
   /** the shapes of the diagram "Order to Cash" (SCR-021) */
   shapes?: DiagramShape[]
+  /** the edges of the diagram "Order to Cash" (SCR-021) */
+  edges?: DiagramEdge[]
+  /** the connections the offer finds when an entity is placed: the fake answers those between the placed and the shown entities */
+  offers?: DiagramConnectionOffer[]
+  /** the connection types between two metatypes; default `allowedConnections` */
+  allowed?: (source: string, target: string) => AllowedConnectionResult
   /** the entities "Add existing" finds */
   entities?: DiagramEntity[]
   /** the names of the mandatory properties a new entity of a metatype misses (an entity created on the canvas is incomplete) */
@@ -244,7 +297,7 @@ export interface DiagramApiOptions {
 }
 
 export type DiagramApi = typeof fetch & {
-  state: { diagrams: Diagram[]; deleted: DeletedDiagram[]; shapes: DiagramShape[]; saves: DiagramViewWrite[]; entities: Record<number, FakeEntity> }
+  state: { diagrams: Diagram[]; deleted: DeletedDiagram[]; shapes: DiagramShape[]; edges: DiagramEdge[]; saves: DiagramViewWrite[]; entities: Record<number, FakeEntity>; queries: { entityIds: number[]; shownEntityIds: number[] }[] }
 }
 
 /**
@@ -257,7 +310,9 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     diagrams: (options.diagrams ?? DIAGRAMS).map((entry) => structuredClone(entry)),
     deleted: (options.deleted ?? []).map((entry) => structuredClone(entry)),
     shapes: (options.shapes ?? []).map((entry) => structuredClone(entry)),
+    edges: (options.edges ?? []).map((entry) => structuredClone(entry)),
     saves: [] as DiagramViewWrite[],
+    queries: [] as { entityIds: number[]; shownEntityIds: number[] }[],
     entities: structuredClone(options.entityStates ?? fakeEntities()),
   }
   let counter = 100
@@ -299,7 +354,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         return problem(404, 'not-found')
       }
       if (method === 'GET') {
-        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes }, { ETag: `"${found.version}"` })
+        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges }, { ETag: `"${found.version}"` })
       }
       if (method === 'PUT') {
         if (version !== found.version) {
@@ -378,18 +433,41 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
               : []
           return { id: entry.id, entity, x: entry.x, y: entry.y, width: entry.width, height: entry.height, missingMandatory: missing }
         })
+        // the connections created with the save: named after their ends unless named, incomplete without a mandatory value
+        const createdConnections = new Map<string, { id: number; metatypeId: string; values: Record<string, string> }>()
+        const entityOfShape = (shapeId: string) => state.shapes.find((entry) => entry.id === shapeId)?.entity
+        for (const connection of request.newConnections ?? []) {
+          const first = (request.edges ?? []).find((entry) => entry.newConnectionKey === connection.key)
+          entityCounter += 1
+          const values = Object.fromEntries((connection.properties ?? []).map((property) => [property.propertyDefId, property.value]))
+          const name = connection.name ?? `${entityOfShape(first?.sourceShapeId ?? '')?.name} → ${entityOfShape(first?.targetShapeId ?? '')?.name}`
+          createdConnections.set(connection.key, { id: entityCounter, metatypeId: connection.metatypeId, values })
+          state.entities[entityCounter] = { id: entityCounter, name, description: connection.description ?? '', metatypeId: connection.metatypeId, version: 1, values }
+        }
+        state.edges = (request.edges ?? []).map((entry) => {
+          const own = entry.newConnectionKey ? createdConnections.get(entry.newConnectionKey) : undefined
+          const connection = own ? state.entities[own.id]! : state.entities[entry.connectionId ?? -1]
+          return {
+            id: entry.id,
+            connection: { id: connection?.id ?? entry.connectionId!, name: connection?.name ?? `Connection ${entry.connectionId}`, metatypeId: connection?.metatypeId ?? METATYPE_FLOW },
+            sourceShapeId: entry.sourceShapeId,
+            targetShapeId: entry.targetShapeId,
+            points: entry.points,
+            missingMandatory: connection ? mandatoryMissing(connection) : [],
+          }
+        })
         found.version += 1
-        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes }, { ETag: `"${found.version}"` })
+        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges }, { ETag: `"${found.version}"` })
       }
     }
     const detail = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities\/(\d+)$/.exec(path)
     if (detail && method === 'GET') {
       const entity = state.entities[Number(detail[2])]
-      if (!entity || !state.shapes.some((entry) => entry.entity.id === entity.id)) {
+      if (!entity || (!state.shapes.some((entry) => entry.entity.id === entity.id) && !state.edges.some((entry) => entry.connection.id === entity.id))) {
         return problem(404, 'not-found')
       }
       const writer = ((options.me as { permissions: { permission: string }[] }).permissions ?? []).some((entry) => entry.permission === 'entity:write')
-      const type = ENTITIES.find((candidate) => candidate.metatype.id === entity.metatypeId)?.metatype
+      const type = ENTITIES.find((candidate) => candidate.metatype.id === entity.metatypeId)?.metatype ?? viewpointConfig().allowedRelations.find((candidate) => candidate.id === entity.metatypeId)
       const details: DiagramEntityDetails = {
         id: entity.id,
         name: entity.name,
@@ -406,6 +484,19 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
       }
       return respond(200, details)
     }
+    const query = /^\/api\/v1\/views\/diagrams\/([^/]+)\/connections\/query$/.exec(path)
+    if (query && method === 'POST') {
+      const { entityIds, shownEntityIds } = body as unknown as { entityIds: number[]; shownEntityIds: number[] }
+      state.queries.push({ entityIds, shownEntityIds })
+      const others = [...entityIds, ...shownEntityIds]
+      const items = (options.offers ?? []).filter(
+        (offer) => (entityIds.includes(offer.sourceEntityId) && others.includes(offer.targetEntityId)) || (entityIds.includes(offer.targetEntityId) && others.includes(offer.sourceEntityId)),
+      )
+      return respond(200, { items, truncated: false })
+    }
+    if (path === '/api/v1/metamodel/allowed-connections' && method === 'GET') {
+      return respond(200, (options.allowed ?? allowedConnections)(url.searchParams.get('sourceMetatypeId') ?? '', url.searchParams.get('targetMetatypeId') ?? ''))
+    }
     const targets = /^\/api\/v1\/views\/diagrams\/([^/]+)\/reference-targets$/.exec(path)
     if (targets && method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase()
@@ -414,7 +505,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     }
     const metatype = /^\/api\/v1\/metamodel\/metatypes\/([^/]+)$/.exec(path)
     if (metatype && method === 'GET') {
-      const type = viewpointConfig().allowedMetatypes.find((candidate) => candidate.id === metatype[1])
+      const type = [...viewpointConfig().allowedMetatypes, ...viewpointConfig().allowedRelations].find((candidate) => candidate.id === metatype[1])
       return type ? respond(200, { ...type, propertyMappings: MAPPINGS[type.id] ?? [] }) : problem(404, 'not-found')
     }
     const search = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities$/.exec(path)
