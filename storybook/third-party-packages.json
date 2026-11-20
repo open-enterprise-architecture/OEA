@@ -152,6 +152,22 @@
     "noticeFile": false
   },
   {
+    "name": "@vue-flow/core",
+    "version": "1.48.2",
+    "license": "MIT",
+    "repository": "https://github.com/bcakmakoglu/vue-flow",
+    "licenseFile": true,
+    "noticeFile": false
+  },
+  {
+    "name": "@vue-flow/node-resizer",
+    "version": "1.5.1",
+    "license": "MIT",
+    "repository": "https://github.com/bcakmakoglu/vue-flow/packages/plugins/node-resizer",
+    "licenseFile": true,
+    "noticeFile": false
+  },
+  {
     "name": "@vue/compiler-core",
     "version": "3.5.44",
     "license": "MIT",
