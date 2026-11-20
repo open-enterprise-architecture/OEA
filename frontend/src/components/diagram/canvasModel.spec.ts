@@ -105,7 +105,7 @@ describe('canvasModel', () => {
 
   it('leaves out a new shape whose name is not entered', () => {
     const unnamed = placeNew(view, METATYPE_PROCESS, { x: 0, y: 0 })
-    expect(writeRequest([unnamed])).toEqual({ shapes: [], newEntities: [] })
+    expect(writeRequest([unnamed])).toEqual({ shapes: [], newEntities: [], edges: [], newConnections: [] })
   })
 
   it('detects unsaved changes in position, size, order, entity and number of shapes', () => {

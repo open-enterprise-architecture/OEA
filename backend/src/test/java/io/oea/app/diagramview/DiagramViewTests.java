@@ -654,7 +654,7 @@ class DiagramViewTests {
 	// Requirement: Request size (design D5)
 
 	@Test
-	void theLargestSaveWithEscapedNamesIsAcceptedAndOneAboveTwoMegabytesAnswers413() {
+	void theLargestSaveWithEscapedNamesIsAcceptedAndOneAboveFourMegabytesAnswers413() {
 		int erp = entity("SAP ERP", this.component);
 		ObjectNode body = JsonMapper.shared().createObjectNode();
 		ArrayNode shapes = body.putArray("shapes");
@@ -676,7 +676,7 @@ class DiagramViewTests {
 			.isEqualTo(200);
 		this.jdbc.update("DELETE FROM diagram_shapes WHERE diagram_id = ?::uuid", this.diagram);
 		// above the limit
-		String padded = text + " ".repeat(2 * 1024 * 1024);
+		String padded = text + " ".repeat(4 * 1024 * 1024 - text.length() + 1);
 		MvcTestResult tooLarge = this.mvc.put()
 			.uri(VIEWS + "/" + this.diagram)
 			.cookie(new Cookie(SessionCookie.NAME, this.anna.token()))

@@ -1,5 +1,6 @@
 import type { DiagramEntity, DiagramEntityUpdate, DiagramShape, DiagramView, DiagramViewWrite } from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
+import { edgeFingerprint, type CanvasEdge } from './edgeModel'
 
 // The state of the canvas editor without the canvas library (design D6 of us-074-diagram-canvas):
 // shapes in pt, the conversion to the pixels of the canvas, default sizes, moving with the keyboard
@@ -40,6 +41,8 @@ export interface ShapeData {
   abbreviation?: string
   hint?: string
   editable: boolean
+  /** the shape can be the end of a drawn connection */
+  connectable: boolean
   editing: boolean
   unsaved: boolean
   missingMandatory: string[]
@@ -241,9 +244,13 @@ export function applyNewEntityEdit(shape: CanvasShape, change: FieldChange): Can
  * The request of the save: the shapes in drawing order, the new entities (names trimmed, with the
  * description and values entered) and the changes of the shown saved entities with their versions.
  */
-export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}): DiagramViewWrite {
+export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}, edges: CanvasEdge[] = []): DiagramViewWrite {
   const named = shapes.filter((shape) => shape.entityId !== undefined || (shape.newEntity && shape.name.trim().length > 0))
+  const placed = new Set(named.map((shape) => shape.id))
+  const drawn = edges.filter((edge) => placed.has(edge.sourceShapeId) && placed.has(edge.targetShapeId))
   const shown = new Set(named.map((shape) => shape.entityId).filter((id): id is number => id !== undefined))
+  drawn.forEach((edge) => edge.connectionId !== undefined && shown.add(edge.connectionId))
+  const created = new Map(drawn.filter((edge) => edge.newConnection).map((edge) => [edge.newConnection!.key, edge.newConnection!]))
   const updates: DiagramEntityUpdate[] = Object.entries(edits)
     .filter(([id, edit]) => isEdited(edit) && shown.has(Number(id)))
     .map(([id, edit]) => ({
@@ -278,6 +285,22 @@ export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}): Di
         }
       }),
     ...(updates.length > 0 ? { entityUpdates: updates } : {}),
+    edges: drawn.map((edge) => ({
+      id: edge.id,
+      ...(edge.newConnection ? { newConnectionKey: edge.newConnection.key } : { connectionId: edge.connectionId }),
+      sourceShapeId: edge.sourceShapeId,
+      targetShapeId: edge.targetShapeId,
+      points: edge.points.map((point) => ({ x: limitPosition(point.x), y: limitPosition(point.y) })),
+    })),
+    newConnections: [...created.values()].map((connection) => {
+      const values = Object.entries(connection.properties ?? {}).filter(([, value]) => value !== '')
+      return {
+        key: connection.key,
+        metatypeId: connection.metatypeId,
+        ...((connection.description ?? '') !== '' ? { description: connection.description } : {}),
+        ...(values.length > 0 ? { properties: values.map(([propertyDefId, value]) => ({ propertyDefId, value })) } : {}),
+      }
+    }),
   }
 }
 
@@ -290,13 +313,29 @@ function fingerprint(shape: CanvasShape): string {
  * Whether the shapes differ from the saved ones in shape, entity, position, size or order, or an
  * entity has changes of its fields.
  */
-export function hasUnsavedChanges(shapes: CanvasShape[], saved: CanvasShape[], edits: EntityEdits = {}): boolean {
+export function hasUnsavedChanges(
+  shapes: CanvasShape[],
+  saved: CanvasShape[],
+  edits: EntityEdits = {},
+  edges: CanvasEdge[] = [],
+  savedEdges: CanvasEdge[] = [],
+): boolean {
   const current = shapes.filter((shape) => !shape.editing || shape.name.trim().length > 0)
+  const placed = new Set(current.map((shape) => shape.id))
+  const drawn = edges.filter((edge) => placed.has(edge.sourceShapeId) && placed.has(edge.targetShapeId))
   return (
     current.length !== saved.length ||
     current.some((shape, index) => fingerprint(shape) !== fingerprint(saved[index])) ||
+    drawn.length !== savedEdges.length ||
+    drawn.some((edge) => isEdgeUnsaved(edge, savedEdges, edits)) ||
     editedCount(edits) > 0
   )
+}
+
+/** Whether an edge is new or differs from its saved version, or its connection has changes. */
+export function isEdgeUnsaved(edge: CanvasEdge, saved: CanvasEdge[], edits: EntityEdits = {}): boolean {
+  const before = saved.find((entry) => entry.id === edge.id)
+  return !before || edgeFingerprint(before) !== edgeFingerprint(edge) || (edge.connectionId !== undefined && isEdited(edits[edge.connectionId]))
 }
 
 /** Whether a shape is new or differs from its saved version, or its entity has changes. */
@@ -314,15 +353,22 @@ export function isUnsaved(shape: CanvasShape, saved: CanvasShape[], edits: Entit
 export interface Rejected {
   shapes: Map<string, string>
   fields: Map<string, string>
+  /** the edges the errors name, by edge ID: `edges[i]`, `newConnections[j]` and `entityUpdates[i]` of a connection */
+  edges: Map<string, string>
 }
 
 export function rejectedShapes(
   errors: { field: string; message: string }[],
   request: DiagramViewWrite,
   shapes: CanvasShape[],
+  edges: CanvasEdge[] = [],
 ): Rejected {
   const rejected = new Map<string, string>()
+  const rejectedEdges = new Map<string, string>()
   const fields = new Map<string, string>()
+  const markEdge = (edge: CanvasEdge, message: string) => {
+    if (!rejectedEdges.has(edge.id)) rejectedEdges.set(edge.id, message)
+  }
   const byId = new Map(shapes.map((shape) => [shape.id, shape]))
   const mark = (shape: CanvasShape, message: string) => {
     if (!rejected.has(shape.id)) rejected.set(shape.id, message)
@@ -331,7 +377,19 @@ export function rejectedShapes(
     const shape = /^shapes\[(\d+)]/.exec(error.field)
     const entity = /^newEntities\[(\d+)](?:\.(.*))?$/.exec(error.field)
     const update = /^entityUpdates\[(\d+)](?:\.(.*))?$/.exec(error.field)
-    if (shape) {
+    const edge = /^edges\[(\d+)]/.exec(error.field)
+    const connection = /^newConnections\[(\d+)](?:\.(.*))?$/.exec(error.field)
+    if (edge) {
+      const id = request.edges?.[Number(edge[1])]?.id
+      const found = edges.find((candidate) => candidate.id === id)
+      if (found) markEdge(found, error.message)
+    } else if (connection) {
+      const sent = request.newConnections?.[Number(connection[1])]
+      for (const candidate of edges) {
+        if (sent && candidate.newConnection?.key === sent.key) markEdge(candidate, error.message)
+      }
+      if (sent) fields.set(`${sent.key}|${fieldOf(connection[2], sent.properties)}`, error.message)
+    } else if (shape) {
       const id = request.shapes[Number(shape[1])]?.id
       if (id && byId.has(id)) mark(byId.get(id)!, error.message)
     } else if (entity) {
@@ -345,10 +403,13 @@ export function rejectedShapes(
       for (const candidate of shapes) {
         if (sent && candidate.entityId === sent.entityId) mark(candidate, error.message)
       }
+      for (const candidate of edges) {
+        if (sent && candidate.connectionId === sent.entityId) markEdge(candidate, error.message)
+      }
       if (sent) fields.set(`${sent.entityId}|${fieldOf(update[2], sent.properties)}`, error.message)
     }
   }
-  return { shapes: rejected, fields }
+  return { shapes: rejected, fields, edges: rejectedEdges }
 }
 
 /** The field a path below an entity names: `name`, `description`, the property of `properties[k]...`, or empty. */

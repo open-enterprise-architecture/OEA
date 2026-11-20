@@ -6,6 +6,12 @@ import io.oea.api.generated.model.DeletedDiagram;
 import io.oea.api.generated.model.DeletedDiagramPage;
 import io.oea.api.generated.model.Diagram;
 import io.oea.api.generated.model.DiagramCreate;
+import io.oea.api.generated.model.DiagramConnectionOffer;
+import io.oea.api.generated.model.DiagramConnectionOfferList;
+import io.oea.api.generated.model.DiagramConnectionQuery;
+import io.oea.api.generated.model.DiagramEdge;
+import io.oea.api.generated.model.DiagramEdgeConnection;
+import io.oea.api.generated.model.DiagramPoint;
 import io.oea.api.generated.model.DiagramEntity;
 import io.oea.api.generated.model.DiagramEntityDetails;
 import io.oea.api.generated.model.DiagramEntityField;
@@ -26,6 +32,8 @@ import io.oea.api.generated.model.ViewpointNotation;
 import io.oea.api.entity.EntityBatchController;
 import io.oea.api.metamodel.ViewpointController;
 import io.oea.app.diagram.Diagrams;
+import io.oea.app.metamodel.PropertyVisibility;
+import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.app.diagramview.DiagramViews;
 import io.oea.audit.AuditEvent;
 import io.oea.app.security.OeaPrincipal;
@@ -53,9 +61,12 @@ public class DiagramController implements DiagramsApi {
 
 	private final DiagramViews views;
 
-	public DiagramController(Diagrams diagrams, DiagramViews views) {
+	private final PropertyVisibility visibility;
+
+	public DiagramController(Diagrams diagrams, DiagramViews views, PropertyVisibility visibility) {
 		this.diagrams = diagrams;
 		this.views = views;
+		this.visibility = visibility;
 	}
 
 	@Override
@@ -112,6 +123,12 @@ public class DiagramController implements DiagramsApi {
 	}
 
 	@Override
+	@ConditionsEnforcedByHandler(value = "PropertyVisibility.requireScopeAssignment: a new connection of a scoping type "
+			+ "needs visibility-scope:assign; the whole save is rejected before the version check and every 422",
+			probeRole = "integration-writer", probePath = "/api/v1/views/diagrams/00000000-0000-4000-8000-0000000d1a01",
+			probeBody = """
+					{"shapes": [], "newConnections": [{"key": "00000000-0000-4000-8000-0000000c0e01",
+					 "metatypeId": "00000000-0000-4000-8000-0000000c0de1"}]}""")
 	public ResponseEntity<DiagramView> saveDiagramView(UUID id, String ifMatch, DiagramViewWrite request,
 			String xAgentId, String xAgentRun) {
 		List<DiagramViews.ShapeInput> shapes = request.getShapes()
@@ -132,9 +149,42 @@ public class DiagramController implements DiagramsApi {
 							update.getExpectedVersion(), update.getName(), update.getDescription(),
 							properties(update.getProperties())))
 					.toList();
-		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities, updates,
-				new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
+		List<DiagramViews.EdgeInput> edges = (request.getEdges() == null) ? List.of()
+				: request.getEdges()
+					.stream()
+					.map((edge) -> new DiagramViews.EdgeInput(edge.getId(), edge.getConnectionId(),
+							edge.getNewConnectionKey(), edge.getSourceShapeId(), edge.getTargetShapeId(),
+							edge.getPoints()
+								.stream()
+								.map((point) -> new DiagramViews.Point(point.getX(), point.getY()))
+								.toList()))
+					.toList();
+		List<DiagramViews.NewConnectionInput> newConnections = (request.getNewConnections() == null) ? List.of()
+				: request.getNewConnections()
+					.stream()
+					.map((connection) -> new DiagramViews.NewConnectionInput(connection.getKey(),
+							connection.getMetatypeId(), connection.getName(), connection.getDescription(),
+							properties(connection.getProperties())))
+					.toList();
+		// the 400 for more decimals comes first, then the 403 of a scoping connection type, then the service
+		this.views.checkNumbers(shapes, edges);
+		this.visibility.requireScopeAssignment(principal(),
+				newConnections.stream().map(DiagramViews.NewConnectionInput::metatypeId).toList());
+		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities, updates, edges,
+				newConnections, new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
 						EntityBatchController.informational(xAgentRun))));
+	}
+
+	@Override
+	public ResponseEntity<DiagramConnectionOfferList> findDiagramConnections(UUID id,
+			DiagramConnectionQuery request) {
+		DiagramViews.Offers offers = this.views.connections(id, request.getEntityIds(), request.getShownEntityIds());
+		return ResponseEntity.ok(new DiagramConnectionOfferList(offers.items()
+			.stream()
+			.map((offer) -> new DiagramConnectionOffer(
+					new DiagramEdgeConnection(offer.connectionId(), offer.name(), offer.metatypeId()),
+					offer.sourceEntityId(), offer.targetEntityId()))
+			.toList(), offers.truncated()));
 	}
 
 	@Override
@@ -214,6 +264,15 @@ public class DiagramController implements DiagramsApi {
 						.map((shape) -> new DiagramShape(shape.id(),
 								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId()),
 								shape.x(), shape.y(), shape.width(), shape.height(), shape.missingMandatory()))
+						.toList(),
+					view.edges()
+						.stream()
+						.map((edge) -> new DiagramEdge(edge.id(),
+								new DiagramEdgeConnection(edge.connectionId(), edge.connectionName(),
+										edge.metatypeId()),
+								edge.sourceShapeId(), edge.targetShapeId(),
+								edge.points().stream().map((point) -> new DiagramPoint(point.x(), point.y())).toList(),
+								edge.missingMandatory()))
 						.toList()));
 	}
 

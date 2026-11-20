@@ -27,7 +27,7 @@ public class RequestSizeConfiguration {
 			@Value("${oea.web.request-size.default:1MB}") DataSize defaultSize,
 			@Value("${oea.web.request-size.entity-batch:10MB}") DataSize batchSize,
 			@Value("${oea.metamodel.import.max-size:10MB}") DataSize packageSize,
-			@Value("${oea.web.request-size.diagram-view:2MB}") DataSize diagramViewSize) {
+			@Value("${oea.web.request-size.diagram-view:4MB}") DataSize diagramViewSize) {
 		RequestSizeLimitFilter.Limit requestLimit = new RequestSizeLimitFilter.Limit(defaultSize.toBytes(),
 				"request-too-large", "Request too large");
 		FilterRegistrationBean<RequestSizeLimitFilter> registration = new FilterRegistrationBean<>(

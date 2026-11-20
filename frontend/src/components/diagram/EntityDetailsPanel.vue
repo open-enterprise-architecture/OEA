@@ -10,7 +10,8 @@ import { fetchMetatype, type PropertyMapping } from '../../api/metamodel'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { components } from '../../api/generated/schema'
 import PropertyInput, { type ReferenceChoice } from '../PropertyInput.vue'
-import type { CanvasShape, EntityEdit, FieldChange } from './canvasModel'
+import type { EntityEdit, FieldChange } from './canvasModel'
+import type { DetailsSubject } from './edgeModel'
 
 // The details panel of the canvas (SCR-021, US-074 step 6; design D3 of
 // us-074-diagram-entity-details): name, description, metatype, version and the values of the
@@ -22,7 +23,8 @@ type PropertyValue = components['schemas']['PropertyValue']
 
 const props = defineProps<{
   diagramId: string
-  shape: CanvasShape
+  /** the shape or the edge whose entity or connection is shown */
+  shape: DetailsSubject
   editable: boolean
   /** the changes made to a saved entity */
   edit?: EntityEdit

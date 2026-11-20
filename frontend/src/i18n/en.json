@@ -1481,7 +1481,18 @@
       "reloadEntity": "Reload {name} and discard my changes of it",
       "blockedTitle": "Entity blocked",
       "blocked": "{name} has open issues of a solution and cannot be changed: {issues}. Resolve them first; your changes are kept.",
-      "tooLarge": "The save is too large. Save fewer changes at once."
+      "tooLarge": "The save is too large. Save fewer changes at once.",
+      "edgeLabel": "Connection {name}",
+      "tooManyEdges": "A diagram holds at most {count} edges.",
+      "tooManyNewConnections": "A save creates at most {count} new connections.",
+      "tooManyBendPoints": "An edge has at most {count} bend points.",
+      "noConnectionAllowed": "No connection is allowed here.",
+      "addConnected": "Add connected element",
+      "connectionsRejected": "Some connections were rejected and are marked with the reason. Your changes are kept.",
+      "hintEdges": "Select an edge with Tab or a click: a double click adds a bend point, a double click on a bend point removes it, Delete removes the edge from the diagram.",
+      "connectFrom": "Drag from here to another shape to draw a connection",
+      "forbiddenConnection": "You may not create connections of this type. A connection of a scoping type needs the permission to assign visibility scopes.",
+      "details": "Details"
     },
     "details": {
       "label": "Details of the selected entity",
@@ -1500,6 +1511,26 @@
       "valueMissing": "Required value missing",
       "notChangeable": "you may not change it",
       "tooManyChanges": "A save changes at most {count} entities. Save first, then change further entities."
+    },
+    "connections": {
+      "typeTitle": "Type of the connection",
+      "typeHint": "Several connection types are allowed between these elements. Choose one.",
+      "connectedTitle": "Add a connected element",
+      "connectedHint": "Choose the connection type and the type of the new element. It is placed at the default length of the connection type.",
+      "loading": "Loading the allowed connections…",
+      "loadFailed": "The allowed connections could not be loaded.",
+      "noneAllowed": "No connection from this element is allowed in the viewpoint.",
+      "connectionType": "Connection type",
+      "targetType": "Type of the new element",
+      "addConnected": "Add",
+      "offer": "No connections available | 1 connection available | {count} connections available",
+      "showAll": "Show all",
+      "choose": "Choose…",
+      "dismiss": "Dismiss",
+      "chooseTitle": "Show connections",
+      "chooseHint": "Choose the connections to show as edges.",
+      "addSelected": "Show selected",
+      "offerFailed": "The existing connections could not be searched."
     }
   },
   "dashboards": {

@@ -1481,7 +1481,18 @@
       "reloadEntity": "{name} neu laden und meine Änderungen daran verwerfen",
       "blockedTitle": "Entität gesperrt",
       "blocked": "{name} hat offene Punkte einer Lösung und kann nicht geändert werden: {issues}. Löse sie zuerst auf; deine Änderungen bleiben erhalten.",
-      "tooLarge": "Das Speichern ist zu groß. Speichere weniger Änderungen auf einmal."
+      "tooLarge": "Das Speichern ist zu groß. Speichere weniger Änderungen auf einmal.",
+      "edgeLabel": "Verbindung {name}",
+      "tooManyEdges": "Ein Diagramm enthält höchstens {count} Kanten.",
+      "tooManyNewConnections": "Ein Speichern legt höchstens {count} neue Verbindungen an.",
+      "tooManyBendPoints": "Eine Kante hat höchstens {count} Knickpunkte.",
+      "noConnectionAllowed": "Hier ist keine Verbindung erlaubt.",
+      "addConnected": "Verbundenes Element hinzufügen",
+      "connectionsRejected": "Einige Verbindungen wurden abgelehnt und mit dem Grund markiert. Deine Änderungen bleiben erhalten.",
+      "hintEdges": "Wähle eine Kante mit Tab oder per Klick: Ein Doppelklick fügt einen Knickpunkt hinzu, ein Doppelklick auf einen Knickpunkt entfernt ihn, Entf entfernt die Kante aus dem Diagramm.",
+      "connectFrom": "Von hier auf eine andere Form ziehen, um eine Verbindung zu zeichnen",
+      "forbiddenConnection": "Du darfst Verbindungen dieses Typs nicht anlegen. Eine Verbindung eines Scoping-Typs braucht die Berechtigung, Sichtbarkeitsbereiche zuzuweisen.",
+      "details": "Details"
     },
     "details": {
       "label": "Details der gewählten Entität",
@@ -1500,6 +1511,26 @@
       "valueMissing": "Pflichtwert fehlt",
       "notChangeable": "du darfst ihn nicht ändern",
       "tooManyChanges": "Ein Speichern ändert höchstens {count} Entitäten. Speichere zuerst, dann ändere weitere Entitäten."
+    },
+    "connections": {
+      "typeTitle": "Typ der Verbindung",
+      "typeHint": "Zwischen diesen Elementen sind mehrere Verbindungstypen erlaubt. Wähle einen aus.",
+      "connectedTitle": "Verbundenes Element hinzufügen",
+      "connectedHint": "Wähle den Verbindungstyp und den Typ des neuen Elements. Es wird in der Standardlänge des Verbindungstyps platziert.",
+      "loading": "Die erlaubten Verbindungen werden geladen…",
+      "loadFailed": "Die erlaubten Verbindungen konnten nicht geladen werden.",
+      "noneAllowed": "Im Viewpoint ist von diesem Element aus keine Verbindung erlaubt.",
+      "connectionType": "Verbindungstyp",
+      "targetType": "Typ des neuen Elements",
+      "addConnected": "Hinzufügen",
+      "offer": "Keine Verbindungen verfügbar | 1 Verbindung verfügbar | {count} Verbindungen verfügbar",
+      "showAll": "Alle anzeigen",
+      "choose": "Auswählen…",
+      "dismiss": "Verwerfen",
+      "chooseTitle": "Verbindungen anzeigen",
+      "chooseHint": "Wähle die Verbindungen, die als Kanten angezeigt werden sollen.",
+      "addSelected": "Ausgewählte anzeigen",
+      "offerFailed": "Die vorhandenen Verbindungen konnten nicht gesucht werden."
     }
   },
   "dashboards": {

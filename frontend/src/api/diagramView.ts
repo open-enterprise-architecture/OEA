@@ -15,6 +15,12 @@ export type DiagramEntityPage = components['schemas']['DiagramEntityPage']
 export type DiagramEntityDetails = components['schemas']['DiagramEntityDetails']
 export type DiagramEntityField = components['schemas']['DiagramEntityField']
 export type DiagramEntityUpdate = components['schemas']['DiagramEntityUpdate']
+export type DiagramEdge = components['schemas']['DiagramEdge']
+export type DiagramEdgeWrite = components['schemas']['DiagramEdgeWrite']
+export type DiagramNewConnection = components['schemas']['DiagramNewConnection']
+export type DiagramConnectionOffer = components['schemas']['DiagramConnectionOffer']
+export type DiagramConnectionOfferList = components['schemas']['DiagramConnectionOfferList']
+export type AllowedConnectionResult = components['schemas']['AllowedConnectionResult']
 
 /** The limits of the contract (design D1 and D2 of us-074-diagram-canvas), in pt. */
 export const CANVAS_LIMITS = {
@@ -25,6 +31,11 @@ export const CANVAS_LIMITS = {
   newEntities: 500,
   /** the changed entities of one save (design D2 of us-074-diagram-entity-details) */
   entityUpdates: 500,
+  /** the edges of one diagram and the new connections of one save (design D2 of us-074-diagram-connections) */
+  edges: 4000,
+  /** the bend points of one edge */
+  bendPoints: 50,
+  newConnections: 500,
   entityName: 255,
   entityDescription: 2000,
   search: 255,
@@ -126,6 +137,47 @@ export async function searchDiagramReferenceTargets(
   const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/reference-targets?${search.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
   if (response.ok) {
     return { ok: true, value: (await response.json()) as DiagramEntityPage }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/**
+ * POST /views/diagrams/{id}/connections/query: the connections between the placed entities and the
+ * other shown ones that the viewpoint allows (design D2 of us-074-diagram-connections), for the offer
+ * "N connections available".
+ */
+export async function findDiagramConnections(
+  id: string,
+  entityIds: number[],
+  shownEntityIds: number[],
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<DiagramConnectionOfferList>> {
+  const csrfToken = currentCsrfToken()
+  const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/connections/query`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { ...JSON_HEADERS, 'Content-Type': 'application/json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },
+    body: JSON.stringify({ entityIds, shownEntityIds }),
+  })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DiagramConnectionOfferList }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/**
+ * GET /metamodel/allowed-connections: the connection metatypes between two metatypes, with the
+ * direction they run (the source metatype is the source, the target, or both).
+ */
+export async function fetchAllowedConnections(
+  sourceMetatypeId: string,
+  targetMetatypeId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<AllowedConnectionResult>> {
+  const query = new URLSearchParams({ sourceMetatypeId, targetMetatypeId })
+  const response = await fetchFn(`/api/v1/metamodel/allowed-connections?${query.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as AllowedConnectionResult }
   }
   return { ok: false, rejection: await readRejection(response) }
 }
