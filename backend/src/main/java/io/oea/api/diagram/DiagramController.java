@@ -6,17 +6,29 @@ import io.oea.api.generated.model.DeletedDiagram;
 import io.oea.api.generated.model.DeletedDiagramPage;
 import io.oea.api.generated.model.Diagram;
 import io.oea.api.generated.model.DiagramCreate;
+import io.oea.api.generated.model.DiagramEntity;
+import io.oea.api.generated.model.DiagramEntityPage;
 import io.oea.api.generated.model.DiagramPage;
+import io.oea.api.generated.model.DiagramShape;
+import io.oea.api.generated.model.DiagramShapeEntity;
+import io.oea.api.generated.model.DiagramView;
+import io.oea.api.generated.model.DiagramViewWrite;
+import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.api.generated.model.DiagramUpdate;
 import io.oea.api.generated.model.DiagramViewpoint;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.ViewpointNotation;
+import io.oea.api.entity.EntityBatchController;
+import io.oea.api.metamodel.ViewpointController;
 import io.oea.app.diagram.Diagrams;
+import io.oea.app.diagramview.DiagramViews;
+import io.oea.audit.AuditEvent;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.config.security.OeaAuthentication;
 import java.net.URI;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,8 +47,11 @@ public class DiagramController implements DiagramsApi {
 
 	private final Diagrams diagrams;
 
-	public DiagramController(Diagrams diagrams) {
+	private final DiagramViews views;
+
+	public DiagramController(Diagrams diagrams, DiagramViews views) {
 		this.diagrams = diagrams;
+		this.views = views;
 	}
 
 	@Override
@@ -85,6 +100,56 @@ public class DiagramController implements DiagramsApi {
 	@Override
 	public ResponseEntity<Diagram> restoreDiagram(UUID id, String ifMatch) {
 		return versioned(diagram(this.diagrams.restore(principal(), id, expectedVersion(ifMatch))));
+	}
+
+	@Override
+	public ResponseEntity<DiagramView> getDiagramView(UUID id) {
+		return view(this.views.view(id));
+	}
+
+	@Override
+	public ResponseEntity<DiagramView> saveDiagramView(UUID id, String ifMatch, DiagramViewWrite request,
+			String xAgentId, String xAgentRun) {
+		List<DiagramViews.ShapeInput> shapes = request.getShapes()
+			.stream()
+			.map((shape) -> new DiagramViews.ShapeInput(shape.getId(), shape.getEntityId(), shape.getNewEntityKey(),
+					shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight()))
+			.toList();
+		List<DiagramViews.NewEntityInput> newEntities = (request.getNewEntities() == null) ? List.of()
+				: request.getNewEntities()
+					.stream()
+					.map((entity) -> new DiagramViews.NewEntityInput(entity.getKey(), entity.getMetatypeId(),
+							entity.getName()))
+					.toList();
+		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities,
+				new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
+						EntityBatchController.informational(xAgentRun))));
+	}
+
+	@Override
+	public ResponseEntity<DiagramEntityPage> searchDiagramEntities(UUID id, String q, UUID metatypeId, Integer page,
+			Integer pageSize) {
+		DiagramViews.EntityPage result = this.views.search(id, q, metatypeId, page(page), size(pageSize));
+		return ResponseEntity.ok(new DiagramEntityPage(result.items()
+			.stream()
+			.map((found) -> new DiagramEntity(found.id(), found.name(), new MetatypeSummary().id(found.metatype().id())
+				.name(found.metatype().name())
+				.abbreviation(found.metatype().abbreviation())))
+			.toList(), new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
+					result.totalPages())));
+	}
+
+	private static ResponseEntity<DiagramView> view(DiagramViews.View view) {
+		Diagram diagram = diagram(view.diagram());
+		return ResponseEntity.ok()
+			.eTag(etag(diagram.getVersion()))
+			.body(new DiagramView(diagram, ViewpointController.viewpoint(view.viewpoint()),
+					view.shapes()
+						.stream()
+						.map((shape) -> new DiagramShape(shape.id(),
+								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId()),
+								shape.x(), shape.y(), shape.width(), shape.height(), shape.missingMandatory()))
+						.toList()));
 	}
 
 	private static PageMeta meta(Diagrams.Page result) {

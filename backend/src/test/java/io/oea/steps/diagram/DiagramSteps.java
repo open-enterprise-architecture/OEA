@@ -392,7 +392,8 @@ public class DiagramSteps {
 		status(200);
 		long total = json().path("page").path("totalElements").asLong();
 		assertThat(total).isGreaterThanOrEqualTo(51);
-		assertThat(json().path("items")).hasSize((int) (total - 50));
+		// a page holds at most 50 items
+		assertThat(json().path("items")).hasSize((int) Math.min(50, total - 50));
 	}
 
 	@Then("the placement is audited with the item type {string} and the reference of {string}")

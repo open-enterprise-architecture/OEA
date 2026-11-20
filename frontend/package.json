@@ -30,6 +30,8 @@
   "dependencies": {
     "@nuxt/ui": "^4.12.0",
     "@simplewebauthn/browser": "^14.0.0",
+    "@vue-flow/core": "^1.48.2",
+    "@vue-flow/node-resizer": "^1.5.1",
     "dompurify": "^3.4.18",
     "echarts": "^6.1.0",
     "markdown-it": "^15.0.3",

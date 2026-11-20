@@ -1,0 +1,92 @@
+import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
+import DiagramPage from '../pages/DiagramPage.vue'
+import { diagram, diagramApi, METATYPE_COMPONENT, METATYPE_PROCESS, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, shape } from '../test/diagrams'
+
+// SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas): the canvas of a diagram
+// with the palette of its viewpoint, "Add existing", moving, resizing and removing shapes, "Save" and
+// the read-only view of a reader (docs/screens/SCREENS.md). The first story is the screen image.
+const meta: Meta<typeof DiagramPage> = {
+  title: 'Screens/SCR-021 Diagram editor',
+  component: DiagramPage,
+}
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+const ID = diagram().id
+
+const SHAPES = [
+  shape({ id: 'd1000000-0000-4000-8000-000000000001', entity: { id: 12, name: 'SAP ERP', metatypeId: METATYPE_COMPONENT }, x: 60, y: 60 }),
+  shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 300, y: 60 }),
+  shape({ id: 'd1000000-0000-4000-8000-000000000003', entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS }, x: 180, y: 180, width: 90, height: 30, missingMandatory: ['Process Owner'] }),
+]
+
+/** A holder of `entity:write`: the palette, "Add existing", "Remove from diagram" and "Save" around the shapes. */
+export const Canvas: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('SAP ERP')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Add Application Component' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Add existing' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await expect(canvas.getByText('Incomplete: Process Owner')).toBeInTheDocument()
+  },
+}
+
+/** A diagram without shapes: the palette places the first ones. */
+export const Empty: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: [] }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('button', { name: 'Add Business Process' })).toBeInTheDocument()
+    await expect(canvas.getByRole('region', { name: 'Diagram canvas' })).toBeInTheDocument()
+  },
+}
+
+/** A new shape is named in the shape itself and is marked as unsaved until "Save". */
+export const Unsaved: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add Application Component' }))
+    await userEvent.type(await canvas.findByRole('textbox', { name: 'Name of the new Application Component' }), 'CRM Cloud{Enter}')
+    await expect(await canvas.findByText('CRM Cloud')).toBeInTheDocument()
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled()
+  },
+}
+
+/** A save the server rejects marks the shape with the reason and keeps all changes. */
+export const RejectedShape: Story = {
+  args: {
+    id: ID,
+    fetchFn: diagramApi({
+      me: ME_DIAGRAM_WRITER,
+      shapes: SHAPES,
+      rejectSave: { status: 422, errors: [{ field: 'shapes[1].entityId', code: 'ENTITY_NOT_FOUND', message: 'The entity does not exist or is deleted.' }] },
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add Business Process' }))
+    await userEvent.type(await canvas.findByRole('textbox', { name: 'Name of the new Business Process' }), 'Order Entry{Enter}')
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(canvas.getByText('The entity does not exist or is deleted.')).toBeInTheDocument())
+    await expect(canvas.getByText(/Some shapes were rejected/)).toBeInTheDocument()
+  },
+}
+
+/** A reader sees the shapes, can pan and zoom, and has no palette, no "Add existing" and no "Save". */
+export const ReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: SHAPES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('SAP ERP')).toBeInTheDocument()
+    await expect(canvas.getByText('Read-only')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Add existing' })).toBeNull()
+    await expect(canvas.queryByRole('button', { name: 'Save' })).toBeNull()
+    await expect(canvas.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument()
+  },
+}

@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -267,6 +268,27 @@ public class Diagrams {
 	@Transactional(readOnly = true)
 	public Map<UUID, Integer> countsPerViewpoint() {
 		return this.store.activeCounts();
+	}
+
+	/**
+	 * Locks the diagram for the save of its layout (design D4 of us-074-diagram-canvas) and checks
+	 * the expected version; the caller runs in a transaction.
+	 *
+	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
+	 * @throws DiagramChangeException for a missing (428) or stale (412) version
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public Diagram lockForLayout(UUID id, Long expectedVersion) {
+		return Diagram.of(locked(id, expectedVersion));
+	}
+
+	/**
+	 * Raises the version of the diagram for a saved layout and returns the new version; the caller
+	 * has locked it and audits the save.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public int layoutSaved(OeaPrincipal principal, UUID id) {
+		return this.store.touch(id, person(principal), this.clock.instant());
 	}
 
 	private Row locked(UUID id, Long expectedVersion) {

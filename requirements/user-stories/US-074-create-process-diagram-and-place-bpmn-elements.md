@@ -17,7 +17,9 @@ created: 2026-06-26
 
 ## Implementation
 
-OpenSpec change `us-074-diagrams` (S17) – creating a diagram: a person or service account with `entity:write` creates a diagram with a name, a description and a viewpoint (`createDiagram`, V46), and finds, renames, deletes and restores it on the page "Diagrams" (SCR-067), in the browser of the sidebar and in the navigation tree. The canvas, the palette and the BPMN elements of the criteria below follow with the changes `us-074-diagram-canvas` and `us-074-bpmn-process-diagrams`.
+OpenSpec change `us-074-diagrams` (S17) – creating a diagram: a person or service account with `entity:write` creates a diagram with a name, a description and a viewpoint (`createDiagram`, V46), and finds, renames, deletes and restores it on the page "Diagrams" (SCR-067), in the browser of the sidebar and in the navigation tree. The BPMN elements of the criteria below follow with the change `us-074-bpmn-process-diagrams`.
+
+OpenSpec change `us-074-diagram-canvas` (S17) – the canvas of a diagram (SCR-021): a person with `entity:read` reads the view of a diagram (`getDiagramView`: shapes in pt in drawing order, the default sizes of the viewpoint) and searches the entities the viewpoint allows (`searchDiagramEntities`); a holder of `entity:write` places new entities from the palette (name and metatype only) and existing ones with "Add existing", moves, resizes and removes shapes ("Remove from diagram" leaves the entity) and saves the whole layout atomically with "Save" (`saveDiagramView`, V47, audit `diagram.layout-saved`). The generic part of AC2 (every allowed element type can be placed; the grouping and the BPMN types follow with `us-074-bpmn-process-diagrams`) and AC8 for shapes (the layout is restored after a reload; connections follow with `us-074-diagram-connections`) are covered. A new entity whose type has a mandatory property without default value is created incomplete and marked as such on the canvas (owner decision 2026-11-20).
 
 ## Acceptance Criteria
 

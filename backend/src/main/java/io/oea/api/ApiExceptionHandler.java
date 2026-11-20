@@ -20,6 +20,7 @@ import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.dashboard.InvalidDashboardException;
 import io.oea.app.diagram.DiagramChangeException;
+import io.oea.app.diagramview.DiagramViewException;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.BatchRejectedException;
 import io.oea.app.entity.ConnectionRejectedException;
@@ -710,6 +711,18 @@ public class ApiExceptionHandler {
 				yield ResponseEntity.badRequest().body(problem);
 			}
 		};
+	}
+
+	/** Shapes or new entities of a diagram layout that violate a rule, or a value outside the contract (design D2, D4 of us-074-diagram-canvas). */
+	@ExceptionHandler(DiagramViewException.class)
+	ResponseEntity<ProblemDetail> diagramView(DiagramViewException ex) {
+		boolean request = ex.getReason() == DiagramViewException.Reason.INVALID_REQUEST;
+		HttpStatus status = request ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
+		ProblemDetail problem = problem(status, "validation-failed",
+				request ? "Invalid request" : "Invalid diagram layout", ex.getMessage());
+		problem.setProperty("invalidFields", ex.getInvalidFields());
+		problem.setProperty("errors", ex.getIssues().stream().map(BatchValidationErrors::validationError).toList());
+		return ResponseEntity.status(status).body(problem);
 	}
 
 	@ExceptionHandler(InvalidTreeException.class)
