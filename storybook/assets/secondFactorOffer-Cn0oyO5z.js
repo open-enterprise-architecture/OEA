@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{c as t,l as n}from"./session-CuqrKP2j.js";async function r(e,t=fetch){try{return(await n(t)).length===0?i:e}catch{return e}}var i;function a(){return(a=e((()=>{t(),i=`/me/second-factor?offer=1`})))()}export{a as n,r as t};
