@@ -160,10 +160,10 @@ License texts and notices: the backend jar contains the license and notice files
 | @unhead/vue (`@unhead/vue`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | @vue-flow/core (`@vue-flow/core`) | 1.48.2 | MIT | – | <https://github.com/bcakmakoglu/vue-flow> |
 | @vue-flow/node-resizer (`@vue-flow/node-resizer`) | 1.5.1 | MIT | – | <https://github.com/bcakmakoglu/vue-flow/packages/plugins/node-resizer> |
-| @vue/reactivity (`@vue/reactivity`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
-| @vue/runtime-core (`@vue/runtime-core`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
-| @vue/runtime-dom (`@vue/runtime-dom`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
-| @vue/shared (`@vue/shared`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/reactivity (`@vue/reactivity`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/runtime-core (`@vue/runtime-core`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/runtime-dom (`@vue/runtime-dom`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/shared (`@vue/shared`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
 | @vueuse/core (`@vueuse/core`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
 | @vueuse/shared (`@vueuse/shared`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
 | aria-hidden (`aria-hidden`) | 1.2.6 | MIT | – | <https://github.com/theKashey/aria-hidden> |
