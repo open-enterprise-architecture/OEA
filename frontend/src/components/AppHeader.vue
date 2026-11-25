@@ -35,6 +35,9 @@ const canSeePlateaus = computed(() =>
   (session.me?.permissions ?? []).some((entry) => ['plateau:write', 'plateau:go-live', 'solution:write'].includes(entry.permission)),
 )
 
+// SCR-068 needs entity:restore (design D3 of s17-deleted-entities)
+const canRestore = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:restore'))
+
 const canSeeMetamodel = computed(() =>
   (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:read' || entry.permission === 'metamodel:write'),
 )
@@ -73,6 +76,7 @@ async function logOut() {
         <RouterLink v-if="canSeeTree" to="/catalogs" data-testid="header-catalogs">{{ t('catalogs.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/dashboards" data-testid="header-dashboards">{{ t('dashboards.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/diagrams" data-testid="header-diagrams">{{ t('diagrams.title') }}</RouterLink>
+        <RouterLink v-if="canRestore" to="/entities/deleted" data-testid="header-deleted">{{ t('deletedEntities.title') }}</RouterLink>
         <RouterLink v-if="canSeeTree" to="/solutions" data-testid="header-solutions">{{ t('solutions.title') }}</RouterLink>
         <RouterLink v-if="canSeePlateaus" to="/plateaus" data-testid="header-plateaus">{{ t('plateaus.title') }}</RouterLink>
         <RouterLink v-if="canSeeMetamodel" to="/metamodel" data-testid="header-metamodel">{{ t('metamodel.title') }}</RouterLink>

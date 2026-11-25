@@ -10,6 +10,7 @@ import io.oea.audit.AuditWriter;
 import io.oea.core.catalog.CatalogQueryStore;
 import io.oea.core.catalog.CatalogQueryStore.Condition;
 import io.oea.core.catalog.ScopeStore;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -102,7 +103,13 @@ public class CatalogQueries {
 	 * previous page, each {@code null} or empty when not given.
 	 */
 	public record Request(int page, int pageSize, String sort, Map<String, String> joinModes, List<String> filters,
-			String filterMode, UUID view, String cursor) {
+			String filterMode, UUID view, String cursor, boolean includeDeleted) {
+
+		public Request(int page, int pageSize, String sort, Map<String, String> joinModes, List<String> filters,
+				String filterMode, UUID view, String cursor) {
+			this(page, pageSize, sort, joinModes, filters, filterMode, view, cursor, false);
+		}
+
 	}
 
 	/**
@@ -126,9 +133,21 @@ public class CatalogQueries {
 
 	/**
 	 * An entity row; {@code values} holds the text form per column key, {@code null} without value;
-	 * {@code joinResults} the results per join ID (US-048).
+	 * {@code joinResults} the results per join ID (US-048). {@code deletedAt} and {@code version} are
+	 * set only on a deleted row of a query with {@code includeDeleted} (design D2 of s17-deleted-entities).
 	 */
-	public record Row(int entityId, Map<String, String> values, Map<UUID, List<JoinResult>> joinResults) {
+	public record Row(int entityId, Map<String, String> values, Map<UUID, List<JoinResult>> joinResults,
+			Instant deletedAt, Integer version) {
+
+		public Row(int entityId, Map<String, String> values, Map<UUID, List<JoinResult>> joinResults) {
+			this(entityId, values, joinResults, null, null);
+		}
+
+		/** Whether this is a deleted row. */
+		public boolean deleted() {
+			return this.deletedAt != null;
+		}
+
 	}
 
 	/** A join result: the target entity and the text form per key of the join's columns. */
@@ -327,9 +346,10 @@ public class CatalogQueries {
 					.filter((join) -> !join.rows() && !join.store().conditions().isEmpty())
 					.map(ResolvedJoin::store)
 					.toList(),
-				or);
+				or, request.includeDeleted());
 		List<CatalogQueryStore.QueryColumn> queryColumns = resolved.stream().map(Resolved::column).toList();
-		String fingerprint = fingerprint(catalog, channel, resolved, view, applied, joins, filters, or, pageSize);
+		String fingerprint = fingerprint(catalog, channel, resolved, view, applied, joins, filters, or, pageSize,
+				request.includeDeleted());
 		List<Object> after = null;
 		if (request.cursor() != null && !request.cursor().isEmpty()) {
 			after = this.cursors
@@ -376,7 +396,8 @@ public class CatalogQueries {
 					return new JoinResult(result.entityId(), Collections.unmodifiableMap(joinValues));
 				}).toList());
 			}
-			return new Row(row.entityId(), Collections.unmodifiableMap(values), Collections.unmodifiableMap(results));
+			return new Row(row.entityId(), Collections.unmodifiableMap(values), Collections.unmodifiableMap(results),
+					row.deletedAt(), row.version());
 		}).toList();
 		auditOverride(principal, catalogId, channel, page, access, resolved, joins, rows);
 		return new Result(resolved.stream().map(Resolved::result).toList(),
@@ -390,7 +411,8 @@ public class CatalogQueries {
 	 * mode, and page size. The filters count without their order, which does not change the result.
 	 */
 	private static String fingerprint(Catalogs.Catalog catalog, Channel channel, List<Resolved> columns, UUID view,
-			Sort sort, List<ResolvedJoin> joins, List<String> filters, boolean or, int pageSize) {
+			Sort sort, List<ResolvedJoin> joins, List<String> filters, boolean or, int pageSize,
+			boolean includeDeleted) {
 		List<String> parts = new ArrayList<>();
 		parts.add(catalog.id().toString());
 		parts.add(String.valueOf(catalog.lastModifiedAt()));
@@ -405,6 +427,7 @@ public class CatalogQueries {
 		parts.addAll(sorted);
 		parts.add(or ? "or" : "and");
 		parts.add(String.valueOf(pageSize));
+		parts.add(includeDeleted ? "deleted" : "active");
 		return CatalogCursors.fingerprint(parts);
 	}
 

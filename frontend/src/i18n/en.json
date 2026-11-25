@@ -144,7 +144,12 @@
     "restrictedColumn": "You may not see the values of this column.",
     "history": "History",
     "actions": "Actions",
-    "openIssues": "Open issues: resolve them on the page of the solution"
+    "openIssues": "Open issues: resolve them on the page of the solution",
+    "showDeleted": "Show deleted",
+    "deletedMarker": "Deleted",
+    "deletedAt": "Deleted {date}",
+    "restore": "Restore",
+    "restoreAction": "Restore {name}"
   },
   "catalogs": {
     "empty": "No catalogs yet",
@@ -1397,6 +1402,38 @@
       "deletionConflicts": "A solution has changes of deleted entities ({names}). Remove the changes or restore the entities first.",
       "deletionCount": "one deleted entity | {n} deleted entities",
       "entityDeleted": "An entity of its solutions is deleted. Remove the change or restore the entity first."
+    }
+  },
+  "deletedEntities": {
+    "title": "Deleted entities",
+    "filter": "Filter by name",
+    "metatype": "Type",
+    "allMetatypes": "All types",
+    "loadMore": "Load more",
+    "loadFailed": "The deleted entities could not be loaded.",
+    "noPermission": "No permission. Only people with the permission to restore see the deleted entities.",
+    "empty": "No deleted entities.",
+    "connection": "Connection",
+    "deletedBy": "Deleted by {name}, {date}",
+    "deletedAt": "Deleted {date}",
+    "deletedWith": "Deleted with {name}",
+    "restore": "Restore",
+    "restoreAction": "Restore {name}",
+    "restoreTitle": "Restore “{name}”?",
+    "restoreHint": "The entity comes back with the children and connections its deletion took along.",
+    "restoreWithHint": "This entry was deleted with “{name}”. Only what its own deletion took along comes back.",
+    "forbidden": "You may not restore entities.",
+    "failed": "The entity could not be restored.",
+    "notice": {
+      "restored": "Restored: {names}.",
+      "stayed": "Stayed deleted: {names}.",
+      "stayedReason": {
+        "endpoint-deleted": "{name} (the other endpoint is deleted)",
+        "parent-changed": "{name} (it has another parent now)"
+      },
+      "moved": "Placed at the top level because their parent is deleted: {names}.",
+      "stale": "“{name}” was restored or changed meanwhile. The list is reloaded.",
+      "endpointDeleted": "“{name}” cannot be restored: an endpoint of the connection is deleted. Restore the endpoint first. The list is reloaded."
     }
   },
   "diagrams": {
