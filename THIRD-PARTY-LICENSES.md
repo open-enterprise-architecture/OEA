@@ -148,9 +148,9 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/vue (`@floating-ui/vue`) | 2.0.1 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
 | @internationalized/number (`@internationalized/number`) | 3.6.9 | Apache-2.0 | – | <https://github.com/adobe/react-spectrum> |
-| @intlify/core-base (`@intlify/core-base`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
-| @intlify/message-compiler (`@intlify/message-compiler`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
-| @intlify/shared (`@intlify/shared`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
+| @intlify/core-base (`@intlify/core-base`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
+| @intlify/message-compiler (`@intlify/message-compiler`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
+| @intlify/shared (`@intlify/shared`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | @nuxt/ui (`@nuxt/ui`) | 4.12.0 | MIT | – | <https://github.com/nuxt/ui> |
 | @simplewebauthn/browser (`@simplewebauthn/browser`) | 14.0.0 | MIT | – | <https://github.com/MasterKale/SimpleWebAuthn> |
 | @tanstack/table-core (`@tanstack/table-core`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
@@ -186,7 +186,7 @@ License texts and notices: the backend jar contains the license and notice files
 | ufo (`ufo`) | 1.6.4 | MIT | – | unjs/ufo |
 | unhead (`unhead`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | uqr (`uqr`) | 0.1.3 | MIT | – | <https://github.com/unjs/uqr> |
-| vue-i18n (`vue-i18n`) | 11.4.18 | MIT | – | <https://github.com/intlify/vue-i18n> |
+| vue-i18n (`vue-i18n`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | vue-router (`vue-router`) | 5.5.1 | MIT | – | <https://github.com/vuejs/router> |
 | zrender (`zrender`) | 6.1.0 | BSD-3-Clause | – | <https://github.com/ecomfe/zrender> |
 
