@@ -6,6 +6,8 @@ import { computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import type { CatalogColumn, CatalogQueryResult, CatalogRow, CatalogSort, JoinMode } from '../api/catalogs'
+import UBadge from '@nuxt/ui/components/Badge.vue'
+import { currentLanguage } from '../i18n'
 import { session } from '../session/store'
 
 // The rows of a catalog (US-049, SCR-020; design D6 of us-049-show-catalog-data). Renders the
@@ -17,8 +19,11 @@ import { session } from '../session/store'
 // us-098-entity-history), with this catalog as the page to return to; it needs entity:read.
 // With `placeable` every row of elements has "Place in navigation" (US-095; design D5 of
 // us-095-navigation-tree-items), which the page opens the dialog for.
-const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string; readOnly?: boolean; placeable?: boolean }>()
-const emit = defineEmits<{ place: [entityId: number, name: string]; sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
+// A deleted row (query with includeDeleted, design D3 of s17-deleted-entities) is greyed and marked
+// "Deleted" with its deletion time as text; with `restorable` it has the action "Restore" instead
+// of the other row actions.
+const props = defineProps<{ result: CatalogQueryResult; loading?: boolean; primaryLabel?: string; readOnly?: boolean; placeable?: boolean; restorable?: boolean }>()
+const emit = defineEmits<{ place: [entityId: number, name: string]; restore: [row: CatalogRow]; sort: [sort: CatalogSort | undefined]; page: [page: number]; mode: [joinId: string, mode: JoinMode] }>()
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -59,6 +64,34 @@ function historyAction(row: CatalogRow) {
       [h(UIcon, { name: 'i-lucide-triangle-alert', class: 'size-4 shrink-0 text-warning', 'aria-hidden': 'true' })],
     ),
     link,
+  ])
+}
+
+function restoreAction(row: CatalogRow) {
+  const name = row.values.name ?? `#${row.entityId}`
+  return h(
+    'button',
+    {
+      type: 'button',
+      'data-testid': `restore-${row.entityId}`,
+      'aria-label': t('catalog.restoreAction', { name }),
+      class: 'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-default hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary',
+      onClick: () => emit('restore', row),
+    },
+    [h(UIcon, { name: 'i-lucide-undo-2', class: 'size-4 shrink-0', 'aria-hidden': 'true' }), t('catalog.restore')],
+  )
+}
+
+/** The text of a cell; a deleted row is greyed, and its first cell carries the marker as text, not by colour only. */
+function cell(row: CatalogRow, value: string, first: boolean) {
+  if (!row.deleted) return value
+  const grey = h('span', { class: 'text-muted' }, value)
+  if (!first) return grey
+  const at = row.deletedAt ? new Date(row.deletedAt).toLocaleString(currentLanguage(), { dateStyle: 'medium', timeStyle: 'short' }) : ''
+  return h('span', { class: 'inline-flex flex-wrap items-center gap-2' }, [
+    grey,
+    h(UBadge, { color: 'neutral', variant: 'subtle', label: t('catalog.deletedMarker'), 'data-testid': `deleted-${row.entityId}` }),
+    h('span', { class: 'text-xs text-muted', 'data-testid': `deleted-at-${row.entityId}` }, t('catalog.deletedAt', { date: at })),
   ])
 }
 
@@ -146,19 +179,27 @@ function modeSwitch(joinId: string, name: string, mode: JoinMode) {
 }
 
 const columns = computed<TableColumn<CatalogRow>[]>(() => {
-  const primary: TableColumn<CatalogRow>[] = props.result.columns.map((column) => ({
+  const primary: TableColumn<CatalogRow>[] = props.result.columns.map((column, index) => ({
     id: column.key,
     accessorFn: (row: CatalogRow) => row.values[column.key] ?? '',
     enableSorting: column.sortable,
     header: header(column, column.key),
+    cell: ({ row }: { row: { original: CatalogRow } }) => cell(row.original, row.original.values[column.key] ?? '', index === 0),
   }))
-  if (canReadHistory.value) {
+  if (canReadHistory.value || props.restorable) {
     primary.push({
       id: 'actions',
       enableSorting: false,
       header: () => h('span', { class: 'sr-only' }, t('catalog.actions')),
-      cell: ({ row }: { row: { original: CatalogRow } }) =>
-        props.placeable ? h('span', { class: 'inline-flex items-center gap-1' }, [historyAction(row.original), placeAction(row.original)]) : historyAction(row.original),
+      cell: ({ row }: { row: { original: CatalogRow } }) => {
+        const entry = row.original
+        if (entry.deleted) {
+          // a deleted entity has no history page and no place in the navigation; it can be restored
+          return props.restorable && !props.readOnly ? restoreAction(entry) : ''
+        }
+        if (!canReadHistory.value) return ''
+        return props.placeable ? h('span', { class: 'inline-flex items-center gap-1' }, [historyAction(entry), placeAction(entry)]) : historyAction(entry)
+      },
     })
   }
   const joins = props.result.joins ?? []

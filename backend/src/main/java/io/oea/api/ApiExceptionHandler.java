@@ -19,6 +19,7 @@ import io.oea.app.catalog.CatalogQueryTimeoutException;
 import io.oea.app.catalog.InvalidCatalogException;
 import io.oea.app.catalog.InvalidCatalogQueryException;
 import io.oea.app.dashboard.InvalidDashboardException;
+import io.oea.app.deletion.InvalidDeletedEntityQueryException;
 import io.oea.app.diagram.DiagramChangeException;
 import io.oea.app.diagramview.DiagramViewException;
 import io.oea.app.entity.AtomicBatchFailedException;
@@ -711,6 +712,12 @@ public class ApiExceptionHandler {
 
 	@ExceptionHandler(InvalidCatalogQueryException.class)
 	ResponseEntity<ProblemDetail> invalidCatalogQuery(InvalidCatalogQueryException ex) {
+		return catalogQueryProblem(ex.getInvalidFields());
+	}
+
+	/** An invalid query of the list of deleted entities (design D1 of s17-deleted-entities). */
+	@ExceptionHandler(InvalidDeletedEntityQueryException.class)
+	ResponseEntity<ProblemDetail> invalidDeletedEntityQuery(InvalidDeletedEntityQueryException ex) {
 		return catalogQueryProblem(ex.getInvalidFields());
 	}
 

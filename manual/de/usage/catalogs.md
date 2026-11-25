@@ -59,6 +59,18 @@ Ein Warnzeichen neben *Historie* markiert eine Entität mit [offenen Punkten](./
 - Eine Spalte, deren Eigenschaft du nicht lesen darfst, hat `readable: false` und `null` als Werte; Sortieren oder Filtern nach ihr antwortet mit 400. Eine verbindungsbasierte Spalte ist `readable: true`, wenn dein Konto mit einem Element verknüpft ist, mit `null` in den Zeilen außerhalb deines Bereichs.
 - Eine Abfrage über der Zeitgrenze antwortet mit 503 und dem Problemtyp `urn:oea:problem:query-timeout` (*Query took too long*).
 
+## Gelöschte Zeilen anzeigen {#show-deleted}
+
+Mit der Berechtigung `entity:restore` (Rolle `enterprise-architect`) fügt der Schalter *Gelöschte anzeigen* über der Tabelle die gelöschten Entitäten des Entitätstyps des Katalogs als Zeilen hinzu. Eine gelöschte Zeile ist ausgegraut und mit *Gelöscht* und dem Zeitpunkt des Löschens markiert; sie hat statt *Historie* die Aktion *Wiederherstellen*. Wähle *Wiederherstellen*, bestätige, und die Zeile wird zu einer aktiven; ein Hinweis nennt, was sonst noch zurückkam und was gelöscht blieb (siehe [Gelöschte Entitäten](./deleted-entities#restore-an-entity)). Wurde die Entität inzwischen wiederhergestellt oder geändert, meldet die Seite das und aktualisiert die Zeilen.
+
+- Die Spalten, ihre Sichtbarkeit, die Filter, die Sortierung und das Blättern funktionieren wie bei den anderen Zeilen, und die gezählten Einträge enthalten die gelöschten Zeilen.
+- Der Schalter ist Teil der Adresse der Seite (`deleted=1`), wie Sortierung und Seite; ohne die Berechtigung wird der Wert ignoriert. Er wird nicht in einer [Ansicht](#views) gespeichert: Eine Ansicht zu öffnen zeigt nur aktive Zeilen.
+- Joins zeigen nur aktive Verbindungen und aktive verknüpfte Entitäten, eine gelöschte Zeile hat daher keine Join-Ergebnisse; im Modus *Zeilen* behält sie eine Zeile ohne Ergebnisse, und ein Filter auf eine Spalte eines Joins findet sie nicht.
+- In einem [Verbindungskatalog](#connection-catalogs) zeigt eine gelöschte Verbindung die Quelle und das Ziel, die sie hatte, auch wenn diese gelöscht sind. Eine solche Verbindung kann nicht vor ihren Endpunkten wiederhergestellt werden; die Seite meldet das.
+- Portale, Dashboards und jeder Katalog ohne den Schalter zeigen nur aktive Zeilen.
+
+Über die API liefert `GET /catalogs/{id}/query?includeDeleted=true` die gelöschten Zeilen mit; sie braucht `entity:restore` und antwortet ohne diese Berechtigung mit 403. Eine gelöschte Zeile trägt `deleted: true`, `deletedAt` und ihre `version`, die das `If-Match` von `POST /entities/{id}/undelete` ist; aktive Zeilen tragen keines der drei. Ein Cursor einer Abfrage mit anderem `includeDeleted` wird mit 400 abgelehnt, der `cursor` nennt.
+
 ## Filter {#filters}
 
 Filter grenzen die Tabelle auf die Einträge ein, die du brauchst, zum Beispiel nur die aktiven Anwendungen. Jede Leserin und jeder Leser eines Katalogs kann Filter setzen; sie ändern nur deine Ansicht, nicht den Katalog.

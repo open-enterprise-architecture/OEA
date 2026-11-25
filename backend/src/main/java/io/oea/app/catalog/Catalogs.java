@@ -41,6 +41,9 @@ import tools.jackson.databind.node.ObjectNode;
 @Service
 public class Catalogs {
 
+	/** Permission to see deleted rows, the contract condition of {@code includeDeleted} of the query (ADR-019). */
+	public static final String RESTORE_PERMISSION = "entity:restore";
+
 	/** Permission for shared catalogs, the contract condition of {@code createCatalog}. */
 	public static final String MANAGE_PERMISSION = "catalog:manage";
 
@@ -267,6 +270,17 @@ public class Catalogs {
 			return null;
 		}
 
+	}
+
+	/**
+	 * Checks the permission of a query with {@code includeDeleted}: it needs {@code entity:restore}.
+	 *
+	 * @throws PermissionDeniedException without it (403)
+	 */
+	public void requireRestore(OeaPrincipal principal) {
+		if (!this.permissions.permissions(principal).contains(RESTORE_PERMISSION)) {
+			throw new PermissionDeniedException();
+		}
 	}
 
 	/** Input of a new catalog; a {@code null} join mode means {@code aggregate}. */
