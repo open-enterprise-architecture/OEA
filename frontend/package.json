@@ -28,7 +28,7 @@
     "render:screens": "node scripts/render-screens.mjs storybook-static ../docs/screens"
   },
   "dependencies": {
-    "@nuxt/ui": "^4.12.0",
+    "@nuxt/ui": "^4.13.0",
     "@simplewebauthn/browser": "^14.0.0",
     "@vue-flow/core": "^1.48.2",
     "@vue-flow/node-resizer": "^1.5.1",
@@ -42,7 +42,7 @@
     "vue-router": "^5.5.1"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.155",
+    "@iconify-json/lucide": "^1.2.158",
     "@storybook/addon-a11y": "^10.6.7",
     "@storybook/addon-vitest": "^10.6.7",
     "@storybook/vue3-vite": "^10.6.7",
