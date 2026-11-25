@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{I as t,R as n,k as r}from"./iconify-BBQk76Te.js";function i(e,r){return r===`root`?n(e,a):t(e,[`data-state`,...a])}var a;function o(){return(o=e((()=>{r(),a=[`onPointermove`,`onPointerenter`,`onPointerleave`,`data-grace-area-trigger`]})))()}export{o as n,i as t};

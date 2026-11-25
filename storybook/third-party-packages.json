@@ -33,7 +33,7 @@
   },
   {
     "name": "@iconify/vue",
-    "version": "5.0.3",
+    "version": "5.0.5",
     "license": "MIT",
     "repository": "https://github.com/iconify/iconify",
     "licenseFile": true,
@@ -73,7 +73,7 @@
   },
   {
     "name": "@nuxt/ui",
-    "version": "4.12.0",
+    "version": "4.13.0",
     "license": "MIT",
     "repository": "https://github.com/nuxt/ui",
     "licenseFile": true,
@@ -121,7 +121,7 @@
   },
   {
     "name": "@tanstack/virtual-core",
-    "version": "3.19.4",
+    "version": "3.19.11",
     "license": "MIT",
     "repository": "https://github.com/TanStack/virtual",
     "licenseFile": true,
@@ -137,7 +137,7 @@
   },
   {
     "name": "@tanstack/vue-virtual",
-    "version": "3.13.45",
+    "version": "3.13.52",
     "license": "MIT",
     "repository": "https://github.com/TanStack/virtual",
     "licenseFile": true,
@@ -169,7 +169,7 @@
   },
   {
     "name": "@vue/compiler-core",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
@@ -177,7 +177,7 @@
   },
   {
     "name": "@vue/compiler-dom",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
@@ -185,7 +185,7 @@
   },
   {
     "name": "@vue/reactivity",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
@@ -193,7 +193,7 @@
   },
   {
     "name": "@vue/runtime-core",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
@@ -201,7 +201,7 @@
   },
   {
     "name": "@vue/runtime-dom",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
@@ -209,7 +209,7 @@
   },
   {
     "name": "@vue/shared",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
@@ -352,8 +352,16 @@
     "noticeFile": false
   },
   {
+    "name": "tailwind-merge",
+    "version": "3.7.1",
+    "license": "MIT",
+    "repository": "https://github.com/dcastil/tailwind-merge",
+    "licenseFile": true,
+    "noticeFile": false
+  },
+  {
     "name": "tailwind-variants",
-    "version": "3.3.1",
+    "version": "3.2.2",
     "license": "MIT",
     "repository": "https://github.com/heroui-inc/tailwind-variants",
     "licenseFile": true,
@@ -417,7 +425,7 @@
   },
   {
     "name": "vue",
-    "version": "3.5.44",
+    "version": "3.5.46",
     "license": "MIT",
     "repository": "https://github.com/vuejs/core",
     "licenseFile": true,
