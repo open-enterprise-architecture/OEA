@@ -16,7 +16,7 @@ RUN npm run build \
  && find dist -type d -exec chmod 0555 {} + \
  && find dist -type f -exec chmod 0444 {} +
 
-FROM docker.io/library/eclipse-temurin:25-jdk-noble@sha256:80f67fb3d6f76e2d817d98a4cc2a9cf05f054d4e6adc5e2144bde671d722e63f AS build
+FROM docker.io/library/eclipse-temurin:25-jdk-noble@sha256:4ddc1a8bdaf283421df5487411aff10b797ccf1e06a339041005114c8f489b5c AS build
 WORKDIR /workspace
 COPY api/openapi.yaml api/openapi.yaml
 COPY packages/*.json packages/
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -q -Dmaven.test.skip=true package \
  && cp target/oea-backend-*.jar /workspace/oea-backend.jar
 
-FROM docker.io/library/eclipse-temurin:25-jre-noble@sha256:e3b6f7887a50f20d8f07abf279d8a81a5953fb398a9555bd9edd56b9bd15968c
+FROM docker.io/library/eclipse-temurin:25-jre-noble@sha256:f3dd0838e69b881cc382237d5901e74ae3705b1056ad964b2e0e523b174fef99
 RUN groupadd --system --gid 10001 oea \
  && useradd --system --uid 10001 --gid oea --no-create-home --shell /usr/sbin/nologin oea \
  && install -d -o 10001 -g 10001 -m 0700 /run/oea
