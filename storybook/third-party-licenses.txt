@@ -337,7 +337,7 @@ Apache License
 
 ------------------------------------------------------------------------
 
-@intlify/core-base 11.4.18 (MIT)
+@intlify/core-base 11.4.23 (MIT)
 https://github.com/intlify/vue-i18n
 
 The MIT License (MIT)
@@ -363,7 +363,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ------------------------------------------------------------------------
 
-@intlify/message-compiler 11.4.18 (MIT)
+@intlify/message-compiler 11.4.23 (MIT)
 https://github.com/intlify/vue-i18n
 
 The MIT License (MIT)
@@ -389,7 +389,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ------------------------------------------------------------------------
 
-@intlify/shared 11.4.18 (MIT)
+@intlify/shared 11.4.23 (MIT)
 https://github.com/intlify/vue-i18n
 
 The MIT License (MIT)
@@ -2240,7 +2240,7 @@ THE SOFTWARE.
 
 ------------------------------------------------------------------------
 
-vue-i18n 11.4.18 (MIT)
+vue-i18n 11.4.23 (MIT)
 https://github.com/intlify/vue-i18n
 
 The MIT License (MIT)

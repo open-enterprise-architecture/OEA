@@ -49,7 +49,7 @@
   },
   {
     "name": "@intlify/core-base",
-    "version": "11.4.18",
+    "version": "11.4.23",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true,
@@ -57,7 +57,7 @@
   },
   {
     "name": "@intlify/message-compiler",
-    "version": "11.4.18",
+    "version": "11.4.23",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true,
@@ -65,7 +65,7 @@
   },
   {
     "name": "@intlify/shared",
-    "version": "11.4.18",
+    "version": "11.4.23",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true,
@@ -433,7 +433,7 @@
   },
   {
     "name": "vue-i18n",
-    "version": "11.4.18",
+    "version": "11.4.23",
     "license": "MIT",
     "repository": "https://github.com/intlify/vue-i18n",
     "licenseFile": true,
