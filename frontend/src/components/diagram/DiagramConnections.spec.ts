@@ -33,9 +33,9 @@ const EDGE = 'f1000000-0000-4000-8000-000000000001'
 
 const SHAPES: DiagramShape[] = [
   shape({ id: ERP, x: 100, y: 50 }),
-  shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 400, y: 50 }),
-  shape({ id: APPROVAL, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS }, x: 250, y: 200, width: 90, height: 30 }),
-  shape({ id: REVIEW, entity: { id: 15, name: 'Review', metatypeId: METATYPE_PROCESS }, x: 450, y: 200, width: 90, height: 30 }),
+  shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 400, y: 50 }),
+  shape({ id: APPROVAL, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS, childCount: 0, parentEntityId: null }, x: 250, y: 200, width: 90, height: 30 }),
+  shape({ id: REVIEW, entity: { id: 15, name: 'Review', metatypeId: METATYPE_PROCESS, childCount: 0, parentEntityId: null }, x: 450, y: 200, width: 90, height: 30 }),
 ]
 
 const mounted: VueWrapper[] = []
@@ -373,7 +373,7 @@ describe('DiagramCanvas connections', () => {
 
   describe('the offer of existing connections', () => {
     const OFFER = { connection: { id: 21, name: 'SAP ERP → Salesforce', metatypeId: METATYPE_FLOW }, sourceEntityId: 12, targetEntityId: 13 }
-    const CRM_ONLY = [shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 400, y: 50 })]
+    const CRM_ONLY = [shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 400, y: 50 })]
 
     it('offers the connections when the second end is placed and adds no edge by itself', async () => {
       const { wrapper, fetchFn } = await mountCanvas({ offers: [OFFER] }, [], true, CRM_ONLY)

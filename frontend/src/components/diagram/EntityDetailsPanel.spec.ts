@@ -9,7 +9,7 @@ import EntityDetailsPanel from './EntityDetailsPanel.vue'
 
 // spec diagram/diagram-entity-details "Details panel" (SCR-021, US-074 step 6)
 const ERP = fromView(shape())
-const APPROVAL = fromView(shape({ id: 'd1000000-0000-4000-8000-000000000003', entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS }, missingMandatory: ['Process Owner'] }))
+const APPROVAL = fromView(shape({ id: 'd1000000-0000-4000-8000-000000000003', entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS, childCount: 0, parentEntityId: null }, missingMandatory: ['Process Owner'] }))
 
 const mounted: VueWrapper[] = []
 
@@ -18,7 +18,7 @@ async function mountPanel(
   options: Partial<DiagramApiOptions> = {},
 ) {
   const target = props.shape ?? ERP
-  const fetchFn = diagramApi({ me: ME_DIAGRAM_WRITER, shapes: [shape(), shape({ id: APPROVAL.id, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS } })], ...options })
+  const fetchFn = diagramApi({ me: ME_DIAGRAM_WRITER, shapes: [shape(), shape({ id: APPROVAL.id, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS, childCount: 0, parentEntityId: null } })], ...options })
   const wrapper = mount(EntityDetailsPanel, {
     props: { diagramId: diagramView().diagram.id, shape: target, editable: props.editable ?? true, edit: props.edit, errors: props.errors, fetchFn },
     global: { plugins: [ui, testRouter()] },

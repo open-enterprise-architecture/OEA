@@ -196,6 +196,20 @@ public class PackageImportSteps {
 				shared.metamodelAdmin());
 	}
 
+	@When("the metamodel administrator imports the package {string} with a viewpoint {string} that asks for a new parent: {word}")
+	public void withAskNewParent(String packageId, String name, String value) throws Exception {
+		ObjectNode pkg = viewpointPackage(packageId, name,
+				TestPackages.pkg(packageId, 1).withArray("metatypes").get(0).path("id").asString());
+		((ObjectNode) pkg.withArray("viewpoints").get(0)).put("askNewParent", Boolean.parseBoolean(value));
+		this.response = shared.post(IMPORT, pkg.toString(), shared.metamodelAdmin());
+	}
+
+	@Then("the system-defined viewpoint {string} of the package {string} stores askNewParent {word}")
+	public void storesAskNewParent(String name, String packageId, String value) throws Exception {
+		assertThat(shared.oidc().single("SELECT ask_new_parent::text FROM viewpoints WHERE name = '" + name
+				+ "' AND source_package_id = '" + packageId + "' AND viewpoint_type = 'system-defined'")).isEqualTo(value);
+	}
+
 	@When("the metamodel administrator imports the package {string} with a viewpoint that allows an unknown metatype")
 	public void withUnknownType(String packageId) throws Exception {
 		this.response = shared.post(IMPORT, viewpointPackage(packageId, "Unknown Type View",

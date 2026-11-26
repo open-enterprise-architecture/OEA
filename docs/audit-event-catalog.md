@@ -855,7 +855,7 @@ A viewpoint was created, edited or deleted ([US-090](../requirements/user-storie
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person with `viewpoint:manage` |
 | Target | `viewpoint`, ID of the viewpoint |
-| Details | `name` and `notation` (`generic`, `archimate3`, `uml` or `bpmn2`); for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `notation`, `metatypeIds`, `connectionTypeIds`, `mappings` and `sizes`. Mapping values (notation elements, sizes, visual hints) are not copied ([US-091](../requirements/user-stories/US-091-viewpoint-notation-mapping.md), [REQ-091](../requirements/req/REQ-091-viewpoint-notation-mapping.md); change us-091-viewpoint-notations D8) |
+| Details | `name` and `notation` (`generic`, `archimate3`, `uml` or `bpmn2`); for `viewpoint.updated` also `fields`, the changed fields among `name`, `description`, `notation`, `metatypeIds`, `connectionTypeIds`, `mappings`, `sizes` and `askNewParent` (change us-074-diagram-nesting). Mapping values (notation elements, sizes, visual hints) are not copied ([US-091](../requirements/user-stories/US-091-viewpoint-notation-mapping.md), [REQ-091](../requirements/req/REQ-091-viewpoint-notation-mapping.md); change us-091-viewpoint-notations D8) |
 
 ### `diagram.created` / `diagram.updated` / `diagram.deleted` / `diagram.restored`
 
@@ -877,7 +877,20 @@ The layout of a diagram was saved: all its shapes in drawing order and its edges
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person or service account with `entity:write` |
 | Target | `diagram`, ID of the diagram |
-| Details | `name` of the diagram, the new `version`, and the numbers `added`, `changed` (entity, position, size or drawing order differ) and `removed` shapes, `entitiesCreated`, the numbers `edgesAdded`, `edgesChanged` (connection, shape or bend points differ) and `edgesRemoved` edges, and `connectionsCreated`. Shapes of a deleted entity and edges of a deleted connection are hidden and not counted |
+| Details | `name` of the diagram, the new `version`, and the numbers `added`, `changed` (entity, position, size or drawing order differ) and `removed` shapes, `entitiesCreated`, the numbers `edgesAdded`, `edgesChanged` (connection, shape or bend points differ) and `edgesRemoved` edges, `connectionsCreated`, and `parentsChanged`, the number of entities whose parent the save changed (change us-074-diagram-nesting; a new entity with a parent counts, a change to the current parent does not). Shapes of a deleted entity and edges of a deleted connection are hidden and not counted; the nesting of shapes and the hierarchy lines are part of the layout and not counted separately |
+
+Each parent the save changes (`parentChanges`, and the parent of a new entity) is audited as [`entity.parent-changed`](#entityparent-changed) with the agent of the save, in the same transaction; a new entity with a parent has `entity.created` and `entity.parent-changed`.
+
+### `diagram.settings-updated`
+
+The global setting "Ask for a new parent" of diagrams was changed ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md), [US-135](../requirements/user-stories/US-135-place-component-hierarchically.md); change us-074-diagram-nesting, business object [Viewpoint](../business-objects/viewpoint.md), BR-14). A write of the value the setting has, a stale or missing version and a missing permission are not audited and change nothing.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person with `viewpoint:manage` |
+| Target | `diagram-settings`, ID `1` |
+| Details | `setting` (`askNewParent`), `before` and `after` (the old and the new value) and the new `version` |
 
 ### `plateau.created` / `plateau.updated`
 

@@ -1,6 +1,8 @@
 package io.oea.api.metamodel;
 
 import io.oea.api.generated.ViewpointsApi;
+import io.oea.api.generated.model.DiagramSettings;
+import io.oea.api.generated.model.DiagramSettingsWrite;
 import io.oea.api.generated.model.EffectiveViewpointMapping;
 import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.MetatypeSummary;
@@ -34,9 +36,30 @@ public class ViewpointController implements ViewpointsApi {
 
 	private final NotationCatalog catalog;
 
-	public ViewpointController(Viewpoints viewpoints, NotationCatalog catalog) {
+	private final io.oea.app.metamodel.DiagramSettings settings;
+
+	public ViewpointController(Viewpoints viewpoints, NotationCatalog catalog,
+			io.oea.app.metamodel.DiagramSettings settings) {
 		this.viewpoints = viewpoints;
 		this.catalog = catalog;
+		this.settings = settings;
+	}
+
+	@Override
+	public ResponseEntity<DiagramSettings> getDiagramSettings() {
+		return settings(this.settings.get());
+	}
+
+	@Override
+	public ResponseEntity<DiagramSettings> updateDiagramSettings(String ifMatch, DiagramSettingsWrite request) {
+		return settings(this.settings.update(principal(), request.getAskNewParent(),
+				MetamodelController.expectedVersion(ifMatch)));
+	}
+
+	private static ResponseEntity<DiagramSettings> settings(io.oea.app.metamodel.DiagramSettings.Values values) {
+		return ResponseEntity.ok()
+			.eTag(etag(values.version()))
+			.body(new DiagramSettings(values.askNewParent(), values.version()));
 	}
 
 	@Override
@@ -95,7 +118,8 @@ public class ViewpointController implements ViewpointsApi {
 							.stream()
 							.map((size) -> new Viewpoints.Size(size.getMetatypeId(), size.getWidth(), size.getHeight(),
 									size.getLength()))
-							.toList());
+							.toList(),
+				request.getAskNewParent());
 	}
 
 	/** The viewpoint as the contract's {@code ViewpointConfig}; shared with the diagram view. */
@@ -127,6 +151,7 @@ public class ViewpointController implements ViewpointsApi {
 				.toList())
 			.allowedMetatypes(row.metatypes().stream().map(ViewpointController::summary).toList())
 			.allowedRelations(row.connectionTypes().stream().map(ViewpointController::summary).toList())
+			.askNewParent(row.askNewParent())
 			.diagramCount(row.diagramCount())
 			.version(row.version())
 			.createdAt(row.createdAt().atOffset(ZoneOffset.UTC))

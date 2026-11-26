@@ -6,8 +6,11 @@ import io.oea.app.entity.EntityBatch;
 import io.oea.app.entity.ConnectionInput;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.Issue;
+import io.oea.app.hierarchy.EntityHierarchy;
+import io.oea.app.hierarchy.InvalidHierarchyException;
 import io.oea.app.entity.MetatypeRules;
 import io.oea.app.entity.PropertyWriteAccess;
+import io.oea.app.metamodel.DiagramSettings;
 import io.oea.app.metamodel.OverrideAccessAudit;
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.metamodel.Viewpoints;
@@ -21,11 +24,13 @@ import io.oea.core.diagram.DiagramEdgeStore;
 import io.oea.core.diagram.DiagramEdgeStore.EdgeWrite;
 import io.oea.core.diagram.DiagramEdgeStore.ShownEdge;
 import io.oea.core.diagram.DiagramEdgeStore.StoredEdge;
+import io.oea.core.diagram.DiagramHierarchyLineStore;
 import io.oea.core.diagram.DiagramShapeStore;
 import io.oea.core.diagram.DiagramShapeStore.EntityRef;
 import io.oea.core.diagram.DiagramShapeStore.ShapeWrite;
 import io.oea.core.diagram.DiagramShapeStore.ShownShape;
 import io.oea.core.diagram.DiagramShapeStore.StoredShape;
+import io.oea.core.entity.EntityHierarchyStore;
 import io.oea.core.entity.EntitySearchStore;
 import io.oea.core.entity.EntityStore;
 import io.oea.core.entity.LabeledValue;
@@ -44,6 +49,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -65,6 +71,12 @@ public class DiagramViews {
 
 	/** The most decimals of a position or size, in pt. */
 	static final int MAX_DECIMALS = 2;
+
+	/** The most direct children that {@link #children} returns. */
+	public static final int MAX_CHILDREN = 500;
+
+	/** The deepest nesting of shapes; a shape on the canvas is on level 1. */
+	public static final int MAX_NESTING = 10;
 
 	/** The most connections that {@link #connections} returns. */
 	public static final int MAX_OFFERED_CONNECTIONS = 5000;
@@ -103,10 +115,23 @@ public class DiagramViews {
 
 	private final OverrideAccessAudit overrideAudit;
 
+	private final DiagramHierarchyLineStore lines;
+
+	private final EntityHierarchy hierarchy;
+
+	private final EntityHierarchyStore hierarchyStore;
+
+	private final DiagramSettings settings;
+
 	DiagramViews(Diagrams diagrams, Viewpoints viewpoints, EntityBatch entities, DiagramShapeStore shapes,
 			DiagramEdgeStore edges, EntitySearchStore search, MetatypeRuleStore ruleStore, AuditWriter audit, Clock clock,
 			EntityStore entityStore, PropertyValueStore valueStore, MetatypeStore metatypes, PropertyAccess access,
-			PermissionResolver permissions, OverrideAccessAudit overrideAudit) {
+			PermissionResolver permissions, OverrideAccessAudit overrideAudit, DiagramHierarchyLineStore lines,
+			EntityHierarchy hierarchy, EntityHierarchyStore hierarchyStore, DiagramSettings settings) {
+		this.lines = lines;
+		this.hierarchy = hierarchy;
+		this.hierarchyStore = hierarchyStore;
+		this.settings = settings;
 		this.entityStore = entityStore;
 		this.valueStore = valueStore;
 		this.metatypes = metatypes;
@@ -124,9 +149,18 @@ public class DiagramViews {
 		this.clock = clock;
 	}
 
-	/** A shape in the view; {@code missingMandatory} names the mandatory properties without a value. */
+	/**
+	 * A shape in the view; {@code missingMandatory} names the mandatory properties without a value.
+	 * {@code parentShapeId} is the container, only when it is shown, earlier in the drawing order and
+	 * contains the shape completely; {@code childCount} and {@code parentEntityId} are those of the entity.
+	 */
 	public record Shape(UUID id, int entityId, String entityName, UUID metatypeId, BigDecimal x, BigDecimal y,
-			BigDecimal width, BigDecimal height, List<String> missingMandatory) {
+			BigDecimal width, BigDecimal height, UUID parentShapeId, int childCount, Integer parentEntityId,
+			List<String> missingMandatory) {
+	}
+
+	/** A hierarchy line from a container shape to the shape of a child placed elsewhere. */
+	public record HierarchyLine(UUID id, UUID parentShapeId, UUID childShapeId) {
 	}
 
 	/** A bend point of an edge in pt. */
@@ -141,9 +175,12 @@ public class DiagramViews {
 			UUID targetShapeId, List<Point> points, List<String> missingMandatory) {
 	}
 
-	/** The diagram with its viewpoint, its shapes in drawing order and its edges. */
+	/**
+	 * The diagram with its viewpoint, its shapes in drawing order, its edges, its hierarchy lines and
+	 * the effective setting "Ask for a new parent".
+	 */
 	public record View(Diagrams.Diagram diagram, Viewpoints.Viewpoint viewpoint, List<Shape> shapes,
-			List<Edge> edges) {
+			List<Edge> edges, List<HierarchyLine> hierarchyLines, boolean askNewParent) {
 	}
 
 	/** A connection to offer when an entity is placed. */
@@ -177,8 +214,33 @@ public class DiagramViews {
 
 	}
 
-	/** An entity the viewpoint allows. */
-	public record Found(int id, String name, Viewpoints.Type metatype) {
+	/** An entity the viewpoint allows, with its number of children and its parent. */
+	public record Found(int id, String name, Viewpoints.Type metatype, int childCount, Integer parentEntityId) {
+	}
+
+	/** A direct child of an entity; {@code allowed} says whether the viewpoint allows its metatype. */
+	public record Child(int id, String name, UUID metatypeId, int childCount, Integer parentEntityId, boolean allowed,
+			ChildConnection compositionConnection) {
+	}
+
+	/** The composition connection from a parent to a child; {@code allowed} for the viewpoint. */
+	public record ChildConnection(int id, String name, UUID metatypeId, boolean allowed) {
+	}
+
+	/** The direct children of an entity; {@code truncated} when more than {@link #MAX_CHILDREN} exist. */
+	public record Children(List<Child> items, boolean truncated) {
+	}
+
+	/** A hierarchy line to save, between two shapes of the request. */
+	public record LineInput(UUID id, UUID parentShapeId, UUID childShapeId) {
+	}
+
+	/**
+	 * A change of the parent of a shown entity with the version read; at most one of
+	 * {@code parentEntityId} and {@code parentNewEntityKey} is set (checked), none clears the parent.
+	 */
+	public record ParentChangeInput(int entityId, int expectedVersion, Integer parentEntityId,
+			UUID parentNewEntityKey) {
 	}
 
 	/** One page of {@link Found}. */
@@ -187,12 +249,15 @@ public class DiagramViews {
 
 	/** A shape to save: exactly one of {@code entityId} and {@code newEntityKey} is set (checked). */
 	public record ShapeInput(UUID id, Integer entityId, UUID newEntityKey, BigDecimal x, BigDecimal y,
-			BigDecimal width, BigDecimal height) {
+			BigDecimal width, BigDecimal height, UUID parentShapeId) {
 	}
 
-	/** A new entity to create with the save, with an optional description and values. */
+	/**
+	 * A new entity to create with the save, with an optional description and values, and optionally
+	 * its parent: at most one of {@code parentEntityId} and {@code parentNewEntityKey} (checked).
+	 */
 	public record NewEntityInput(UUID key, UUID metatypeId, String name, String description,
-			List<EntityInput.PropertyInput> properties) {
+			List<EntityInput.PropertyInput> properties, Integer parentEntityId, UUID parentNewEntityKey) {
 
 		public NewEntityInput {
 			properties = (properties != null) ? List.copyOf(properties) : List.of();
@@ -268,10 +333,45 @@ public class DiagramViews {
 		long total = this.search.count(types, like);
 		List<Found> items = this.search.page(types, like, pageSize, (long) page * pageSize)
 			.stream()
-			.map((found) -> new Found(found.id(), found.name(), allowed.get(found.metatypeId())))
+			.map((found) -> new Found(found.id(), found.name(), allowed.get(found.metatypeId()), found.childCount(),
+					found.parentEntityId()))
 			.toList();
 		int totalPages = Math.toIntExact((total + pageSize - 1) / pageSize);
 		return new EntityPage(items, page, pageSize, total, totalPages);
+	}
+
+	/**
+	 * The direct children of an element entity that are not deleted, by name ignoring case, then ID, at
+	 * most {@link #MAX_CHILDREN} (design D2 of us-074-diagram-nesting), each with whether the viewpoint
+	 * allows its metatype and the composition connection of the pair.
+	 *
+	 * @throws NoSuchElementException for an unknown or deleted diagram, and an unknown, deleted or
+	 *         connection entity (404)
+	 */
+	@Transactional(readOnly = true)
+	public Children children(UUID id, int entityId) {
+		Diagrams.Diagram diagram = this.diagrams.get(id);
+		if (!this.shapes.activeElement(entityId)) {
+			throw new NoSuchElementException("entity " + entityId);
+		}
+		Viewpoints.Viewpoint viewpoint = this.viewpoints.get(diagram.viewpoint().id());
+		Set<UUID> allowed = new HashSet<>();
+		viewpoint.metatypes().forEach((type) -> allowed.add(type.id()));
+		Set<UUID> allowedConnections = new HashSet<>();
+		viewpoint.connectionTypes().forEach((type) -> allowedConnections.add(type.id()));
+		List<DiagramShapeStore.Child> found = this.shapes.children(entityId, MAX_CHILDREN + 1);
+		boolean truncated = found.size() > MAX_CHILDREN;
+		List<DiagramShapeStore.Child> kept = truncated ? found.subList(0, MAX_CHILDREN) : found;
+		Map<Integer, DiagramShapeStore.CompositionConnection> connections = this.shapes
+			.compositionConnections(entityId, kept.stream().map(DiagramShapeStore.Child::id).toList());
+		List<Child> items = kept.stream().map((child) -> {
+			DiagramShapeStore.CompositionConnection connection = connections.get(child.id());
+			return new Child(child.id(), child.name(), child.metatypeId(), child.childCount(), child.parentEntityId(),
+					allowed.contains(child.metatypeId()),
+					(connection != null) ? new ChildConnection(connection.connectionId(), connection.name(),
+							connection.metatypeId(), allowedConnections.contains(connection.metatypeId())) : null);
+		}).toList();
+		return new Children(items, truncated);
 	}
 
 	/**
@@ -388,7 +488,8 @@ public class DiagramViews {
 		List<Found> items = this.search.page(types, like, pageSize, (long) page * pageSize)
 			.stream()
 			.map((found) -> new Found(found.id(), found.name(),
-					new Viewpoints.Type(found.metatypeId(), found.metatypeName(), found.metatypeAbbreviation())))
+					new Viewpoints.Type(found.metatypeId(), found.metatypeName(), found.metatypeAbbreviation()),
+					found.childCount(), found.parentEntityId()))
 			.toList();
 		int totalPages = Math.toIntExact((total + pageSize - 1) / pageSize);
 		return new EntityPage(items, page, pageSize, total, totalPages);
@@ -401,20 +502,28 @@ public class DiagramViews {
 	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
 	 * @throws io.oea.app.diagram.DiagramChangeException for a missing (428) or stale (412) version
 	 * @throws DiagramViewException for a value with more than two decimals (400) or shapes, new
-	 *         entities and entity changes that violate a rule, the faulty entity writes included (422)
-	 * @throws io.oea.app.entity.EntityVersionConflictException for a changed entity with another
-	 *         version than expected (409)
-	 * @throws io.oea.app.entity.EntityBlockedException for a changed entity with an open issue (409)
+	 *         entities, entity changes, parents and hierarchy lines that violate a rule, the faulty
+	 *         entity writes included (422)
+	 * @throws io.oea.app.entity.EntityVersionConflictException for a changed entity or an entity with a
+	 *         parent change with another version than expected (409)
+	 * @throws io.oea.app.entity.EntityBlockedException for such an entity with an open issue (409)
 	 */
 	@Transactional
 	public View save(OeaPrincipal principal, UUID id, Long expectedVersion, List<ShapeInput> shapeInputs,
 			List<NewEntityInput> newEntities, List<EntityUpdateInput> updates, List<EdgeInput> edgeInputs,
-			List<NewConnectionInput> newConnections, AuditEvent.Agent agent) {
+			List<NewConnectionInput> newConnections, List<LineInput> lineInputs,
+			List<ParentChangeInput> parentChanges, AuditEvent.Agent agent) {
 		if (principal.personId() == null) {
 			throw new PermissionDeniedException();
 		}
 		checkNumbers(shapeInputs, edgeInputs);
 		Diagrams.Diagram diagram = this.diagrams.lockForLayout(id, expectedVersion);
+		// the hierarchy lock comes before any entity lock, as in setEntityParent (design D3 step 1)
+		boolean parents = !parentChanges.isEmpty()
+				|| newEntities.stream().anyMatch((entity) -> entity.parentEntityId() != null || entity.parentNewEntityKey() != null);
+		if (parents) {
+			this.hierarchyStore.lock();
+		}
 		Viewpoints.Viewpoint viewpoint = this.viewpoints.get(diagram.viewpoint().id());
 		Set<UUID> allowed = new HashSet<>();
 		viewpoint.metatypes().forEach((type) -> allowed.add(type.id()));
@@ -423,19 +532,25 @@ public class DiagramViews {
 		List<StoredShape> stored = this.shapes.stored(id);
 		List<StoredEdge> storedEdges = this.edges.stored(id);
 		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, stored);
+		errors.addAll(validateNesting(shapeInputs));
 		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, allowedConnections, storedEdges));
 		errors.addAll(validateUpdates(updates, shapeInputs, edgeInputs));
+		errors.addAll(validateLines(id, shapeInputs, lineInputs));
+		errors.addAll(validateParentChanges(parentChanges, shapeInputs, newEntities));
 		if (!errors.isEmpty()) {
 			throw invalid(errors);
 		}
-		update(principal, updates, agent);
+		update(principal, updates, parentChanges, agent);
 		Map<UUID, Integer> created = create(principal, newEntities, agent);
+		int parentsChanged = writeParents(principal, newEntities, parentChanges, created, agent);
+		checkLines(shapeInputs, lineInputs, created);
 		Map<UUID, Integer> createdConnections = createConnections(principal, shapeInputs, edgeInputs, newConnections,
 				created, agent);
 		List<ShapeWrite> writes = new ArrayList<>();
 		for (ShapeInput shape : shapeInputs) {
 			int entityId = (shape.entityId() != null) ? shape.entityId() : created.get(shape.newEntityKey());
-			writes.add(new ShapeWrite(shape.id(), entityId, shape.x(), shape.y(), shape.width(), shape.height()));
+			writes.add(new ShapeWrite(shape.id(), entityId, shape.x(), shape.y(), shape.width(), shape.height(),
+					shape.parentShapeId()));
 		}
 		List<EdgeWrite> edgeWrites = new ArrayList<>();
 		for (EdgeInput edge : edgeInputs) {
@@ -446,10 +561,13 @@ public class DiagramViews {
 		}
 		this.edges.deleteExcept(id, keptEdges(stored, storedEdges, writes, edgeWrites));
 		this.shapes.replace(id, writes);
+		this.lines.replace(id, lineInputs.stream()
+			.map((line) -> new DiagramHierarchyLineStore.Line(line.id(), line.parentShapeId(), line.childShapeId()))
+			.toList());
 		this.edges.upsert(id, edgeWrites);
 		int version = this.diagrams.layoutSaved(principal, id);
 		audit(principal, id, diagram.name(), version, count(stored, writes), countEdges(storedEdges, edgeWrites),
-				created.size(), createdConnections.size());
+				created.size(), createdConnections.size(), parentsChanged);
 		return buildView(this.diagrams.get(id));
 	}
 
@@ -689,16 +807,228 @@ public class DiagramViews {
 		return errors;
 	}
 
-	private void update(OeaPrincipal principal, List<EntityUpdateInput> updates, AuditEvent.Agent agent) {
-		if (updates.isEmpty()) {
+	/**
+	 * The containers of the shapes (design D1, D3 of us-074-diagram-nesting): each names a shape of the
+	 * request earlier in the drawing order (so never itself and never in a cycle), at most
+	 * {@link #MAX_NESTING} levels deep, that contains it completely; positions are absolute.
+	 */
+	private static List<Issue> validateNesting(List<ShapeInput> shapeInputs) {
+		List<Issue> errors = new ArrayList<>();
+		Map<UUID, Integer> index = new HashMap<>();
+		for (int i = 0; i < shapeInputs.size(); i++) {
+			index.putIfAbsent(shapeInputs.get(i).id(), i);
+		}
+		int[] level = new int[shapeInputs.size()];
+		for (int i = 0; i < shapeInputs.size(); i++) {
+			ShapeInput shape = shapeInputs.get(i);
+			level[i] = 1;
+			if (shape.parentShapeId() == null) {
+				continue;
+			}
+			String path = "shapes[" + i + "].parentShapeId";
+			Integer parent = index.get(shape.parentShapeId());
+			if (parent == null) {
+				errors.add(new Issue(path, "PARENT_SHAPE_UNKNOWN", "The container is not a shape of the saved layout."));
+			}
+			else if (parent >= i) {
+				errors.add(new Issue(path, "PARENT_SHAPE_NOT_EARLIER",
+						"The container is the shape itself or comes later in the drawing order."));
+			}
+			else {
+				ShapeInput container = shapeInputs.get(parent);
+				level[i] = level[parent] + 1;
+				if (level[i] > MAX_NESTING) {
+					errors.add(new Issue(path, "NESTING_TOO_DEEP",
+							"Shapes are nested at most " + MAX_NESTING + " levels deep."));
+				}
+				else if (!contains(container, shape)) {
+					errors.add(new Issue(path, "OUTSIDE_PARENT", "The shape does not lie completely within its container."));
+				}
+			}
+		}
+		return errors;
+	}
+
+	/** Whether the container's rectangle contains the shape's, the edges included. */
+	static boolean contains(ShapeInput container, ShapeInput shape) {
+		return contains(container.x(), container.y(), container.width(), container.height(), shape.x(), shape.y(),
+				shape.width(), shape.height());
+	}
+
+	private static boolean contains(BigDecimal cx, BigDecimal cy, BigDecimal cw, BigDecimal ch, BigDecimal x,
+			BigDecimal y, BigDecimal w, BigDecimal h) {
+		return x.compareTo(cx) >= 0 && y.compareTo(cy) >= 0 && x.add(w).compareTo(cx.add(cw)) <= 0
+				&& y.add(h).compareTo(cy.add(ch)) <= 0;
+	}
+
+	/** Each line joins two different shapes of the request, each pair once (the hierarchy is checked after the parent writes). */
+	private List<Issue> validateLines(UUID diagramId, List<ShapeInput> shapeInputs, List<LineInput> lineInputs) {
+		List<Issue> errors = new ArrayList<>();
+		Set<UUID> shapeIds = new HashSet<>();
+		shapeInputs.forEach((shape) -> shapeIds.add(shape.id()));
+		Set<UUID> foreign = this.lines.idsOfOtherDiagrams(diagramId, lineInputs.stream().map(LineInput::id).toList());
+		Set<UUID> ids = new HashSet<>();
+		Set<List<UUID>> pairs = new HashSet<>();
+		for (int i = 0; i < lineInputs.size(); i++) {
+			LineInput line = lineInputs.get(i);
+			String path = "hierarchyLines[" + i + "]";
+			if (!ids.add(line.id())) {
+				errors.add(new Issue(path + ".id", "DUPLICATE_LINE_ID", "The line ID occurs earlier in the request."));
+			}
+			if (foreign.contains(line.id())) {
+				errors.add(new Issue(path + ".id", "LINE_ID_IN_USE", "The line ID belongs to another diagram."));
+			}
+			boolean known = true;
+			if (!shapeIds.contains(line.parentShapeId())) {
+				errors.add(new Issue(path + ".parentShapeId", "SHAPE_NOT_IN_LAYOUT",
+						"The container shape is not a shape of the saved layout."));
+				known = false;
+			}
+			if (!shapeIds.contains(line.childShapeId())) {
+				errors.add(new Issue(path + ".childShapeId", "SHAPE_NOT_IN_LAYOUT",
+						"The child shape is not a shape of the saved layout."));
+				known = false;
+			}
+			if (known && line.parentShapeId().equals(line.childShapeId())) {
+				errors.add(new Issue(path, "LINE_SAME_SHAPE", "A line joins two different shapes."));
+			}
+			else if (known && !pairs.add(List.of(line.parentShapeId(), line.childShapeId()))) {
+				errors.add(new Issue(path, "DUPLICATE_LINE", "The pair of shapes has a line earlier in the request."));
+			}
+		}
+		return errors;
+	}
+
+	/**
+	 * Each parent change names an element entity that a shape of the request shows, once, and at most one
+	 * parent; the parents of new entities name at most one parent, not the entity itself, and a key of
+	 * {@code newEntities}.
+	 */
+	private static List<Issue> validateParentChanges(List<ParentChangeInput> changes, List<ShapeInput> shapeInputs,
+			List<NewEntityInput> newEntities) {
+		List<Issue> errors = new ArrayList<>();
+		Set<Integer> shown = new HashSet<>();
+		shapeInputs.stream().filter((shape) -> shape.entityId() != null).forEach((shape) -> shown.add(shape.entityId()));
+		Set<UUID> keys = new HashSet<>();
+		newEntities.forEach((entity) -> keys.add(entity.key()));
+		Set<Integer> seen = new HashSet<>();
+		for (int i = 0; i < changes.size(); i++) {
+			ParentChangeInput change = changes.get(i);
+			String path = "parentChanges[" + i + "]";
+			if (!shown.contains(change.entityId())) {
+				errors.add(new Issue(path + ".entityId", "ENTITY_NOT_SHOWN", "No shape of the request shows the entity."));
+			}
+			else if (!seen.add(change.entityId())) {
+				errors.add(new Issue(path + ".entityId", "DUPLICATE_ENTITY",
+						"The parent of the entity is changed earlier in the request."));
+			}
+			if (change.parentEntityId() != null && change.parentNewEntityKey() != null) {
+				errors.add(new Issue(path, "PARENT_AMBIGUOUS",
+						"A parent change names at most one of parentEntityId and parentNewEntityKey."));
+			}
+			else if (change.parentNewEntityKey() != null && !keys.contains(change.parentNewEntityKey())) {
+				errors.add(new Issue(path + ".parentNewEntityKey", "NEW_ENTITY_UNKNOWN",
+						"The key names no entity of newEntities."));
+			}
+		}
+		for (int i = 0; i < newEntities.size(); i++) {
+			NewEntityInput entity = newEntities.get(i);
+			String path = "newEntities[" + i + "]";
+			if (entity.parentEntityId() != null && entity.parentNewEntityKey() != null) {
+				errors.add(new Issue(path, "PARENT_AMBIGUOUS",
+						"A new entity names at most one of parentEntityId and parentNewEntityKey."));
+			}
+			else if (entity.parentNewEntityKey() != null) {
+				if (entity.parentNewEntityKey().equals(entity.key())) {
+					errors.add(new Issue(path + ".parentNewEntityKey", "PARENT_IS_SELF",
+							"A new entity cannot be its own parent."));
+				}
+				else if (!keys.contains(entity.parentNewEntityKey())) {
+					errors.add(new Issue(path + ".parentNewEntityKey", "NEW_ENTITY_UNKNOWN",
+							"The key names no entity of newEntities."));
+				}
+			}
+		}
+		return errors;
+	}
+
+	/**
+	 * Writes the parents in the transaction of the save (design D3 step 4): first the parents of the new
+	 * entities in the order of {@code newEntities}, then {@code parentChanges} in request order, each
+	 * with the rules of {@code setEntityParent}.
+	 *
+	 * @return the number of entities whose parent changed; a change to the current parent is not counted
+	 */
+	private int writeParents(OeaPrincipal principal, List<NewEntityInput> newEntities,
+			List<ParentChangeInput> parentChanges, Map<UUID, Integer> created, AuditEvent.Agent agent) {
+		int changed = 0;
+		for (int i = 0; i < newEntities.size(); i++) {
+			NewEntityInput entity = newEntities.get(i);
+			Integer parent = (entity.parentEntityId() != null) ? entity.parentEntityId()
+					: (entity.parentNewEntityKey() != null) ? created.get(entity.parentNewEntityKey()) : null;
+			if (parent != null) {
+				changed += writeParent(principal, created.get(entity.key()), parent, "newEntities[" + i + "]", agent);
+			}
+		}
+		for (int i = 0; i < parentChanges.size(); i++) {
+			ParentChangeInput change = parentChanges.get(i);
+			Integer parent = (change.parentNewEntityKey() != null) ? created.get(change.parentNewEntityKey())
+					: change.parentEntityId();
+			changed += writeParent(principal, change.entityId(), parent, "parentChanges[" + i + "]", agent);
+		}
+		return changed;
+	}
+
+	private int writeParent(OeaPrincipal principal, int entityId, Integer parent, String path,
+			AuditEvent.Agent agent) {
+		try {
+			EntityHierarchy.ParentResult result = this.hierarchy.setParentInTransaction(principal, entityId, parent,
+					agent);
+			return EntityHierarchy.UNCHANGED.equals(result.composition().reason()) ? 0 : 1;
+		}
+		catch (InvalidHierarchyException ex) {
+			String field = ex.getInvalidFields().get(0);
+			throw invalid(List.of(new Issue(path + "." + field, "PARENT_INVALID", ex.getMessage())));
+		}
+	}
+
+	/** A line holds only while the entity of its child shape has the entity of its container shape as parent (after the parent writes). */
+	private void checkLines(List<ShapeInput> shapeInputs, List<LineInput> lineInputs, Map<UUID, Integer> created) {
+		if (lineInputs.isEmpty()) {
+			return;
+		}
+		Map<UUID, Integer> entityOfShape = new HashMap<>();
+		shapeInputs.forEach((shape) -> entityOfShape.put(shape.id(), entityOf(shape, created)));
+		Map<Integer, Integer> parents = this.shapes.parents(new HashSet<>(entityOfShape.values()));
+		List<Issue> errors = new ArrayList<>();
+		for (int i = 0; i < lineInputs.size(); i++) {
+			LineInput line = lineInputs.get(i);
+			Integer container = entityOfShape.get(line.parentShapeId());
+			Integer child = entityOfShape.get(line.childShapeId());
+			if (!Objects.equals(parents.get(child), container)) {
+				errors.add(new Issue("hierarchyLines[" + i + "]", "HIERARCHY_MISSING",
+						"The entity of the child shape is not a child of the entity of the container shape."));
+			}
+		}
+		if (!errors.isEmpty()) {
+			throw invalid(errors);
+		}
+	}
+
+	private void update(OeaPrincipal principal, List<EntityUpdateInput> updates,
+			List<ParentChangeInput> parentChanges, AuditEvent.Agent agent) {
+		if (updates.isEmpty() && parentChanges.isEmpty()) {
 			return;
 		}
 		List<EntityBatch.EntityUpdate> inputs = updates.stream()
 			.map((update) -> new EntityBatch.EntityUpdate(update.entityId(), update.expectedVersion(), update.name(),
 					update.description(), update.properties()))
 			.toList();
+		List<EntityBatch.ParentTouch> touches = parentChanges.stream()
+			.map((change) -> new EntityBatch.ParentTouch(change.entityId(), change.expectedVersion()))
+			.toList();
 		try {
-			this.entities.updateInTransaction(principal, inputs, agent);
+			this.entities.updateInTransaction(principal, inputs, touches, agent);
 		}
 		catch (AtomicBatchFailedException ex) {
 			throw invalid(ex.getErrors());
@@ -879,6 +1209,7 @@ public class DiagramViews {
 			else if (old.entityId() != write.entityId() || old.x().compareTo(write.x()) != 0
 					|| old.y().compareTo(write.y()) != 0 || old.width().compareTo(write.width()) != 0
 					|| old.height().compareTo(write.height()) != 0
+					|| !Objects.equals(old.parentShapeId(), write.parentShapeId())
 					|| orderBefore.indexOf(write.id()) != orderAfter.indexOf(write.id())) {
 				changed++;
 			}
@@ -895,17 +1226,31 @@ public class DiagramViews {
 		shown.forEach((shape) -> metatypes.put(shape.entityId(), shape.metatypeId()));
 		shownEdges.forEach((edge) -> metatypes.put(edge.connectionId(), edge.metatypeId()));
 		Map<Integer, List<String>> missing = missingMandatory(metatypes);
-		List<Shape> view = shown.stream()
-			.map((shape) -> new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
-					shape.y(), shape.width(), shape.height(), missing.getOrDefault(shape.entityId(), List.of())))
-			.toList();
+		// a container counts only when it is shown, earlier in the drawing order and contains the shape
+		Map<UUID, ShownShape> before = new HashMap<>();
+		List<Shape> view = new ArrayList<>();
+		for (ShownShape shape : shown) {
+			ShownShape container = (shape.parentShapeId() != null) ? before.get(shape.parentShapeId()) : null;
+			UUID parent = (container != null && contains(container.x(), container.y(), container.width(),
+					container.height(), shape.x(), shape.y(), shape.width(), shape.height())) ? container.id() : null;
+			view.add(new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
+					shape.y(), shape.width(), shape.height(), parent, shape.childCount(), shape.parentEntityId(),
+					missing.getOrDefault(shape.entityId(), List.of())));
+			before.put(shape.id(), shape);
+		}
 		List<Edge> edgeView = shownEdges.stream()
 			.map((edge) -> new Edge(edge.id(), edge.connectionId(), edge.connectionName(), edge.metatypeId(),
 					edge.sourceShapeId(), edge.targetShapeId(),
 					edge.points().stream().map((point) -> new Point(point.x(), point.y())).toList(),
 					missing.getOrDefault(edge.connectionId(), List.of())))
 			.toList();
-		return new View(diagram, viewpoint, view, edgeView);
+		Set<UUID> shownIds = before.keySet();
+		List<HierarchyLine> lineView = this.lines.shown(diagram.id())
+			.stream()
+			.filter((line) -> shownIds.contains(line.parentShapeId()) && shownIds.contains(line.childShapeId()))
+			.map((line) -> new HierarchyLine(line.id(), line.parentShapeId(), line.childShapeId()))
+			.toList();
+		return new View(diagram, viewpoint, view, edgeView, lineView, this.settings.effective(viewpoint.askNewParent()));
 	}
 
 	/**
@@ -946,7 +1291,7 @@ public class DiagramViews {
 	}
 
 	private void audit(OeaPrincipal principal, UUID id, String name, int version, Counts counts,
-			EdgeCounts edgeCounts, int entitiesCreated, int connectionsCreated) {
+			EdgeCounts edgeCounts, int entitiesCreated, int connectionsCreated, int parentsChanged) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
 		details.put("version", version);
@@ -958,6 +1303,7 @@ public class DiagramViews {
 		details.put("edgesChanged", edgeCounts.changed());
 		details.put("edgesRemoved", edgeCounts.removed());
 		details.put("connectionsCreated", connectionsCreated);
+		details.put("parentsChanged", parentsChanged);
 		this.audit.append(new AuditEvent("diagram.layout-saved", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "diagram", id.toString(),
 				details));

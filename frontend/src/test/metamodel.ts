@@ -102,6 +102,8 @@ interface Stored {
   labels: Record<string, Record<string, { packageText?: string; organizationText?: string }>>
   /** The viewpoints of the instance (us-090-viewpoints). */
   viewpoints: Viewpoint[]
+  /** The global settings of diagrams (us-074-diagram-nesting). */
+  diagramSettings: { askNewParent: boolean; version: number }
 }
 
 export interface MetamodelApiOptions {
@@ -155,6 +157,7 @@ function seed(): Stored {
       { id: IDS.layerTechnology, name: 'Technology', sortOrder: 2, scope: 'imported', sourcePackage: STARTER_WITH_LAYERS, version: 1 },
       { id: IDS.layerStrategy, name: 'Strategy', sortOrder: 3, scope: 'organization', sourcePackage: null, version: 1 },
     ],
+    diagramSettings: { askNewParent: true, version: 1 },
     viewpoints: [
       {
         id: 'b0000000-0000-4000-8000-000000000001',
@@ -463,6 +466,16 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       )
       return json(bundle)
     }
+    // the global settings of diagrams (us-074-diagram-nesting): read with entity:read or viewpoint:manage, written with the version
+    if (parts[0] === 'admin' && parts[1] === 'diagram-settings') {
+      const settings = state.diagramSettings
+      if (method === 'GET') return json(settings, 200, settings.version)
+      if (ifMatch !== `"${settings.version}"`) return problem(412, 'stale-version', { currentVersion: settings.version })
+      if (body?.askNewParent !== settings.askNewParent) {
+        Object.assign(settings, { askNewParent: Boolean(body?.askNewParent), version: settings.version + 1 })
+      }
+      return json(settings, 200, settings.version)
+    }
     // the viewpoints (us-090-viewpoints): name unique case-insensitively, at least one element metatype
     if (parts[0] === 'admin' && parts[1] === 'viewpoints') {
       const viewpointId = parts[2]
@@ -536,6 +549,7 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
           }),
           allowedMetatypes: ((body?.metatypeIds ?? []) as string[]).map(summary),
           allowedRelations: ((body?.connectionTypeIds ?? []) as string[]).map(summary),
+          askNewParent: (body?.askNewParent as boolean | null | undefined) ?? null,
         }
       }
       if (viewpointId === 'notations') {

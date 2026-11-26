@@ -724,7 +724,21 @@
       "catalogFailed": "The notation elements could not be loaded.",
       "readOnly": "System-defined viewpoints are read-only.",
       "deleteDiagrams": "{count} diagrams will be deleted with the viewpoint. The entities stay. | {count} diagram will be deleted with the viewpoint. The entities stay. | {count} diagrams will be deleted with the viewpoint. The entities stay.",
-      "diagramsAffected": "{count} diagram affected | {count} diagram affected | {count} diagrams affected"
+      "diagramsAffected": "{count} diagram affected | {count} diagram affected | {count} diagrams affected",
+      "askNewParentLabel": "Ask 'New parent?'",
+      "askNewParentHint": "Whether the editor asks for a new parent when a shape moves into or out of a container.",
+      "askNewParentGlobal": "Global setting",
+      "askNewParentAsk": "Ask",
+      "askNewParentNo": "Do not ask"
+    },
+    "diagramSettings": {
+      "title": "Diagram settings",
+      "askNewParent": "Ask 'New parent?' when moving shapes",
+      "askNewParentHint": "When a shape is moved into a container or out of it, the editor asks whether its entity gets a new parent. A viewpoint can override this setting.",
+      "saved": "Setting saved.",
+      "loadFailed": "The diagram settings could not be loaded.",
+      "on": "Yes",
+      "off": "No"
     }
   },
   "navigation": {
@@ -1595,6 +1609,26 @@
       "again": "Read again",
       "blocked": "{names} has open issues of a solution and cannot be deleted. Resolve them first.",
       "failed": "The entity could not be deleted."
+    },
+    "nesting": {
+      "childrenTitle": "Show children?",
+      "childrenHint": "{name} has no children. | {name} has 1 child. Show it, nested in {name}? | {name} has {count} children. Show them, nested in {name}?",
+      "showChildren": "Show children",
+      "onlyThis": "Only this entity",
+      "childrenFailed": "The children could not be loaded.",
+      "notAllowed": "Not placed, because the viewpoint does not allow their type: {names}.",
+      "truncated": "Only the first {count} children were considered.",
+      "tooDeep": "Shapes are nested at most {count} levels deep.",
+      "parentTitle": "New parent?",
+      "parentHint": "Make {parent} the parent of {name}?",
+      "parentNoneHint": "Remove the parent of {name}, so that it is at the top level?",
+      "yes": "Yes",
+      "no": "No",
+      "parentFailed": "The parent could not be changed, because the entity could not be read.",
+      "removeTitle": "Remove container",
+      "removeHint": "{name} contains no shapes. | {name} contains 1 shape. Removing {name} also removes the nested shape from the diagram; the entities stay. | {name} contains {count} shapes. Removing {name} also removes the nested shapes from the diagram; the entities stay.",
+      "removeConfirm": "Remove | Remove with 1 nested shape | Remove with {count} nested shapes",
+      "lineLabel": "Hierarchy line {name}"
     }
   },
   "dashboards": {

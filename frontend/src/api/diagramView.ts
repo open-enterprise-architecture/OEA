@@ -21,12 +21,18 @@ export type DiagramNewConnection = components['schemas']['DiagramNewConnection']
 export type DiagramConnectionOffer = components['schemas']['DiagramConnectionOffer']
 export type DiagramConnectionOfferList = components['schemas']['DiagramConnectionOfferList']
 export type AllowedConnectionResult = components['schemas']['AllowedConnectionResult']
+export type DiagramHierarchyLine = components['schemas']['DiagramHierarchyLine']
+export type DiagramHierarchyLineWrite = components['schemas']['DiagramHierarchyLineWrite']
+export type DiagramParentChange = components['schemas']['DiagramParentChange']
+export type DiagramEntityChild = components['schemas']['DiagramEntityChild']
+export type DiagramEntityChildList = components['schemas']['DiagramEntityChildList']
 
-/** The limits of the contract (design D1 and D2 of us-074-diagram-canvas), in pt. */
+/** The limits of the contract (design D1 and D2 of us-074-diagram-canvas, us-074-diagram-nesting), in pt. */
 export const CANVAS_LIMITS = {
   position: 100_000,
   sizeMin: 1,
-  sizeMax: 2000,
+  /** a container may hold many children (design D1 of us-074-diagram-nesting); the default sizes of a viewpoint stay at 2000 */
+  sizeMax: 10_000,
   shapes: 2000,
   newEntities: 500,
   /** the changed entities of one save (design D2 of us-074-diagram-entity-details) */
@@ -36,6 +42,12 @@ export const CANVAS_LIMITS = {
   /** the bend points of one edge */
   bendPoints: 50,
   newConnections: 500,
+  /** the hierarchy lines of one diagram and the parent changes of one save (design D2 of us-074-diagram-nesting) */
+  hierarchyLines: 4000,
+  parentChanges: 500,
+  /** the levels of nested shapes (a shape on the canvas is on level 1) and the children `listDiagramEntityChildren` returns */
+  nesting: 10,
+  children: 500,
   entityName: 255,
   entityDescription: 2000,
   search: 255,
@@ -178,6 +190,23 @@ export async function fetchAllowedConnections(
   const response = await fetchFn(`/api/v1/metamodel/allowed-connections?${query.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
   if (response.ok) {
     return { ok: true, value: (await response.json()) as AllowedConnectionResult }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/**
+ * GET /views/diagrams/{id}/entities/{entityId}/children: the direct children of an entity that are not
+ * deleted, with whether the viewpoint allows them and the composition connection of the pair (design D2 of
+ * us-074-diagram-nesting); at most 500, `truncated` says that there are more.
+ */
+export async function fetchDiagramEntityChildren(
+  id: string,
+  entityId: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<DiagramEntityChildList>> {
+  const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/entities/${entityId}/children`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DiagramEntityChildList }
   }
   return { ok: false, rejection: await readRejection(response) }
 }

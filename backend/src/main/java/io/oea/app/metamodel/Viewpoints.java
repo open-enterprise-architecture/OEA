@@ -43,6 +43,8 @@ public class Viewpoints {
 
 	private static final String SIZES = "sizes";
 
+	private static final String ASK_NEW_PARENT = "askNewParent";
+
 	private final ViewpointStore store;
 
 	private final NotationCatalog catalog;
@@ -111,7 +113,7 @@ public class Viewpoints {
 	public record Viewpoint(UUID id, String name, String description, String notation, boolean systemDefined,
 			SourcePackage sourcePackage, int version, java.time.Instant createdAt, long createdById,
 			String createdByName, List<Type> metatypes, List<Type> connectionTypes, List<Mapping> mappings,
-			List<Size> sizes, List<EffectiveMapping> effectiveMappings, int diagramCount) {
+			List<Size> sizes, List<EffectiveMapping> effectiveMappings, int diagramCount, Boolean askNewParent) {
 
 		static Viewpoint of(ViewpointRow row, NotationCatalog catalog, int diagramCount) {
 			List<Mapping> mappings = row.mappings().stream().map(Mapping::of).toList();
@@ -126,7 +128,7 @@ public class Viewpoints {
 					(row.sourcePackageId() != null) ? new SourcePackage(row.sourcePackageId(), row.sourcePackageVersion())
 							: null,
 					row.version(), row.createdAt(), row.createdById(), row.createdByName(), metatypes, connections,
-					mappings, sizes, List.copyOf(effective), diagramCount);
+					mappings, sizes, List.copyOf(effective), diagramCount, row.askNewParent());
 		}
 
 		private static EffectiveMapping effective(Type type, List<Mapping> mappings, List<Size> sizes,
@@ -154,7 +156,7 @@ public class Viewpoints {
 
 	/** The input of a write; the contract checks the lengths and the origin is never taken from it. */
 	public record ViewpointInput(String name, String description, String notation, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds, List<Mapping> mappings, List<Size> sizes) {
+			List<UUID> connectionTypeIds, List<Mapping> mappings, List<Size> sizes, Boolean askNewParent) {
 	}
 
 	/** All viewpoints, ordered by name. */
@@ -228,6 +230,9 @@ public class Viewpoints {
 		}
 		if (!new LinkedHashSet<>(current.sizes()).equals(new LinkedHashSet<>(fields.sizes()))) {
 			changed.add(SIZES);
+		}
+		if (!Objects.equals(current.askNewParent(), fields.askNewParent())) {
+			changed.add(ASK_NEW_PARENT);
 		}
 		this.store.update(id, fields, person, this.clock.instant());
 		audit(principal, "viewpoint.updated", id,
@@ -313,7 +318,8 @@ public class Viewpoints {
 		});
 		String description = (input.description() != null && !input.description().isBlank()) ? input.description()
 				: null;
-		return new ViewpointStore.Fields(name, description, notation, metatypes, connections, mappings, sizes);
+		return new ViewpointStore.Fields(name, description, notation, metatypes, connections, mappings, sizes,
+				input.askNewParent());
 	}
 
 	private ViewpointRow row(UUID id) {

@@ -9,8 +9,16 @@ import java.util.List;
  */
 public class EntityVersionConflictException extends RuntimeException {
 
-	/** A stale entity: the index of its update in the request, its ID and its current version. */
-	public record Conflict(int index, int entityId, int currentVersion) {
+	/**
+	 * A stale entity: the index of its update in the request, its ID and its current version; {@code path}
+	 * names the item of the request ({@code entityUpdates[i]}, or {@code parentChanges[i]} of a diagram save).
+	 */
+	public record Conflict(int index, int entityId, int currentVersion, String path) {
+
+		public Conflict(int index, int entityId, int currentVersion) {
+			this(index, entityId, currentVersion, "entityUpdates[" + index + "]");
+		}
+
 	}
 
 	private final List<Conflict> conflicts;

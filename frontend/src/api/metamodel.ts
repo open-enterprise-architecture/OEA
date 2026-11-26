@@ -449,6 +449,21 @@ export function updateViewpoint(
   return write('PUT', `${VIEWPOINTS}/${at(id)}`, viewpoint, version, fetchFn)
 }
 
+/** The global settings of diagrams (design D2 of us-074-diagram-nesting). */
+export type DiagramSettings = components['schemas']['DiagramSettings']
+
+const DIAGRAM_SETTINGS = '/api/v1/admin/diagram-settings'
+
+/** GET /admin/diagram-settings, read with `entity:read` or `viewpoint:manage`. */
+export function fetchDiagramSettings(fetchFn: typeof fetch = fetch): Promise<DiagramSettings> {
+  return read(DIAGRAM_SETTINGS, fetchFn)
+}
+
+/** PUT /admin/diagram-settings with `If-Match`, `viewpoint:manage`: 412 `stale-version` when changed meanwhile. */
+export function updateDiagramSettings(askNewParent: boolean, version: number, fetchFn: typeof fetch = fetch): Promise<WriteOutcome<DiagramSettings>> {
+  return write('PUT', DIAGRAM_SETTINGS, { askNewParent }, version, fetchFn)
+}
+
 /** DELETE /admin/viewpoints/{id} with `If-Match`. */
 export function deleteViewpoint(id: string, version: number | undefined, fetchFn: typeof fetch = fetch): Promise<WriteOutcome<void>> {
   return write('DELETE', `${VIEWPOINTS}/${at(id)}`, undefined, version, fetchFn)

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { deleteViewpoint, fetchNotationElements, fetchViewpoints, type NotationElement, type Viewpoint } from '../../api/metamodel'
 import DeleteDialog from './DeleteDialog.vue'
+import DiagramSettingsSection from './DiagramSettingsSection.vue'
 import ViewpointDialog from './ViewpointDialog.vue'
 import ViewpointSummary from './ViewpointSummary.vue'
 
@@ -62,6 +63,7 @@ async function saved() {
 
 <template>
   <section class="flex flex-col gap-3" data-testid="viewpoints-section">
+    <DiagramSettingsSection :can-manage="canManage" :fetch-fn="fetchFn" />
     <div class="flex items-center justify-between gap-2">
       <div class="flex flex-col gap-1">
         <h2 class="font-semibold text-highlighted">{{ t('metamodel.viewpoint.list', { count: viewpoints.length }) }}</h2>

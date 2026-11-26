@@ -33,8 +33,9 @@ function resizeEnd(event: OnResizeEnd) {
 
 <template>
   <div
-    class="flex h-full w-full flex-col justify-center gap-0.5 overflow-hidden rounded-md border-2 bg-default px-2 text-xs text-highlighted shadow-sm"
-    :class="[selected ? 'ring-2 ring-primary' : '', data.error ? 'border-error!' : 'border-accented']"
+    class="flex h-full w-full flex-col gap-0.5 overflow-hidden rounded-md border-2 bg-default px-2 text-xs text-highlighted shadow-sm"
+    :class="[data.container ? 'justify-start pt-1' : 'justify-center', selected ? 'ring-2 ring-primary' : '', data.error ? 'border-error!' : 'border-accented']"
+    :data-container="data.container ? 'true' : undefined"
     :style="data.hint && !data.error ? { borderColor: data.hint } : undefined"
     :data-testid="`shape-${id}`"
     :data-unsaved="data.unsaved ? 'true' : undefined"

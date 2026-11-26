@@ -254,6 +254,62 @@ public class ViewpointSteps {
 		assertThat(json().path("sourcePackage").isNull()).isTrue();
 	}
 
+	// us-074-diagram-nesting
+
+	@Given("the architect has set the new parent question of {string} to {string}")
+	@When("the architect sets the new parent question of {string} to {string}")
+	public void setAskNewParent(String name, String choice) throws Exception {
+		JsonNode viewpoint = this.viewpoints.get(name);
+		ObjectNode body = replacement(viewpoint);
+		switch (choice) {
+			case "Ask" -> body.put("askNewParent", true);
+			case "Do not ask" -> body.put("askNewParent", false);
+			default -> body.putNull("askNewParent");
+		}
+		put(name, viewpoint, body);
+	}
+
+	@When("the architect replaces {string} without the new parent question")
+	public void replaceWithoutAskNewParent(String name) throws Exception {
+		JsonNode viewpoint = this.viewpoints.get(name);
+		put(name, viewpoint, replacement(viewpoint));
+	}
+
+	@Then("the viewpoint stores askNewParent {word} with the version {int}")
+	public void storesAskNewParent(String value, int version) {
+		assertThat(json().path("askNewParent").asBoolean()).isEqualTo(Boolean.parseBoolean(value));
+		assertThat(json().path("version").asInt()).isEqualTo(version);
+	}
+
+	@Then("the viewpoint stores no askNewParent")
+	public void storesNoAskNewParent() {
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(200);
+		assertThat(json().path("askNewParent").isNull() || json().path("askNewParent").isMissingNode()).isTrue();
+	}
+
+	@Then("the update of {string} is audited with the changed field {string}")
+	public void updateAudited(String name, String field) throws Exception {
+		String id = this.viewpoints.get(name).path("id").asString();
+		assertThat(instance().oidc()
+			.single("SELECT details -> 'fields' ? '" + field + "' FROM audit.events WHERE event_type = 'viewpoint.updated' "
+					+ "AND target_id = '" + id + "' ORDER BY id DESC LIMIT 1")).isEqualTo("t");
+	}
+
+	private ObjectNode replacement(JsonNode viewpoint) {
+		List<String> types = new ArrayList<>();
+		viewpoint.path("allowedMetatypes").forEach((type) -> types.add(type.path("id").asString()));
+		return body(viewpoint.path("name").asString(), types, List.of());
+	}
+
+	/** Replaces the viewpoint and keeps the answer as its current state, with the version for the next write. */
+	private void put(String name, JsonNode viewpoint, ObjectNode body) throws Exception {
+		this.response = instance().send("PUT", VIEWPOINTS + "/" + viewpoint.path("id").asString(), body.toString(),
+				architect(), Map.of("If-Match", "\"" + viewpoint.path("version").asInt() + "\""));
+		if (this.response.statusCode() == 200) {
+			this.viewpoints.put(name, json());
+		}
+	}
+
 	// s17-viewpoint-default-sizes
 
 	@When("the architect stores the width {int} and height {int} for {string} in the new viewpoint {string}")

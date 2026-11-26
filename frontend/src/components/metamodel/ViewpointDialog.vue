@@ -42,7 +42,14 @@ const form = reactive({
   metatypeIds: (props.viewpoint?.allowedMetatypes ?? []).map((metatype) => metatype.id),
   connectionTypeIds: (props.viewpoint?.allowedRelations ?? []).map((metatype) => metatype.id),
   notation: (props.viewpoint?.notation ?? 'generic') as ViewpointNotation,
+  /** the setting "Ask 'New parent?'": the global one, or an override (design D4 of us-074-diagram-nesting) */
+  askNewParent: (props.viewpoint?.askNewParent === true ? 'ask' : props.viewpoint?.askNewParent === false ? 'no' : 'global') as 'global' | 'ask' | 'no',
 })
+const askChoices = computed(() => [
+  { value: 'global', label: t('metamodel.viewpoint.askNewParentGlobal') },
+  { value: 'ask', label: t('metamodel.viewpoint.askNewParentAsk') },
+  { value: 'no', label: t('metamodel.viewpoint.askNewParentNo') },
+])
 
 /**
  * The warning "N diagrams affected" (US-090 AC2): an allowed entity type or connection type is removed from a viewpoint
@@ -211,6 +218,7 @@ async function submit(version = props.viewpoint?.version) {
     notation: form.notation,
     mappings: mappings(),
     sizes: sizeList(),
+    askNewParent: form.askNewParent === 'global' ? null : form.askNewParent === 'ask',
   }
   try {
     const outcome = props.viewpoint
@@ -270,6 +278,9 @@ async function submit(version = props.viewpoint?.version) {
     </UFormField>
     <UFormField :label="t('metamodel.viewpoint.notation')" name="notation" :error="errors.notation">
       <USelect v-model="form.notation" data-testid="viewpoint-notation" :items="notations" class="w-full" :aria-label="t('metamodel.viewpoint.notation')" />
+    </UFormField>
+    <UFormField :label="t('metamodel.viewpoint.askNewParentLabel')" name="askNewParent" :help="t('metamodel.viewpoint.askNewParentHint')">
+      <USelect v-model="form.askNewParent" data-testid="viewpoint-ask-new-parent" :items="askChoices" class="w-full" :aria-label="t('metamodel.viewpoint.askNewParentLabel')" />
     </UFormField>
     <UFormField
       v-if="selected.length > 0"

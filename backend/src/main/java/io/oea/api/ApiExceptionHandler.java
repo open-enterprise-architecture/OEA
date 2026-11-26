@@ -471,7 +471,7 @@ public class ApiExceptionHandler {
 		ProblemDetail problem = problem(HttpStatus.CONFLICT, "entity-version-conflict", "Entity changed meanwhile",
 				ex.getMessage());
 		problem.setProperty("invalidFields",
-				ex.getConflicts().stream().map((conflict) -> "entityUpdates[" + conflict.index() + "]").toList());
+				ex.getConflicts().stream().map(EntityVersionConflictException.Conflict::path).toList());
 		problem.setProperty("conflicts", ex.getConflicts().stream().map((conflict) -> {
 			Map<String, Object> shown = new LinkedHashMap<>();
 			shown.put("entityId", conflict.entityId());

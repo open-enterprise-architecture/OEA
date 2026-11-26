@@ -1,5 +1,16 @@
 import type { DeletedDiagram, Diagram } from '../api/diagrams'
-import type { AllowedConnectionResult, DiagramConnectionOffer, DiagramEdge, DiagramEntity, DiagramEntityDetails, DiagramShape, DiagramView, DiagramViewWrite } from '../api/diagramView'
+import type {
+  AllowedConnectionResult,
+  DiagramConnectionOffer,
+  DiagramEdge,
+  DiagramEntity,
+  DiagramEntityChild,
+  DiagramEntityDetails,
+  DiagramHierarchyLine,
+  DiagramShape,
+  DiagramView,
+  DiagramViewWrite,
+} from '../api/diagramView'
 import type { Viewpoint } from '../api/metamodel'
 import type { RecordedRequest } from './fetch'
 
@@ -117,11 +128,30 @@ export function viewpointConfig(): ViewpointConfig {
 }
 
 export const ENTITIES: DiagramEntity[] = [
-  { id: 11, name: 'SAP BW', metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' } },
-  { id: 12, name: 'SAP ERP', metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' } },
-  { id: 13, name: 'Salesforce', metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' } },
-  { id: 14, name: 'Invoice Approval', metatype: { id: METATYPE_PROCESS, name: 'Business Process', abbreviation: 'BP' } },
+  { id: 11, name: 'SAP BW', metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' }, childCount: 0, parentEntityId: null },
+  { id: 12, name: 'SAP ERP', metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' }, childCount: 0, parentEntityId: null },
+  { id: 13, name: 'Salesforce', metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' }, childCount: 0, parentEntityId: null },
+  { id: 14, name: 'Invoice Approval', metatype: { id: METATYPE_PROCESS, name: 'Business Process', abbreviation: 'BP' }, childCount: 0, parentEntityId: null },
 ]
+
+/** "Finance Suite" has the children "Billing" and "Invoicing" (the question "Show children", US-074 nesting); `entities` of the fake adds it to the search. */
+export const FINANCE_SUITE: DiagramEntity = {
+  id: 15,
+  name: 'Finance Suite',
+  metatype: { id: METATYPE_COMPONENT, name: 'Application Component', abbreviation: 'AC' },
+  childCount: 2,
+  parentEntityId: null,
+}
+
+/** The children of "Finance Suite" as `listDiagramEntityChildren` answers: "Billing" (component), "Invoicing" (component), "Ledger" (type not allowed). */
+export function financeChildren(): DiagramEntityChild[] {
+  const entity = (id: number, name: string, metatypeId: string) => ({ id, name, metatypeId, childCount: 0, parentEntityId: 15 })
+  return [
+    { entity: entity(16, 'Billing', METATYPE_COMPONENT), allowed: true, compositionConnection: null },
+    { entity: entity(17, 'Invoicing', METATYPE_COMPONENT), allowed: true, compositionConnection: null },
+    { entity: entity(18, 'Ledger', METATYPE_OUTSIDER), allowed: false, compositionConnection: null },
+  ]
+}
 
 export const PROP_STATUS = 'e1000000-0000-4000-8000-000000000001'
 export const PROP_INVESTMENT = 'e1000000-0000-4000-8000-000000000002'
@@ -184,14 +214,20 @@ export interface FakeEntity {
   metatypeId: string
   version: number
   values: Record<string, string>
+  /** the parent and the number of children as the view shows them (us-074-diagram-nesting) */
+  parentEntityId?: number | null
+  childCount?: number
 }
 
-/** The saved entities "SAP ERP" (version 4, with values), "Salesforce" and the incomplete "Invoice Approval". */
+/** The saved entities "SAP ERP" (version 4, with values), "Salesforce", the incomplete "Invoice Approval" and "Finance Suite" with its children "Billing" and "Invoicing". */
 export function fakeEntities(): Record<number, FakeEntity> {
   return {
     12: { id: 12, name: 'SAP ERP', description: 'Core ERP for finance and logistics', metatypeId: METATYPE_COMPONENT, version: 4, values: { [PROP_STATUS]: 'active', [PROP_INVESTMENT]: '5000000' } },
     13: { id: 13, name: 'Salesforce', description: '', metatypeId: METATYPE_COMPONENT, version: 1, values: {} },
     14: { id: 14, name: 'Invoice Approval', description: '', metatypeId: METATYPE_PROCESS, version: 1, values: {} },
+    15: { id: 15, name: 'Finance Suite', description: '', metatypeId: METATYPE_COMPONENT, version: 2, values: {}, parentEntityId: null, childCount: 2 },
+    16: { id: 16, name: 'Billing', description: '', metatypeId: METATYPE_COMPONENT, version: 3, values: {}, parentEntityId: 15, childCount: 0 },
+    17: { id: 17, name: 'Invoicing', description: '', metatypeId: METATYPE_COMPONENT, version: 1, values: {}, parentEntityId: 15, childCount: 0 },
     21: { id: 21, name: 'SAP ERP → Salesforce', description: 'Orders to the CRM', metatypeId: METATYPE_FLOW, version: 2, values: { [PROP_PROTOCOL]: 'REST' } },
   }
 }
@@ -226,7 +262,8 @@ function mandatoryMissing(entity: FakeEntity): string[] {
 export function shape(overrides: Partial<DiagramShape> = {}): DiagramShape {
   return {
     id: 'd1000000-0000-4000-8000-000000000001',
-    entity: { id: 12, name: 'SAP ERP', metatypeId: METATYPE_COMPONENT },
+    entity: { id: 12, name: 'SAP ERP', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null },
+    parentShapeId: null,
     x: 100,
     y: 50,
     width: 120,
@@ -250,8 +287,14 @@ export function edge(overrides: Partial<DiagramEdge> = {}): DiagramEdge {
 }
 
 /** The view of a diagram with the given shapes and edges, for the component specs of the canvas. */
-export function diagramView(shapes: DiagramShape[] = [], overrides: Partial<Diagram> = {}, edges: DiagramEdge[] = []): DiagramView {
-  return { diagram: diagram(overrides), viewpoint: viewpointConfig(), shapes, edges }
+export function diagramView(
+  shapes: DiagramShape[] = [],
+  overrides: Partial<Diagram> = {},
+  edges: DiagramEdge[] = [],
+  hierarchyLines: DiagramHierarchyLine[] = [],
+  askNewParent = true,
+): DiagramView {
+  return { diagram: diagram(overrides), viewpoint: viewpointConfig(), shapes, edges, hierarchyLines, askNewParent }
 }
 
 function respond(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -276,6 +319,13 @@ export interface DiagramApiOptions {
   shapes?: DiagramShape[]
   /** the edges of the diagram "Order to Cash" (SCR-021) */
   edges?: DiagramEdge[]
+  /** the hierarchy lines of the diagram and the effective setting "Ask for a new parent" (us-074-diagram-nesting) */
+  lines?: DiagramHierarchyLine[]
+  askNewParent?: boolean
+  /** the direct children of an entity by its ID, as `listDiagramEntityChildren` answers; default the children of "Finance Suite" */
+  children?: Record<number, DiagramEntityChild[]>
+  /** the children list answers this status (e.g. 404 or 500) */
+  rejectChildren?: number
   /** the connections the offer finds when an entity is placed: the fake answers those between the placed and the shown entities */
   offers?: DiagramConnectionOffer[]
   /** the connection types between two metatypes; default `allowedConnections` */
@@ -305,7 +355,16 @@ export interface DiagramApiOptions {
 }
 
 export type DiagramApi = typeof fetch & {
-  state: { diagrams: Diagram[]; deleted: DeletedDiagram[]; shapes: DiagramShape[]; edges: DiagramEdge[]; saves: DiagramViewWrite[]; entities: Record<number, FakeEntity>; queries: { entityIds: number[]; shownEntityIds: number[] }[] }
+  state: {
+    diagrams: Diagram[]
+    deleted: DeletedDiagram[]
+    shapes: DiagramShape[]
+    edges: DiagramEdge[]
+    lines: DiagramHierarchyLine[]
+    saves: DiagramViewWrite[]
+    entities: Record<number, FakeEntity>
+    queries: { entityIds: number[]; shownEntityIds: number[] }[]
+  }
 }
 
 /**
@@ -319,6 +378,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     deleted: (options.deleted ?? []).map((entry) => structuredClone(entry)),
     shapes: (options.shapes ?? []).map((entry) => structuredClone(entry)),
     edges: (options.edges ?? []).map((entry) => structuredClone(entry)),
+    lines: (options.lines ?? []).map((entry) => structuredClone(entry)),
     saves: [] as DiagramViewWrite[],
     queries: [] as { entityIds: number[]; shownEntityIds: number[] }[],
     entities: structuredClone(options.entityStates ?? fakeEntities()),
@@ -362,7 +422,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         return problem(404, 'not-found')
       }
       if (method === 'GET') {
-        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges }, { ETag: `"${found.version}"` })
+        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges, hierarchyLines: state.lines, askNewParent: options.askNewParent ?? true }, { ETag: `"${found.version}"` })
       }
       if (method === 'PUT') {
         if (version !== found.version) {
@@ -381,8 +441,15 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
           const entity = state.entities[update.entityId]
           return entity && entity.version !== update.expectedVersion ? [{ index, entityId: update.entityId, currentVersion: entity.version }] : []
         })
-        if (stale.length > 0) {
-          return problem(409, 'entity-version-conflict', { conflicts: stale.map(({ entityId, currentVersion }) => ({ entityId, currentVersion })), invalidFields: stale.map((entry) => `entityUpdates[${entry.index}]`) })
+        const staleParents = (request.parentChanges ?? []).flatMap((change, index) => {
+          const entity = state.entities[change.entityId]
+          return entity && entity.version !== change.expectedVersion ? [{ index, entityId: change.entityId, currentVersion: entity.version }] : []
+        })
+        if (stale.length > 0 || staleParents.length > 0) {
+          return problem(409, 'entity-version-conflict', {
+            conflicts: [...stale, ...staleParents].map(({ entityId, currentVersion }) => ({ entityId, currentVersion })),
+            invalidFields: [...stale.map((entry) => `entityUpdates[${entry.index}]`), ...staleParents.map((entry) => `parentChanges[${entry.index}]`)],
+          })
         }
         const blocked = updates.filter((update) => options.blockedEntities?.includes(update.entityId))
         if (blocked.length > 0) {
@@ -427,6 +494,22 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
           created.set(entity.key, { id: entityCounter, name: entity.name, metatypeId: entity.metatypeId, values })
           state.entities[entityCounter] = { id: entityCounter, name: entity.name, description: entity.description ?? '', metatypeId: entity.metatypeId, version: 1, values }
         }
+        // the parents of the new entities and the parent changes: the entity gets a new version
+        for (const entity of request.newEntities ?? []) {
+          const parent = entity.parentNewEntityKey ? created.get(entity.parentNewEntityKey)?.id : entity.parentEntityId
+          const own = created.get(entity.key)
+          if (own && parent !== undefined) {
+            state.entities[own.id]!.parentEntityId = parent
+            state.entities[own.id]!.version += 1
+          }
+        }
+        for (const change of request.parentChanges ?? []) {
+          const target = state.entities[change.entityId]
+          if (!target) continue
+          target.parentEntityId = change.parentNewEntityKey ? (created.get(change.parentNewEntityKey)?.id ?? null) : (change.parentEntityId ?? null)
+          target.version += 1
+        }
+        state.lines = (request.hierarchyLines ?? []).map((line) => ({ ...line }))
         state.shapes = request.shapes.map((entry) => {
           const own = entry.newEntityKey ? created.get(entry.newEntityKey) : undefined
           const known = state.entities[entry.entityId ?? -1] ?? ENTITIES.map((entity) => ({ id: entity.id, name: entity.name, metatypeId: entity.metatype.id })).find((entity) => entity.id === entry.entityId)
@@ -439,7 +522,18 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             : saved
               ? mandatoryMissing(saved)
               : []
-          return { id: entry.id, entity, x: entry.x, y: entry.y, width: entry.width, height: entry.height, missingMandatory: missing }
+          const stored = state.entities[entity.id]
+          const childCount = Object.values(state.entities).filter((candidate) => candidate.parentEntityId === entity.id).length
+          return {
+            id: entry.id,
+            entity: { ...entity, childCount: Math.max(childCount, stored?.childCount ?? 0), parentEntityId: stored?.parentEntityId ?? null },
+            parentShapeId: entry.parentShapeId ?? null,
+            x: entry.x,
+            y: entry.y,
+            width: entry.width,
+            height: entry.height,
+            missingMandatory: missing,
+          }
         })
         // the connections created with the save: named after their ends unless named, incomplete without a mandatory value
         const createdConnections = new Map<string, { id: number; metatypeId: string; values: Record<string, string> }>()
@@ -465,7 +559,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
           }
         })
         found.version += 1
-        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges }, { ETag: `"${found.version}"` })
+        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges, hierarchyLines: state.lines, askNewParent: options.askNewParent ?? true }, { ETag: `"${found.version}"` })
       }
     }
     const detail = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities\/(\d+)$/.exec(path)
@@ -491,6 +585,14 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         missingMandatory: mandatoryMissing(entity),
       }
       return respond(200, details)
+    }
+    const childList = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities\/(\d+)\/children$/.exec(path)
+    if (childList && method === 'GET') {
+      if (options.rejectChildren) {
+        return problem(options.rejectChildren, options.rejectChildren === 404 ? 'not-found' : 'internal')
+      }
+      const items = (options.children ?? { 15: financeChildren() })[Number(childList[2])] ?? []
+      return respond(200, { items, truncated: false })
     }
     const preview = /^\/api\/v1\/entities\/(\d+)\/deletion$/.exec(path)
     if (preview && method === 'GET') {

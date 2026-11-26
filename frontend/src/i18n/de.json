@@ -724,7 +724,21 @@
       "catalogFailed": "Die Notationselemente konnten nicht geladen werden.",
       "readOnly": "Systemdefinierte Viewpoints sind schreibgeschützt.",
       "deleteDiagrams": "{count} Diagramme werden mit dem Viewpoint gelöscht. Die Entitäten bleiben. | {count} Diagramm wird mit dem Viewpoint gelöscht. Die Entitäten bleiben. | {count} Diagramme werden mit dem Viewpoint gelöscht. Die Entitäten bleiben.",
-      "diagramsAffected": "{count} Diagramm betroffen | {count} Diagramm betroffen | {count} Diagramme betroffen"
+      "diagramsAffected": "{count} Diagramm betroffen | {count} Diagramm betroffen | {count} Diagramme betroffen",
+      "askNewParentLabel": "„Neue Eltern?“ fragen",
+      "askNewParentHint": "Ob der Editor nach neuen Eltern fragt, wenn eine Form in einen Container oder aus ihm heraus verschoben wird.",
+      "askNewParentGlobal": "Globale Einstellung",
+      "askNewParentAsk": "Fragen",
+      "askNewParentNo": "Nicht fragen"
+    },
+    "diagramSettings": {
+      "title": "Diagrammeinstellungen",
+      "askNewParent": "Beim Verschieben von Formen „Neue Eltern?“ fragen",
+      "askNewParentHint": "Wird eine Form in einen Container oder aus ihm heraus verschoben, fragt der Editor, ob ihre Entität neue Eltern bekommt. Ein Viewpoint kann diese Einstellung überschreiben.",
+      "saved": "Einstellung gespeichert.",
+      "loadFailed": "Die Diagrammeinstellungen konnten nicht geladen werden.",
+      "on": "Ja",
+      "off": "Nein"
     }
   },
   "navigation": {
@@ -1595,6 +1609,26 @@
       "again": "Neu lesen",
       "blocked": "{names} hat offene Punkte einer Lösung und kann nicht gelöscht werden. Löse sie zuerst auf.",
       "failed": "Die Entität konnte nicht gelöscht werden."
+    },
+    "nesting": {
+      "childrenTitle": "Kinder anzeigen?",
+      "childrenHint": "{name} hat keine Kinder. | {name} hat 1 Kind. Soll es in {name} verschachtelt angezeigt werden? | {name} hat {count} Kinder. Sollen sie in {name} verschachtelt angezeigt werden?",
+      "showChildren": "Kinder anzeigen",
+      "onlyThis": "Nur diese Entität",
+      "childrenFailed": "Die Kinder konnten nicht geladen werden.",
+      "notAllowed": "Nicht platziert, weil der Viewpoint ihren Typ nicht erlaubt: {names}.",
+      "truncated": "Es wurden nur die ersten {count} Kinder berücksichtigt.",
+      "tooDeep": "Formen werden höchstens {count} Ebenen tief verschachtelt.",
+      "parentTitle": "Neue Eltern?",
+      "parentHint": "{parent} zu den Eltern von {name} machen?",
+      "parentNoneHint": "Die Eltern von {name} entfernen, sodass die Entität auf der obersten Ebene liegt?",
+      "yes": "Ja",
+      "no": "Nein",
+      "parentFailed": "Die Eltern konnten nicht geändert werden, weil die Entität nicht gelesen werden konnte.",
+      "removeTitle": "Container entfernen",
+      "removeHint": "{name} enthält keine Formen. | {name} enthält 1 Form. Beim Entfernen von {name} wird auch die verschachtelte Form aus dem Diagramm entfernt; die Entitäten bleiben erhalten. | {name} enthält {count} Formen. Beim Entfernen von {name} werden auch die verschachtelten Formen aus dem Diagramm entfernt; die Entitäten bleiben erhalten.",
+      "removeConfirm": "Entfernen | Mit 1 verschachtelten Form entfernen | Mit {count} verschachtelten Formen entfernen",
+      "lineLabel": "Hierarchielinie {name}"
     }
   },
   "dashboards": {
