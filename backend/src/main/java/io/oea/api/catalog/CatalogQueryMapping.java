@@ -39,9 +39,7 @@ public final class CatalogQueryMapping {
 		return new CatalogQueryResult(result.columns().stream().map(CatalogQueryMapping::column).toList(),
 				result.rows()
 					.stream()
-					.map((row) -> new CatalogRow(row.entityId(), blocked.contains(row.entityId()),
-							new LinkedHashMap<>(row.values()))
-						.joinResults(joinResults(row.joinResults())))
+					.map((row) -> row(row, blocked))
 					.toList(),
 				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
 						result.totalPages()))
@@ -54,6 +52,17 @@ public final class CatalogQueryMapping {
 			.sort((result.sort() != null) ? new CatalogSort(result.sort().column(),
 					result.sort().descending() ? CatalogSort.DirectionEnum.DESC : CatalogSort.DirectionEnum.ASC)
 					: null);
+	}
+
+	private static CatalogRow row(CatalogQueries.Row row, Set<Integer> blocked) {
+		CatalogRow json = new CatalogRow(row.entityId(), blocked.contains(row.entityId()),
+				new LinkedHashMap<>(row.values()))
+			.joinResults(joinResults(row.joinResults()));
+		if (row.deleted()) {
+			// only a deleted row of a query with includeDeleted carries these members (design D2 of s17-deleted-entities)
+			json.deleted(true).deletedAt(row.deletedAt().atOffset(ZoneOffset.UTC)).version(row.version());
+		}
+		return json;
 	}
 
 	/** A catalog as the contract's {@code CatalogSummary}. */

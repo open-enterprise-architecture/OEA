@@ -59,6 +59,18 @@ Through the API, `GET /catalogs/{id}/query` returns the same rows with the param
 - A column whose property you may not read has `readable: false` and `null` values; a sort or filter on it answers 400. A connection-based column is `readable: true` when your account is linked to an element, with `null` in the rows outside your scope.
 - A query above the time limit answers 503 with the problem type `urn:oea:problem:query-timeout` (*Query took too long*).
 
+## Show deleted rows {#show-deleted}
+
+With the permission `entity:restore` (role `enterprise-architect`) the switch *Show deleted* above the table adds the deleted entities of the catalog's entity type as rows. A deleted row is greyed and marked *Deleted* with the time of the deletion; it has the action *Restore* instead of *History*. Choose *Restore*, confirm, and the row becomes an active one; a notice names what else came back and what stayed deleted (see [Deleted entities](./deleted-entities#restore-an-entity)). If the entity was restored or changed meanwhile, the page says so and refreshes the rows.
+
+- The columns, their visibility, the filters, the sorting and the paging work as for the other rows, and the entries counted include the deleted rows.
+- The switch is part of the address of the page (`deleted=1`), like sort and page; without the permission the value is ignored. It is not stored in a [view](#views): opening a view shows only active rows.
+- Joins show only active connections and active linked entities, so a deleted row has no join results; in the mode *Rows* it keeps one row without results, and a filter on a column of a join does not find it.
+- In a [connection catalog](#connection-catalogs) a deleted connection shows the source and the target it had, also when they are deleted. Such a connection cannot be restored before its endpoints; the page says so.
+- Portals, dashboards and every catalog without the switch show active rows only.
+
+Through the API, `GET /catalogs/{id}/query?includeDeleted=true` returns the deleted rows as well; it needs `entity:restore` and answers 403 without it. A deleted row carries `deleted: true`, `deletedAt` and its `version`, which is the `If-Match` of `POST /entities/{id}/undelete`; active rows carry none of the three. A cursor of a query with another `includeDeleted` is rejected with 400 naming `cursor`.
+
 ## Filters {#filters}
 
 Filters narrow the table to the entries you need, for example the active applications only. Every reader of a catalog can set filters; they change only your view, not the catalog.

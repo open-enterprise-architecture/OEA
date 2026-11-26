@@ -17,11 +17,13 @@ import {
   FLOWS,
   FULL_VIEW,
   INTERFACES_JOIN,
+  LEGACY_CRM,
   manyApplications,
   METATYPES,
   METATYPES_WITH_FLOWS,
   SAP_ONLY,
   ME_ARCHITECT,
+  ME_RESTORER,
   ME_VIEWER,
   STATUS_DEFINITION,
   VENDOR_DEFINITION,
@@ -45,7 +47,7 @@ function overviewApi(me: unknown, catalogs: unknown[]): typeof fetch {
 function catalog(
   applications: Application[],
   query: Record<string, string | string[]> = {},
-  options: { catalog?: { id: string; [key: string]: unknown }; metatypes?: unknown[] } = {},
+  options: { catalog?: { id: string; [key: string]: unknown }; metatypes?: unknown[]; me?: unknown } = {},
 ): Story {
   return {
     render: () => ({
@@ -328,5 +330,28 @@ export const NoPlaceActionForReader: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('CRM System')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: /^Place in navigation/ })).toBeNull()
+  },
+}
+
+/** A holder of `entity:restore`: "Show deleted" is on, the deleted row is greyed and marked, with "Restore". */
+export const ShowDeleted: Story = {
+  ...catalog([...APPLICATIONS, LEGACY_CRM], { deleted: '1' }, { me: ME_RESTORER }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('switch', { name: 'Show deleted' })).toBeChecked()
+    await expect(await canvas.findByText('Legacy CRM')).toBeInTheDocument()
+    await expect(canvas.getByText('Deleted')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Restore Legacy CRM' })).toBeInTheDocument()
+  },
+}
+
+/** Without `entity:restore` the switch is not offered. */
+export const NoShowDeletedForArchitect: Story = {
+  ...catalog([...APPLICATIONS, LEGACY_CRM], {}, { me: ME_ARCHITECT }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('CRM System')).toBeInTheDocument()
+    await expect(canvas.queryByRole('switch', { name: 'Show deleted' })).toBeNull()
+    await expect(canvas.queryByText('Legacy CRM')).toBeNull()
   },
 }

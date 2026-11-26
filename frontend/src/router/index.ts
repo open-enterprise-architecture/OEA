@@ -4,6 +4,7 @@ import CatalogPage from '../pages/CatalogPage.vue'
 import CatalogsPage from '../pages/CatalogsPage.vue'
 import DashboardPage from '../pages/DashboardPage.vue'
 import DashboardsPage from '../pages/DashboardsPage.vue'
+import DeletedEntitiesPage from '../pages/DeletedEntitiesPage.vue'
 import DiagramPage from '../pages/DiagramPage.vue'
 import DiagramsPage from '../pages/DiagramsPage.vue'
 import EntityHistoryPage from '../pages/EntityHistoryPage.vue'
@@ -64,6 +65,8 @@ export const router = createRouter({
     { path: '/solutions/:id/diff', name: 'solution-diff', component: SolutionDiffPage, props: true },
     // the change history of an entity, opened from a catalog row (SCR-026, us-098-entity-history)
     { path: '/entities/:id/history', name: 'entity-history', component: EntityHistoryPage, props: true },
+    // the deleted entities with their restore (SCR-068, s17-deleted-entities)
+    { path: '/entities/deleted', name: 'deleted-entities', component: DeletedEntitiesPage },
   ],
 })
 

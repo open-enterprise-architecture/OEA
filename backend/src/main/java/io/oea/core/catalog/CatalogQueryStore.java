@@ -3,6 +3,7 @@ package io.oea.core.catalog;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -88,12 +89,18 @@ public class CatalogQueryStore {
 	/**
 	 * The filter of a query: the conditions on primary columns, the aggregate joins with
 	 * conditions (their conditions in {@link Join#conditions}) and whether any condition suffices
-	 * ({@code or}) instead of all; rows joins carry their conditions themselves.
+	 * ({@code or}) instead of all; rows joins carry their conditions themselves. With
+	 * {@code includeDeleted}, the deleted entities of the primary metatype are rows as well
+	 * (design D2 of s17-deleted-entities); joins still read active connections and targets only.
 	 */
-	public record Filter(List<Condition> conditions, List<Join> aggregateJoins, boolean or) {
+	public record Filter(List<Condition> conditions, List<Join> aggregateJoins, boolean or, boolean includeDeleted) {
 
 		/** No filter. */
-		public static final Filter NONE = new Filter(List.of(), List.of(), false);
+		public static final Filter NONE = new Filter(List.of(), List.of(), false, false);
+
+		public Filter(List<Condition> conditions, List<Join> aggregateJoins, boolean or) {
+			this(conditions, aggregateJoins, or, false);
+		}
 
 		public Filter {
 			conditions = List.copyOf(conditions);
@@ -298,9 +305,16 @@ public class CatalogQueryStore {
 	/**
 	 * An entity row with the text form of each column ({@code null} without value), the result
 	 * of each rows join and its values of the sort keys ({@link #keyTypes}), which a cursor to the
-	 * next page carries.
+	 * next page carries. {@code deletedAt} and {@code version} are set only for a deleted entity of a
+	 * query with {@code includeDeleted}.
 	 */
-	public record Row(int entityId, String name, List<String> values, List<JoinRow> joins, List<Object> keys) {
+	public record Row(int entityId, String name, List<String> values, List<JoinRow> joins, List<Object> keys,
+			Instant deletedAt, Integer version) {
+
+		public Row(int entityId, String name, List<String> values, List<JoinRow> joins, List<Object> keys) {
+			this(entityId, name, values, joins, keys, null, null);
+		}
+
 	}
 
 	/**
@@ -454,6 +468,9 @@ public class CatalogQueryStore {
 		for (int k = 0; k < keys.size(); k++) {
 			sql.text(", %s AS k%d".formatted(keys.get(k).expression(), k));
 		}
+		if (filter.includeDeleted()) {
+			sql.text(", e.deleted_at, e.version");
+		}
 		sql.text(" FROM entities e");
 		endpoints(sql, columns, filter);
 		values(sql, columns, "e", "v");
@@ -491,7 +508,15 @@ public class CatalogQueryStore {
 			for (SortKey key : keys) {
 				keyValues.add(key.type().read(rs, index++));
 			}
-			return new Row(rs.getInt(1), rs.getString(2), values, joins, Collections.unmodifiableList(keyValues));
+			Instant deletedAt = null;
+			Integer version = null;
+			if (filter.includeDeleted()) {
+				java.sql.Timestamp deleted = rs.getTimestamp(index++);
+				deletedAt = (deleted != null) ? deleted.toInstant() : null;
+				version = (deletedAt != null) ? rs.getInt(index) : null;
+			}
+			return new Row(rs.getInt(1), rs.getString(2), values, joins, Collections.unmodifiableList(keyValues),
+					deletedAt, version);
 		}, sql.args());
 	}
 
@@ -731,7 +756,10 @@ public class CatalogQueryStore {
 				|| filter.conditions().stream().anyMatch((condition) -> condition.column().endpoint() != null)) {
 			sql.text(" LEFT JOIN entity_connections ec ON ec.entity_id = e.id");
 			for (Endpoint side : Endpoint.values()) {
-				sql.text(" LEFT JOIN entities %1$s ON %1$s.id = ec.%2$s AND %1$s.deleted_at IS NULL"
+				// a deleted connection shows the endpoints it had, also when they are deleted (design D2 of s17-deleted-entities)
+				sql.text((filter.includeDeleted()
+						? " LEFT JOIN entities %1$s ON %1$s.id = ec.%2$s AND (%1$s.deleted_at IS NULL OR e.deleted_at IS NOT NULL)"
+						: " LEFT JOIN entities %1$s ON %1$s.id = ec.%2$s AND %1$s.deleted_at IS NULL")
 					.formatted(side.alias, side.column));
 			}
 		}
@@ -745,7 +773,8 @@ public class CatalogQueryStore {
 	 */
 	private static void where(Statement sql, UUID metatypeId, List<Join> rowsJoins, Filter filter) {
 		values(sql, filter.conditions().stream().map(Condition::column).toList(), "e", "f");
-		sql.text(" WHERE e.metatype_id = ? AND e.deleted_at IS NULL").arg(metatypeId);
+		sql.text(filter.includeDeleted() ? " WHERE e.metatype_id = ?" : " WHERE e.metatype_id = ? AND e.deleted_at IS NULL")
+			.arg(metatypeId);
 		List<Runnable> parts = new ArrayList<>();
 		for (int i = 0; i < filter.conditions().size(); i++) {
 			Condition condition = filter.conditions().get(i);
