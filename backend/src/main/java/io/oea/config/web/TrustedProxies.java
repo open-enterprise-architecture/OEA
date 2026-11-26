@@ -6,8 +6,9 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.apache.catalina.Valve;
 import org.apache.catalina.valves.RemoteIpValve;
+import org.springframework.boot.tomcat.RemoteIp;
+import org.springframework.boot.tomcat.RemoteIp.Proxies;
 import org.springframework.boot.tomcat.TomcatWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.core.Ordered;
@@ -16,6 +17,10 @@ import org.springframework.core.Ordered;
  * Trusted reverse proxies of the {@link RemoteIpValve} (design D2 of s11-review-hardening, AA-01).
  * A blank {@code oea.web.trusted-proxies} keeps Tomcat's default list (loopback and the private
  * networks); a non-blank one replaces it. An invalid list stops the start.
+ * <p>
+ * Boot creates the valve when the server starts, from the factory's {@link RemoteIp}
+ * settings; the list therefore goes into those settings, keeping Boot's header names, trusted
+ * proxies and usage.
  */
 public class TrustedProxies implements WebServerFactoryCustomizer<TomcatWebServerFactory>, Ordered {
 
@@ -28,7 +33,7 @@ public class TrustedProxies implements WebServerFactoryCustomizer<TomcatWebServe
 		this.proxies = parse(configured);
 	}
 
-	/** Runs after Boot's customizer, which installs the valve. */
+	/** Runs after Boot's customizer, which sets the remote IP settings. */
 	@Override
 	public int getOrder() {
 		return Ordered.LOWEST_PRECEDENCE;
@@ -39,11 +44,19 @@ public class TrustedProxies implements WebServerFactoryCustomizer<TomcatWebServe
 		if (this.proxies.isEmpty()) {
 			return;
 		}
-		for (Valve valve : factory.getEngineValves()) {
-			if (valve instanceof RemoteIpValve remoteIp) {
-				remoteIp.setInternalProxies(this.proxies.get());
-			}
+		factory.setRemoteIp(withInternalProxies(factory.getRemoteIp(), this.proxies.get()));
+	}
+
+	/**
+	 * The settings with the given internal proxies. Without settings, the valve stays bound to
+	 * the forwarded-headers strategy: the list alone does not install it.
+	 */
+	static RemoteIp withInternalProxies(RemoteIp current, String internal) {
+		if (current == null) {
+			return new RemoteIp(null, new Proxies(internal, null), RemoteIp.Usage.FOR_FORWARDED_REQUEST_HEADERS);
 		}
+		String trusted = (current.proxies() != null) ? current.proxies().trusted() : null;
+		return new RemoteIp(current.header(), new Proxies(internal, trusted), current.usage());
 	}
 
 	/** The normalized CIDR list, or empty for a blank value (Tomcat's default). */

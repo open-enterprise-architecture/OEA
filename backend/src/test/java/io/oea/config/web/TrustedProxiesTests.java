@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.tomcat.RemoteIp;
 import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 
 /**
@@ -65,11 +66,48 @@ class TrustedProxiesTests {
 						.doesNotContain("192.0.2.0/24"));
 	}
 
+	@Test
+	void listKeepsBootsHeadersTrustedProxiesAndUsage() {
+		TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+		RemoteIp.Header header = new RemoteIp.Header(null, null, "X-Forwarded-For", "X-Forwarded-Proto");
+		factory.setRemoteIp(new RemoteIp(header, new RemoteIp.Proxies("10\\.0\\.0\\.1", "198\\.51\\.100\\.7"),
+				RemoteIp.Usage.ALWAYS));
+		new TrustedProxies("192.0.2.0/24").customize(factory);
+		RemoteIp applied = factory.getRemoteIp();
+		assertThat(applied.header()).isEqualTo(header);
+		assertThat(applied.proxies().internal()).isEqualTo("192.0.2.0/24");
+		assertThat(applied.proxies().trusted()).isEqualTo("198\\.51\\.100\\.7");
+		assertThat(applied.usage()).isEqualTo(RemoteIp.Usage.ALWAYS);
+	}
+
+	@Test
+	void listWithoutBootSettingsDoesNotInstallTheValveByItself() {
+		TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+		factory.setRemoteIp(null);
+		new TrustedProxies("192.0.2.0/24").customize(factory);
+		assertThat(factory.getRemoteIp().usage()).isEqualTo(RemoteIp.Usage.FOR_FORWARDED_REQUEST_HEADERS);
+		assertThat(factory.getRemoteIp().proxies().internal()).isEqualTo("192.0.2.0/24");
+	}
+
+	@Test
+	void blankLeavesBootsSettingsUntouched() {
+		TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+		RemoteIp boot = new RemoteIp(null, null);
+		factory.setRemoteIp(boot);
+		new TrustedProxies(" ").customize(factory);
+		assertThat(factory.getRemoteIp()).isSameAs(boot);
+	}
+
+	/** The internal proxies of the valve that Boot builds from the factory's settings. */
 	private static String applied(String configured) {
 		TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
-		RemoteIpValve valve = new RemoteIpValve();
-		factory.addEngineValves(valve);
+		factory.setRemoteIp(RemoteIp.DEFAULTS);
 		new TrustedProxies(configured).customize(factory);
+		RemoteIpValve valve = new RemoteIpValve();
+		RemoteIp remoteIp = factory.getRemoteIp();
+		if (remoteIp.proxies() != null && remoteIp.proxies().internal() != null) {
+			valve.setInternalProxies(remoteIp.proxies().internal());
+		}
 		return valve.getInternalProxies();
 	}
 
