@@ -1,2 +1,4 @@
 /mvnw text eol=lf
-*.cmd text eol=crlf
+# Stored as-is: the Maven wrapper ships mvnw.cmd with CRLF, and Dependabot commits it that
+# way; normalizing it would leave the file modified in every checkout (see #326, #347)
+*.cmd -text
