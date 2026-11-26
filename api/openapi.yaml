@@ -836,6 +836,21 @@ components:
           type: object
           description: Text form of the value per column key; `null` if the entity has no value
           additionalProperties: { type: [string, 'null'] }
+        deleted:
+          type: boolean
+          description: |
+            `true` on a deleted row of a query with `includeDeleted`; absent on active rows and in
+            every other response that carries `CatalogRow` (portal, dashboard table widgets)
+        deletedAt:
+          type: string
+          format: date-time
+          description: When the entity was deleted; set only together with `deleted`
+        version:
+          type: integer
+          minimum: 1
+          description: |
+            The version of the deleted entity, the `If-Match` of `restoreDeletedEntity`; set only
+            together with `deleted`, as a deleted entity cannot be read through `getEntity`
         joinResults:
           type: object
           description: |
@@ -1714,6 +1729,55 @@ components:
           properties:
             deletedAt: { type: string, format: date-time }
             deletedBy: { $ref: '#/components/schemas/PrincipalRef' }
+
+    DeletedEntityRef:
+      type: object
+      required: [id, name]
+      description: An entity named by a deleted entity, whether it is active or deleted
+      properties:
+        id:   { type: integer }
+        name: { type: string }
+
+    DeletedEntity:
+      type: object
+      required: [id, name, metatype, isConnection, version, deletedAt, deletedWith]
+      description: |
+        A deleted entity or connection with the time and actor of its deletion and the entity
+        whose deletion took it along; it can be restored with `restoreDeletedEntity`. The entry
+        carries no property values.
+      properties:
+        id:           { type: integer }
+        name:         { type: string }
+        metatype:     { $ref: '#/components/schemas/MetatypeSummary' }
+        isConnection: { type: boolean }
+        source:
+          allOf: [ { $ref: '#/components/schemas/DeletedEntityRef' } ]
+          description: The source of a connection, also when it is deleted; absent for other entities
+        target:
+          allOf: [ { $ref: '#/components/schemas/DeletedEntityRef' } ]
+          description: The target of a connection, also when it is deleted; absent for other entities
+        version:      { type: integer, minimum: 1, description: "The version of the deleted entity, the `If-Match` of `restoreDeletedEntity`" }
+        deletedAt:    { type: string, format: date-time }
+        deletedBy:
+          allOf: [ { $ref: '#/components/schemas/PrincipalRef' } ]
+          description: The actor of the deletion; absent if none was recorded
+        deletedWith:
+          oneOf:
+            - $ref: '#/components/schemas/DeletedEntityRef'
+            - type: 'null'
+          description: The entity whose deletion took this one along; `null` for an entity deleted on its own
+
+    DeletedEntityPage:
+      type: object
+      required: [items, page, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/DeletedEntity' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+        nextCursor:
+          type: [string, 'null']
+          description: Opaque cursor to the following page, to be sent as `cursor` with `page` + 1; `null` on the last page
 
     DeletedDiagramPage:
       type: object
@@ -7596,7 +7660,7 @@ paths:
         property. Property visibility applies as described at `CatalogColumn.readable`; a
         page that returns a value readable only through the override role list writes one
         `property-override-access` audit event naming the properties and entities (REQ-128).
-        Soft-deleted entities are not returned (ADR-019). Column keys are the system field
+        Soft-deleted entities are not returned (ADR-019), except with `includeDeleted` (below). Column keys are the system field
         (`CatalogSystemField`) or the `sqlColumnName` of a property.
 
         `sort` accepts exactly one `{column}:{asc|desc}` pair whose column is a sortable key of
@@ -7643,8 +7707,19 @@ paths:
         Time limit (REQ-186): a query whose statements take longer than the configured limit
         (10 seconds by default) is cancelled and answered with 503 `query-timeout`; the audit
         event `catalog.query-timeout` records it.
+
+        Deleted rows (ADR-019): with `includeDeleted=true` the deleted entities of the primary
+        metatype are rows as well, with the same columns, visibility, filters, sorting and paging,
+        and counted in `totalElements`; each is marked with `deleted`, `deletedAt` and its
+        `version`, the `If-Match` of `restoreDeletedEntity`. Without `entity:restore` the answer is
+        403, before the catalog is looked up. Joins still show only active connections and active
+        targets, so a deleted row has no join results (in mode `rows` it keeps one row without
+        results, and a filter on a join column excludes it). In a connection catalog, the source
+        and target columns of a deleted connection show its endpoints also when they are deleted;
+        restoring such a connection answers 409 `connection-not-restorable`. A cursor of a query
+        with another `includeDeleted` answers 400 `cursor`. Saved views do not store the flag.
       tags: [Catalogs]
-      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:read"], "conditions": [{"when": "includeDeleted=true", "permissions": ["entity:restore"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/PageParam'
@@ -7676,6 +7751,10 @@ paths:
           in: query
           description: A saved view of the catalog whose columns the result shows
           schema: { type: string, format: uuid }
+        - name: includeDeleted
+          in: query
+          description: With `true`, deleted entities of the primary metatype are rows as well; needs `entity:restore`
+          schema: { type: boolean, default: false }
       responses:
         '200':
           description: One page of catalog rows
@@ -12991,6 +13070,43 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
         '412': { $ref: '#/components/responses/PreconditionFailed' }
         '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /entities/deleted:
+    get:
+      operationId: listDeletedEntities
+      summary: List deleted entities (REQ-159, ADR-019, SCR-068)
+      description: |
+        The deleted entities and connections, newest deletion first, then by ID, with the paging
+        of `listDiagrams` and the filters `q` and `metatypeId`. Each entry names the actor and
+        time of its deletion and the entity whose deletion took it along (`deletedWith`); a
+        connection names its endpoints, also when they are deleted. The entries carry no property
+        values, so property visibility does not apply. An entry is restored with
+        `restoreDeletedEntity` and its `version`. A cursor is valid only for the same query
+        (filters and page size); otherwise the answer is 400 `cursor`. Read only, not audited.
+      tags: [Entities – Write]
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:restore"]}
+      parameters:
+        - name: q
+          in: query
+          description: Part of the entity name, compared case-insensitively with `%` and `_` taken literally; blank means no filter
+          schema: { type: string, maxLength: 255 }
+        - name: metatypeId
+          in: query
+          description: Only entities of this metatype
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: One page of deleted entities
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedEntityPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /entities/by-external-id/{externalId}:

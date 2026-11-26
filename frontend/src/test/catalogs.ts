@@ -179,6 +179,8 @@ export interface Application {
   description?: string
   /** The interfaces reached through data flows (US-048). */
   interfaces?: { name: string; protocol?: string }[]
+  /** The entity is deleted: the row appears only with `includeDeleted` (s17-deleted-entities). */
+  deleted?: { at: string; version: number }
   /** Source and target of a connection row of a connection catalog (US-080). */
   source?: { name: string; vendor?: string }
   target?: { name: string; vendor?: string }
@@ -200,6 +202,12 @@ export const APPLICATIONS: Application[] = [
 ]
 
 /** Information flows, rows of the catalog "Data Flow Overview" (US-080). */
+/** Holds `entity:restore`: shows deleted rows and restores them (s17-deleted-entities). */
+export const ME_RESTORER = me('Kurt', ['portal:read', 'entity:read', 'entity:write', 'entity:restore', 'catalog:manage', 'viewpoint:manage'])
+
+/** A deleted application of the catalog "Application Inventory". */
+export const LEGACY_CRM: Application = { name: 'Legacy CRM', status: 'planned', deleted: { at: '2026-11-20T10:00:00Z', version: 3 } }
+
 export const FLOWS: Application[] = [
   { name: 'Orders', status: 'active', source: { name: 'CRM System', vendor: 'Salesforce' }, target: { name: 'ERP', vendor: 'SAP' } },
   { name: 'Invoices', status: 'active', source: { name: 'ERP', vendor: 'SAP' }, target: { name: 'Accounting' } },
@@ -277,7 +285,7 @@ export const SAP_ONLY = {
  * applications like the server (design D1–D3 of us-049-show-catalog-data).
  */
 export function catalogApi(
-  applications: Application[],
+  initial: Application[],
   options: {
     me?: unknown
     catalog?: unknown
@@ -290,8 +298,14 @@ export function catalogApi(
     queryFails?: 503 | 500
     /** Column keys whose values the reader may not see (us-126-role-restricted-enforcement). */
     unreadable?: string[]
+    /** Answers the restore of a deleted entity with this problem instead of restoring it (s17-deleted-entities). */
+    undeleteFails?: { status: number; type: string }
+    /** What a restore answers besides the entity itself (s17-deleted-entities). */
+    undeleteResult?: { movedToTopLevel?: number[]; notRestored?: { entityId: number; reason: string }[] }
   } = {},
 ): typeof fetch {
+  // the rows are state: restoring a deleted entity makes it an active row (s17-deleted-entities)
+  const applications = initial.map((application) => ({ ...application }))
   // the catalog is state: saving columns changes what the next query returns (US-047)
   type ColumnConfig = {
     endpoint?: string | null
@@ -378,6 +392,22 @@ export function catalogApi(
     }
     if (url.pathname === '/api/v1/catalogs') {
       return json(CATALOGS)
+    }
+    const undelete = /^\/api\/v1\/entities\/(\d+)\/undelete$/.exec(url.pathname)
+    if (undelete && method === 'POST') {
+      const application = applications[Number(undelete[1]) - 1]
+      const given = (init?.headers as Record<string, string> | undefined)?.['If-Match']
+      if (options.undeleteFails) {
+        return json({ type: `urn:oea:problem:${options.undeleteFails.type}`, title: 'Not restorable', status: options.undeleteFails.status }, options.undeleteFails.status)
+      }
+      if (!application?.deleted) {
+        return json({ type: 'urn:oea:problem:entity-not-deleted', title: 'Not deleted', status: 409 }, 409)
+      }
+      if (given !== `"${application.deleted.version}"`) {
+        return json({ type: 'urn:oea:problem:stale-version', title: 'Changed meanwhile', status: 412 }, 412)
+      }
+      delete application.deleted
+      return json({ restored: [Number(undelete[1])], movedToTopLevel: options.undeleteResult?.movedToTopLevel ?? [], notRestored: options.undeleteResult?.notRestored ?? [] })
     }
     if (url.pathname === '/api/v1/metamodel/property-definitions') {
       return json(definitions)
@@ -571,7 +601,12 @@ export function catalogApi(
       (or ? joinFilters.some : joinFilters.every).call(joinFilters, (match) =>
         holds(joined[match![1]!.split('.')[1] as 'name' | 'protocol'], match![2]!, match![3], false),
       )
+    const includeDeleted = query.includeDeleted === 'true'
+    if (includeDeleted && !((options.me ?? ME_ARCHITECT) as { permissions: { permission: string }[] }).permissions.some((entry) => entry.permission === 'entity:restore')) {
+      return json({ type: 'urn:oea:problem:forbidden', title: 'Forbidden', status: 403 }, 403)
+    }
     const filtered = applications
+      .filter((application) => includeDeleted || !application.deleted)
       .map((application) => ({ ...application, interfaces: (application.interfaces ?? []).filter(matchesJoin) }))
       .filter((application) => {
         const tests = [
@@ -613,6 +648,7 @@ export function catalogApi(
       rows: sorted.slice(page * pageSize, (page + 1) * pageSize).map((application) => ({
         entityId: applications.findIndex((candidate) => candidate.name === application.name) + 1,
         openIssues: application.openIssues ?? false,
+        ...(application.deleted ? { deleted: true, deletedAt: application.deleted.at, version: application.deleted.version } : {}),
         values: Object.fromEntries(
           columns.map((column) => [column.key, (column as { readable?: boolean }).readable === false ? null : (valueOf(application, column.key) ?? null)]),
         ),

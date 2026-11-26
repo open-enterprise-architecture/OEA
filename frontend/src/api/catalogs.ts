@@ -109,6 +109,8 @@ export interface CatalogQuery {
   filterMode?: CatalogFilterMode
   /** A saved view whose columns the result shows (US-053). */
   view?: string
+  /** Deleted rows as well, marked as deleted; needs `entity:restore` (s17-deleted-entities). */
+  includeDeleted?: boolean
   /** The `nextCursor` of the previous page, sent with `page` (design D6 of s9-catalog-query-performance). */
   cursor?: string
 }
@@ -306,6 +308,9 @@ export async function queryCatalog(
   }
   if (query.view) {
     params.set('view', query.view)
+  }
+  if (query.includeDeleted) {
+    params.set('includeDeleted', 'true')
   }
   if (query.cursor) {
     params.set('cursor', query.cursor)

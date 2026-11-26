@@ -10,7 +10,7 @@ License texts and notices: the backend jar contains the license and notice files
 
 | License | Components |
 |---|---|
-| MIT | 45 |
+| MIT | 46 |
 | Apache-2.0 | 98 |
 | BSD-3-Clause | 11 |
 | BSD-2-Clause | 3 |
@@ -138,7 +138,7 @@ License texts and notices: the backend jar contains the license and notice files
 | Jackson dataformat: CBOR (`tools.jackson.dataformat:jackson-dataformat-cbor`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-binary> |
 | Jackson-dataformat-YAML (`tools.jackson.dataformat:jackson-dataformat-yaml`) | 3.1.7 | Apache-2.0 | – | <https://github.com/FasterXML/jackson-dataformats-text> |
 
-## Frontend Bundle (47)
+## Frontend Bundle (48)
 
 | Component | Version | License | Alternatives | Project |
 |---|---|---|---|---|
@@ -146,24 +146,24 @@ License texts and notices: the backend jar contains the license and notice files
 | @floating-ui/dom (`@floating-ui/dom`) | 1.8.0 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @floating-ui/utils (`@floating-ui/utils`) | 0.2.12 | MIT | – | <https://github.com/floating-ui/floating-ui> |
 | @floating-ui/vue (`@floating-ui/vue`) | 2.0.1 | MIT | – | <https://github.com/floating-ui/floating-ui> |
-| @iconify/vue (`@iconify/vue`) | 5.0.3 | MIT | – | <https://github.com/iconify/iconify> |
+| @iconify/vue (`@iconify/vue`) | 5.0.5 | MIT | – | <https://github.com/iconify/iconify> |
 | @internationalized/number (`@internationalized/number`) | 3.6.9 | Apache-2.0 | – | <https://github.com/adobe/react-spectrum> |
 | @intlify/core-base (`@intlify/core-base`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | @intlify/message-compiler (`@intlify/message-compiler`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
 | @intlify/shared (`@intlify/shared`) | 11.4.23 | MIT | – | <https://github.com/intlify/vue-i18n> |
-| @nuxt/ui (`@nuxt/ui`) | 4.12.0 | MIT | – | <https://github.com/nuxt/ui> |
+| @nuxt/ui (`@nuxt/ui`) | 4.13.0 | MIT | – | <https://github.com/nuxt/ui> |
 | @simplewebauthn/browser (`@simplewebauthn/browser`) | 14.0.0 | MIT | – | <https://github.com/MasterKale/SimpleWebAuthn> |
 | @tanstack/table-core (`@tanstack/table-core`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
-| @tanstack/virtual-core (`@tanstack/virtual-core`) | 3.19.4 | MIT | – | <https://github.com/TanStack/virtual> |
+| @tanstack/virtual-core (`@tanstack/virtual-core`) | 3.19.11 | MIT | – | <https://github.com/TanStack/virtual> |
 | @tanstack/vue-table (`@tanstack/vue-table`) | 8.21.3 | MIT | – | <https://github.com/TanStack/table> |
-| @tanstack/vue-virtual (`@tanstack/vue-virtual`) | 3.13.45 | MIT | – | <https://github.com/TanStack/virtual> |
+| @tanstack/vue-virtual (`@tanstack/vue-virtual`) | 3.13.52 | MIT | – | <https://github.com/TanStack/virtual> |
 | @unhead/vue (`@unhead/vue`) | 3.4.3 | MIT | – | <https://github.com/unjs/unhead> |
 | @vue-flow/core (`@vue-flow/core`) | 1.48.2 | MIT | – | <https://github.com/bcakmakoglu/vue-flow> |
 | @vue-flow/node-resizer (`@vue-flow/node-resizer`) | 1.5.1 | MIT | – | <https://github.com/bcakmakoglu/vue-flow/packages/plugins/node-resizer> |
-| @vue/reactivity (`@vue/reactivity`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
-| @vue/runtime-core (`@vue/runtime-core`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
-| @vue/runtime-dom (`@vue/runtime-dom`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
-| @vue/shared (`@vue/shared`) | 3.5.44 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/reactivity (`@vue/reactivity`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/runtime-core (`@vue/runtime-core`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/runtime-dom (`@vue/runtime-dom`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
+| @vue/shared (`@vue/shared`) | 3.5.46 | MIT | – | <https://github.com/vuejs/core> |
 | @vueuse/core (`@vueuse/core`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
 | @vueuse/shared (`@vueuse/shared`) | 14.4.0 | MIT | – | <https://github.com/vueuse/vueuse> |
 | aria-hidden (`aria-hidden`) | 1.2.6 | MIT | – | <https://github.com/theKashey/aria-hidden> |
@@ -179,7 +179,8 @@ License texts and notices: the backend jar contains the license and notice files
 | punycode.js (`punycode.js`) | 2.3.1 | MIT | – | <https://github.com/mathiasbynens/punycode.js> |
 | reka-ui (`reka-ui`) | 2.11.0 | MIT | – | <https://github.com/unovue/reka-ui> |
 | scule (`scule`) | 1.3.0 | MIT | – | unjs/scule |
-| tailwind-variants (`tailwind-variants`) | 3.3.1 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
+| tailwind-merge (`tailwind-merge`) | 3.7.1 | MIT | – | <https://github.com/dcastil/tailwind-merge> |
+| tailwind-variants (`tailwind-variants`) | 3.2.2 | MIT | – | <https://github.com/heroui-inc/tailwind-variants> |
 | tailwindcss (`tailwindcss`) | 4.3.5 | MIT | – | <https://github.com/tailwindlabs/tailwindcss> |
 | tslib (`tslib`) | 2.3.0 | 0BSD | – | <https://github.com/Microsoft/tslib> |
 | uc.micro (`uc.micro`) | 3.0.0 | MIT | – | markdown-it/uc.micro |
