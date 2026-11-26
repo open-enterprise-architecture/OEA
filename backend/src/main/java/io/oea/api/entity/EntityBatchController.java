@@ -10,6 +10,9 @@ import io.oea.api.generated.model.BatchWriteResponseSummary;
 import io.oea.api.generated.model.ConnectionDetail;
 import io.oea.api.generated.model.ConnectionEndpoint;
 import io.oea.api.generated.model.ConnectionWrite;
+import io.oea.api.generated.model.DeletedEntity;
+import io.oea.api.generated.model.DeletedEntityPage;
+import io.oea.api.generated.model.DeletedEntityRef;
 import io.oea.api.generated.model.EntityDeletionPreview;
 import io.oea.api.generated.model.EntityDeletionResult;
 import io.oea.api.generated.model.EntityDeletionSolution;
@@ -23,9 +26,12 @@ import io.oea.api.generated.model.EntityWrite;
 import io.oea.api.generated.model.StructuringAid;
 import io.oea.api.generated.model.StructuringAidCreate;
 import io.oea.api.generated.model.MetatypeSummary;
+import io.oea.api.generated.model.PageMeta;
+import io.oea.api.generated.model.PrincipalRef;
 import io.oea.app.entity.ConnectionInput;
 import io.oea.app.entity.ConnectionRejectedException;
 import io.oea.app.entity.EntityBatch;
+import io.oea.app.deletion.DeletedEntities;
 import io.oea.app.deletion.EntityDeletions;
 import io.oea.app.entity.EntityInput;
 import io.oea.app.entity.EntityUndeletion;
@@ -36,7 +42,9 @@ import io.oea.app.security.OeaPrincipal;
 import io.oea.audit.AuditEvent;
 import io.oea.config.security.ConditionsEnforcedByHandler;
 import io.oea.config.security.OeaAuthentication;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -61,12 +69,50 @@ public class EntityBatchController implements EntitiesWriteApi {
 
 	private final EntityDeletions deletions;
 
+	private final DeletedEntities deletedEntities;
+
 	public EntityBatchController(EntityBatch batch, PropertyVisibility visibility, EntityHierarchy hierarchy,
-			EntityDeletions deletions) {
+			EntityDeletions deletions, DeletedEntities deletedEntities) {
+		this.deletedEntities = deletedEntities;
 		this.batch = batch;
 		this.visibility = visibility;
 		this.hierarchy = hierarchy;
 		this.deletions = deletions;
+	}
+
+	/** The deleted entities, newest deletion first (REQ-159, design D1 of s17-deleted-entities). */
+	@Override
+	public ResponseEntity<DeletedEntityPage> listDeletedEntities(String q, UUID metatypeId, Integer page,
+			Integer pageSize, String cursor) {
+		DeletedEntities.Page result = this.deletedEntities.list(new DeletedEntities.Query(q, metatypeId,
+				(page != null) ? page : 0, (pageSize != null) ? pageSize : 50, cursor));
+		return ResponseEntity.ok(new DeletedEntityPage(result.items().stream().map(EntityBatchController::deleted).toList(),
+				new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
+						result.totalPages()),
+				result.nextCursor()));
+	}
+
+	private static DeletedEntity deleted(DeletedEntities.Entry entry) {
+		DeletedEntity item = new DeletedEntity(entry.id(), entry.name(),
+				new MetatypeSummary().id(entry.metatypeId()).name(entry.metatypeName())
+					.abbreviation(entry.metatypeAbbreviation()),
+				entry.connection(), entry.version(), entry.deletedAt().atOffset(ZoneOffset.UTC), ref(entry.deletedWith()));
+		if (entry.source() != null) {
+			item.source(ref(entry.source()));
+		}
+		if (entry.target() != null) {
+			item.target(ref(entry.target()));
+		}
+		if (entry.deletedBy() != null) {
+			item.deletedBy(new PrincipalRef(entry.deletedBy().serviceAccount()
+					? PrincipalRef.PrincipalTypeEnum.SERVICE_ACCOUNT : PrincipalRef.PrincipalTypeEnum.PERSON,
+					entry.deletedBy().name()).id(Math.toIntExact(entry.deletedBy().id())));
+		}
+		return item;
+	}
+
+	private static DeletedEntityRef ref(DeletedEntities.Ref ref) {
+		return (ref != null) ? new DeletedEntityRef(ref.id(), ref.name()) : null;
 	}
 
 	/** What deleting an entity would do (REQ-146, design D2 of s17-entity-delete). */

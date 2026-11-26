@@ -158,6 +158,13 @@ Implementing the deletion ([US-074](../requirements/user-stories/US-074-create-p
 - **External IDs (#70):** the unique index keeps covering deleted rows, so the external ID of a deleted entity stays reserved. A batch `upsert` of that external ID restores the entity and updates it when the writer holds `entity:restore`; otherwise, and always for `create-only` and `skip-existing`, the item is rejected with `EXTERNAL_ID_DELETED`.
 - **Solutions:** a delta `modified` or `retiring` of a deleted entity is a deletion conflict; the go-live of a solution and of a plateau answer 409 `entity-deleted` until the delta is removed or the entity restored. The go-live records the retired entity as origin of the connections it retires with it.
 
+## Amendment 2026-11-25 (change s17-deleted-entities)
+
+Finding the deleted entities (owner decision 2026-11-20) adds two reads for holders of `entity:restore`; they change nothing above.
+
+- **List:** `GET /api/v1/entities/deleted` lists the deleted entities and connections, the latest deletion first, then by ID, with a name part and a metatype as filters and the paging of the diagram list. An entry names the actor, the cascade origin and, for a connection, its endpoints also when they are deleted; it carries no property values. The page "Deleted entities" (SCR-068) shows it, and the index `entities_deleted` (V50) serves the order.
+- **Catalog:** `includeDeleted=true` on the catalog query adds the deleted rows of the primary metatype, marked with their deletion time and version; the switch "Show deleted" of the catalog page (SCR-020) uses it and is not saved in views. Without the parameter, and in the portal and the dashboards, deleted entities stay out of every read as decided above.
+
 ## References
 
 **Related ADRs**: [ADR-016](./ADR-016-persistence-strategy.md) (persistence; `entities` table schema)

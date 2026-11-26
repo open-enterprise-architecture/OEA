@@ -144,7 +144,12 @@
     "restrictedColumn": "Du darfst die Werte dieser Spalte nicht sehen.",
     "history": "Historie",
     "actions": "Aktionen",
-    "openIssues": "Offene Punkte: auf der Seite der Lösung auflösen"
+    "openIssues": "Offene Punkte: auf der Seite der Lösung auflösen",
+    "showDeleted": "Gelöschte anzeigen",
+    "deletedMarker": "Gelöscht",
+    "deletedAt": "Gelöscht {date}",
+    "restore": "Wiederherstellen",
+    "restoreAction": "{name} wiederherstellen"
   },
   "catalogs": {
     "empty": "Noch keine Kataloge",
@@ -1397,6 +1402,38 @@
       "deletionConflicts": "Eine Lösung hat Änderungen an gelöschten Entitäten ({names}). Entferne die Änderungen oder stelle die Entitäten zuerst wieder her.",
       "deletionCount": "eine gelöschte Entität | {n} gelöschte Entitäten",
       "entityDeleted": "Eine Entität ihrer Lösungen ist gelöscht. Entferne die Änderung oder stelle die Entität zuerst wieder her."
+    }
+  },
+  "deletedEntities": {
+    "title": "Gelöschte Entitäten",
+    "filter": "Nach Name filtern",
+    "metatype": "Typ",
+    "allMetatypes": "Alle Typen",
+    "loadMore": "Mehr laden",
+    "loadFailed": "Die gelöschten Entitäten konnten nicht geladen werden.",
+    "noPermission": "Keine Berechtigung. Nur Personen mit der Berechtigung zum Wiederherstellen sehen die gelöschten Entitäten.",
+    "empty": "Keine gelöschten Entitäten.",
+    "connection": "Verbindung",
+    "deletedBy": "Gelöscht von {name}, {date}",
+    "deletedAt": "Gelöscht {date}",
+    "deletedWith": "Gelöscht mit {name}",
+    "restore": "Wiederherstellen",
+    "restoreAction": "{name} wiederherstellen",
+    "restoreTitle": "„{name}“ wiederherstellen?",
+    "restoreHint": "Die Entität kommt mit den Kindern und Verbindungen zurück, die ihre Löschung mitgenommen hat.",
+    "restoreWithHint": "Dieser Eintrag wurde mit „{name}“ gelöscht. Es kommt nur zurück, was seine eigene Löschung mitgenommen hat.",
+    "forbidden": "Du darfst Entitäten nicht wiederherstellen.",
+    "failed": "Die Entität konnte nicht wiederhergestellt werden.",
+    "notice": {
+      "restored": "Wiederhergestellt: {names}.",
+      "stayed": "Gelöscht geblieben: {names}.",
+      "stayedReason": {
+        "endpoint-deleted": "{name} (der andere Endpunkt ist gelöscht)",
+        "parent-changed": "{name} (hat jetzt ein anderes Elternelement)"
+      },
+      "moved": "Auf die oberste Ebene gestellt, weil ihr Elternelement gelöscht ist: {names}.",
+      "stale": "„{name}“ wurde inzwischen wiederhergestellt oder geändert. Die Liste wird neu geladen.",
+      "endpointDeleted": "„{name}“ kann nicht wiederhergestellt werden: Ein Endpunkt der Verbindung ist gelöscht. Stelle zuerst den Endpunkt wieder her. Die Liste wird neu geladen."
     }
   },
   "diagrams": {

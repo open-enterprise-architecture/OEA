@@ -208,11 +208,20 @@ public class CatalogController implements CatalogsApi {
 	@Override
 	@ContractViolationResponse(title = "Invalid query",
 			detail = "The paging, sort, join mode, filter or cursor parameters are invalid.")
+	@ConditionsEnforcedByHandler(value = "CatalogController.queryCatalog requires entity:restore for includeDeleted=true; "
+			+ "checked before the catalog is looked up, so an unknown catalog answers 403 as well", probeRole = "viewer",
+			probeBody = "{}",
+			probePath = "/api/v1/catalogs/00000000-0000-0000-0000-000000000000/query?includeDeleted=true")
 	public ResponseEntity<CatalogQueryResult> queryCatalog(UUID id, Integer page, Integer pageSize, String sort,
-			String cursor, Map<String, JoinMode> joinMode, List<String> filter, String filterMode, UUID view) {
+			String cursor, Map<String, JoinMode> joinMode, List<String> filter, String filterMode, UUID view,
+			Boolean includeDeleted) {
+		boolean deleted = Boolean.TRUE.equals(includeDeleted);
+		if (deleted) {
+			this.catalogs.requireRestore(principal());
+		}
 		return ResponseEntity.ok(CatalogQueryMapping.result(this.queries.query(principal(), id,
 				new CatalogQueries.Request(page, pageSize, sort, joinModes(joinMode),
-						(filter != null) ? filter : List.of(), filterMode, view, cursor),
+						(filter != null) ? filter : List.of(), filterMode, view, cursor, deleted),
 				CatalogQueries.Channel.CATALOG), this.blocks));
 	}
 

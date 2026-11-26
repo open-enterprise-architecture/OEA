@@ -15,6 +15,7 @@ import {
   type CatalogFilter,
   type CatalogFilterMode,
   type CatalogQueryResult,
+  type CatalogRow,
   type CatalogSavedFilter,
   type CatalogSavedView,
   type CatalogSort,
@@ -23,6 +24,7 @@ import {
 import { PageCursors, rejectsCursor } from '../api/cursors'
 import { queryTimeoutMessage, rateLimitMessage, RequestRejected } from '../api/problem'
 import { fetchPropertyDefinitions, type PropertyDefinitionDetail } from '../api/metamodel'
+import { summarize, type EntityUndeleteResult, type RestoreNoticeData, type RestoreTarget } from '../api/deletedEntities'
 import CatalogColumnsDialog from '../components/CatalogColumnsDialog.vue'
 import CatalogFilterBar, { type FilterColumn } from '../components/CatalogFilterBar.vue'
 import CatalogJoinsDialog from '../components/CatalogJoinsDialog.vue'
@@ -30,6 +32,8 @@ import PlaceInNavigation from '../components/PlaceInNavigation.vue'
 import type { Placement } from '../api/navigation'
 import CatalogTable from '../components/CatalogTable.vue'
 import CatalogViews from '../components/CatalogViews.vue'
+import RestoreEntityDialog from '../components/deleted/RestoreEntityDialog.vue'
+import RestoreNotice from '../components/deleted/RestoreNotice.vue'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
 
@@ -37,7 +41,9 @@ import { refreshSession, session } from '../session/store'
 // (ADR-044, design D8 of us-049-show-catalog-data), so back navigation and reload restore the view;
 // so is the mode of every join that differs from its default (design D5 of us-048-catalog-joins)
 // and so are the filters with their combination (design D5 of us-051-catalog-filters) and the
-// saved view whose columns the table shows (design D5 of us-053-saved-views).
+// saved view whose columns the table shows (design D5 of us-053-saved-views). Holders of
+// entity:restore switch on "Show deleted" (`deleted=1` in the URL, not in saved views) and restore
+// deleted rows (design D3 of s17-deleted-entities).
 // Metatype names, column headers and enum values are shown in the language of the user (US-140).
 const props = defineProps<{ id: string; fetchFn?: typeof fetch }>()
 const route = useRoute()
@@ -67,6 +73,35 @@ const canPlace = computed(() => {
   const granted = session.me?.permissions.map((entry) => entry.permission) ?? []
   return granted.includes('viewpoint:manage') && granted.includes('entity:read')
 })
+// deleted rows are listed and restored with entity:restore (design D3 of s17-deleted-entities)
+const canRestore = computed(() => (session.me?.permissions ?? []).some((entry) => entry.permission === 'entity:restore'))
+const restoring = ref<RestoreTarget>()
+const restoreOpen = ref(false)
+const notice = ref<RestoreNoticeData>()
+// the names the notice uses, kept from the rows before the restore refreshes them
+const names = new Map<number, string>()
+
+function askRestore(row: CatalogRow) {
+  restoring.value = { id: row.entityId, name: row.values.name ?? `#${row.entityId}`, version: row.version ?? 1 }
+  restoreOpen.value = true
+}
+
+async function restored(target: RestoreTarget, restoredResult: EntityUndeleteResult) {
+  notice.value = { kind: 'done', name: target.name, summary: summarize(restoredResult, names) }
+  await loadRows()
+}
+
+async function restoreConflict(target: RestoreTarget, reason: 'stale' | 'endpoint-deleted') {
+  notice.value = { kind: reason, name: target.name }
+  await loadRows()
+}
+
+/** The switch "Show deleted": the first page of the other mode, without a cursor. */
+async function switchDeleted(on: boolean) {
+  notice.value = undefined
+  await showView(view.value.sort, 0, view.value.modes, view.value.filters, view.value.filterMode, view.value.viewId ?? null, on)
+}
+
 // the entity row "Place in navigation" was chosen on; its dialog is the one of the catalog, without a button
 const rowPlacement = ref<Placement>()
 const rowPlace = ref<{ start: () => Promise<void> }>()
@@ -91,6 +126,7 @@ const MODE = new RegExp(`^(${UUID}):(rows|aggregate)$`)
 const PAGE = /^\d+$/
 
 interface View {
+  deleted: boolean
   sort?: CatalogSort
   page: number
   modes: Record<string, JoinMode>
@@ -101,12 +137,21 @@ interface View {
 }
 
 /** The parameters of the view state; without any of them the default view applies (US-049 AC6). */
-const VIEW_PARAMETERS = ['view', 'sort', 'page', 'mode', 'filter', 'filterMode']
+const VIEW_PARAMETERS = ['view', 'sort', 'page', 'mode', 'filter', 'filterMode', 'deleted']
 const VIEW_ID = new RegExp(`^${UUID}$`)
 
 /** The view state of the URL; `invalid` lists the parameters that do not parse. */
 function viewOf(query: LocationQuery): View {
   const invalid: string[] = []
+  let deleted = false
+  if (query.deleted !== undefined) {
+    // only holders of entity:restore have the switch; any other value of the URL is dropped
+    if (query.deleted === '1' && canRestore.value) {
+      deleted = true
+    } else {
+      invalid.push('deleted')
+    }
+  }
   let sort: CatalogSort | undefined
   let page = 0
   const modes: Record<string, JoinMode> = {}
@@ -164,7 +209,7 @@ function viewOf(query: LocationQuery): View {
       invalid.push('page')
     }
   }
-  return { sort, page, modes, filters, filterMode, viewId, invalid }
+  return { deleted, sort, page, modes, filters, filterMode, viewId, invalid }
 }
 
 /** Writes the view to the URL without a history entry; defaults are omitted (ADR-044). */
@@ -176,8 +221,13 @@ async function showView(
   filterMode: CatalogFilterMode = view.value.filterMode,
   // `null` leaves the view; an omitted argument keeps it
   viewId: string | null = view.value.viewId ?? null,
+  deleted: boolean = view.value.deleted,
 ) {
   const query: LocationQuery = { ...route.query }
+  delete query.deleted
+  if (deleted) {
+    query.deleted = '1'
+  }
   delete query.view
   if (viewId) {
     query.view = viewId
@@ -280,7 +330,8 @@ async function applyView(saved: CatalogSavedView) {
       .map((override) => [override.joinDefinitionId, override.joinMode]),
   )
   const filters = (saved.filters ?? []).map(filterOf)
-  await showView(saved.sort ?? undefined, 0, modes, filters, filters.length > 1 ? saved.filterMode : 'and', saved.id)
+  // a view does not keep "Show deleted": opening one shows only active rows
+  await showView(saved.sort ?? undefined, 0, modes, filters, filters.length > 1 ? saved.filterMode : 'and', saved.id, false)
 }
 
 /** "All columns" leaves the view and keeps filters, join modes and sort. */
@@ -415,15 +466,15 @@ async function loadCatalog() {
 }
 
 async function loadRows() {
-  const { sort, page, modes, filters, filterMode, viewId, invalid } = view.value
+  const { deleted, sort, page, modes, filters, filterMode, viewId, invalid } = view.value
   if (invalid.length > 0) {
-    await showView(undefined, 0, {}, [], 'and', null)
+    await showView(undefined, 0, {}, [], 'and', null, false)
     return
   }
   const current = ++latestQuery
   querying.value = true
   try {
-    const query = { sort, joinModes: modes, filters: filters.map(filterText), filterMode, view: viewId }
+    const query = { sort, joinModes: modes, filters: filters.map(filterText), filterMode, view: viewId, includeDeleted: deleted || undefined }
     const key = JSON.stringify(query)
     const cursor = cursors.cursorFor(key, page)
     let outcome = await queryCatalog(props.id, { ...query, page: page > 0 ? page : undefined, cursor }, props.fetchFn)
@@ -436,6 +487,11 @@ async function loadRows() {
     }
     if (outcome.ok) {
       cursors.remember(key, outcome.value)
+      for (const row of outcome.value.rows) {
+        if (row.values.name) {
+          names.set(row.entityId, row.values.name)
+        }
+      }
       const pageMeta = outcome.value.page
       if (pageMeta.page > 0 && outcome.value.rows.length === 0 && pageMeta.totalElements > 0) {
         // a page beyond the last one, e.g. from an old link
@@ -448,7 +504,7 @@ async function loadRows() {
       await showView(sort, 0, modes, filters, filterMode, null)
     } else if (outcome.rejection.status === 400 && (sort || page > 0 || Object.keys(modes).length > 0 || filters.length > 0 || viewId)) {
       // e.g. a sort or filter column the catalog no longer returns or a removed join
-      await showView(undefined, 0, {}, [], 'and', null)
+      await showView(undefined, 0, {}, [], 'and', null, deleted)
     } else if (outcome.rejection.status === 404) {
       state.value = 'not-found'
     } else {
@@ -488,7 +544,7 @@ async function joinsChanged(changed: Catalog) {
 onMounted(loadCatalog)
 watch(() => props.id, loadCatalog)
 watch(
-  () => [route.query.sort, route.query.page, route.query.mode, route.query.filter, route.query.filterMode, route.query.view],
+  () => [route.query.sort, route.query.page, route.query.mode, route.query.filter, route.query.filterMode, route.query.view, route.query.deleted],
   () => {
     if (state.value === 'loaded' && route.path === path) {
       void loadRows()
@@ -592,6 +648,15 @@ watch(
           @saved="filterSaved"
         />
         <p v-if="filterHint" data-testid="filter-hint" class="text-sm text-muted">{{ filterHint }}</p>
+        <USwitch
+          v-if="canRestore"
+          data-testid="show-deleted"
+          class="self-start"
+          :model-value="view.deleted"
+          :label="t('catalog.showDeleted')"
+          @update:model-value="switchDeleted"
+        />
+        <RestoreNotice v-if="notice" :notice="notice" />
       </div>
 
       <CatalogTable
@@ -600,11 +665,15 @@ watch(
         :loading="querying"
         :primary-label="metatypeName"
         :placeable="placeableRows"
+        :restorable="canRestore"
+        @restore="askRestore"
         @place="placeRow"
         @sort="(sort) => showView(sort, 0)"
         @page="(page) => showView(view.sort, page)"
         @mode="switchMode"
       />
+
+      <RestoreEntityDialog v-model:open="restoreOpen" :target="restoring" :fetch-fn="fetchFn" @restored="restored" @conflict="restoreConflict" />
 
       <UModal v-model:open="configuring" :title="t('catalog.columns.title')" :ui="{ content: 'sm:max-w-3xl' }">
         <template #body>
