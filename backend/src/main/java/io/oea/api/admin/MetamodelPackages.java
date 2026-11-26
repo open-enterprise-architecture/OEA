@@ -57,7 +57,8 @@ final class MetamodelPackages {
 				list(viewpoint.getSizes()).stream()
 					.map((size) -> new PackageDefinition.ViewpointSize(size.getMetatypeId(), size.getWidth(),
 							size.getHeight(), size.getLength()))
-					.toList());
+					.toList(),
+				viewpoint.getAskNewParent());
 	}
 
 	private static Map<String, Map<String, String>> labels(Map<String, Map<String, String>> bundles) {

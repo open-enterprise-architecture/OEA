@@ -1,6 +1,6 @@
 import type { AllowedConnectionResult, DiagramEdge, DiagramView } from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
-import type { CanvasShape, FieldChange } from './canvasModel'
+import type { CanvasLine, CanvasShape, FieldChange } from './canvasModel'
 
 // The edges of the canvas editor (design D5 of us-074-diagram-connections), without the canvas library:
 // connections drawn between shapes with bend points, the connection types between two metatypes, the
@@ -203,6 +203,17 @@ export function edgeLine(edge: CanvasEdge, shapes: CanvasShape[]): Point[] | und
   const start = borderPoint(source, bends[0] ?? centreOf(target))
   const end = borderPoint(target, bends.at(-1) ?? centreOf(source))
   return [start, ...bends, end]
+}
+
+/**
+ * The line of a hierarchy line in pt: from the border of the container to the border of the child's shape;
+ * `undefined` when a shape of the line is not on the canvas.
+ */
+export function hierarchyPath(line: CanvasLine, shapes: CanvasShape[]): Point[] | undefined {
+  return edgeLine(
+    { id: line.id, name: '', metatypeId: '', sourceShapeId: line.parentShapeId, targetShapeId: line.childShapeId, points: [], missingMandatory: [] },
+    shapes,
+  )
 }
 
 /** The middle of the longest segment of a line, where the name of the connection is drawn. */

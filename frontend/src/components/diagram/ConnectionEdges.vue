@@ -21,6 +21,8 @@ export interface EdgeDraw {
   unsaved: boolean
   incomplete: string[]
   error?: string
+  /** a hierarchy line (design D4 of us-074-diagram-nesting): dashed, without an arrowhead and without a name */
+  hierarchy?: boolean
 }
 
 const props = defineProps<{
@@ -121,10 +123,10 @@ onBeforeUnmount(() => stop?.())
         fill="none"
         :stroke="color(edge)"
         :stroke-width="edge.selected ? 3 : 1.5"
-        :stroke-dasharray="edge.unsaved ? '6 4' : undefined"
+        :stroke-dasharray="edge.hierarchy ? '2 4' : edge.unsaved ? '6 4' : undefined"
         stroke-linejoin="round"
       />
-      <polygon :points="edge.arrow" :fill="color(edge)" />
+      <polygon v-if="!edge.hierarchy" :points="edge.arrow" :fill="color(edge)" />
       <path
         :d="edge.d"
         fill="none"
@@ -134,16 +136,17 @@ onBeforeUnmount(() => stop?.())
         style="pointer-events: stroke"
         tabindex="0"
         role="button"
-        :aria-label="t('diagrams.canvas.edgeLabel', { name: edge.label })"
+        :aria-label="edge.hierarchy ? t('diagrams.nesting.lineLabel', { name: edge.label }) : t('diagrams.canvas.edgeLabel', { name: edge.label })"
         :aria-pressed="edge.selected"
         :data-testid="`edge-hit-${edge.id}`"
         @click.stop="emit('select', edge.id)"
         @focus="emit('select', edge.id)"
         @keydown="keydown($event, edge.id)"
         @contextmenu.prevent.stop="emit('contextMenu', edge.id, $event)"
-        @dblclick.stop="editable && emit('bendAdded', edge.id, toPt($event.clientX, $event.clientY))"
+        @dblclick.stop="editable && !edge.hierarchy && emit('bendAdded', edge.id, toPt($event.clientX, $event.clientY))"
       />
       <text
+        v-if="!edge.hierarchy"
         :x="edge.label_.x"
         :y="edge.label_.y - 4"
         text-anchor="middle"

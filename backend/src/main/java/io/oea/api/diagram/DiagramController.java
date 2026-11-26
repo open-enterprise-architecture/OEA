@@ -12,7 +12,11 @@ import io.oea.api.generated.model.DiagramConnectionQuery;
 import io.oea.api.generated.model.DiagramEdge;
 import io.oea.api.generated.model.DiagramEdgeConnection;
 import io.oea.api.generated.model.DiagramPoint;
+import io.oea.api.generated.model.DiagramChildConnection;
 import io.oea.api.generated.model.DiagramEntity;
+import io.oea.api.generated.model.DiagramEntityChild;
+import io.oea.api.generated.model.DiagramEntityChildList;
+import io.oea.api.generated.model.DiagramHierarchyLine;
 import io.oea.api.generated.model.DiagramEntityDetails;
 import io.oea.api.generated.model.DiagramEntityField;
 import io.oea.api.generated.model.PropertyValue;
@@ -134,13 +138,14 @@ public class DiagramController implements DiagramsApi {
 		List<DiagramViews.ShapeInput> shapes = request.getShapes()
 			.stream()
 			.map((shape) -> new DiagramViews.ShapeInput(shape.getId(), shape.getEntityId(), shape.getNewEntityKey(),
-					shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight()))
+					shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight(), shape.getParentShapeId()))
 			.toList();
 		List<DiagramViews.NewEntityInput> newEntities = (request.getNewEntities() == null) ? List.of()
 				: request.getNewEntities()
 					.stream()
 					.map((entity) -> new DiagramViews.NewEntityInput(entity.getKey(), entity.getMetatypeId(),
-							entity.getName(), entity.getDescription(), properties(entity.getProperties())))
+							entity.getName(), entity.getDescription(), properties(entity.getProperties()),
+							entity.getParentEntityId(), entity.getParentNewEntityKey()))
 					.toList();
 		List<DiagramViews.EntityUpdateInput> updates = (request.getEntityUpdates() == null) ? List.of()
 				: request.getEntityUpdates()
@@ -166,12 +171,24 @@ public class DiagramController implements DiagramsApi {
 							connection.getMetatypeId(), connection.getName(), connection.getDescription(),
 							properties(connection.getProperties())))
 					.toList();
+		List<DiagramViews.LineInput> lines = (request.getHierarchyLines() == null) ? List.of()
+				: request.getHierarchyLines()
+					.stream()
+					.map((line) -> new DiagramViews.LineInput(line.getId(), line.getParentShapeId(),
+							line.getChildShapeId()))
+					.toList();
+		List<DiagramViews.ParentChangeInput> parentChanges = (request.getParentChanges() == null) ? List.of()
+				: request.getParentChanges()
+					.stream()
+					.map((change) -> new DiagramViews.ParentChangeInput(change.getEntityId(),
+							change.getExpectedVersion(), change.getParentEntityId(), change.getParentNewEntityKey()))
+					.toList();
 		// the 400 for more decimals comes first, then the 403 of a scoping connection type, then the service
 		this.views.checkNumbers(shapes, edges);
 		this.visibility.requireScopeAssignment(principal(),
 				newConnections.stream().map(DiagramViews.NewConnectionInput::metatypeId).toList());
 		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities, updates, edges,
-				newConnections, new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
+				newConnections, lines, parentChanges, new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
 						EntityBatchController.informational(xAgentRun))));
 	}
 
@@ -196,11 +213,29 @@ public class DiagramController implements DiagramsApi {
 	private static ResponseEntity<DiagramEntityPage> entityPage(DiagramViews.EntityPage result) {
 		return ResponseEntity.ok(new DiagramEntityPage(result.items()
 			.stream()
-			.map((found) -> new DiagramEntity(found.id(), found.name(), new MetatypeSummary().id(found.metatype().id())
-				.name(found.metatype().name())
-				.abbreviation(found.metatype().abbreviation())))
+			.map((found) -> new DiagramEntity(found.id(), found.name(),
+					new MetatypeSummary().id(found.metatype().id())
+						.name(found.metatype().name())
+						.abbreviation(found.metatype().abbreviation()),
+					found.childCount(), found.parentEntityId()))
 			.toList(), new PageMeta(result.page(), result.pageSize(), Math.toIntExact(result.totalElements()),
 					result.totalPages())));
+	}
+
+	@Override
+	public ResponseEntity<DiagramEntityChildList> listDiagramEntityChildren(UUID id, Integer entityId) {
+		DiagramViews.Children children = this.views.children(id, entityId);
+		return ResponseEntity.ok(new DiagramEntityChildList(children.items()
+			.stream()
+			.map((child) -> new DiagramEntityChild(
+					new DiagramShapeEntity(child.id(), child.name(), child.metatypeId(), child.childCount(),
+							child.parentEntityId()),
+					child.allowed(),
+					(child.compositionConnection() == null) ? null
+							: new DiagramChildConnection(new DiagramEdgeConnection(child.compositionConnection().id(),
+									child.compositionConnection().name(), child.compositionConnection().metatypeId()),
+									child.compositionConnection().allowed())))
+			.toList(), children.truncated()));
 	}
 
 	@Override
@@ -262,8 +297,10 @@ public class DiagramController implements DiagramsApi {
 					view.shapes()
 						.stream()
 						.map((shape) -> new DiagramShape(shape.id(),
-								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId()),
-								shape.x(), shape.y(), shape.width(), shape.height(), shape.missingMandatory()))
+								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId(),
+										shape.childCount(), shape.parentEntityId()),
+								shape.parentShapeId(), shape.x(), shape.y(), shape.width(), shape.height(),
+								shape.missingMandatory()))
 						.toList(),
 					view.edges()
 						.stream()
@@ -273,7 +310,12 @@ public class DiagramController implements DiagramsApi {
 								edge.sourceShapeId(), edge.targetShapeId(),
 								edge.points().stream().map((point) -> new DiagramPoint(point.x(), point.y())).toList(),
 								edge.missingMandatory()))
-						.toList()));
+						.toList(),
+					view.hierarchyLines()
+						.stream()
+						.map((line) -> new DiagramHierarchyLine(line.id(), line.parentShapeId(), line.childShapeId()))
+						.toList(),
+					view.askNewParent()));
 	}
 
 	private static PageMeta meta(Diagrams.Page result) {

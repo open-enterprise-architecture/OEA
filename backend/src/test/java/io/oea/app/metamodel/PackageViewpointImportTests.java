@@ -126,6 +126,10 @@ class PackageViewpointImportTests {
 		assertThat(this.jdbc.queryForObject("""
 				SELECT count(*) FROM viewpoint_sizes s JOIN viewpoints v ON v.id = s.viewpoint_id
 				WHERE v.source_package_id = ?""", Integer.class, STARTER)).isZero();
+		// the starter package sets no value: its viewpoints follow the global setting
+		assertThat(this.jdbc.queryForObject("""
+				SELECT count(*) FROM viewpoints WHERE source_package_id = ? AND ask_new_parent IS NOT NULL""",
+				Integer.class, STARTER)).isZero();
 		// a second import replaces them and keeps the IDs
 		List<String> ids = this.jdbc.queryForList("SELECT id::text FROM viewpoints WHERE source_package_id = ? ORDER BY id",
 				String.class, STARTER);
@@ -499,6 +503,42 @@ class PackageViewpointImportTests {
 		MvcTestResult reimported = post(second);
 		assertThat(reimported).as(() -> content(reimported)).hasStatus(HttpStatus.OK);
 		assertThat(sizes(id)).containsExactly(typeId(second, 1) + "=200:90:null");
+	}
+
+	// Requirement: Ask for a new parent per viewpoint (us-074-diagram-nesting D2)
+
+	@Test
+	void askNewParentIsImportedAndAnOmittedValueStoresNone() {
+		ObjectNode first = pkg("ask-vp");
+		ObjectNode asking = viewpoint(first, "Asks", List.of(typeId(first, 0)));
+		asking.put("askNewParent", false);
+		ObjectNode plain = viewpoint(first, "Plain", List.of(typeId(first, 0)));
+		MvcTestResult created = post(first);
+		assertThat(created).as(() -> content(created)).hasStatus(HttpStatus.OK);
+		assertThat(askNewParent(asking.path("id").asString())).isEqualTo("false");
+		assertThat(askNewParent(plain.path("id").asString())).isEqualTo("null");
+
+		ObjectNode second = pkg("ask-vp");
+		second.put("packageVersion", "1.1.0");
+		ObjectNode changed = viewpointWithId(second, asking.path("id").asString(), "Asks", List.of(typeId(second, 0)));
+		changed.put("askNewParent", true);
+		viewpointWithId(second, plain.path("id").asString(), "Plain", List.of(typeId(second, 0)));
+		MvcTestResult reimported = post(second);
+		assertThat(reimported).as(() -> content(reimported)).hasStatus(HttpStatus.OK);
+		assertThat(askNewParent(asking.path("id").asString())).isEqualTo("true");
+		assertThat(askNewParent(plain.path("id").asString())).isEqualTo("null");
+
+		ObjectNode third = pkg("ask-vp");
+		third.put("packageVersion", "1.2.0");
+		viewpointWithId(third, asking.path("id").asString(), "Asks", List.of(typeId(third, 0)));
+		viewpointWithId(third, plain.path("id").asString(), "Plain", List.of(typeId(third, 0)));
+		assertThat(post(third)).hasStatus(HttpStatus.OK);
+		assertThat(askNewParent(asking.path("id").asString())).as("omitted again").isEqualTo("null");
+	}
+
+	private String askNewParent(String viewpointId) {
+		return this.jdbc.queryForObject("SELECT coalesce(ask_new_parent::text, 'null') FROM viewpoints WHERE id = ?::uuid",
+				String.class, viewpointId);
 	}
 
 	@ParameterizedTest

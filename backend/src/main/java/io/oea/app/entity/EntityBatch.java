@@ -332,27 +332,46 @@ public class EntityBatch {
 	 * @throws EntityBlockedException for an entity with an open issue of a solution
 	 */
 	public Result updateInTransaction(OeaPrincipal principal, List<EntityUpdate> updates, AuditEvent.Agent agent) {
+		return updateInTransaction(principal, updates, List.of(), agent);
+	}
+
+	/** The version of an entity whose parent a diagram save changes (design D3 of us-074-diagram-nesting). */
+	public record ParentTouch(int entityId, int expectedVersion) {
+	}
+
+	/**
+	 * As {@link #updateInTransaction(OeaPrincipal, List, AuditEvent.Agent)}, and the entities whose
+	 * parent the caller changes (a diagram save with {@code parentChanges}) are locked, checked for
+	 * deletion, version and open issues together with the updated ones: the order of the answers
+	 * stays, each stale entity is named once ({@code entityUpdates[i]} first, else
+	 * {@code parentChanges[i]}), and the entities are locked in ascending ID order. The parents
+	 * themselves are written by the caller.
+	 */
+	public Result updateInTransaction(OeaPrincipal principal, List<EntityUpdate> updates,
+			List<ParentTouch> parentTouches, AuditEvent.Agent agent) {
 		if (!TransactionSynchronizationManager.isActualTransactionActive()) {
 			throw new IllegalTransactionStateException("The entities are updated in the transaction of the caller.");
 		}
 		EntityWriter.WriteContext context = new EntityWriter.WriteContext(UUID.randomUUID(), agent);
-		if (updates.isEmpty()) {
+		if (updates.isEmpty() && parentTouches.isEmpty()) {
 			return new Result(context.batchId(), List.of());
 		}
 		PropertyAccess.Snapshot access = null;
 		for (EntityUpdate update : updates) {
 			access = this.writeAccess.require(principal, update.properties(), update.entityId());
 		}
-		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
-			.forWriter(PropertyWriteAccess.writer(access));
 		// lock in ascending ID order, so that two saves cannot wait for each other
 		Map<Integer, StoredEntity> locked = new HashMap<>();
-		updates.stream().map(EntityUpdate::entityId).distinct().sorted().forEach((id) -> {
-			StoredEntity entity = this.store.lock(id).orElse(null);
-			if (entity != null && !entity.deleted()) {
-				locked.put(id, entity);
-			}
-		});
+		java.util.stream.Stream
+			.concat(updates.stream().map(EntityUpdate::entityId), parentTouches.stream().map(ParentTouch::entityId))
+			.distinct()
+			.sorted()
+			.forEach((id) -> {
+				StoredEntity entity = this.store.lock(id).orElse(null);
+				if (entity != null && !entity.deleted()) {
+					locked.put(id, entity);
+				}
+			});
 		List<Issue> errors = new ArrayList<>();
 		for (int i = 0; i < updates.size(); i++) {
 			if (!locked.containsKey(updates.get(i).entityId())) {
@@ -360,20 +379,39 @@ public class EntityBatch {
 						"The entity does not exist or is deleted."));
 			}
 		}
+		for (int i = 0; i < parentTouches.size(); i++) {
+			if (!locked.containsKey(parentTouches.get(i).entityId())) {
+				errors.add(new Issue("parentChanges[" + i + "].entityId", "ENTITY_NOT_FOUND",
+						"The entity does not exist or is deleted."));
+			}
+		}
 		if (!errors.isEmpty()) {
 			throw new AtomicBatchFailedException(errors);
 		}
 		List<EntityVersionConflictException.Conflict> conflicts = new ArrayList<>();
+		Set<Integer> named = new HashSet<>();
 		for (int i = 0; i < updates.size(); i++) {
 			StoredEntity entity = locked.get(updates.get(i).entityId());
-			if (entity.version() != updates.get(i).expectedVersion()) {
+			if (entity.version() != updates.get(i).expectedVersion() && named.add(entity.id())) {
 				conflicts.add(new EntityVersionConflictException.Conflict(i, entity.id(), entity.version()));
+			}
+		}
+		for (int i = 0; i < parentTouches.size(); i++) {
+			StoredEntity entity = locked.get(parentTouches.get(i).entityId());
+			if (entity.version() != parentTouches.get(i).expectedVersion() && named.add(entity.id())) {
+				conflicts.add(new EntityVersionConflictException.Conflict(i, entity.id(), entity.version(),
+						"parentChanges[" + i + "]"));
 			}
 		}
 		if (!conflicts.isEmpty()) {
 			throw new EntityVersionConflictException(conflicts);
 		}
 		this.blocks.check(principal, locked.keySet());
+		if (updates.isEmpty()) {
+			return new Result(context.batchId(), List.of());
+		}
+		MetatypeRules rules = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+			.forWriter(PropertyWriteAccess.writer(access));
 		List<EntityValidator.Checked> checked = new ArrayList<>();
 		List<Map<UUID, TypedValue>> stored = new ArrayList<>();
 		for (int i = 0; i < updates.size(); i++) {

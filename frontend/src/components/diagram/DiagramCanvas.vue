@@ -7,6 +7,8 @@ import { useI18n } from 'vue-i18n'
 import {
   CANVAS_LIMITS,
   fetchAllowedConnections,
+  fetchDiagramEntityChildren,
+  fetchDiagramEntityDetails,
   findDiagramConnections,
   saveDiagramView,
   type AllowedConnectionResult,
@@ -19,22 +21,37 @@ import AddExistingDialog from './AddExistingDialog.vue'
 import ConnectedElementDialog from './ConnectedElementDialog.vue'
 import ConnectionEdges, { type EdgeDraw } from './ConnectionEdges.vue'
 import ConnectionOfferDialog, { type OfferedConnection } from './ConnectionOfferDialog.vue'
+import ChildrenQuestionDialog from './ChildrenQuestionDialog.vue'
 import ConnectionTypeDialog from './ConnectionTypeDialog.vue'
 import DeleteFromRepositoryDialog from './DeleteFromRepositoryDialog.vue'
 import EntityDetailsPanel from './EntityDetailsPanel.vue'
+import NewParentDialog from './NewParentDialog.vue'
+import RemoveContainerDialog from './RemoveContainerDialog.vue'
 import {
   abbreviation,
   applyEdit,
   applyNewEntityEdit,
+  containerAt,
+  descendantsOf,
   editBlocked,
+  effectiveParent,
   fromView,
+  fromViewLine,
+  growContainers,
   hasUnsavedChanges,
   isEdgeUnsaved,
   isUnsaved,
   keyStep,
+  layoutChildren,
+  levelOf,
   limitPosition,
   limitSize,
-  moved,
+  moveTree,
+  nestBlock,
+  nestShape,
+  parentOfShape,
+  sameParent,
+  withoutShapeLines,
   placeExisting,
   placeNew,
   placementBlock,
@@ -44,9 +61,12 @@ import {
   rejectedShapes,
   visualHint,
   writeRequest,
+  type CanvasLine,
   type CanvasShape,
   type EntityEdits,
   type FieldChange,
+  type ParentChanges,
+  type ParentTarget,
   type ShapeData,
 } from './canvasModel'
 import {
@@ -61,6 +81,7 @@ import {
   edgeLine,
   edgeSubject,
   fromViewEdge,
+  hierarchyPath,
   moveBendPoint,
   newEdge,
   removeBendPoint,
@@ -97,6 +118,17 @@ const shapes = ref<CanvasShape[]>(props.view.shapes.map(fromView))
 const saved = ref<CanvasShape[]>(props.view.shapes.map(fromView))
 const edges = ref<CanvasEdge[]>(props.view.edges.map(fromViewEdge))
 const savedEdges = ref<CanvasEdge[]>(props.view.edges.map(fromViewEdge))
+// nesting (design D4 of us-074-diagram-nesting): the hierarchy lines, the unsaved parent changes of saved
+// entities, and the questions of the editor
+const lines = ref<CanvasLine[]>(props.view.hierarchyLines.map(fromViewLine))
+const savedLines = ref<CanvasLine[]>(props.view.hierarchyLines.map(fromViewLine))
+const parents = ref<ParentChanges>({})
+const childrenAsk = ref<string>()
+const childrenOpen = ref(false)
+const parentAsk = ref<{ shapeId: string; target: ParentTarget; parentName?: string }>()
+const parentOpen = ref(false)
+const removeAsk = ref<{ id: string; name: string; count: number }>()
+const removeOpen = ref(false)
 const selectedId = ref<string>()
 const selectedEdgeId = ref<string>()
 const surface = ref<HTMLElement>()
@@ -132,7 +164,7 @@ const blockedEntities = ref<BlockedEntity[]>([])
 const selectedShape = computed(() => shapes.value.find((shape) => shape.id === selectedId.value))
 const selectedEdge = computed(() => edges.value.find((edge) => edge.id === selectedEdgeId.value))
 const subject = computed(() => selectedShape.value ?? (selectedEdge.value ? edgeSubject(selectedEdge.value, shapes.value) : undefined))
-const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value, edits.value, edges.value, savedEdges.value))
+const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value, edits.value, edges.value, savedEdges.value, lines.value, savedLines.value, parents.value))
 watch([selectedId, selectedEdgeId], ([shape, edge]) => {
   panelOpen.value = shape !== undefined || edge !== undefined
 })
@@ -148,6 +180,9 @@ function adopt(view: DiagramView) {
   saved.value = view.shapes.map(fromView)
   edges.value = view.edges.map(fromViewEdge)
   savedEdges.value = view.edges.map(fromViewEdge)
+  lines.value = view.hierarchyLines.map(fromViewLine)
+  savedLines.value = view.hierarchyLines.map(fromViewLine)
+  parents.value = {}
   selectedId.value = shapes.value.some((shape) => shape.id === selectedId.value) ? selectedId.value : undefined
   selectedEdgeId.value = edges.value.some((edge) => edge.id === selectedEdgeId.value) ? selectedEdgeId.value : undefined
   offer.value = []
@@ -182,20 +217,46 @@ function rename(id: string, name: string) {
 }
 
 function resized(id: string, params: { x: number; y: number; width: number; height: number }) {
-  update(id, (shape) => ({
-    ...shape,
-    x: limitPosition(pxToPt(params.x)),
-    y: limitPosition(pxToPt(params.y)),
+  // the position of a nested shape is relative to its container: the model keeps it absolute
+  const shape = shapes.value.find((entry) => entry.id === id)
+  const container = shape?.parentShapeId ? shapes.value.find((entry) => entry.id === shape.parentShapeId) : undefined
+  update(id, (entry) => ({
+    ...entry,
+    x: limitPosition(pxToPt(params.x) + (container?.x ?? 0)),
+    y: limitPosition(pxToPt(params.y) + (container?.y ?? 0)),
     width: limitSize(pxToPt(params.width)),
     height: limitSize(pxToPt(params.height)),
     error: undefined,
   }))
+  // a container keeps its children and grows with its own container
+  shapes.value = growContainers(fitAround(shapes.value, id))
 }
 
-/** Removes a shape with its edges; the changes of an entity or connection that nothing shows any more are discarded. */
+/** A container resized smaller than what is nested in it keeps the room of its nested shapes. */
+function fitAround(list: CanvasShape[], id: string): CanvasShape[] {
+  const inside = descendantsOf(list, id)
+  const shape = list.find((entry) => entry.id === id)
+  if (!shape || inside.length === 0) {
+    return list
+  }
+  const left = Math.min(shape.x, ...inside.map((entry) => entry.x))
+  const top = Math.min(shape.y, ...inside.map((entry) => entry.y))
+  const right = Math.max(shape.x + shape.width, ...inside.map((entry) => entry.x + entry.width))
+  const bottom = Math.max(shape.y + shape.height, ...inside.map((entry) => entry.y + entry.height))
+  return list.map((entry) =>
+    entry.id === id ? { ...entry, x: left, y: top, width: limitSize(right - left), height: limitSize(bottom - top) } : entry,
+  )
+}
+
+/**
+ * Removes a shape with what is nested in it and their edges and lines; the changes of an entity or
+ * connection that nothing shows any more are discarded.
+ */
 function dropShape(id: string) {
-  shapes.value = shapes.value.filter((shape) => shape.id !== id)
-  edges.value = withoutShapeEdges(edges.value, id)
+  const gone = new Set([id, ...descendantsOf(shapes.value, id).map((shape) => shape.id)])
+  shapes.value = shapes.value.filter((shape) => !gone.has(shape.id))
+  edges.value = [...gone].reduce((rest, shapeId) => withoutShapeEdges(rest, shapeId), edges.value)
+  lines.value = withoutShapeLines(lines.value, gone)
   pruneEdits()
 }
 
@@ -206,6 +267,10 @@ function pruneEdits() {
   const kept = Object.fromEntries(Object.entries(edits.value).filter(([id]) => shown.has(Number(id))))
   if (Object.keys(kept).length !== Object.keys(edits.value).length) {
     edits.value = kept
+  }
+  const keptParents = Object.fromEntries(Object.entries(parents.value).filter(([id]) => shown.has(Number(id))))
+  if (Object.keys(keptParents).length !== Object.keys(parents.value).length) {
+    parents.value = keptParents
   }
 }
 
@@ -220,8 +285,11 @@ function selectEdge(id: string | undefined) {
   menu.value = undefined
 }
 
-const nodes = computed(() =>
-  shapes.value.map((shape, index) => {
+const nodes = computed(() => {
+  const byId = new Map(shapes.value.map((shape) => [shape.id, shape]))
+  return shapes.value.map((shape, index) => {
+    // the canvas takes the position of a nested shape relative to its container
+    const container = shape.parentShapeId ? byId.get(shape.parentShapeId) : undefined
     const data: ShapeData = {
       name: shape.name,
       abbreviation: abbreviation(props.view, shape.metatypeId),
@@ -229,28 +297,53 @@ const nodes = computed(() =>
       editable: props.editable,
       connectable: props.editable,
       editing: shape.editing === true,
-      unsaved: isUnsaved(shape, saved.value, edits.value),
+      unsaved: isUnsaved(shape, saved.value, edits.value, parents.value),
       missingMandatory: shape.missingMandatory,
       error: shape.error,
       metatypeName: metatypeNames.value.get(shape.metatypeId) ?? '',
+      container: shapes.value.some((entry) => entry.parentShapeId === shape.id),
       rename: (name) => rename(shape.id, name),
       resized: (params) => resized(shape.id, params),
     }
     return {
       id: shape.id,
       type: 'entity',
-      position: { x: ptToPx(shape.x), y: ptToPx(shape.y) },
+      position: { x: ptToPx(shape.x - (container?.x ?? 0)), y: ptToPx(shape.y - (container?.y ?? 0)) },
+      ...(container ? { parentNode: container.id } : {}),
       style: { width: `${ptToPx(shape.width)}px`, height: `${ptToPx(shape.height)}px` },
       draggable: props.editable,
       selected: shape.id === selectedId.value,
       zIndex: index,
       data,
     }
+  })
+})
+
+const lineDraws = computed<EdgeDraw[]>(() =>
+  lines.value.flatMap((line) => {
+    const path = hierarchyPath(line, shapes.value)
+    const parent = shapes.value.find((shape) => shape.id === line.parentShapeId)
+    const child = shapes.value.find((shape) => shape.id === line.childShapeId)
+    return path
+      ? [
+          {
+            id: line.id,
+            label: `${parent?.name ?? ''} → ${child?.name ?? ''}`,
+            line: path,
+            bends: [],
+            selected: line.id === selectedEdgeId.value,
+            unsaved: !savedLines.value.some((entry) => entry.id === line.id),
+            incomplete: [],
+            hierarchy: true,
+          },
+        ]
+      : []
   }),
 )
 
-const edgeDraws = computed<EdgeDraw[]>(() =>
-  edges.value.flatMap((edge) => {
+const edgeDraws = computed<EdgeDraw[]>(() => [
+  ...lineDraws.value,
+  ...edges.value.flatMap((edge) => {
     const line = edgeLine(edge, shapes.value)
     return line
       ? [
@@ -268,7 +361,7 @@ const edgeDraws = computed<EdgeDraw[]>(() =>
         ]
       : []
   }),
-)
+])
 
 function toFlow(x: number, y: number): Point {
   return screenToFlowCoordinate({ x, y })
@@ -331,7 +424,34 @@ function addNew(metatypeId: string, at?: { x: number; y: number }) {
   }
   const shape = placeNew(props.view, metatypeId, freePlace(at ?? visibleCenter()))
   shapes.value = [...shapes.value, shape]
+  if (at) {
+    dropInto(shape, { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 })
+  }
   selectShape(shape.id)
+}
+
+/**
+ * A new element dropped onto a container is nested in it and created as a child of the container's entity,
+ * whatever the setting says (design D4 of us-074-diagram-nesting).
+ */
+function dropInto(shape: CanvasShape, center: { x: number; y: number }) {
+  const container = containerAt(shapes.value, center, new Set([shape.id]))
+  if (!container || nestBlock(shapes.value, shape.id, container.id)) {
+    return
+  }
+  const target = parentOfShape(container)
+  shapes.value = nestShape(shapes.value, shape.id, container.id).map((entry) =>
+    entry.id === shape.id && entry.newEntity
+      ? {
+          ...entry,
+          newEntity: {
+            ...entry.newEntity,
+            parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
+            parentNewEntityKey: target && 'key' in target ? target.key : undefined,
+          },
+        }
+      : entry,
+  )
 }
 
 function addExisting(entity: DiagramEntity) {
@@ -342,6 +462,75 @@ function addExisting(entity: DiagramEntity) {
   shapes.value = [...shapes.value, shape]
   selectShape(shape.id)
   void offerConnections(shape)
+  if ((shape.childCount ?? 0) > 0) {
+    childrenAsk.value = shape.id
+    childrenOpen.value = true
+  }
+}
+
+/**
+ * "Show children" (design D4 of us-074-diagram-nesting): the direct children that the viewpoint allows and
+ * the diagram does not show yet are nested in the shape in a grid and the shape grows; a child shown
+ * elsewhere gets the composition connection of the pair as an edge where the viewpoint allows its type, else
+ * a hierarchy line. A notice names the children of a type the viewpoint does not allow and says when the list
+ * was cut off.
+ */
+async function showChildren(shapeId: string | undefined) {
+  childrenOpen.value = false
+  childrenAsk.value = undefined
+  const container = shapes.value.find((shape) => shape.id === shapeId)
+  if (!props.editable || !container || container.entityId === undefined) {
+    return
+  }
+  try {
+    const outcome = await fetchDiagramEntityChildren(props.view.diagram.id, container.entityId, props.fetchFn)
+    if (!outcome.ok) {
+      notice.value = t('diagrams.nesting.childrenFailed')
+      return
+    }
+    const current = shapes.value.find((shape) => shape.id === container.id)
+    if (!current) {
+      return
+    }
+    const messages: string[] = []
+    const shown = new Map<number, CanvasShape>()
+    shapes.value.forEach((shape) => shape.entityId !== undefined && !shown.has(shape.entityId) && shown.set(shape.entityId, shape))
+    const nestedHere = new Set(descendantsOf(shapes.value, current.id).map((shape) => shape.entityId))
+    const fresh = outcome.value.items.filter((item) => item.allowed && !shown.has(item.entity.id))
+    const refused = outcome.value.items.filter((item) => !item.allowed && !shown.has(item.entity.id))
+    const room = Math.max(0, CANVAS_LIMITS.shapes - shapes.value.length)
+    const placing = fresh.slice(0, room)
+    if (levelOf(shapes.value, current.id) + 1 > CANVAS_LIMITS.nesting && placing.length > 0) {
+      messages.push(t('diagrams.nesting.tooDeep', { count: CANVAS_LIMITS.nesting }))
+    } else {
+      if (placing.length < fresh.length) messages.push(t('diagrams.canvas.tooManyShapes', { count: CANVAS_LIMITS.shapes }))
+      const layout = layoutChildren(props.view, shapes.value, current, placing.map((item) => item.entity))
+      shapes.value = layout.shapes
+    }
+    if (refused.length > 0) {
+      messages.push(t('diagrams.nesting.notAllowed', { names: refused.map((item) => item.entity.name).join(', ') }))
+    }
+    // children shown elsewhere: the composition connection as an edge, else a hierarchy line
+    for (const item of outcome.value.items) {
+      const there = shown.get(item.entity.id)
+      if (!there || nestedHere.has(item.entity.id) || there.id === current.id) continue
+      const connection = item.compositionConnection
+      if (connection?.allowed) {
+        const exists = edges.value.some((edge) => edge.connectionId === connection.connection.id && edge.sourceShapeId === current.id && edge.targetShapeId === there.id)
+        if (!exists && !edgeBlock(edges.value, false)) {
+          edges.value = [...edges.value, newEdge(current.id, there.id, { connectionId: connection.connection.id, name: connection.connection.name, metatypeId: connection.connection.metatypeId })]
+        }
+      } else if (!lines.value.some((line) => line.parentShapeId === current.id && line.childShapeId === there.id) && lines.value.length < CANVAS_LIMITS.hierarchyLines) {
+        lines.value = [...lines.value, { id: crypto.randomUUID(), parentShapeId: current.id, childShapeId: there.id }]
+      }
+    }
+    if (outcome.value.truncated) {
+      messages.push(t('diagrams.nesting.truncated', { count: CANVAS_LIMITS.children }))
+    }
+    notice.value = messages.length > 0 ? messages.join(' ') : undefined
+  } catch {
+    notice.value = t('common.backendUnreachable')
+  }
 }
 
 /**
@@ -530,18 +719,23 @@ function repositoryDeleted(ids: number[]) {
   const gone = new Set(ids)
   const removed = new Set(shapes.value.filter((shape) => shape.entityId !== undefined && gone.has(shape.entityId)).map((shape) => shape.id))
   const keepShape = (shape: CanvasShape) => !removed.has(shape.id)
+  // what was nested in a deleted shape stays on the canvas, without a container
+  const free = (shape: CanvasShape): CanvasShape => (shape.parentShapeId && removed.has(shape.parentShapeId) ? { ...shape, parentShapeId: undefined } : shape)
   const keepEdge = (edge: CanvasEdge) =>
     !(edge.connectionId !== undefined && gone.has(edge.connectionId)) && !removed.has(edge.sourceShapeId) && !removed.has(edge.targetShapeId)
-  shapes.value = shapes.value.filter(keepShape)
-  saved.value = saved.value.filter(keepShape)
+  shapes.value = shapes.value.filter(keepShape).map(free)
+  saved.value = saved.value.filter(keepShape).map(free)
+  lines.value = withoutShapeLines(lines.value, removed)
+  savedLines.value = withoutShapeLines(savedLines.value, removed)
   edges.value = edges.value.filter(keepEdge)
   savedEdges.value = savedEdges.value.filter(keepEdge)
   edits.value = Object.fromEntries(Object.entries(edits.value).filter(([id]) => !gone.has(Number(id))))
+  parents.value = Object.fromEntries(Object.entries(parents.value).filter(([id]) => !gone.has(Number(id))))
   pruneEdits()
   if (selectedId.value && removed.has(selectedId.value)) {
     selectedId.value = undefined
   }
-  if (selectedEdgeId.value && !edges.value.some((edge) => edge.id === selectedEdgeId.value)) {
+  if (selectedEdgeId.value && !edges.value.some((edge) => edge.id === selectedEdgeId.value) && !lines.value.some((line) => line.id === selectedEdgeId.value)) {
     selectedEdgeId.value = undefined
   }
   deleting.value = undefined
@@ -553,11 +747,20 @@ function removeSelected() {
     return
   }
   if (selectedEdgeId.value) {
-    // only the edge goes: the connection stays in the repository
+    // only the edge or line goes: the connection stays in the repository, the hierarchy stays as it is
     const id = selectedEdgeId.value
     edges.value = edges.value.filter((edge) => edge.id !== id)
+    lines.value = lines.value.filter((line) => line.id !== id)
     pruneEdits()
   } else if (selectedId.value) {
+    const nestedCount = descendantsOf(shapes.value, selectedId.value).length
+    if (nestedCount > 0) {
+      // the shapes nested in a container leave the diagram with it: ask first
+      removeAsk.value = { id: selectedId.value, name: selectedShape.value?.name ?? '', count: nestedCount }
+      removeOpen.value = true
+      menu.value = undefined
+      return
+    }
     dropShape(selectedId.value)
   } else {
     return
@@ -573,11 +776,103 @@ function dragStop(event: NodeDragEvent) {
   if (!shape) {
     return
   }
-  const x = limitPosition(pxToPt(event.node.position.x))
-  const y = limitPosition(pxToPt(event.node.position.y))
+  // the canvas names the position of a nested shape relative to its container; the computed one is absolute
+  const x = limitPosition(pxToPt(event.node.computedPosition.x))
+  const y = limitPosition(pxToPt(event.node.computedPosition.y))
   if (x !== shape.x || y !== shape.y) {
-    update(shape.id, (entry) => ({ ...entry, x, y, error: undefined }))
+    shapes.value = moveTree(shapes.value, shape.id, round(x - shape.x), round(y - shape.y))
   }
+  settle(shape.id)
+}
+
+function round(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+/**
+ * A shape was dropped: the shape whose box holds its center is its container (none outside every shape). A
+ * new container asks "New parent?" when the setting asks and the entity has another parent; where the center
+ * stays in the container the shape had, that container grows to hold the shape.
+ */
+function settle(id: string) {
+  const shape = shapes.value.find((entry) => entry.id === id)
+  if (!shape || shape.editing) {
+    return
+  }
+  const own = new Set([id, ...descendantsOf(shapes.value, id).map((entry) => entry.id)])
+  const container = containerAt(shapes.value, { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 }, own)
+  if ((container?.id ?? undefined) === shape.parentShapeId) {
+    shapes.value = growContainers(shapes.value)
+    return
+  }
+  const block = container ? nestBlock(shapes.value, id, container.id) : undefined
+  if (block === 'depth') {
+    notice.value = t('diagrams.nesting.tooDeep', { count: CANVAS_LIMITS.nesting })
+    shapes.value = growContainers(shapes.value)
+    return
+  }
+  notice.value = undefined
+  shapes.value = nestShape(shapes.value, id, container?.id)
+  askParent(id, container)
+}
+
+/** The question "New parent?" (US-135): only when the setting asks and the new container's entity is not the parent. */
+function askParent(id: string, container: CanvasShape | undefined) {
+  const shape = shapes.value.find((entry) => entry.id === id)
+  if (!shape || !props.view.askNewParent || (shape.entityId === undefined && !shape.newEntity)) {
+    return
+  }
+  const target = parentOfShape(container)
+  if (sameParent(effectiveParent(shape, parents.value), target)) {
+    return
+  }
+  parentAsk.value = { shapeId: id, target, parentName: container?.name }
+  parentOpen.value = true
+}
+
+/** "Yes": the parent of the entity changes with the next save; the version is the one the editor read. */
+async function parentConfirmed() {
+  const ask = parentAsk.value
+  parentOpen.value = false
+  parentAsk.value = undefined
+  const shape = shapes.value.find((entry) => entry.id === ask?.shapeId)
+  if (!ask || !shape) {
+    return
+  }
+  if (shape.newEntity) {
+    const target = ask.target
+    update(shape.id, (entry) => ({
+      ...entry,
+      newEntity: {
+        ...entry.newEntity!,
+        parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
+        parentNewEntityKey: target && 'key' in target ? target.key : undefined,
+      },
+    }))
+    return
+  }
+  const entityId = shape.entityId!
+  let version: number | undefined = edits.value[entityId]?.version ?? parents.value[entityId]?.version
+  if (version === undefined) {
+    try {
+      version = (await fetchDiagramEntityDetails(props.view.diagram.id, entityId, props.fetchFn))?.version
+    } catch {
+      version = undefined
+    }
+  }
+  if (version === undefined) {
+    notice.value = t('diagrams.nesting.parentFailed')
+    return
+  }
+  const original: ParentTarget = shape.parentEntityId ? { entityId: shape.parentEntityId } : null
+  const { [entityId]: _previous, ...rest } = parents.value
+  // the parent of the view again: nothing to save
+  parents.value = sameParent(ask.target, original) ? rest : { ...rest, [entityId]: { version, parent: ask.target } }
+}
+
+function parentDeclined() {
+  parentOpen.value = false
+  parentAsk.value = undefined
 }
 
 function select(event: NodeMouseEvent) {
@@ -627,7 +922,7 @@ function keydown(event: KeyboardEvent) {
   const delta = direction[event.key]
   if (delta && selectedId.value) {
     event.preventDefault()
-    update(selectedId.value, (shape) => moved(shape, delta[0], delta[1]))
+    shapes.value = growContainers(moveTree(shapes.value, selectedId.value, delta[0], delta[1]))
   } else if (event.key === 'Delete') {
     event.preventDefault()
     removeSelected()
@@ -711,6 +1006,8 @@ function loaded(details: DiagramEntityDetails | undefined) {
 function reloadEntity(entityId: number) {
   const { [entityId]: _discarded, ...rest } = edits.value
   edits.value = rest
+  const { [entityId]: _parent, ...otherParents } = parents.value
+  parents.value = otherParents
   staleEntities.value = staleEntities.value.filter((entry) => entry.entityId !== entityId)
   fieldErrors.value = new Map([...fieldErrors.value].filter(([key]) => !key.startsWith(`${entityId}|`)))
   const shape = shapes.value.find((entry) => entry.entityId === entityId)
@@ -726,7 +1023,7 @@ function reloadEntity(entityId: number) {
 }
 
 async function save() {
-  const request = writeRequest(shapes.value, edits.value, edges.value)
+  const request = writeRequest(shapes.value, edits.value, edges.value, lines.value, parents.value)
   saving.value = true
   failure.value = undefined
   rejected.value = false
@@ -770,6 +1067,19 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+function removeConfirmed() {
+  const ask = removeAsk.value
+  removeOpen.value = false
+  removeAsk.value = undefined
+  if (!ask) {
+    return
+  }
+  dropShape(ask.id)
+  selectedId.value = undefined
+  selectedEdgeId.value = undefined
+  notice.value = undefined
 }
 
 function reload() {
@@ -933,6 +1243,9 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       <button v-if="editable && !menu.edge" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-connected" @click="openConnected">
         {{ t('diagrams.canvas.addConnected') }}
       </button>
+      <button v-if="editable && !menu.edge && selectedShape?.entityId !== undefined && (selectedShape.childCount ?? 0) > 0" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-children" @click="showChildren(selectedId)">
+        {{ t('diagrams.nesting.showChildren') }}
+      </button>
       <button v-if="canDelete && deletableEntityId !== undefined" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm text-error hover:bg-elevated" data-testid="canvas-menu-delete-repository" @click="startRepositoryDelete">
         {{ t('diagrams.repositoryDelete.action') }}
       </button>
@@ -943,6 +1256,23 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
     <ConnectionTypeDialog v-if="editable" v-model:open="typeOpen" :options="typeChoice?.options ?? []" @pick="(option) => typeChoice && drawConnection(typeChoice.source, typeChoice.target, option)" />
     <ConnectedElementDialog v-if="editable" v-model:open="connectedOpen" :options="connectedList" :loading="connectedLoading" :failed="connectedFailed" @add="addConnected" />
     <ConnectionOfferDialog v-if="editable" v-model:open="offerOpen" :offers="offered" @add="showOffered" />
+    <ChildrenQuestionDialog
+      v-if="editable"
+      v-model:open="childrenOpen"
+      :name="shapes.find((shape) => shape.id === childrenAsk)?.name ?? ''"
+      :count="shapes.find((shape) => shape.id === childrenAsk)?.childCount ?? 0"
+      @show="showChildren(childrenAsk)"
+      @only="childrenAsk = undefined"
+    />
+    <NewParentDialog
+      v-if="editable"
+      v-model:open="parentOpen"
+      :name="shapes.find((shape) => shape.id === parentAsk?.shapeId)?.name ?? ''"
+      :parent="parentAsk?.parentName"
+      @yes="parentConfirmed"
+      @no="parentDeclined"
+    />
+    <RemoveContainerDialog v-if="editable" v-model:open="removeOpen" :name="removeAsk?.name ?? ''" :count="removeAsk?.count ?? 0" @confirm="removeConfirmed" />
 
     <UModal v-model:open="conflict" :title="t('diagrams.canvas.conflictTitle')" :description="t('diagrams.canvas.conflict')">
       <template #body>

@@ -195,3 +195,39 @@ export const ChangedMeanwhile: Story = {
     await expect(body.getByRole('button', { name: 'Save' })).toBeEnabled()
   },
 }
+
+/** The global setting "Ask 'New parent?'" above the list; a holder of viewpoint:manage changes it, a reader sees it. */
+export const DiagramSettings: Story = {
+  ...page(ME_ARCHITECT),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const settings = within(await canvas.findByTestId('diagram-settings'))
+    const toggle = await settings.findByRole('switch', { name: /New parent/ })
+    await expect(toggle).toBeChecked()
+    await userEvent.click(toggle)
+    await expect(await settings.findByText('Setting saved.')).toBeInTheDocument()
+    await expect(toggle).not.toBeChecked()
+  },
+}
+
+/** A reader sees the value of the setting as text, without a switch. */
+export const DiagramSettingsReadOnly: Story = {
+  ...page(ME_READER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const settings = within(await canvas.findByTestId('diagram-settings'))
+    await expect(await settings.findByText("Ask 'New parent?' when moving shapes: Yes")).toBeInTheDocument()
+    await expect(settings.queryByRole('switch')).toBeNull()
+  },
+}
+
+/** The field "Ask 'New parent?'" in the dialog of a viewpoint: the global setting, "Ask" or "Do not ask". */
+export const AskNewParent: Story = {
+  ...page(ME_ARCHITECT),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Edit' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByRole('combobox', { name: "Ask 'New parent?'" })).toHaveTextContent('Global setting')
+  },
+}

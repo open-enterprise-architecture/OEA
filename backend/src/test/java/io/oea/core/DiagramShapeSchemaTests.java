@@ -98,10 +98,10 @@ class DiagramShapeSchemaTests {
 
 	/** x, y, width, height, drawing order, accepted */
 	@ParameterizedTest
-	@CsvSource({ "-100000, 100000, 1, 2000, 0, true", "100000, -100000, 2000, 1, 7, true",
+	@CsvSource({ "-100000, 100000, 1, 10000, 0, true", "100000, -100000, 10000, 1, 7, true",
 			"-100000.01, 0, 90, 30, 0, false", "100000.01, 0, 90, 30, 0, false", "0, -100000.01, 90, 30, 0, false",
-			"0, 100000.01, 90, 30, 0, false", "0, 0, 0.99, 30, 0, false", "0, 0, 2000.01, 30, 0, false",
-			"0, 0, 90, 0.99, 0, false", "0, 0, 90, 2000.01, 0, false", "0, 0, 90, 30, -1, false" })
+			"0, 100000.01, 90, 30, 0, false", "0, 0, 0.99, 30, 0, false", "0, 0, 10000.01, 30, 0, false",
+			"0, 0, 90, 0.99, 0, false", "0, 0, 90, 10000.01, 0, false", "0, 0, 90, 30, -1, false" })
 	void limitsOfPositionSizeAndOrder(String x, String y, String width, String height, String z, boolean accepted)
 			throws SQLException {
 		try (Connection app = OeaDatabases.asRole(postgres, "oea_app"); Statement statement = app.createStatement()) {

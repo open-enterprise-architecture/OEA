@@ -28,7 +28,8 @@ public record PackageDefinition(String packageId, String version, String publish
 	 * us-091-viewpoint-notations); {@code id} is its stable identity within the package.
 	 */
 	public record Viewpoint(UUID id, String name, String description, String notation, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds, List<ViewpointMapping> mappings, List<ViewpointSize> sizes) {
+			List<UUID> connectionTypeIds, List<ViewpointMapping> mappings, List<ViewpointSize> sizes,
+			Boolean askNewParent) {
 	}
 
 	public record ViewpointMapping(UUID metatypeId, String notationElement, String visualHint) {

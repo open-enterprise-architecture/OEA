@@ -73,9 +73,9 @@ describe('canvasModel', () => {
   it.each([
     [1, 1],
     [0.99, 1],
-    [2000, 2000],
-    [2000.01, 2000],
-  ])('keeps the size %f within 1 to 2000 pt: %f', (value, expected) => {
+    [10_000, 10_000],
+    [10_000.01, 10_000],
+  ])('keeps the size %f within 1 to 10 000 pt: %f', (value, expected) => {
     expect(limitSize(value)).toBe(expected)
   })
 
@@ -163,7 +163,7 @@ describe('canvasModel', () => {
   describe('changes of entities', () => {
     it('sends only the changed fields with the version read, and nothing for an entity without changes', () => {
       const first = fromView(shape())
-      const other = fromView(shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT } }))
+      const other = fromView(shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null } }))
       let edits = applyEdit({}, 12, 4, { field: 'description', value: ' Renamed ERP' })
       edits = applyEdit(edits, 12, 9, { field: 'property', propertyDefId: 'p1', value: 'retiring' })
       expect(edits[12]).toEqual({ version: 4, description: ' Renamed ERP', name: undefined, properties: { p1: 'retiring' } })

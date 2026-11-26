@@ -76,6 +76,14 @@ Feature: Import of metamodel packages
     Then the package "vp-package" has the system-defined viewpoint "Package Landscape" with the notation "archimate3"
     And the result reports 1 created viewpoints
 
+  # Requirement: Ask for a new parent per viewpoint (metamodel/viewpoints, us-074-diagram-nesting)
+
+  @US-074 @UC-10 @UC-12
+  Scenario: Setting from a package
+    When the metamodel administrator imports the package "vp-ask-package" with a viewpoint "Ask Package Landscape" that asks for a new parent: false
+    Then the import answer is 200
+    And the system-defined viewpoint "Ask Package Landscape" of the package "vp-ask-package" stores askNewParent false
+
   @US-092 @AC3 @REQ-059
   Scenario: Unknown type
     When the metamodel administrator imports the package "vp-unknown" with a viewpoint that allows an unknown metatype

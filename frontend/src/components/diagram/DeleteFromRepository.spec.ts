@@ -25,8 +25,8 @@ const mounted: VueWrapper[] = []
 
 const SHAPES = () => [
   shape(),
-  shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 400, y: 50 }),
-  shape({ id: OTHER, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_COMPONENT }, x: 400, y: 300 }),
+  shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 400, y: 50 }),
+  shape({ id: OTHER, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 400, y: 300 }),
 ]
 
 async function mountCanvas(canDelete: boolean, options: Partial<DiagramApiOptions> = {}) {

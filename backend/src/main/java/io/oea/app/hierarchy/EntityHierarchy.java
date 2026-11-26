@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -126,27 +127,56 @@ public class EntityHierarchy {
 		StoredEntity entity = this.entities.lock(entityId).filter((stored) -> !stored.deleted())
 			.orElseThrow(() -> new NoSuchElementException("no entity " + entityId));
 		checkVersion(entity, expectedVersion);
+		return change(principal, entity, parentId, AuditEvent.Agent.NONE, true);
+	}
+
+	/**
+	 * Sets or clears the parent of an element entity in the transaction of the caller (design D3 of
+	 * us-074-diagram-nesting), as {@link #setParent} but without its own transaction, version check
+	 * and open-issue check: the diagram save checks the version and the blocks of all entities it
+	 * writes, and takes the advisory lock of the hierarchy ({@link EntityHierarchyStore#lock}) before
+	 * it locks any entity. The checks of the parent, the removal and creation of the automatic
+	 * composition connection and the audit {@code entity.parent-changed} are those of
+	 * {@link #setParent}; the audit carries the agent of the save. A change to the current parent
+	 * writes nothing ({@link #UNCHANGED}).
+	 *
+	 * @throws NoSuchElementException for an unknown or deleted entity
+	 * @throws InvalidHierarchyException naming {@code entityId} or {@code parentEntityId} (422)
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public ParentResult setParentInTransaction(OeaPrincipal principal, int entityId, Integer parentId,
+			AuditEvent.Agent agent) {
+		StoredEntity entity = this.entities.lock(entityId).filter((stored) -> !stored.deleted())
+			.orElseThrow(() -> new NoSuchElementException("no entity " + entityId));
+		return change(principal, entity, parentId, agent, false);
+	}
+
+	/** The parent write shared by {@link #setParent} and {@link #setParentInTransaction}. */
+	private ParentResult change(OeaPrincipal principal, StoredEntity entity, Integer parentId, AuditEvent.Agent agent,
+			boolean checkBlocks) {
 		MetatypeRules rules = rules();
 		if (isConnection(rules, entity)) {
 			throw new InvalidHierarchyException("entityId", "A connection has no parent.");
 		}
-		this.blocks.check(principal, List.of(entityId));
+		if (checkBlocks) {
+			this.blocks.check(principal, List.of(entity.id()));
+		}
 		StoredEntity parent = null;
 		if (parentId != null) {
 			parent = checkParent(rules, entity, parentId);
 		}
 		if (Objects.equals(entity.parentEntityId(), parentId)) {
-			return new ParentResult(entityId, entity.version(), parentId, new Composition(false, null, UNCHANGED),
-					null);
+			return new ParentResult(entity.id(), entity.version(), parentId,
+					new Composition(false, null, UNCHANGED), null);
 		}
 		Instant now = this.clock.instant();
 		Integer removed = removeComposition(principal, entity, now);
 		int version = this.entities.updateParent(entity, parentId, principal.personId(), now);
 		Composition composition = (parent == null) ? new Composition(false, null, CLEARED)
-				: composition(principal, rules, parent, entity);
+				: composition(principal, rules, parent, entity, agent);
 		audit(principal, rules, entity, version, entity.parentEntityId(), parentId, composition.connectionId(),
-				removed);
-		return new ParentResult(entityId, version, parentId, composition, removed);
+				removed, agent);
+		return new ParentResult(entity.id(), version, parentId, composition, removed);
 	}
 
 	/**
@@ -204,7 +234,7 @@ public class EntityHierarchy {
 		Instant now = this.clock.instant();
 		for (StoredEntity child : children) {
 			int version = this.entities.updateParent(child, null, principal.personId(), now);
-			audit(principal, rules, child, version, aidId, null, null, null);
+			audit(principal, rules, child, version, aidId, null, null, null, AuditEvent.Agent.NONE);
 		}
 		this.deletion.delete(principal, aid, now, "Structuring aid deleted",
 				Map.entry("cause", "structuring-aid-deleted"));
@@ -274,7 +304,7 @@ public class EntityHierarchy {
 
 	/** Creates the composition connection from parent to child when the metamodel allows it. */
 	private Composition composition(OeaPrincipal principal, MetatypeRules rules, StoredEntity parent,
-			StoredEntity child) {
+			StoredEntity child, AuditEvent.Agent agent) {
 		if (BuiltInMetatypes.STRUCTURING_AID.equals(parent.metatypeId())
 				|| BuiltInMetatypes.STRUCTURING_AID.equals(child.metatypeId())) {
 			return new Composition(false, null, STRUCTURING_AID);
@@ -296,7 +326,7 @@ public class EntityHierarchy {
 			return new Composition(false, null, NOT_ALLOWED);
 		}
 		EntityWriter.Written written = this.writer.write(principal, checked, null, Map.<UUID, TypedValue>of(),
-				new EntityWriter.WriteContext(UUID.randomUUID(), AuditEvent.Agent.NONE),
+				new EntityWriter.WriteContext(UUID.randomUUID(), agent),
 				new EntityWriter.Endpoints(parent.id(), child.id()));
 		this.entities.placeCreated(written.entityId(), null, false, true);
 		Set<UUID> missing = new LinkedHashSet<>();
@@ -317,7 +347,8 @@ public class EntityHierarchy {
 	}
 
 	private void audit(OeaPrincipal principal, MetatypeRules rules, StoredEntity entity, int version,
-			Integer fromParentId, Integer toParentId, Integer createdConnectionId, Integer removedConnectionId) {
+			Integer fromParentId, Integer toParentId, Integer createdConnectionId, Integer removedConnectionId,
+			AuditEvent.Agent agent) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("version", version);
 		// a detail without value is left out
@@ -335,7 +366,7 @@ public class EntityHierarchy {
 		this.audit.append(new AuditEvent("entity.parent-changed", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "entity",
 				Integer.toString(entity.id()), details), new AuditEvent.EntityTarget(entity.id(), name),
-				AuditEvent.Agent.NONE, changes);
+				agent, changes);
 	}
 
 }

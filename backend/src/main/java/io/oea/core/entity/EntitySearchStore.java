@@ -20,8 +20,12 @@ public class EntitySearchStore {
 		this.jdbc = jdbc;
 	}
 
-	/** A found entity with the name and abbreviation of its metatype. */
-	public record Found(int id, String name, UUID metatypeId, String metatypeName, String metatypeAbbreviation) {
+	/**
+	 * A found entity with the name and abbreviation of its metatype, the number of its children that
+	 * are not deleted and its parent ({@code null} at the root level or when the parent is deleted).
+	 */
+	public record Found(int id, String name, UUID metatypeId, String metatypeName, String metatypeAbbreviation,
+			int childCount, Integer parentEntityId) {
 	}
 
 	/** One page of the entities of the metatypes whose name matches {@code like} (an escaped pattern or {@code null}), by name ignoring case, then ID. */
@@ -34,11 +38,13 @@ public class EntitySearchStore {
 		args.add(limit);
 		args.add(offset);
 		return this.jdbc.query("""
-				SELECT e.id, e.name, e.metatype_id, m.name, m.abbreviation
+				SELECT e.id, e.name, e.metatype_id, m.name, m.abbreviation,
+				       (SELECT count(*) FROM entities c WHERE c.parent_entity_id = e.id AND c.deleted_at IS NULL),
+				       (SELECT p.id FROM entities p WHERE p.id = e.parent_entity_id AND p.deleted_at IS NULL)
 				FROM entities e JOIN metatypes m ON m.id = e.metatype_id
 				WHERE\040""" + filter + " ORDER BY lower(e.name), e.id LIMIT ? OFFSET ?",
 				(rs, n) -> new Found(rs.getInt(1), rs.getString(2), rs.getObject(3, UUID.class), rs.getString(4),
-						rs.getString(5)),
+						rs.getString(5), rs.getInt(6), (Integer) rs.getObject(7)),
 				args.toArray());
 	}
 

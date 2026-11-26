@@ -24,7 +24,7 @@ public class ViewpointStore {
 
 	private static final String SELECT = """
 			SELECT v.id, v.name, v.description, v.version, v.created_at, v.created_by, p.name, v.notation,
-			       v.viewpoint_type, v.source_package_id, v.source_package_version
+			       v.viewpoint_type, v.source_package_id, v.source_package_version, v.ask_new_parent
 			FROM viewpoints v JOIN persons p ON p.id = v.created_by
 			""";
 
@@ -55,7 +55,7 @@ public class ViewpointStore {
 	 */
 	public record ViewpointRow(UUID id, String name, String description, int version, Instant createdAt,
 			long createdById, String createdByName, String notation, String viewpointType, String sourcePackageId,
-			String sourcePackageVersion, List<TypeRow> metatypes, List<TypeRow> connectionTypes,
+			String sourcePackageVersion, Boolean askNewParent, List<TypeRow> metatypes, List<TypeRow> connectionTypes,
 			List<MappingRow> mappings, List<SizeRow> sizes) {
 	}
 
@@ -69,7 +69,7 @@ public class ViewpointStore {
 
 	/** The fields a write sets. */
 	public record Fields(String name, String description, String notation, List<UUID> metatypeIds,
-			List<UUID> connectionTypeIds, List<MappingRow> mappings, List<SizeRow> sizes) {
+			List<UUID> connectionTypeIds, List<MappingRow> mappings, List<SizeRow> sizes, Boolean askNewParent) {
 	}
 
 	/** All viewpoints, ordered by name case-insensitively. */
@@ -112,9 +112,10 @@ public class ViewpointStore {
 	/** Stores a new viewpoint with version 1; {@code false} when a parallel write took the name. */
 	public boolean insert(UUID id, Fields fields, long personId, Instant now) {
 		int inserted = this.jdbc.update("""
-				INSERT INTO viewpoints (id, name, description, notation, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?)
+				INSERT INTO viewpoints (id, name, description, notation, created_at, created_by, ask_new_parent)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT DO NOTHING""", id, fields.name(), fields.description(), fields.notation(),
-				Timestamp.from(now), personId);
+				Timestamp.from(now), personId, fields.askNewParent());
 		if (inserted == 0) {
 			return false;
 		}
@@ -125,10 +126,10 @@ public class ViewpointStore {
 	/** Replaces the fields and raises the version by one; the caller locked the viewpoint and checked the name. */
 	public void update(UUID id, Fields fields, long personId, Instant now) {
 		this.jdbc.update("""
-				UPDATE viewpoints SET name = ?, description = ?, notation = ?, version = version + 1, updated_at = ?,
-				       updated_by = ?
+				UPDATE viewpoints SET name = ?, description = ?, notation = ?, ask_new_parent = ?,
+				       version = version + 1, updated_at = ?, updated_by = ?
 				WHERE id = ? AND viewpoint_type = 'user-defined'""", fields.name(), fields.description(),
-				fields.notation(), Timestamp.from(now), personId, id);
+				fields.notation(), fields.askNewParent(), Timestamp.from(now), personId, id);
 		replaceLinks(id, fields);
 	}
 
@@ -157,16 +158,17 @@ public class ViewpointStore {
 			long personId, Instant now) {
 		boolean created = this.jdbc.update("""
 				INSERT INTO viewpoints (id, name, description, notation, viewpoint_type, source_package_id,
-				    source_package_version, created_at, created_by)
-				VALUES (?, ?, ?, ?, 'system-defined', ?, ?, ?, ?)
+				    source_package_version, created_at, created_by, ask_new_parent)
+				VALUES (?, ?, ?, ?, 'system-defined', ?, ?, ?, ?, ?)
 				ON CONFLICT (id) DO NOTHING""", id, fields.name(), fields.description(), fields.notation(),
-				packageId, packageVersion, Timestamp.from(now), personId) == 1;
+				packageId, packageVersion, Timestamp.from(now), personId, fields.askNewParent()) == 1;
 		if (!created) {
 			this.jdbc.update("""
 					UPDATE viewpoints SET name = ?, description = ?, notation = ?, source_package_version = ?,
-					       version = version + 1, updated_at = ?, updated_by = ?
+					       ask_new_parent = ?, version = version + 1, updated_at = ?, updated_by = ?
 					WHERE id = ? AND source_package_id = ?""", fields.name(), fields.description(),
-					fields.notation(), packageVersion, Timestamp.from(now), personId, id, packageId);
+					fields.notation(), packageVersion, fields.askNewParent(), Timestamp.from(now), personId, id,
+					packageId);
 		}
 		replaceLinks(id, fields);
 		return created;
@@ -236,7 +238,8 @@ public class ViewpointStore {
 		for (ViewpointRow row : rows) {
 			complete.add(new ViewpointRow(row.id(), row.name(), row.description(), row.version(), row.createdAt(),
 					row.createdById(), row.createdByName(), row.notation(), row.viewpointType(),
-					row.sourcePackageId(), row.sourcePackageVersion(), metatypes.getOrDefault(row.id(), List.of()),
+					row.sourcePackageId(), row.sourcePackageVersion(), row.askNewParent(),
+					metatypes.getOrDefault(row.id(), List.of()),
 					connections.getOrDefault(row.id(), List.of()), mappings.getOrDefault(row.id(), List.of()),
 					sizes.getOrDefault(row.id(), List.of())));
 		}
@@ -286,7 +289,8 @@ public class ViewpointStore {
 	private static ViewpointRow row(ResultSet rs, int row) throws SQLException {
 		return new ViewpointRow(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getInt(4),
 				rs.getTimestamp(5).toInstant(), rs.getLong(6), rs.getString(7), rs.getString(8), rs.getString(9),
-				rs.getString(10), rs.getString(11), List.of(), List.of(), List.of(), List.of());
+				rs.getString(10), rs.getString(11), (Boolean) rs.getObject(12), List.of(), List.of(), List.of(),
+				List.of());
 	}
 
 }

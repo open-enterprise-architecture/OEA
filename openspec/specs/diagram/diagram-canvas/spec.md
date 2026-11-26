@@ -91,7 +91,7 @@ Trace: US-074 AC8, UC-10 step 9, owner decisions 2026-11-19
 
 ### Requirement: Shapes of a diagram
 
-A shape SHALL show an element entity whose metatype the viewpoint allows; the same entity MAY have several shapes in one diagram. Position SHALL be within ±100 000 pt, width and height 1–2000 pt, with at most two decimals. A save SHALL carry at most 2000 shapes and at most 500 new entities. Removing a shape SHALL leave its entity in the repository.
+A shape SHALL show an element entity whose metatype the viewpoint allows; one entity MAY have several shapes in a diagram. Position SHALL be within ±100 000 pt, width and height 1–10 000 pt, with at most two decimals. A save SHALL carry at most 2000 shapes and 500 new entities. Removing a shape SHALL leave its entity in the repository.
 
 Trace: business object Diagram BR-DG-01, BR-DG-02, owner decisions 2026-11-19
 
@@ -122,7 +122,7 @@ Trace: business object Diagram BR-DG-01, BR-DG-02, owner decisions 2026-11-19
 
 #### Scenario: Limits
 
-- **WHEN** an API call saves widths and heights of 1 and 2000, positions of −100 000 and 100 000, 2000 shapes and 500 new entities, then a width of 0.99 or 2000.01, a position of 100 000.01 or −100 000.01, 2001 shapes or 501 new entities
+- **WHEN** an API call saves widths and heights of 1 and 10 000, positions of −100 000 and 100 000, 2000 shapes and 500 new entities, then a width of 0.99 or 10 000.01, a position of 100 000.01 or −100 000.01, 2001 shapes or 501 new entities
 - **THEN** the first save is accepted, and each of the others is rejected with 400, and nothing changes
 
 ### Requirement: Incomplete entities

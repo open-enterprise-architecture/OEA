@@ -37,7 +37,7 @@ import {
 describe('edgeModel', () => {
   const view = diagramView()
   const ERP = shape({ id: 's1', x: 0, y: 0, width: 100, height: 40 })
-  const CRM = shape({ id: 's2', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 300, y: 0, width: 100, height: 40 })
+  const CRM = shape({ id: 's2', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 300, y: 0, width: 100, height: 40 })
   const shapes = [ERP, CRM].map(fromView)
   const drawn = (overrides: Partial<CanvasEdge> = {}): CanvasEdge => ({ ...fromViewEdge(edge({ sourceShapeId: 's1', targetShapeId: 's2' })), ...overrides })
 

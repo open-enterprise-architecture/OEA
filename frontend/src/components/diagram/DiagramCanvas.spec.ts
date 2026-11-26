@@ -195,7 +195,7 @@ describe('DiagramCanvas', () => {
 
   it('moves a shape by dragging and converts the px of the canvas to pt with two decimals', async () => {
     const { wrapper, fetchFn } = await mountCanvas()
-    wrapper.findComponent(VueFlow).vm.$emit('node-drag-stop', { node: { id: SHAPE, position: { x: 400.1, y: 200 } } })
+    wrapper.findComponent(VueFlow).vm.$emit('node-drag-stop', { node: { id: SHAPE, position: { x: 400.1, y: 200 }, computedPosition: { x: 400.1, y: 200 } } })
     await flushPromises()
     await wrapper.get('[data-testid="canvas-save"]').trigger('click')
     await flushPromises()
@@ -211,18 +211,18 @@ describe('DiagramCanvas', () => {
     expect(body(fetchFn).shapes[0]).toMatchObject({ x: 120, y: 60, width: 150, height: 75 })
   })
 
-  it('keeps a resize within 1 and 2000 pt', async () => {
+  it('keeps a resize within 1 and 10 000 pt', async () => {
     const { wrapper, fetchFn } = await mountCanvas()
-    wrapper.findComponent(EntityShape).props('data').resized({ x: 0, y: 0, width: 0.5, height: 5000 })
+    wrapper.findComponent(EntityShape).props('data').resized({ x: 0, y: 0, width: 0.5, height: 20_000 })
     await flushPromises()
     await wrapper.get('[data-testid="canvas-save"]').trigger('click')
     await flushPromises()
-    expect(body(fetchFn).shapes[0]).toMatchObject({ width: 1, height: 2000 })
+    expect(body(fetchFn).shapes[0]).toMatchObject({ width: 1, height: 10_000 })
   })
 
   it('removes a selected shape with Delete, with the toolbar and with the context menu, and leaves the entity', async () => {
-    const second = shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT } })
-    const third = shape({ id: 'd1000000-0000-4000-8000-000000000003', entity: { id: 11, name: 'SAP BW', metatypeId: METATYPE_COMPONENT } })
+    const second = shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null } })
+    const third = shape({ id: 'd1000000-0000-4000-8000-000000000003', entity: { id: 11, name: 'SAP BW', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null } })
     const { wrapper, fetchFn } = await mountCanvas([shape(), second, third])
     expect(wrapper.get('[data-testid="canvas-remove"]').attributes('disabled')).toBeDefined()
     await selectShape(wrapper, SHAPE)
@@ -241,7 +241,7 @@ describe('DiagramCanvas', () => {
   })
 
   it('saves all shapes in drawing order and shows the saved view without the unsaved marks', async () => {
-    const second = shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 5, y: 6 })
+    const second = shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 5, y: 6 })
     const { wrapper, fetchFn } = await mountCanvas([shape(), second])
     await place(wrapper, METATYPE_PROCESS, 'Invoice Approval')
     expect(wrapper.find('[data-testid="canvas-save"]').attributes('disabled')).toBeUndefined()
@@ -405,8 +405,8 @@ describe('DiagramCanvas', () => {
     const CRM = 'd1000000-0000-4000-8000-000000000002'
     const SHAPES = [
       shape(),
-      shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT }, x: 300 }),
-      shape({ id: APPROVAL, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS }, x: 150, y: 150, missingMandatory: ['Process Owner'] }),
+      shape({ id: CRM, entity: { id: 13, name: 'Salesforce', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, x: 300 }),
+      shape({ id: APPROVAL, entity: { id: 14, name: 'Invoice Approval', metatypeId: METATYPE_PROCESS, childCount: 0, parentEntityId: null }, x: 150, y: 150, missingMandatory: ['Process Owner'] }),
     ]
 
     function panel(wrapper: VueWrapper) {

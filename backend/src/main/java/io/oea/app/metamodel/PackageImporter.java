@@ -373,7 +373,8 @@ public class PackageImporter {
 					viewpoint.sizes()
 						.stream()
 						.map((s) -> new ViewpointStore.SizeRow(s.metatypeId(), s.width(), s.height(), s.length()))
-						.toList());
+						.toList(),
+					viewpoint.askNewParent());
 			if (this.viewpointStore.upsertSystemDefined(viewpoint.id(), fields, definition.packageId(),
 					definition.version(), principal.personId(), now)) {
 				created++;

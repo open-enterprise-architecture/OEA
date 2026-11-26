@@ -1,4 +1,13 @@
-import type { DiagramEntity, DiagramEntityUpdate, DiagramShape, DiagramView, DiagramViewWrite } from '../../api/diagramView'
+import type {
+  DiagramEntity,
+  DiagramEntityChild,
+  DiagramEntityUpdate,
+  DiagramHierarchyLine,
+  DiagramParentChange,
+  DiagramShape,
+  DiagramView,
+  DiagramViewWrite,
+} from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import { edgeFingerprint, type CanvasEdge } from './edgeModel'
 
@@ -21,9 +30,15 @@ export interface CanvasShape {
    * a new entity, created with the save; its shape shows it by `key`. The description and the values
    * (property definition ID to text) are entered in the details panel (US-074 step 6).
    */
-  newEntity?: { key: string; metatypeId: string; description?: string; properties?: Record<string, string> }
+  newEntity?: NewEntityState
   name: string
   metatypeId: string
+  /** the container shape of the same diagram, drawn before this shape (design D1 of us-074-diagram-nesting); the position stays absolute */
+  parentShapeId?: string
+  /** the direct children of the entity that are not deleted, as the view read them: the question "Show children" */
+  childCount?: number
+  /** the parent of the entity as the view read it (the parent change of an unsaved move is in {@link ParentChanges}) */
+  parentEntityId?: number | null
   x: number
   y: number
   width: number
@@ -34,6 +49,38 @@ export interface CanvasShape {
   /** the name of a new shape is entered in the shape itself */
   editing?: boolean
 }
+
+/**
+ * A new entity: created with the save; its shape shows it by `key`. The parent is the entity of the container
+ * it was dropped into: an existing entity, or another new entity by its key.
+ */
+export interface NewEntityState {
+  key: string
+  metatypeId: string
+  description?: string
+  properties?: Record<string, string>
+  parentEntityId?: number
+  parentNewEntityKey?: string
+}
+
+/** A hierarchy line from a container shape to the shape of a child placed elsewhere (design D4 of us-074-diagram-nesting). */
+export interface CanvasLine {
+  id: string
+  parentShapeId: string
+  childShapeId: string
+}
+
+/** The new parent of an entity: an existing entity, a new entity by its key, or none. */
+export type ParentTarget = { entityId: number } | { key: string } | null
+
+/** An unsaved change of the parent of a saved entity, with the entity version read. */
+export interface ParentChange {
+  version: number
+  parent: ParentTarget
+}
+
+/** The unsaved parent changes of saved entities, by entity ID. */
+export type ParentChanges = Record<number, ParentChange>
 
 /** What the canvas hands to the node of a shape. */
 export interface ShapeData {
@@ -49,6 +96,8 @@ export interface ShapeData {
   error?: string
   /** the name of the metatype, for the label of the input of a new shape */
   metatypeName: string
+  /** the shape holds other shapes: it is a container */
+  container: boolean
   rename: (name: string) => void
   resized: (params: { x: number; y: number; width: number; height: number }) => void
 }
@@ -108,6 +157,9 @@ export function fromView(shape: DiagramShape): CanvasShape {
     entityId: shape.entity.id,
     name: shape.entity.name,
     metatypeId: shape.entity.metatypeId,
+    ...(shape.parentShapeId ? { parentShapeId: shape.parentShapeId } : {}),
+    childCount: shape.entity.childCount,
+    parentEntityId: shape.entity.parentEntityId,
     x: shape.x,
     y: shape.y,
     width: shape.width,
@@ -124,6 +176,8 @@ export function placeExisting(view: DiagramView, entity: DiagramEntity, center: 
     entityId: entity.id,
     name: entity.name,
     metatypeId: entity.metatype.id,
+    childCount: entity.childCount,
+    parentEntityId: entity.parentEntityId,
     x: limitPosition(center.x - size.width / 2),
     y: limitPosition(center.y - size.height / 2),
     ...size,
@@ -244,9 +298,32 @@ export function applyNewEntityEdit(shape: CanvasShape, change: FieldChange): Can
  * The request of the save: the shapes in drawing order, the new entities (names trimmed, with the
  * description and values entered) and the changes of the shown saved entities with their versions.
  */
-export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}, edges: CanvasEdge[] = []): DiagramViewWrite {
+export function writeRequest(
+  shapes: CanvasShape[],
+  edits: EntityEdits = {},
+  edges: CanvasEdge[] = [],
+  lines: CanvasLine[] = [],
+  parents: ParentChanges = {},
+): DiagramViewWrite {
   const named = shapes.filter((shape) => shape.entityId !== undefined || (shape.newEntity && shape.name.trim().length > 0))
   const placed = new Set(named.map((shape) => shape.id))
+  const drawnLines = lines.filter((line) => placed.has(line.parentShapeId) && placed.has(line.childShapeId))
+  const newKeys = new Set(named.map((shape) => shape.newEntity?.key).filter((key): key is string => key !== undefined))
+  const changes: DiagramParentChange[] = named
+    .filter((shape) => shape.entityId !== undefined && parents[shape.entityId] !== undefined)
+    .filter((shape, index, all) => all.findIndex((other) => other.entityId === shape.entityId) === index)
+    .flatMap((shape) => {
+      const change = parents[shape.entityId!]!
+      const target = change.parent
+      if (target !== null && 'key' in target && !newKeys.has(target.key)) return []
+      return [
+        {
+          entityId: shape.entityId!,
+          expectedVersion: change.version,
+          ...(target === null ? {} : 'key' in target ? { parentNewEntityKey: target.key } : { parentEntityId: target.entityId }),
+        },
+      ]
+    })
   const drawn = edges.filter((edge) => placed.has(edge.sourceShapeId) && placed.has(edge.targetShapeId))
   const shown = new Set(named.map((shape) => shape.entityId).filter((id): id is number => id !== undefined))
   drawn.forEach((edge) => edge.connectionId !== undefined && shown.add(edge.connectionId))
@@ -266,6 +343,7 @@ export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}, edg
     shapes: named.map((shape) => ({
       id: shape.id,
       ...(shape.newEntity ? { newEntityKey: shape.newEntity.key } : { entityId: shape.entityId }),
+      ...(shape.parentShapeId && placed.has(shape.parentShapeId) ? { parentShapeId: shape.parentShapeId } : {}),
       x: limitPosition(shape.x),
       y: limitPosition(shape.y),
       width: limitSize(shape.width),
@@ -282,9 +360,13 @@ export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}, edg
           name: shape.name.trim(),
           ...((entity.description ?? '') !== '' ? { description: entity.description } : {}),
           ...(values.length > 0 ? { properties: values.map(([propertyDefId, value]) => ({ propertyDefId, value })) } : {}),
+          ...(entity.parentEntityId !== undefined ? { parentEntityId: entity.parentEntityId } : {}),
+          ...(entity.parentNewEntityKey !== undefined && newKeys.has(entity.parentNewEntityKey) ? { parentNewEntityKey: entity.parentNewEntityKey } : {}),
         }
       }),
     ...(updates.length > 0 ? { entityUpdates: updates } : {}),
+    ...(drawnLines.length > 0 ? { hierarchyLines: drawnLines.map((line) => ({ id: line.id, parentShapeId: line.parentShapeId, childShapeId: line.childShapeId })) } : {}),
+    ...(changes.length > 0 ? { parentChanges: changes } : {}),
     edges: drawn.map((edge) => ({
       id: edge.id,
       ...(edge.newConnection ? { newConnectionKey: edge.newConnection.key } : { connectionId: edge.connectionId }),
@@ -306,7 +388,7 @@ export function writeRequest(shapes: CanvasShape[], edits: EntityEdits = {}, edg
 
 /** The part of a shape that a save stores; two shapes with the same fingerprint are the same. */
 function fingerprint(shape: CanvasShape): string {
-  return JSON.stringify([shape.id, shape.entityId ?? shape.newEntity?.key, shape.x, shape.y, shape.width, shape.height])
+  return JSON.stringify([shape.id, shape.entityId ?? shape.newEntity?.key, shape.x, shape.y, shape.width, shape.height, shape.parentShapeId ?? null])
 }
 
 /**
@@ -319,15 +401,22 @@ export function hasUnsavedChanges(
   edits: EntityEdits = {},
   edges: CanvasEdge[] = [],
   savedEdges: CanvasEdge[] = [],
+  lines: CanvasLine[] = [],
+  savedLines: CanvasLine[] = [],
+  parents: ParentChanges = {},
 ): boolean {
   const current = shapes.filter((shape) => !shape.editing || shape.name.trim().length > 0)
   const placed = new Set(current.map((shape) => shape.id))
   const drawn = edges.filter((edge) => placed.has(edge.sourceShapeId) && placed.has(edge.targetShapeId))
+  const drawnLines = lines.filter((line) => placed.has(line.parentShapeId) && placed.has(line.childShapeId))
   return (
     current.length !== saved.length ||
     current.some((shape, index) => fingerprint(shape) !== fingerprint(saved[index])) ||
     drawn.length !== savedEdges.length ||
     drawn.some((edge) => isEdgeUnsaved(edge, savedEdges, edits)) ||
+    drawnLines.length !== savedLines.length ||
+    drawnLines.some((line) => !savedLines.some((entry) => entry.id === line.id && entry.parentShapeId === line.parentShapeId && entry.childShapeId === line.childShapeId)) ||
+    Object.keys(parents).length > 0 ||
     editedCount(edits) > 0
   )
 }
@@ -339,9 +428,13 @@ export function isEdgeUnsaved(edge: CanvasEdge, saved: CanvasEdge[], edits: Enti
 }
 
 /** Whether a shape is new or differs from its saved version, or its entity has changes. */
-export function isUnsaved(shape: CanvasShape, saved: CanvasShape[], edits: EntityEdits = {}): boolean {
+export function isUnsaved(shape: CanvasShape, saved: CanvasShape[], edits: EntityEdits = {}, parents: ParentChanges = {}): boolean {
   const before = saved.find((entry) => entry.id === shape.id)
-  return !before || fingerprint(before) !== fingerprint(shape) || (shape.entityId !== undefined && isEdited(edits[shape.entityId]))
+  return (
+    !before ||
+    fingerprint(before) !== fingerprint(shape) ||
+    (shape.entityId !== undefined && (isEdited(edits[shape.entityId]) || parents[shape.entityId] !== undefined))
+  )
 }
 
 /**
@@ -355,6 +448,8 @@ export interface Rejected {
   fields: Map<string, string>
   /** the edges the errors name, by edge ID: `edges[i]`, `newConnections[j]` and `entityUpdates[i]` of a connection */
   edges: Map<string, string>
+  /** the hierarchy lines the errors name, by line ID */
+  lines: Map<string, string>
 }
 
 export function rejectedShapes(
@@ -366,6 +461,7 @@ export function rejectedShapes(
   const rejected = new Map<string, string>()
   const rejectedEdges = new Map<string, string>()
   const fields = new Map<string, string>()
+  const lineErrors = new Map<string, string>()
   const markEdge = (edge: CanvasEdge, message: string) => {
     if (!rejectedEdges.has(edge.id)) rejectedEdges.set(edge.id, message)
   }
@@ -379,7 +475,20 @@ export function rejectedShapes(
     const update = /^entityUpdates\[(\d+)](?:\.(.*))?$/.exec(error.field)
     const edge = /^edges\[(\d+)]/.exec(error.field)
     const connection = /^newConnections\[(\d+)](?:\.(.*))?$/.exec(error.field)
-    if (edge) {
+    const line = /^hierarchyLines\[(\d+)]/.exec(error.field)
+    const change = /^parentChanges\[(\d+)]/.exec(error.field)
+    if (line) {
+      const id = request.hierarchyLines?.[Number(line[1])]
+      for (const candidate of shapes) {
+        if (id && candidate.id === id.childShapeId) mark(candidate, error.message)
+      }
+      lineErrors.set(id?.id ?? '', error.message)
+    } else if (change) {
+      const sent = request.parentChanges?.[Number(change[1])]
+      for (const candidate of shapes) {
+        if (sent && candidate.entityId === sent.entityId) mark(candidate, error.message)
+      }
+    } else if (edge) {
       const id = request.edges?.[Number(edge[1])]?.id
       const found = edges.find((candidate) => candidate.id === id)
       if (found) markEdge(found, error.message)
@@ -409,7 +518,7 @@ export function rejectedShapes(
       if (sent) fields.set(`${sent.entityId}|${fieldOf(update[2], sent.properties)}`, error.message)
     }
   }
-  return { shapes: rejected, fields, edges: rejectedEdges }
+  return { shapes: rejected, fields, edges: rejectedEdges, lines: lineErrors }
 }
 
 /** The field a path below an entity names: `name`, `description`, the property of `properties[k]...`, or empty. */
@@ -419,4 +528,220 @@ function fieldOf(path: string | undefined, properties: { propertyDefId: string }
   }
   const property = /^properties\[(\d+)]/.exec(path ?? '')
   return property ? (properties?.[Number(property[1])]?.propertyDefId ?? '') : ''
+}
+
+// ── Nested shapes (design D1, D4 of us-074-diagram-nesting) ─────────────────────────────────────────────
+
+/** The space around the children of a container and above them (for the name of the container), in pt. */
+export const CONTAINER_PADDING = 10
+export const CONTAINER_HEADER = 24
+/** The gap between two children laid out in a grid, in pt. */
+export const CHILD_GAP = 10
+
+/** The direct children of a container, in drawing order. */
+export function nestedIn(shapes: CanvasShape[], id: string): CanvasShape[] {
+  return shapes.filter((shape) => shape.parentShapeId === id)
+}
+
+/** All shapes nested in a container, at any depth, in drawing order. */
+export function descendantsOf(shapes: CanvasShape[], id: string): CanvasShape[] {
+  const found = new Set<string>([id])
+  const result: CanvasShape[] = []
+  // a nested shape always follows its container, so one pass in drawing order finds every level
+  for (const shape of shapes) {
+    if (shape.parentShapeId && found.has(shape.parentShapeId)) {
+      found.add(shape.id)
+      result.push(shape)
+    }
+  }
+  return result
+}
+
+/** The level of a shape: 1 on the canvas, one more than its container. */
+export function levelOf(shapes: CanvasShape[], id: string): number {
+  let level = 1
+  let current = shapes.find((shape) => shape.id === id)
+  while (current?.parentShapeId) {
+    level += 1
+    const parent: string = current.parentShapeId
+    current = shapes.find((shape) => shape.id === parent)
+  }
+  return level
+}
+
+/** The number of levels of the shape and what is nested in it: 1 for a shape without nested shapes. */
+export function subtreeLevels(shapes: CanvasShape[], id: string): number {
+  const base = levelOf(shapes, id)
+  return Math.max(base, ...descendantsOf(shapes, id).map((shape) => levelOf(shapes, shape.id))) - base + 1
+}
+
+/** Whether `inner` lies completely within `outer`, the edges included. */
+export function lies(outer: CanvasShape, inner: CanvasShape): boolean {
+  return (
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    round2(inner.x + inner.width) <= round2(outer.x + outer.width) &&
+    round2(inner.y + inner.height) <= round2(outer.y + outer.height)
+  )
+}
+
+/**
+ * The shape whose box holds the point and that is drawn on top: the candidate for the container of a shape
+ * that is dropped there. Shapes of `exclude` (the shape itself and what is nested in it) and shapes that are
+ * still named are skipped.
+ */
+export function containerAt(shapes: CanvasShape[], point: { x: number; y: number }, exclude: Set<string>): CanvasShape | undefined {
+  return [...shapes]
+    .reverse()
+    .find(
+      (shape) =>
+        !exclude.has(shape.id) &&
+        !shape.editing &&
+        point.x >= shape.x &&
+        point.x <= shape.x + shape.width &&
+        point.y >= shape.y &&
+        point.y <= shape.y + shape.height,
+    )
+}
+
+/**
+ * The shapes with every container grown to hold what is nested in it: its box becomes the union of its own
+ * and its children's (rounded to two decimals). A container never shrinks by itself (design D4).
+ */
+export function growContainers(shapes: CanvasShape[]): CanvasShape[] {
+  const result = shapes.map((shape) => ({ ...shape }))
+  const byId = new Map(result.map((shape) => [shape.id, shape]))
+  // a nested shape follows its container: from the last to the first, so that growth reaches every level
+  for (let index = result.length - 1; index >= 0; index -= 1) {
+    const shape = result[index]!
+    const parent = shape.parentShapeId ? byId.get(shape.parentShapeId) : undefined
+    if (!parent) continue
+    const left = Math.min(parent.x, shape.x)
+    const top = Math.min(parent.y, shape.y)
+    const right = Math.max(round2(parent.x + parent.width), round2(shape.x + shape.width))
+    const bottom = Math.max(round2(parent.y + parent.height), round2(shape.y + shape.height))
+    parent.x = left
+    parent.y = top
+    parent.width = limitSize(round2(right - left))
+    parent.height = limitSize(round2(bottom - top))
+  }
+  return result
+}
+
+/** The shape and everything nested in it moved by `(dx, dy)` pt, within the limits. */
+export function moveTree(shapes: CanvasShape[], id: string, dx: number, dy: number): CanvasShape[] {
+  const ids = new Set([id, ...descendantsOf(shapes, id).map((shape) => shape.id)])
+  return shapes.map((shape) => (ids.has(shape.id) ? moved(shape, dx, dy) : shape))
+}
+
+/**
+ * Why a shape cannot be nested in a container: the levels of the shape with what is nested in it would be
+ * more than 10 (`depth`), or the container lies within the shape (`cycle`); `undefined` when it can.
+ */
+export function nestBlock(shapes: CanvasShape[], id: string, containerId: string): 'depth' | 'cycle' | undefined {
+  if (containerId === id || descendantsOf(shapes, id).some((shape) => shape.id === containerId)) {
+    return 'cycle'
+  }
+  return levelOf(shapes, containerId) + subtreeLevels(shapes, id) > CANVAS_LIMITS.nesting ? 'depth' : undefined
+}
+
+/**
+ * The shape nested in a container, or put on the canvas without one: the shape and what is nested in it
+ * follow the container directly in the drawing order, and the container grows to hold the shape.
+ */
+export function nestShape(shapes: CanvasShape[], id: string, containerId: string | undefined): CanvasShape[] {
+  if (containerId === undefined) {
+    return growContainers(shapes.map((shape) => (shape.id === id ? { ...shape, parentShapeId: undefined, error: undefined } : shape)))
+  }
+  const ids = new Set([id, ...descendantsOf(shapes, id).map((shape) => shape.id)])
+  const block = shapes.filter((shape) => ids.has(shape.id)).map((shape) => (shape.id === id ? { ...shape, parentShapeId: containerId, error: undefined } : shape))
+  const rest = shapes.filter((shape) => !ids.has(shape.id))
+  const position = rest.findIndex((shape) => shape.id === containerId)
+  return growContainers([...rest.slice(0, position + 1), ...block, ...rest.slice(position + 1)])
+}
+
+/** A child to place in a container, as `listDiagramEntityChildren` names it. */
+export type ChildEntity = DiagramEntityChild['entity']
+
+/**
+ * The shapes of the children laid out in a grid inside the container, with as many columns as make the
+ * container about square, below what is nested in it already; each at the default size of its type
+ * (design D4). The result also holds the container grown to hold them.
+ */
+export function layoutChildren(
+  view: DiagramView,
+  shapes: CanvasShape[],
+  container: CanvasShape,
+  children: ChildEntity[],
+): { shapes: CanvasShape[]; added: CanvasShape[] } {
+  if (children.length === 0) {
+    return { shapes, added: [] }
+  }
+  const sizes = children.map((child) => defaultSize(view, child.metatypeId))
+  const cellWidth = Math.max(...sizes.map((size) => size.width))
+  const cellHeight = Math.max(...sizes.map((size) => size.height))
+  const columns = Math.ceil(Math.sqrt(children.length))
+  const below = nestedIn(shapes, container.id).reduce((bottom, shape) => Math.max(bottom, round2(shape.y + shape.height)), container.y + CONTAINER_HEADER - CHILD_GAP)
+  const top = below + CHILD_GAP
+  const left = container.x + CONTAINER_PADDING
+  const added = children.map((child, index): CanvasShape => {
+    const size = sizes[index]!
+    return {
+      id: crypto.randomUUID(),
+      entityId: child.id,
+      name: child.name,
+      metatypeId: child.metatypeId,
+      parentShapeId: container.id,
+      childCount: child.childCount,
+      parentEntityId: child.parentEntityId,
+      x: limitPosition(left + (index % columns) * (cellWidth + CHILD_GAP)),
+      y: limitPosition(top + Math.floor(index / columns) * (cellHeight + CHILD_GAP)),
+      ...size,
+      missingMandatory: [],
+    }
+  })
+  const last = shapes.filter((shape) => shape.id === container.id || descendantsOf(shapes, container.id).some((entry) => entry.id === shape.id))
+  const position = shapes.findIndex((shape) => shape.id === last.at(-1)?.id)
+  const next = [...shapes.slice(0, position + 1), ...added, ...shapes.slice(position + 1)]
+  return { shapes: growContainers(next), added }
+}
+
+/** The parent of an entity as it is now: the unsaved change, or the one the view read. */
+export function effectiveParent(shape: CanvasShape, parents: ParentChanges): ParentTarget {
+  if (shape.newEntity) {
+    return shape.newEntity.parentNewEntityKey !== undefined
+      ? { key: shape.newEntity.parentNewEntityKey }
+      : shape.newEntity.parentEntityId !== undefined
+        ? { entityId: shape.newEntity.parentEntityId }
+        : null
+  }
+  const change = shape.entityId !== undefined ? parents[shape.entityId] : undefined
+  if (change) {
+    return change.parent
+  }
+  return shape.parentEntityId ? { entityId: shape.parentEntityId } : null
+}
+
+/** Whether two parents are the same. */
+export function sameParent(a: ParentTarget, b: ParentTarget): boolean {
+  if (a === null || b === null) return a === b
+  if ('key' in a || 'key' in b) return 'key' in a && 'key' in b && a.key === b.key
+  return a.entityId === b.entityId
+}
+
+/** The entity of a container shape as the parent of what is nested in it. */
+export function parentOfShape(container: CanvasShape | undefined): ParentTarget {
+  if (!container) return null
+  if (container.newEntity) return { key: container.newEntity.key }
+  return container.entityId !== undefined ? { entityId: container.entityId } : null
+}
+
+/** The lines without those of a removed shape. */
+export function withoutShapeLines(lines: CanvasLine[], shapeIds: Set<string>): CanvasLine[] {
+  return lines.filter((line) => !shapeIds.has(line.parentShapeId) && !shapeIds.has(line.childShapeId))
+}
+
+/** The line of a saved view. */
+export function fromViewLine(line: DiagramHierarchyLine): CanvasLine {
+  return { id: line.id, parentShapeId: line.parentShapeId, childShapeId: line.childShapeId }
 }

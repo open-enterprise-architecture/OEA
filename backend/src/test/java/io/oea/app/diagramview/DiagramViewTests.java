@@ -494,8 +494,8 @@ class DiagramViewTests {
 
 	/** field, value, status */
 	@ParameterizedTest
-	@CsvSource({ "width, 1, 200", "width, 2000, 200", "width, 0.99, 400", "width, 2000.01, 400", "height, 1, 200",
-			"height, 2000, 200", "height, 0.99, 400", "height, 2000.01, 400", "x, 100000, 200", "x, -100000, 200",
+	@CsvSource({ "width, 1, 200", "width, 10000, 200", "width, 0.99, 400", "width, 10000.01, 400", "height, 1, 200",
+			"height, 10000, 200", "height, 0.99, 400", "height, 10000.01, 400", "x, 100000, 200", "x, -100000, 200",
 			"x, 100000.01, 400", "x, -100000.01, 400", "y, 100000, 200", "y, -100000, 200", "y, 100000.01, 400",
 			"y, -100000.01, 400", "x, 12.34, 200", "x, 12.345, 400", "width, 90.125, 400", "y, 0.001, 400" })
 	void positionAndSizeLimits(String field, String value, int status) {

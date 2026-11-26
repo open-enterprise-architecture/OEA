@@ -16,6 +16,9 @@ const { t } = useI18n()
       <UBadge data-testid="viewpoint-notation-badge" color="primary" variant="subtle" size="sm" :label="t(`metamodel.viewpoint.notations.${viewpoint.notation}`)" />
     </span>
     <span v-if="viewpoint.description" class="text-sm text-muted">{{ viewpoint.description }}</span>
+    <span v-if="viewpoint.askNewParent !== undefined && viewpoint.askNewParent !== null" class="text-xs text-muted" data-testid="viewpoint-ask-new-parent">
+      {{ t('metamodel.viewpoint.askNewParentLabel') }}: {{ viewpoint.askNewParent ? t('metamodel.viewpoint.askNewParentAsk') : t('metamodel.viewpoint.askNewParentNo') }}
+    </span>
     <span class="flex flex-wrap gap-1">
       <UBadge
         v-for="metatype in viewpoint.allowedMetatypes"

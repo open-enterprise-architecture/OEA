@@ -197,6 +197,32 @@ Feature: Viewpoints
     Then the catalog holds "archimate:ApplicationComponent" as an element of "archimate3"
     And the catalog holds "archimate:Flow" as a relationship of "archimate3"
 
+  # Requirement: Ask for a new parent per viewpoint (us-074-diagram-nesting)
+
+  @US-074 @UC-10 @UC-12
+  Scenario: Override stored
+    Given the viewpoint "Cloud Security View" allows "VP Application"
+    When the architect sets the new parent question of "Cloud Security View" to "Ask"
+    Then the viewpoint answer is 200
+    And the viewpoint stores askNewParent true with the version 2
+    And the update of "Cloud Security View" is audited with the changed field "askNewParent"
+
+  @US-074 @UC-10 @UC-12
+  Scenario: Back to the global setting
+    Given the viewpoint "Cloud Security View" allows "VP Application"
+    When the architect sets the new parent question of "Cloud Security View" to "Ask"
+    And the architect sets the new parent question of "Cloud Security View" to "Global setting"
+    Then the viewpoint answer is 200
+    And the viewpoint stores no askNewParent
+
+  @US-074 @UC-10 @UC-12
+  Scenario: Omitted value
+    Given the viewpoint "Cloud Security View" allows "VP Application"
+    And the architect has set the new parent question of "Cloud Security View" to "Do not ask"
+    When the architect replaces "Cloud Security View" without the new parent question
+    Then the viewpoint answer is 200
+    And the viewpoint stores no askNewParent
+
   # Requirement: System-defined viewpoints are read-only
 
   @AC1 @US-092 @REQ-092

@@ -2,7 +2,7 @@
 identifier: viewpoint
 name_de: Viewpoint / Architektursicht
 name_en: Viewpoint
-version: 0.4.0
+version: 0.6.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -212,6 +212,7 @@ The values are recommendations; every user-defined viewpoint can store its own v
 | allowedConnectionTypes | reference[] | required | [] | connection metatypes (`isConnection=true`) of the instance configuration, at most 500 | Connection types allowed as edges in diagrams of this viewpoint |
 | notationMappings | NotationMapping[] | optional | [] | at most one per allowed metatype, at most 1000 (BR-09) | Notation element and visual hint per allowed metatype |
 | sizes | ViewpointSize[] | optional | [] | at most one per allowed metatype, at most 1000 (BR-09, BR-13); omitted on a write = none stored | Default size in pt per allowed metatype |
+| askNewParent | boolean | optional | null | true, false or null; null means the global setting applies; omitted on a write = null; a package may name it (BR-14) | Whether diagrams of the viewpoint ask "New parent?" when a shape moves into or out of a container |
 | effectiveMappings | EffectiveMapping[] | derived | | read only; one entry per allowed metatype | The mapping, or the generic fallback, with the effective size in pt |
 | version | integer | required | 1 | >= 1; optimistic locking (`If-Match`) | Change counter |
 | createdBy | reference | required | | target: person; for a package viewpoint the importing person | Creating person |
@@ -278,6 +279,7 @@ The values are recommendations; every user-defined viewpoint can store its own v
 | BR-11 | An allowed metatype without a mapping MUST be rendered as `generic:Box` (element) or `generic:Arrow` (connection) | onRead | – |
 | BR-12 | A package viewpoint whose ID or name (regardless of case) belongs to an organization viewpoint or to a viewpoint of another package MUST be rejected as a conflict (409); a re-import MUST only replace or remove viewpoints of the same package | onImport | – |
 | BR-13 | A `ViewpointSize` MUST name an allowed metatype once; an element metatype MUST have `width` and `height` and no `length`, a connection metatype a `length` and neither; every value MUST be 1–2000 pt; without a stored size an element metatype MUST get 90 × 30 pt and a connection metatype 90 pt, whatever the notation element | onCreate, onUpdate, onImport, onRead | – |
+| BR-14 | `askNewParent` MUST be true, false or null; a write replaces it like the other fields (an omitted value stores null); a system-defined viewpoint gets it from its package (omitted = null) and stays read-only; the effective value of a diagram is the one of its viewpoint, else the global setting `diagram_settings.ask_new_parent` (default true, changed with `viewpoint:manage`, audited as `diagram.settings-updated`) | onCreate, onUpdate, onImport | – |
 
 ## Lifecycle
 
@@ -436,6 +438,7 @@ viewpoint:
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.6.0 | 2026-11-26 | Change us-074-diagram-nesting | `askNewParent` added: the override of the global setting "Ask for a new parent" per viewpoint (V51), BR-14 |
 | 0.5.0 | 2026-11-19 | Change s17-viewpoint-default-sizes | `ViewpointSize` added: a default size in pt per allowed metatype (width and height, or a length for a connection), also without a mapping, defaults 90 × 30 pt and 90 pt; the size left `NotationMapping` and the element catalog; `EffectiveMapping` carries `width`, `height`, `length` and `sizeStored`; BR-09, BR-11 revised, BR-13 added (V45) |
 | 0.4.0 | 2026-11-17 | Change us-091-viewpoint-notations | Notation `generic` added as the default; `viewpointType` and `sourcePackage` set only by the package import; notation mappings with sizes 1–2000, visual hint `#rrggbb`, at most one per metatype and 1000 per viewpoint; generic fallback and effective mappings; element catalog shipped as a resource; BR-02, BR-06 to BR-08 revised, BR-09 to BR-12 added (V41) |
 | 0.3.0 | 2026-11-17 | Change us-090-viewpoints | Generic viewpoints implemented as the table `viewpoints` with link tables to the allowed element and connection metatypes of the instance (V39), UUID IDs, `version` for optimistic locking, name unique case-insensitively, at least one metatype; `notation`, `viewpointType`, `notationMappings` and the diagram references follow with the diagrams (owner decision 2026-11-17) |
