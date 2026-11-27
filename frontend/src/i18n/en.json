@@ -1683,7 +1683,17 @@
       },
       "warnings": "No BPMN warnings | 1 BPMN warning | {count} BPMN warnings",
       "sequenceCrossesPool": "Sequence flow crosses a pool boundary",
-      "messageWithinPool": "Message flow within one pool"
+      "messageWithinPool": "Message flow within one pool",
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "collapseShape": "Collapse sub-process {name}",
+      "expandShape": "Expand sub-process {name}",
+      "switchVertical": "Vertical",
+      "switchHorizontal": "Horizontal",
+      "insertAbove": "Insert lane above",
+      "insertBelow": "Insert lane below",
+      "insertLeft": "Insert lane left",
+      "insertRight": "Insert lane right"
     }
   },
   "dashboards": {

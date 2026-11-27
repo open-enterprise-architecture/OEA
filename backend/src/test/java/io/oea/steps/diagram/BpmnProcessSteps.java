@@ -34,6 +34,8 @@ public class BpmnProcessSteps {
 
 	private String diagram;
 
+	private String second;
+
 	private boolean taskCreated;
 
 	@Given("an instance of its own with the TOGAF starter package, an enterprise architect and a metamodel administrator for BPMN")
@@ -199,7 +201,185 @@ public class BpmnProcessSteps {
 			.isEqualTo(code);
 	}
 
+	// collapsed sub-processes (us-074-bpmn-pools-and-lanes)
+
+	@Given("a BPMN diagram {string} with the sub-process {string} holding the tasks {string} and {string}")
+	public void withSubProcess(String name, String subProcess, String first, String second) throws Exception {
+		this.diagram = createDiagram(name, shared.oidc().single("SELECT id::text FROM viewpoints WHERE name = 'Process Model (BPMN 2.0)'"));
+		Placed sub = entity(subProcess, "Sub-Process", 0, 0);
+		sub.shapeNode().put("width", BigDecimal.valueOf(270)).put("height", BigDecimal.valueOf(150));
+		Placed one = entity(first, "User Task", 10, 10);
+		Placed two = entity(second, "User Task", 150, 10);
+		one.shapeNode().put("parentShapeId", sub.shape());
+		two.shapeNode().put("parentShapeId", sub.shape());
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		body.putArray("shapes").add(sub.shapeNode()).add(one.shapeNode()).add(two.shapeNode());
+		body.putArray("newEntities").add(sub.entity()).add(one.entity()).add(two.entity());
+		this.response = shared.send("PUT", "/api/v1/views/diagrams/" + this.diagram, body.toString(), shared.architect(),
+				java.util.Map.of("If-Match", "\"1\""));
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(200);
+	}
+
+	@Given("a second BPMN diagram showing {string}")
+	public void secondDiagram(String name) throws Exception {
+		String viewpoint = shared.oidc().single("SELECT id::text FROM viewpoints WHERE name = 'Process Model (BPMN 2.0)'");
+		this.second = createDiagram("Second", viewpoint);
+		JsonNode shape = shapeOf(view(this.diagram), name);
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		body.putArray("shapes").add(writeOf(shape, UUID.randomUUID().toString(), null, null));
+		HttpResponse<String> saved = shared.send("PUT", "/api/v1/views/diagrams/" + this.second, body.toString(),
+				shared.architect(), java.util.Map.of("If-Match", "\"1\""));
+		assertThat(saved.statusCode()).as(saved.body()).isEqualTo(200);
+	}
+
+	@When("the enterprise architect collapses {string} and saves")
+	public void collapse(String name) throws Exception {
+		saveCollapsed(name, true);
+	}
+
+	@When("the enterprise architect collapses the task {string} and saves")
+	public void collapseTask(String name) throws Exception {
+		saveCollapsed(name, true);
+	}
+
+	@When("the enterprise architect expands {string} and saves")
+	public void expand(String name) throws Exception {
+		saveCollapsed(name, false);
+	}
+
+	@Then("the BPMN view shows {string} collapsed with the size {int} x {int}")
+	public void collapsedView(String name, int width, int height) throws Exception {
+		checkShape(name, true, width, height);
+	}
+
+	@Then("the BPMN view shows {string} expanded with the size {int} x {int}")
+	public void expandedView(String name, int width, int height) throws Exception {
+		checkShape(name, false, width, height);
+	}
+
+	@Then("the task {string} is still nested in {string}")
+	public void nested(String task, String container) throws Exception {
+		JsonNode view = view(this.diagram);
+		assertThat(shapeOf(view, task).path("parentShapeId").asString())
+			.isEqualTo(shapeOf(view, container).path("id").asString());
+	}
+
+	@Then("the second BPMN diagram shows {string} expanded")
+	public void secondExpanded(String name) throws Exception {
+		assertThat(shapeOf(view(this.second), name).path("collapsed").asBoolean()).isFalse();
+	}
+
+	@Then("the layout is audited with {int} changed shape")
+	public void auditedChanged(int changed) throws Exception {
+		assertThat(shared.oidc().single("SELECT details ->> 'changed' FROM audit.events WHERE event_type = 'diagram.layout-saved' "
+				+ "AND target_id = '" + this.diagram + "' ORDER BY id DESC LIMIT 1")).isEqualTo(String.valueOf(changed));
+	}
+
+	@Given("a BPMN diagram {string} with the pool {string}")
+	public void withPool(String name, String pool) throws Exception {
+		this.diagram = createDiagram(name, shared.oidc().single("SELECT id::text FROM viewpoints WHERE name = 'Process Model (BPMN 2.0)'"));
+		Placed container = entity(pool, "Pool", 0, 0);
+		container.shapeNode().put("width", BigDecimal.valueOf(600)).put("height", BigDecimal.valueOf(200));
+		Placed lane = entity("Sales", "Lane", 30, 0);
+		lane.shapeNode().put("width", BigDecimal.valueOf(570)).put("height", BigDecimal.valueOf(100)).put("parentShapeId", container.shape());
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		body.putArray("shapes").add(container.shapeNode()).add(lane.shapeNode());
+		body.putArray("newEntities").add(container.entity()).add(lane.entity());
+		this.response = shared.send("PUT", "/api/v1/views/diagrams/" + this.diagram, body.toString(), shared.architect(),
+				java.util.Map.of("If-Match", "\"1\""));
+		assertThat(this.response.statusCode()).as(this.response.body()).isEqualTo(200);
+	}
+
+	@When("the enterprise architect switches {string} to {word} and saves")
+	public void switchPool(String name, String orientation) throws Exception {
+		saveOrientation(name, orientation);
+	}
+
+	@When("the enterprise architect switches the lane {string} to {word} and saves")
+	public void switchLane(String name, String orientation) throws Exception {
+		saveOrientation(name, orientation);
+	}
+
+	@Then("the BPMN view shows {string} as {word}")
+	public void orientationOf(String name, String orientation) throws Exception {
+		assertThat(shapeOf(view(this.diagram), name).path("orientation").asString()).isEqualTo(orientation);
+	}
+
+	@Then("the second BPMN diagram shows {string} as {word}")
+	public void secondOrientation(String name, String orientation) throws Exception {
+		assertThat(shapeOf(view(this.second), name).path("orientation").asString()).isEqualTo(orientation);
+	}
+
+	private void saveOrientation(String name, String orientation) throws Exception {
+		JsonNode view = view(this.diagram);
+		String id = shapeOf(view, name).path("id").asString();
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		var shapes = body.putArray("shapes");
+		for (JsonNode shape : view.path("shapes")) {
+			ObjectNode write = writeOf(shape, shape.path("id").asString(), shape.path("parentShapeId").isNull() ? null
+					: shape.path("parentShapeId").asString(), null);
+			write.put("orientation", id.equals(shape.path("id").asString()) ? orientation : shape.path("orientation").asString());
+			shapes.add(write);
+		}
+		this.response = shared.send("PUT", "/api/v1/views/diagrams/" + this.diagram, body.toString(), shared.architect(),
+				java.util.Map.of("If-Match", "\"" + version(this.diagram) + "\""));
+	}
+
 	// helpers
+
+	private void saveCollapsed(String name, boolean collapsed) throws Exception {
+		JsonNode view = view(this.diagram);
+		String id = shapeOf(view, name).path("id").asString();
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		var shapes = body.putArray("shapes");
+		for (JsonNode shape : view.path("shapes")) {
+			shapes.add(writeOf(shape, shape.path("id").asString(), shape.path("parentShapeId").isNull() ? null
+					: shape.path("parentShapeId").asString(), id.equals(shape.path("id").asString()) ? collapsed : null));
+		}
+		this.response = shared.send("PUT", "/api/v1/views/diagrams/" + this.diagram, body.toString(), shared.architect(),
+				java.util.Map.of("If-Match", "\"" + version(this.diagram) + "\""));
+	}
+
+	private void checkShape(String name, boolean collapsed, int width, int height) throws Exception {
+		JsonNode shape = shapeOf(view(this.diagram), name);
+		assertThat(shape.path("collapsed").asBoolean()).isEqualTo(collapsed);
+		assertThat(shape.path("width").decimalValue()).isEqualByComparingTo(BigDecimal.valueOf(width));
+		assertThat(shape.path("height").decimalValue()).isEqualByComparingTo(BigDecimal.valueOf(height));
+	}
+
+	private JsonNode view(String diagram) throws Exception {
+		HttpResponse<String> got = shared.send("GET", "/api/v1/views/diagrams/" + diagram, null, shared.architect());
+		assertThat(got.statusCode()).as(got.body()).isEqualTo(200);
+		return JsonMapper.shared().readTree(got.body());
+	}
+
+	private int version(String diagram) throws Exception {
+		return Integer.parseInt(shared.oidc().single("SELECT version::text FROM diagrams WHERE id = '" + diagram + "'"));
+	}
+
+	private static JsonNode shapeOf(JsonNode view, String entityName) {
+		return view.path("shapes").valueStream()
+			.filter((shape) -> entityName.equals(shape.path("entity").path("name").asString()))
+			.findFirst()
+			.orElseThrow();
+	}
+
+	/** A shape of the view as a write of an existing entity; {@code collapsed} null keeps the stored flag. */
+	private static ObjectNode writeOf(JsonNode shape, String id, String parent, Boolean collapsed) {
+		ObjectNode write = JsonMapper.shared()
+			.createObjectNode()
+			.put("id", id)
+			.put("entityId", shape.path("entity").path("id").asInt())
+			.put("x", shape.path("x").decimalValue())
+			.put("y", shape.path("y").decimalValue())
+			.put("width", shape.path("width").decimalValue())
+			.put("height", shape.path("height").decimalValue())
+			.put("collapsed", (collapsed != null) ? collapsed : shape.path("collapsed").asBoolean());
+		if (parent != null) {
+			write.put("parentShapeId", parent);
+		}
+		return write;
+	}
 
 	private record Placed(String key, String shape, ObjectNode entity, ObjectNode shapeNode) {
 	}

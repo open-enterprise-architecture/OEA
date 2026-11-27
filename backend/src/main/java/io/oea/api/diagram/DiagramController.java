@@ -24,6 +24,7 @@ import io.oea.api.generated.model.PropertyValueValueRef;
 import io.oea.api.generated.model.DiagramEntityPage;
 import io.oea.api.generated.model.DiagramPage;
 import io.oea.api.generated.model.DiagramShape;
+import io.oea.api.generated.model.DiagramShapeOrientation;
 import io.oea.api.generated.model.DiagramShapeEntity;
 import io.oea.api.generated.model.DiagramView;
 import io.oea.api.generated.model.DiagramViewWrite;
@@ -153,7 +154,9 @@ public class DiagramController implements DiagramsApi {
 		List<DiagramViews.ShapeInput> shapes = request.getShapes()
 			.stream()
 			.map((shape) -> new DiagramViews.ShapeInput(shape.getId(), shape.getEntityId(), shape.getNewEntityKey(),
-					shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight(), shape.getParentShapeId()))
+					shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight(), shape.getParentShapeId(),
+					Boolean.TRUE.equals(shape.getCollapsed()),
+						(shape.getOrientation() == null) ? "horizontal" : shape.getOrientation().getValue()))
 			.toList();
 		List<DiagramViews.NewEntityInput> newEntities = (request.getNewEntities() == null) ? List.of()
 				: request.getNewEntities()
@@ -315,7 +318,7 @@ public class DiagramController implements DiagramsApi {
 								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId(),
 										shape.childCount(), shape.parentEntityId()),
 								shape.parentShapeId(), shape.x(), shape.y(), shape.width(), shape.height(),
-								shape.missingMandatory(), shape.conflict()))
+								shape.collapsed(), DiagramShapeOrientation.fromValue(shape.orientation()), shape.missingMandatory(), shape.conflict()))
 						.toList(),
 					view.edges()
 						.stream()

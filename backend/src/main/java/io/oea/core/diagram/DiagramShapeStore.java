@@ -33,17 +33,19 @@ public class DiagramShapeStore {
 	 * when the parent is deleted).
 	 */
 	public record ShownShape(UUID id, int entityId, String entityName, UUID metatypeId, BigDecimal x, BigDecimal y,
-			BigDecimal width, BigDecimal height, UUID parentShapeId, int childCount, Integer parentEntityId) {
+			BigDecimal width, BigDecimal height, UUID parentShapeId, boolean collapsed, String orientation,
+			int childCount, Integer parentEntityId) {
 	}
 
 	/** A stored shape with its stored container; {@code hidden} is true while its entity is deleted. */
 	public record StoredShape(UUID id, int entityId, BigDecimal x, BigDecimal y, BigDecimal width,
-			BigDecimal height, UUID parentShapeId, boolean hidden) {
+			BigDecimal height, UUID parentShapeId, boolean collapsed,
+			String orientation, boolean hidden) {
 	}
 
 	/** A shape to store; its drawing order is its index in the list. */
 	public record ShapeWrite(UUID id, int entityId, BigDecimal x, BigDecimal y, BigDecimal width, BigDecimal height,
-			UUID parentShapeId) {
+			UUID parentShapeId, boolean collapsed, String orientation) {
 	}
 
 	/** A direct child of an entity that is not deleted. */
@@ -62,14 +64,15 @@ public class DiagramShapeStore {
 	public List<ShownShape> shown(UUID diagramId) {
 		return this.jdbc.query("""
 				SELECT s.id, s.entity_id, e.name, e.metatype_id, s.x_pt, s.y_pt, s.width_pt, s.height_pt,
-				       s.parent_shape_id,
+				       s.parent_shape_id, s.collapsed, s.orientation,
 				       (SELECT count(*) FROM entities c WHERE c.parent_entity_id = e.id AND c.deleted_at IS NULL),
 				       (SELECT p.id FROM entities p WHERE p.id = e.parent_entity_id AND p.deleted_at IS NULL)
 				FROM diagram_shapes s JOIN entities e ON e.id = s.entity_id
 				WHERE s.diagram_id = ? AND e.deleted_at IS NULL ORDER BY s.z_order, s.id""",
 				(rs, n) -> new ShownShape(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3),
 						rs.getObject(4, UUID.class), rs.getBigDecimal(5), rs.getBigDecimal(6), rs.getBigDecimal(7),
-						rs.getBigDecimal(8), rs.getObject(9, UUID.class), rs.getInt(10), (Integer) rs.getObject(11)),
+						rs.getBigDecimal(8), rs.getObject(9, UUID.class), rs.getBoolean(10), rs.getString(11),
+						rs.getInt(12), (Integer) rs.getObject(13)),
 				diagramId);
 	}
 
@@ -77,12 +80,12 @@ public class DiagramShapeStore {
 	public List<StoredShape> stored(UUID diagramId) {
 		return this.jdbc.query("""
 				SELECT s.id, s.entity_id, s.x_pt, s.y_pt, s.width_pt, s.height_pt, s.parent_shape_id,
-				       e.deleted_at IS NOT NULL
+				       s.collapsed, s.orientation, e.deleted_at IS NOT NULL
 				FROM diagram_shapes s JOIN entities e ON e.id = s.entity_id
 				WHERE s.diagram_id = ? ORDER BY s.z_order, s.id""",
 				(rs, n) -> new StoredShape(rs.getObject(1, UUID.class), rs.getInt(2), rs.getBigDecimal(3),
 						rs.getBigDecimal(4), rs.getBigDecimal(5), rs.getBigDecimal(6), rs.getObject(7, UUID.class),
-						rs.getBoolean(8)),
+						rs.getBoolean(8), rs.getString(9), rs.getBoolean(10)),
 				diagramId);
 	}
 
@@ -125,16 +128,17 @@ public class DiagramShapeStore {
 		for (int i = 0; i < shapes.size(); i++) {
 			ShapeWrite shape = shapes.get(i);
 			rows.add(new Object[] { shape.id(), diagramId, shape.entityId(), shape.x(), shape.y(), shape.width(),
-					shape.height(), i, shape.parentShapeId() });
+					shape.height(), i, shape.parentShapeId(), shape.collapsed(), shape.orientation() });
 		}
 		// in drawing order, so that a container is stored before the shapes nested in it
 		this.jdbc.batchUpdate("""
 				INSERT INTO diagram_shapes (id, diagram_id, entity_id, x_pt, y_pt, width_pt, height_pt, z_order,
-				    parent_shape_id)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+				    parent_shape_id, collapsed, orientation)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (id) DO UPDATE SET entity_id = EXCLUDED.entity_id, x_pt = EXCLUDED.x_pt,
 				    y_pt = EXCLUDED.y_pt, width_pt = EXCLUDED.width_pt, height_pt = EXCLUDED.height_pt,
-				    z_order = EXCLUDED.z_order, parent_shape_id = EXCLUDED.parent_shape_id
+				    z_order = EXCLUDED.z_order, parent_shape_id = EXCLUDED.parent_shape_id,
+				    collapsed = EXCLUDED.collapsed, orientation = EXCLUDED.orientation
 				WHERE diagram_shapes.diagram_id = EXCLUDED.diagram_id""", rows);
 	}
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
-import { NodeResizer, type OnResizeEnd } from '@vue-flow/node-resizer'
+import { NodeResizeControl, NodeResizer, ResizeControlVariant, type OnResizeEnd } from '@vue-flow/node-resizer'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CANVAS_LIMITS } from '../../api/diagramView'
@@ -34,6 +34,10 @@ function resizeEnd(event: OnResizeEnd) {
 }
 
 const symbol = computed(() => props.data.symbol)
+function insertLabel(side: 'before' | 'after'): string {
+  const vertical = props.data.insertLane?.vertical === true
+  return t(vertical ? (side === 'before' ? 'diagrams.bpmn.insertLeft' : 'diagrams.bpmn.insertRight') : side === 'before' ? 'diagrams.bpmn.insertAbove' : 'diagrams.bpmn.insertBelow')
+}
 const stroke = computed(() =>
   props.data.error ? 'var(--ui-error)' : props.data.conflict ? 'var(--ui-warning)' : (props.data.hint ?? 'var(--ui-text-muted)'),
 )
@@ -76,7 +80,21 @@ const complaint = computed(
       <Handle id="left" type="source" :position="Position.Left" class="size-2.5! border-default! bg-primary!" aria-hidden="true" :title="t('diagrams.canvas.connectFrom')" />
       <Handle id="right" type="source" :position="Position.Right" class="size-2.5! border-default! bg-primary!" aria-hidden="true" :title="t('diagrams.canvas.connectFrom')" />
     </template>
-    <NodeResizer v-if="data.editable && !data.editing" :min-width="24" :min-height="16" :is-visible="selected" @resize-end="resizeEnd" />
+    <template v-if="data.editable && !data.editing">
+      <NodeResizer v-if="data.resizeEdges === 'all'" :min-width="24" :min-height="16" :is-visible="selected" @resize-end="resizeEnd" />
+      <template v-else-if="selected">
+        <NodeResizeControl
+          v-for="edge in data.resizeEdges"
+          :key="edge"
+          :position="edge"
+          :variant="ResizeControlVariant.Line"
+          :min-width="24"
+          :min-height="16"
+          :data-testid="`resize-${edge}`"
+          @resize-end="resizeEnd"
+        />
+      </template>
+    </template>
 
     <!-- a BPMN symbol (design D3 of us-074-bpmn-process-diagrams) -->
     <template v-if="symbol">
@@ -103,11 +121,13 @@ const complaint = computed(
       />
       <div
         v-if="symbol.kind === 'pool' || symbol.kind === 'lane'"
-        class="absolute inset-y-0 start-0 flex items-center justify-center border-e-2"
-        :style="{ width: `${bandPx}px`, borderColor: stroke }"
+        class="absolute flex items-center justify-center"
+        :class="data.vertical ? 'inset-x-0 top-0 border-b-2 px-1' : 'inset-y-0 start-0 border-e-2'"
+        :style="data.vertical ? { height: `${bandPx}px`, borderColor: stroke } : { width: `${bandPx}px`, borderColor: stroke }"
+        :data-vertical="data.vertical ? 'true' : undefined"
         data-testid="symbol-band"
       >
-        <span v-if="!data.editing" class="max-h-full truncate font-medium [writing-mode:vertical-rl] rotate-180" data-testid="shape-name">{{ data.name }}</span>
+        <span v-if="!data.editing" class="truncate font-medium" :class="data.vertical ? 'max-w-full' : 'max-h-full [writing-mode:vertical-rl] rotate-180'" data-testid="shape-name">{{ data.name }}</span>
       </div>
       <svg
         v-if="markerPaths.length > 0"
@@ -129,6 +149,38 @@ const complaint = computed(
           :stroke="path.fill === 'background' ? 'var(--ui-bg)' : stroke"
         />
       </svg>
+      <button
+        v-if="data.collapsible"
+        type="button"
+        class="nodrag absolute bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-sm border border-accented bg-default text-xs leading-none hover:bg-elevated"
+        :aria-label="data.collapsed ? t('diagrams.bpmn.expandShape', { name: data.name }) : t('diagrams.bpmn.collapseShape', { name: data.name })"
+        :title="data.collapsed ? t('diagrams.bpmn.expand') : t('diagrams.bpmn.collapse')"
+        :aria-expanded="!data.collapsed"
+        data-testid="shape-toggle"
+        @click.stop="data.toggle()"
+      >
+        {{ data.collapsed ? '+' : '−' }}
+      </button>
+      <span v-else-if="data.collapsed" class="absolute bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-sm border border-accented text-xs leading-none" aria-hidden="true" data-testid="shape-collapsed-marker">+</span>
+      <template v-if="data.insertLane">
+        <button
+          v-for="side in (['before', 'after'] as const)"
+          :key="side"
+          type="button"
+          class="nodrag absolute z-10 flex size-5 items-center justify-center rounded-full border border-accented bg-default text-muted shadow-sm hover:bg-elevated hover:text-highlighted"
+          :class="
+            data.insertLane.vertical
+              ? ['top-1/2 -translate-y-1/2', side === 'before' ? '-start-2.5' : '-end-2.5']
+              : ['left-1/2 -translate-x-1/2', side === 'before' ? '-top-2.5' : '-bottom-2.5']
+          "
+          :aria-label="insertLabel(side)"
+          :title="insertLabel(side)"
+          :data-testid="`lane-insert-${side}`"
+          @click.stop="data.insertLane.insert(side)"
+        >
+          <UIcon :name="data.insertLane.vertical ? 'i-lucide-between-vertical-start' : 'i-lucide-between-horizontal-start'" class="size-3.5" />
+        </button>
+      </template>
       <div
         class="absolute flex flex-col items-center gap-0.5"
         :class="{
@@ -136,8 +188,10 @@ const complaint = computed(
           'inset-0 justify-center ps-3 pe-1 text-start': symbol.kind === 'annotation',
           'inset-x-0 top-0 px-2 pt-1 text-center': symbol.label === 'top',
           'left-1/2 top-full mt-0.5 w-max max-w-40 -translate-x-1/2 text-center': symbol.label === 'below',
-          'inset-x-12 top-2 text-center': symbol.label === 'band' && data.editing,
-          'end-1 top-1 max-w-60 items-end text-end': symbol.label === 'band' && !data.editing,
+          'inset-x-12 top-2 text-center': symbol.label === 'band' && data.editing && !data.vertical,
+          'inset-x-2 top-9 text-center': symbol.label === 'band' && data.editing && data.vertical,
+          'end-1 top-1 max-w-60 items-end text-end': symbol.label === 'band' && !data.editing && !data.vertical,
+          'end-1 top-9 max-w-60 items-end text-end': symbol.label === 'band' && !data.editing && data.vertical,
         }"
       >
         <input

@@ -38,7 +38,20 @@ import {
   applyNewEntityEdit,
   containerAt,
   descendantsOf,
+  drawnShapes,
   editBlocked,
+  expandAncestors,
+  hiddenShapes,
+  COLLAPSED_SIZE,
+  laneDrop,
+  laneVertical,
+  laneRoles,
+  lanesIn,
+  layoutLanes,
+  placeLane,
+  resizeAcross,
+  resizeAlong,
+  setOrientation,
   effectiveParent,
   fromView,
   fromViewLine,
@@ -119,10 +132,16 @@ const { t } = useI18n()
 const PALETTE_TYPE = 'application/x-oea-metatype'
 
 const flowId = `diagram-canvas-${useId()}`
-const { screenToFlowCoordinate, zoomIn, zoomOut, fitView } = useVueFlow(flowId)
+const { screenToFlowCoordinate, zoomIn, zoomOut, fitView, setNodes } = useVueFlow(flowId)
 
-const shapes = ref<CanvasShape[]>(props.view.shapes.map(fromView))
-const saved = ref<CanvasShape[]>(props.view.shapes.map(fromView))
+/** The shapes of a view, with the lanes stacked: the restacked shapes are the baseline, so that loading is no unsaved change (design D1 of us-074-bpmn-pools-and-lanes). */
+function laidOut(view: DiagramView): CanvasShape[] {
+  const list = view.shapes.map(fromView)
+  return isBpmnView(view) ? layoutLanes(list, view.viewpoint.effectiveMappings) : list
+}
+
+const shapes = ref<CanvasShape[]>(laidOut(props.view))
+const saved = ref<CanvasShape[]>(laidOut(props.view))
 const edges = ref<CanvasEdge[]>(props.view.edges.map(fromViewEdge))
 const savedEdges = ref<CanvasEdge[]>(props.view.edges.map(fromViewEdge))
 // nesting (design D4 of us-074-diagram-nesting): the hierarchy lines, the unsaved parent changes of saved
@@ -177,6 +196,7 @@ const blockedEntities = ref<BlockedEntity[]>([])
 
 const selectedShape = computed(() => shapes.value.find((shape) => shape.id === selectedId.value))
 const selectedEdge = computed(() => edges.value.find((edge) => edge.id === selectedEdgeId.value))
+const selectedSymbol = computed(() => (selectedShape.value ? bpmnSymbol(notation.value, notationElementOf(props.view, selectedShape.value.metatypeId))?.kind : undefined))
 const subject = computed(() => selectedShape.value ?? (selectedEdge.value ? edgeSubject(selectedEdge.value, shapes.value) : undefined))
 const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value, edits.value, edges.value, savedEdges.value, lines.value, savedLines.value, parents.value))
 watch([selectedId, selectedEdgeId], ([shape, edge]) => {
@@ -190,8 +210,8 @@ watch(
 )
 
 function adopt(view: DiagramView) {
-  shapes.value = view.shapes.map(fromView)
-  saved.value = view.shapes.map(fromView)
+  shapes.value = laidOut(view)
+  saved.value = laidOut(view)
   edges.value = view.edges.map(fromViewEdge)
   savedEdges.value = view.edges.map(fromViewEdge)
   lines.value = view.hierarchyLines.map(fromViewLine)
@@ -218,6 +238,19 @@ const bpmn = computed(() => isBpmnView(props.view))
 /** Whether a shape takes nested shapes: every shape, but in a `bpmn2` diagram only pool, lane and sub-process (design D5). */
 const mayContain = computed(() => canContain(props.view))
 const notation = computed(() => props.view.viewpoint.notation)
+const mappings = computed(() => props.view.viewpoint.effectiveMappings)
+/** Sets the shapes; in a `bpmn2` diagram the containers grow and the lanes are stacked on every change (design D1 of us-074-bpmn-pools-and-lanes). */
+function commit(list: CanvasShape[]) {
+  shapes.value = bpmn.value ? layoutLanes(list, mappings.value) : growContainers(list)
+}
+/** Whether a shape is a drop container: it takes nested shapes, is not collapsed and not hidden by a collapsed sub-process. */
+function droppable(list: CanvasShape[]): (shape: CanvasShape) => boolean {
+  const hidden = hiddenShapes(list)
+  return (shape) => mayContain.value(shape) && !shape.collapsed && !hidden.has(shape.id)
+}
+const isLaneShape = (shape: CanvasShape) => bpmn.value && notationElementOf(props.view, shape.metatypeId) === 'bpmn:Lane'
+const hiddenIds = computed(() => hiddenShapes(shapes.value))
+const visibleEdges = computed(() => edges.value.filter((edge) => !hiddenIds.value.has(edge.sourceShapeId) && !hiddenIds.value.has(edge.targetShapeId)))
 
 /** The groups of the palette of a `bpmn2` diagram, by the notation element of the type; empty groups are left out (design D4). */
 const paletteGroups = computed(() => {
@@ -233,11 +266,11 @@ const paletteGroups = computed(() => {
 })
 
 /** The warnings of the pool rules of the flows for the layout as it is now (design D6); never stored, never sent. */
-const flowWarnings = computed(() => (bpmn.value ? bpmnFlowWarnings(shapes.value, edges.value, props.view.viewpoint.effectiveMappings) : new Map()))
+const flowWarnings = computed(() => (bpmn.value ? bpmnFlowWarnings(shapes.value, visibleEdges.value, props.view.viewpoint.effectiveMappings) : new Map()))
 const warningText = (kind: 'sequence-crosses-pool' | 'message-within-pool') =>
   kind === 'sequence-crosses-pool' ? t('diagrams.bpmn.sequenceCrossesPool') : t('diagrams.bpmn.messageWithinPool')
 function selectFirstWarning() {
-  const first = edges.value.find((edge) => flowWarnings.value.has(edge.id))
+  const first = visibleEdges.value.find((edge) => flowWarnings.value.has(edge.id))
   if (first) {
     selectEdge(first.id)
   }
@@ -265,16 +298,25 @@ function resized(id: string, params: { x: number; y: number; width: number; heig
   // the position of a nested shape is relative to its container: the model keeps it absolute
   const shape = shapes.value.find((entry) => entry.id === id)
   const container = shape?.parentShapeId ? shapes.value.find((entry) => entry.id === shape.parentShapeId) : undefined
-  update(id, (entry) => ({
-    ...entry,
+  const box = {
     x: limitPosition(pxToPt(params.x) + (container?.x ?? 0)),
     y: limitPosition(pxToPt(params.y) + (container?.y ?? 0)),
     width: limitSize(pxToPt(params.width)),
     height: limitSize(pxToPt(params.height)),
-    error: undefined,
-  }))
+  }
+  const role = bpmn.value ? laneRoles(shapes.value, mappings.value).get(id) : undefined
+  if (role) {
+    // a lane changes its extent along the lanes only; a pool or lane with lanes also its extent across them (design D1, D5)
+    let list = shapes.value
+    if (role.role === 'host') {
+      list = resizeAcross(list, id, role.vertical ? { start: box.y, extent: box.height } : { start: box.x, extent: box.width }, mappings.value)
+    }
+    commit(resizeAlong(list, id, role.vertical ? box.width : box.height, mappings.value))
+    return
+  }
+  update(id, (entry) => ({ ...entry, ...box, error: undefined }))
   // a container keeps its children and grows with its own container
-  shapes.value = growContainers(fitAround(shapes.value, id))
+  commit(growContainers(fitAround(shapes.value, id)))
 }
 
 /** A container resized smaller than what is nested in it keeps the room of its nested shapes. */
@@ -299,7 +341,7 @@ function fitAround(list: CanvasShape[], id: string): CanvasShape[] {
  */
 function dropShape(id: string) {
   const gone = new Set([id, ...descendantsOf(shapes.value, id).map((shape) => shape.id)])
-  shapes.value = shapes.value.filter((shape) => !gone.has(shape.id))
+  commit(shapes.value.filter((shape) => !gone.has(shape.id)))
   edges.value = [...gone].reduce((rest, shapeId) => withoutShapeEdges(rest, shapeId), edges.value)
   lines.value = withoutShapeLines(lines.value, gone)
   pruneEdits()
@@ -320,6 +362,10 @@ function pruneEdits() {
 }
 
 function selectShape(id: string | undefined) {
+  // a hidden shape is reached by expanding the collapsed sub-process around it (design D3)
+  if (id && hiddenIds.value.has(id)) {
+    commit(expandAncestors(shapes.value, id))
+  }
   selectedId.value = id
   selectedEdgeId.value = undefined
 }
@@ -332,9 +378,17 @@ function selectEdge(id: string | undefined) {
 
 const nodes = computed(() => {
   const byId = new Map(shapes.value.map((shape) => [shape.id, shape]))
-  return shapes.value.map((shape, index) => {
+  const drawn = new Map(drawnShapes(shapes.value).map((shape) => [shape.id, shape]))
+  const roles = bpmn.value ? laneRoles(shapes.value, mappings.value) : new Map()
+  return shapes.value.flatMap((shape, index) => {
+    if (hiddenIds.value.has(shape.id)) {
+      return []
+    }
     // the canvas takes the position of a nested shape relative to its container
     const container = shape.parentShapeId ? byId.get(shape.parentShapeId) : undefined
+    const box = drawn.get(shape.id)!
+    const symbol = bpmnSymbol(notation.value, notationElementOf(props.view, shape.metatypeId))
+    const role = roles.get(shape.id)
     const data: ShapeData = {
       name: shape.name,
       abbreviation: abbreviation(props.view, shape.metatypeId),
@@ -348,25 +402,42 @@ const nodes = computed(() => {
       conflict: isConflict(shape),
       metatypeName: metatypeNames.value.get(shape.metatypeId) ?? '',
       container: shapes.value.some((entry) => entry.parentShapeId === shape.id),
-      symbol: bpmnSymbol(notation.value, notationElementOf(props.view, shape.metatypeId)),
+      collapsed: shape.collapsed === true,
+      collapsible: props.editable && symbol?.kind === 'sub-process',
+      toggle: () => toggleCollapsed(shape.id),
+      resizeEdges: shape.collapsed ? [] : role ? resizeEdges(role) : 'all',
+      vertical: role ? role.vertical : symbol?.kind === 'pool' && shape.orientation === 'vertical',
+      ...(props.editable && role?.role === 'lane' && shape.id === selectedId.value && !shape.editing
+        ? { insertLane: { vertical: role.vertical, insert: (side: 'before' | 'after') => insertLane(shape.id, side) } }
+        : {}),
+      symbol,
       description:
         shape.newEntity?.description ?? (shape.entityId !== undefined ? (edits.value[shape.entityId]?.description ?? descriptions.value[shape.entityId]) : undefined),
       rename: (name) => rename(shape.id, name),
       resized: (params) => resized(shape.id, params),
     }
-    return {
-      id: shape.id,
-      type: 'entity',
-      position: { x: ptToPx(shape.x - (container?.x ?? 0)), y: ptToPx(shape.y - (container?.y ?? 0)) },
-      ...(container ? { parentNode: container.id } : {}),
-      style: { width: `${ptToPx(shape.width)}px`, height: `${ptToPx(shape.height)}px` },
-      draggable: props.editable,
-      selected: shape.id === selectedId.value,
-      zIndex: index,
-      data,
-    }
+    return [
+      {
+        id: shape.id,
+        type: 'entity',
+        position: { x: ptToPx(shape.x - (container?.x ?? 0)), y: ptToPx(shape.y - (container?.y ?? 0)) },
+        ...(container ? { parentNode: container.id } : {}),
+        style: { width: `${ptToPx(box.width)}px`, height: `${ptToPx(box.height)}px` },
+        draggable: props.editable,
+        selected: shape.id === selectedId.value,
+        zIndex: index,
+        data,
+      },
+    ]
   })
 })
+
+/** The edges a resize drags: a lane its far edge along the lanes; a pool or lane with lanes also the two edges across them. */
+function resizeEdges(role: { role: 'lane' | 'host'; vertical: boolean }): ('top' | 'bottom' | 'left' | 'right')[] {
+  const along = role.vertical ? 'right' : 'bottom'
+  if (role.role === 'lane') return [along]
+  return role.vertical ? ['top', 'bottom', 'right'] : ['left', 'right', 'bottom']
+}
 
 /** A shape or edge the viewpoint does not allow, as the view marked it or a rejected save named it. */
 function isConflict(item: { id: string; conflict?: boolean }): boolean {
@@ -378,9 +449,17 @@ const conflictItems = computed<ConflictItem[]>(() => [
   ...edges.value.filter(isConflict).map((edge): ConflictItem => ({ id: edge.id, kind: 'edge', name: edgeLabel(edge, shapes.value) })),
 ])
 
+// Vue Flow pauses its watcher of the `nodes` prop while it writes its own changes (selection, measured sizes) back in the
+// same tick, so that an update of ours in that tick is lost: after a real click on the toggle of a shape the shape kept
+// its old data. The store is therefore set from our nodes after every change, which merges them into the graph nodes.
+watch(nodes, (list) => setNodes(list), { flush: 'post' })
+
 const lineDraws = computed<EdgeDraw[]>(() =>
   lines.value.flatMap((line) => {
-    const path = hierarchyPath(line, shapes.value)
+    if (hiddenIds.value.has(line.parentShapeId) || hiddenIds.value.has(line.childShapeId)) {
+      return []
+    }
+    const path = hierarchyPath(line, drawnShapes(shapes.value))
     const parent = shapes.value.find((shape) => shape.id === line.parentShapeId)
     const child = shapes.value.find((shape) => shape.id === line.childShapeId)
     return path
@@ -402,8 +481,8 @@ const lineDraws = computed<EdgeDraw[]>(() =>
 
 const edgeDraws = computed<EdgeDraw[]>(() => [
   ...lineDraws.value,
-  ...edges.value.flatMap((edge) => {
-    const line = edgeLine(edge, shapes.value)
+  ...visibleEdges.value.flatMap((edge) => {
+    const line = edgeLine(edge, drawnShapes(shapes.value))
     return line
       ? [
           {
@@ -435,7 +514,7 @@ function updateEdge(id: string, change: (edge: CanvasEdge) => CanvasEdge) {
 
 function bendAdded(id: string, point: Point) {
   const edge = edges.value.find((entry) => entry.id === id)
-  const line = edge ? edgeLine(edge, shapes.value) : undefined
+  const line = edge ? edgeLine(edge, drawnShapes(shapes.value)) : undefined
   if (!props.editable || !edge || !line) {
     return
   }
@@ -497,22 +576,38 @@ function addNew(metatypeId: string, at?: { x: number; y: number }) {
  * whatever the setting says (design D4 of us-074-diagram-nesting).
  */
 function dropInto(shape: CanvasShape, center: { x: number; y: number }) {
-  const container = containerAt(shapes.value, center, new Set([shape.id]), mayContain.value)
-  if (!container || nestBlock(shapes.value, shape.id, container.id)) {
+  const list = shapes.value
+  let container: CanvasShape | undefined
+  let placed: CanvasShape[] | undefined
+  if (isLaneShape(shape)) {
+    // a lane lands beside a lane, or on a label band (design D1): it is nested there among the lanes
+    const drop = laneDrop(list, shape.id, center, mappings.value, droppable(list))
+    container = drop.container
+    if (container && drop.index !== undefined && !nestBlock(list, shape.id, container.id)) {
+      // a new lane has the default height along the lanes: its width in a vertical pool
+      const turned = laneVertical(list, mappings.value, container.id) ? list.map((entry) => (entry.id === shape.id ? { ...entry, width: entry.height, height: entry.width } : entry)) : list
+      placed = placeLane(turned, shape.id, container.id, drop.index, mappings.value)
+    }
+  } else {
+    container = containerAt(list, center, new Set([shape.id]), droppable(list))
+  }
+  if (!container || nestBlock(list, shape.id, container.id)) {
     return
   }
   const target = parentOfShape(container)
-  shapes.value = nestShape(shapes.value, shape.id, container.id).map((entry) =>
-    entry.id === shape.id && entry.newEntity
-      ? {
-          ...entry,
-          newEntity: {
-            ...entry.newEntity,
-            parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
-            parentNewEntityKey: target && 'key' in target ? target.key : undefined,
-          },
-        }
-      : entry,
+  commit(
+    (placed ?? nestShape(list, shape.id, container.id)).map((entry) =>
+      entry.id === shape.id && entry.newEntity
+        ? {
+            ...entry,
+            newEntity: {
+              ...entry.newEntity,
+              parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
+              parentNewEntityKey: target && 'key' in target ? target.key : undefined,
+            },
+          }
+        : entry,
+    ),
   )
 }
 
@@ -567,7 +662,7 @@ async function showChildren(shapeId: string | undefined) {
     } else {
       if (placing.length < fresh.length) messages.push(t('diagrams.canvas.tooManyShapes', { count: CANVAS_LIMITS.shapes }))
       const layout = layoutChildren(props.view, shapes.value, current, placing.map((item) => item.entity))
-      shapes.value = layout.shapes
+      commit(layout.shapes)
     }
     if (refused.length > 0) {
       messages.push(t('diagrams.nesting.notAllowed', { names: refused.map((item) => item.entity.name).join(', ') }))
@@ -785,7 +880,7 @@ function repositoryDeleted(ids: number[]) {
   const free = (shape: CanvasShape): CanvasShape => (shape.parentShapeId && removed.has(shape.parentShapeId) ? { ...shape, parentShapeId: undefined } : shape)
   const keepEdge = (edge: CanvasEdge) =>
     !(edge.connectionId !== undefined && gone.has(edge.connectionId)) && !removed.has(edge.sourceShapeId) && !removed.has(edge.targetShapeId)
-  shapes.value = shapes.value.filter(keepShape).map(free)
+  commit(shapes.value.filter(keepShape).map(free))
   saved.value = saved.value.filter(keepShape).map(free)
   lines.value = withoutShapeLines(lines.value, removed)
   savedLines.value = withoutShapeLines(savedLines.value, removed)
@@ -900,10 +995,7 @@ function dragStop(event: NodeDragEvent) {
   // the canvas names the position of a nested shape relative to its container; the computed one is absolute
   const x = limitPosition(pxToPt(event.node.computedPosition.x))
   const y = limitPosition(pxToPt(event.node.computedPosition.y))
-  if (x !== shape.x || y !== shape.y) {
-    shapes.value = moveTree(shapes.value, shape.id, round(x - shape.x), round(y - shape.y))
-  }
-  settle(shape.id)
+  settle(x !== shape.x || y !== shape.y ? moveTree(shapes.value, shape.id, round(x - shape.x), round(y - shape.y)) : shapes.value, shape.id)
 }
 
 function round(value: number): number {
@@ -911,30 +1003,106 @@ function round(value: number): number {
 }
 
 /**
- * A shape was dropped: the shape whose box holds its center is its container (none outside every shape). A
- * new container asks "New parent?" when the setting asks and the entity has another parent; where the center
- * stays in the container the shape had, that container grows to hold the shape.
+ * A shape was dropped: the shape whose box holds its center is its container (none outside every shape; a collapsed
+ * sub-process counts with its drawn box of 90 x 60 pt). A new container asks "New parent?" when the setting asks and the
+ * entity has another parent; where the center stays in the container the shape had, that container grows to hold the
+ * shape. A lane is put among the lanes of its container, which restacks them without a question (design D1 of
+ * us-074-bpmn-pools-and-lanes). `list` is the shapes with the move applied; the result is set once, stacked.
  */
-function settle(id: string) {
-  const shape = shapes.value.find((entry) => entry.id === id)
+function settle(list: CanvasShape[], id: string) {
+  const shape = list.find((entry) => entry.id === id)
   if (!shape || shape.editing) {
+    commit(list)
     return
   }
-  const own = new Set([id, ...descendantsOf(shapes.value, id).map((entry) => entry.id)])
-  const container = containerAt(shapes.value, { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 }, own, mayContain.value)
+  const own = new Set([id, ...descendantsOf(list, id).map((entry) => entry.id)])
+  const size = shape.collapsed ? COLLAPSED_SIZE : shape
+  const center = { x: shape.x + size.width / 2, y: shape.y + size.height / 2 }
+  if (isLaneShape(shape)) {
+    const drop = laneDrop(list, id, center, mappings.value, droppable(list))
+    if (drop.container && drop.index !== undefined) {
+      const same = drop.container.id === shape.parentShapeId
+      if (!same && nestBlock(list, id, drop.container.id) === 'depth') {
+        notice.value = t('diagrams.nesting.tooDeep', { count: CANVAS_LIMITS.nesting })
+        commit(list)
+        return
+      }
+      notice.value = undefined
+      commit(placeLane(list, id, drop.container.id, drop.index, mappings.value))
+      if (!same) askParent(id, shapes.value.find((entry) => entry.id === drop.container!.id))
+      return
+    }
+  }
+  const container = containerAt(list, center, own, droppable(list))
   if ((container?.id ?? undefined) === shape.parentShapeId) {
-    shapes.value = growContainers(shapes.value)
+    commit(list)
     return
   }
-  const block = container ? nestBlock(shapes.value, id, container.id) : undefined
+  const block = container ? nestBlock(list, id, container.id) : undefined
   if (block === 'depth') {
     notice.value = t('diagrams.nesting.tooDeep', { count: CANVAS_LIMITS.nesting })
-    shapes.value = growContainers(shapes.value)
+    commit(list)
     return
   }
   notice.value = undefined
-  shapes.value = nestShape(shapes.value, id, container?.id)
-  askParent(id, container)
+  commit(nestShape(list, id, container?.id))
+  askParent(id, container ? shapes.value.find((entry) => entry.id === container.id) : undefined)
+}
+
+/** Collapses or expands a sub-process (design D3): an unsaved change; a selection inside it moves to the sub-process. */
+function toggleCollapsed(id: string) {
+  if (!props.editable) {
+    return
+  }
+  const next = shapes.value.map((shape) => (shape.id === id ? { ...shape, collapsed: shape.collapsed ? undefined : true, error: undefined } : shape))
+  const hidden = hiddenShapes(next)
+  if (selectedId.value && hidden.has(selectedId.value)) {
+    selectedId.value = id
+  }
+  if (selectedEdgeId.value) {
+    const edge = edges.value.find((entry) => entry.id === selectedEdgeId.value)
+    if (edge && (hidden.has(edge.sourceShapeId) || hidden.has(edge.targetShapeId))) selectedEdgeId.value = undefined
+  }
+  commit(next)
+  menu.value = undefined
+}
+
+/** Switches the pool between horizontal and vertical lanes (design D5): an unsaved change. */
+function switchOrientation(id: string, vertical: boolean) {
+  if (!props.editable) {
+    return
+  }
+  commit(setOrientation(shapes.value, id, vertical, mappings.value))
+  menu.value = undefined
+}
+
+/**
+ * "Insert lane" before or after a lane (design D6): a new element of the lane's type, a sibling in the same container, with
+ * the default extent of the viewpoint along the lanes; its name is entered next and the lanes are stacked.
+ */
+function insertLane(id: string, side: 'before' | 'after') {
+  const lane = shapes.value.find((shape) => shape.id === id)
+  const container = lane?.parentShapeId ? shapes.value.find((shape) => shape.id === lane.parentShapeId) : undefined
+  const role = laneRoles(shapes.value, mappings.value).get(id)
+  if (!props.editable || !lane || !container || role?.role !== 'lane' || !room(true)) {
+    return
+  }
+  const size = defaultSize(props.view, lane.metatypeId)
+  const fresh = placeNew(props.view, lane.metatypeId, { x: lane.x, y: lane.y })
+  const target = parentOfShape(container)
+  const position = lanesIn(shapes.value, mappings.value, container.id).findIndex((entry) => entry.id === id)
+  const sized: CanvasShape = {
+    ...fresh,
+    width: role.vertical ? size.height : size.width,
+    height: size.height,
+    newEntity: {
+      ...fresh.newEntity!,
+      parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
+      parentNewEntityKey: target && 'key' in target ? target.key : undefined,
+    },
+  }
+  commit(placeLane([...shapes.value, sized], sized.id, container.id, position + (side === 'after' ? 1 : 0), mappings.value))
+  selectShape(sized.id)
 }
 
 /** The question "New parent?" (US-135): only when the setting asks and the new container's entity is not the parent. */
@@ -1043,7 +1211,11 @@ function keydown(event: KeyboardEvent) {
   const delta = direction[event.key]
   if (delta && selectedId.value) {
     event.preventDefault()
-    shapes.value = growContainers(moveTree(shapes.value, selectedId.value, delta[0], delta[1]))
+    // a lane within its container is not moved: stacking would put it back (design D1)
+    if (bpmn.value && laneRoles(shapes.value, mappings.value).get(selectedId.value)?.role === 'lane') {
+      return
+    }
+    commit(growContainers(moveTree(shapes.value, selectedId.value, delta[0], delta[1])))
   } else if (event.key === 'Delete') {
     event.preventDefault()
     removeSelected()
@@ -1416,6 +1588,12 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       </button>
       <button v-if="editable && !menu.edge && selectedShape?.entityId !== undefined && (selectedShape.childCount ?? 0) > 0 && mayContain(selectedShape)" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-children" @click="showChildren(selectedId)">
         {{ t('diagrams.nesting.showChildren') }}
+      </button>
+      <button v-if="editable && !menu.edge && selectedShape && selectedSymbol === 'sub-process'" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-collapse" @click="selectedId && toggleCollapsed(selectedId)">
+        {{ selectedShape.collapsed ? t('diagrams.bpmn.expand') : t('diagrams.bpmn.collapse') }}
+      </button>
+      <button v-if="editable && !menu.edge && selectedShape && selectedSymbol === 'pool'" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-orientation" @click="selectedId && switchOrientation(selectedId, selectedShape.orientation !== 'vertical')">
+        {{ selectedShape.orientation === 'vertical' ? t('diagrams.bpmn.switchHorizontal') : t('diagrams.bpmn.switchVertical') }}
       </button>
       <button v-if="canDelete && deletableEntityId !== undefined" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm text-error hover:bg-elevated" data-testid="canvas-menu-delete-repository" @click="startRepositoryDelete">
         {{ t('diagrams.repositoryDelete.action') }}

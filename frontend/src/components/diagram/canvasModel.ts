@@ -10,7 +10,7 @@ import type {
 } from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { Viewpoint } from '../../api/metamodel'
-import { isBpmnContainer, type BpmnSymbol } from './bpmnSymbols'
+import { BAND_WIDTH, isBpmnContainer, type BpmnSymbol } from './bpmnSymbols'
 import { edgeFingerprint, type CanvasEdge } from './edgeModel'
 
 // The state of the canvas editor without the canvas library (design D6 of us-074-diagram-canvas):
@@ -45,6 +45,10 @@ export interface CanvasShape {
   y: number
   width: number
   height: number
+  /** the sub-process is shown collapsed in this diagram (design D3 of us-074-bpmn-pools-and-lanes); `width` and `height` stay the expanded size */
+  collapsed?: boolean
+  /** the lanes of the pool lie side by side (design D5 of us-074-bpmn-pools-and-lanes); absent for horizontal; only on the shape of a pool */
+  orientation?: 'vertical'
   missingMandatory: string[]
   /** the reason a save rejected the shape; cleared by the next change of the shape */
   error?: string
@@ -104,6 +108,17 @@ export interface ShapeData {
   metatypeName: string
   /** the shape holds other shapes: it is a container */
   container: boolean
+  /** the sub-process is drawn collapsed: 90 x 60 pt with the "+" marker */
+  collapsed: boolean
+  /** the toggle "Collapse" or "Expand" is offered: an editor, on the shape of a sub-process */
+  collapsible: boolean
+  toggle: () => void
+  /** the edges a resize may drag: all, or in a pool or lane with lanes the edges across the lanes and the far edge along them, in a lane the far edge along the lanes only */
+  resizeEdges: 'all' | ('top' | 'bottom' | 'left' | 'right')[]
+  /** the label band of a pool or lane lies at the top (the lanes lie side by side) */
+  vertical: boolean
+  /** the icons "Insert lane" a selected lane offers: before and after it along the lanes; none for another shape */
+  insertLane?: { vertical: boolean; insert: (side: 'before' | 'after') => void }
   /** the BPMN symbol of the notation element, in a diagram of the notation `bpmn2` (design D3 of us-074-bpmn-process-diagrams); none draws the box */
   symbol?: BpmnSymbol
   /** the description of the entity, shown by a text annotation */
@@ -174,6 +189,8 @@ export function fromView(shape: DiagramShape): CanvasShape {
     y: shape.y,
     width: shape.width,
     height: shape.height,
+    ...(shape.collapsed ? { collapsed: true } : {}),
+    ...(shape.orientation === 'vertical' ? { orientation: 'vertical' as const } : {}),
     missingMandatory: [...shape.missingMandatory],
     ...(shape.conflict ? { conflict: true } : {}),
   }
@@ -372,6 +389,8 @@ export function writeRequest(
       y: limitPosition(shape.y),
       width: limitSize(shape.width),
       height: limitSize(shape.height),
+      collapsed: shape.collapsed === true,
+      orientation: shape.orientation === 'vertical' ? ('vertical' as const) : ('horizontal' as const),
     })),
     newEntities: named
       .filter((shape) => shape.newEntity)
@@ -412,7 +431,7 @@ export function writeRequest(
 
 /** The part of a shape that a save stores; two shapes with the same fingerprint are the same. */
 function fingerprint(shape: CanvasShape): string {
-  return JSON.stringify([shape.id, shape.entityId ?? shape.newEntity?.key, shape.x, shape.y, shape.width, shape.height, shape.parentShapeId ?? null])
+  return JSON.stringify([shape.id, shape.entityId ?? shape.newEntity?.key, shape.x, shape.y, shape.width, shape.height, shape.parentShapeId ?? null, shape.collapsed === true, shape.orientation === 'vertical'])
 }
 
 /**
@@ -836,4 +855,493 @@ export function bpmnFlowWarnings(
     else if (key === 'bpmn:MessageFlow' && from !== undefined && from === to) warnings.set(edge.id, 'message-within-pool')
   }
   return warnings
+}
+
+// ── Stacked lanes and collapsed sub-processes (design D1, D3, D5 and D6 of us-074-bpmn-pools-and-lanes) ──────────
+
+/** A lane is at least this high (wide in a vertical pool), in pt. */
+export const LANE_MIN_HEIGHT = 30
+
+/** The size of a collapsed sub-process in pt; its stored size stays the expanded one. */
+export const COLLAPSED_SIZE = { width: 90, height: 60 }
+
+/** The notation element a metatype is drawn as. */
+export interface NotationMapping {
+  metatypeId: string
+  notationElement: string
+}
+
+/** The lane rules of one diagram: which shapes are pools and lanes, and the lanes of each of them in their order. */
+interface LaneIndex {
+  isLane: (shape: CanvasShape) => boolean
+  isHost: (shape: CanvasShape) => boolean
+  /** a lane in a pool or lane: stacked by it */
+  isStacked: (shape: CanvasShape) => boolean
+  /** the lanes of the pool or lane lie side by side: its outermost pool is vertical */
+  isVertical: (shape: CanvasShape) => boolean
+  lanesOf: (shape: CanvasShape) => CanvasShape[]
+  childrenOf: (shape: CanvasShape) => CanvasShape[]
+  /** everything nested in the shape, at any depth, in drawing order */
+  tree: (shape: CanvasShape) => CanvasShape[]
+  /** what is nested in the shape without being one of its lanes, with what is nested in that */
+  directContent: (shape: CanvasShape) => CanvasShape[]
+  byId: Map<string, CanvasShape>
+}
+
+/** `ignore` holds the shapes that are no pools or lanes for this index: the lanes of a vertical pool while the others are stacked. */
+function laneIndex(shapes: CanvasShape[], mappings: NotationMapping[], ignore: Set<string> = new Set()): LaneIndex {
+  const keys = new Map(mappings.map((mapping) => [mapping.metatypeId, mapping.notationElement]))
+  const isPool = (shape: CanvasShape) => keys.get(shape.metatypeId) === 'bpmn:Pool'
+  const isLane = (shape: CanvasShape) => keys.get(shape.metatypeId) === 'bpmn:Lane' && !ignore.has(shape.id)
+  const isHost = (shape: CanvasShape) => !ignore.has(shape.id) && (isPool(shape) || isLane(shape))
+  const byId = new Map(shapes.map((shape) => [shape.id, shape]))
+  const order = new Map(shapes.map((shape, position) => [shape.id, position]))
+  const children = new Map<string, CanvasShape[]>()
+  for (const shape of shapes) {
+    if (shape.parentShapeId && byId.has(shape.parentShapeId)) {
+      children.set(shape.parentShapeId, [...(children.get(shape.parentShapeId) ?? []), shape])
+    }
+  }
+  const childrenOf = (shape: CanvasShape) => children.get(shape.id) ?? []
+  const isStacked = (shape: CanvasShape) => {
+    const parent = shape.parentShapeId ? byId.get(shape.parentShapeId) : undefined
+    return isLane(shape) && parent !== undefined && isHost(parent)
+  }
+  const outermost = (shape: CanvasShape) => {
+    let current = shape
+    while (isStacked(current)) current = byId.get(current.parentShapeId!)!
+    return current
+  }
+  const isVertical = (shape: CanvasShape) => {
+    const root = outermost(shape)
+    return isPool(root) && root.orientation === 'vertical'
+  }
+  const lanes = new Map<string, CanvasShape[]>()
+  for (const shape of shapes) {
+    if (isHost(shape)) {
+      const own = childrenOf(shape).filter(isLane)
+      if (own.length > 0) {
+        const along = (lane: CanvasShape) => (isVertical(shape) ? lane.x : lane.y)
+        lanes.set(shape.id, own.sort((a, b) => along(a) - along(b) || order.get(a.id)! - order.get(b.id)!))
+      }
+    }
+  }
+  const tree = (shape: CanvasShape): CanvasShape[] => childrenOf(shape).flatMap((child) => [child, ...tree(child)])
+  return {
+    isLane,
+    isHost,
+    isStacked,
+    isVertical,
+    lanesOf: (shape) => lanes.get(shape.id) ?? [],
+    childrenOf,
+    tree,
+    directContent: (shape) => childrenOf(shape).filter((child) => !isLane(child)).flatMap((child) => [child, ...tree(child)]),
+    byId,
+  }
+}
+
+function sameGeometry(a: CanvasShape[], b: CanvasShape[]): boolean {
+  return a.length === b.length && a.every((shape, position) => shape.x === b[position]!.x && shape.y === b[position]!.y && shape.width === b[position]!.width && shape.height === b[position]!.height)
+}
+
+/** The shape mirrored on the diagonal through the origin: x and y, width and height exchanged. It is its own inverse. */
+function reflect(shape: CanvasShape, origin: { x: number; y: number }): CanvasShape {
+  return { ...shape, x: round2(origin.x + (shape.y - origin.y)), y: round2(origin.y + (shape.x - origin.x)), width: shape.height, height: shape.width }
+}
+
+/**
+ * Applies a change to the pool and what is nested in it as if the pool were horizontal (design D5: the vertical layout is
+ * the horizontal one transposed): the shapes are mirrored on the diagonal through the pool's top left corner, changed, and
+ * mirrored back with the same corner. The pool is horizontal inside the change.
+ */
+function inFrame(shapes: CanvasShape[], poolId: string, change: (list: CanvasShape[]) => CanvasShape[]): CanvasShape[] {
+  const pool = shapes.find((shape) => shape.id === poolId)
+  if (!pool) {
+    return shapes
+  }
+  const ids = new Set([poolId, ...descendantsOf(shapes, poolId).map((shape) => shape.id)])
+  const origin = { x: pool.x, y: pool.y }
+  const inside = shapes.filter((shape) => ids.has(shape.id)).map((shape) => (shape.id === poolId ? { ...reflect(shape, origin), orientation: undefined } : reflect(shape, origin)))
+  const back = new Map(change(inside).map((shape) => [shape.id, shape.id === poolId ? { ...reflect(shape, origin), orientation: 'vertical' as const } : reflect(shape, origin)]))
+  return shapes.map((shape) => back.get(shape.id) ?? shape)
+}
+
+/** The pool or lane that stacks the shape's lanes from the outside: the shape itself, or the outermost pool or lane around a lane. */
+function laneRoot(index: LaneIndex, id: string): CanvasShape | undefined {
+  let current = index.byId.get(id)
+  while (current && index.isStacked(current)) current = index.byId.get(current.parentShapeId!)
+  return current && index.lanesOf(current).length > 0 ? current : undefined
+}
+
+/** Runs the change in the frame of the vertical pool that holds the lane, else on the shapes as they are. */
+function framed(shapes: CanvasShape[], mappings: NotationMapping[], id: string, change: (list: CanvasShape[]) => CanvasShape[]): CanvasShape[] {
+  const index = laneIndex(shapes, mappings)
+  const root = laneRoot(index, id)
+  return root && index.isVertical(root) ? inFrame(shapes, root.id, change) : change(shapes)
+}
+
+/** How the shape takes part in the lanes: a lane of a pool or lane, or the outermost pool or lane with lanes; and the direction of the lanes. */
+export type LaneRole = { role: 'lane' | 'host'; vertical: boolean }
+
+/** The lane roles of all shapes that have one. */
+export function laneRoles(shapes: CanvasShape[], mappings: NotationMapping[]): Map<string, LaneRole> {
+  const index = laneIndex(shapes, mappings)
+  const roles = new Map<string, LaneRole>()
+  for (const shape of shapes) {
+    if (index.isStacked(shape)) roles.set(shape.id, { role: 'lane', vertical: index.isVertical(shape) })
+    else if (index.lanesOf(shape).length > 0) roles.set(shape.id, { role: 'host', vertical: index.isVertical(shape) })
+  }
+  return roles
+}
+
+/** The core of the stacking for horizontal pools (design D1); a vertical pool is mirrored into it by {@link stackLanes}. */
+function stackCore(shapes: CanvasShape[], mappings: NotationMapping[], ignore: Set<string>): CanvasShape[] {
+  const index = laneIndex(shapes, mappings, ignore)
+  const roots = shapes.filter((shape) => index.lanesOf(shape).length > 0 && !index.isStacked(shape))
+  if (roots.length === 0) {
+    return shapes
+  }
+  const result = shapes.map((shape) => ({ ...shape }))
+  const out = new Map(result.map((shape) => [shape.id, shape]))
+  const bottom = (list: CanvasShape[], top: number) => (list.length === 0 ? 0 : round2(Math.max(...list.map((shape) => round2(shape.y + shape.height))) - top))
+  const natural = new Map<string, number>()
+  const span = new Map<string, { left: number; right: number }>()
+  // bottom-up: the heights and the horizontal extents, read from the shapes as they were
+  const measure = (shape: CanvasShape): number => {
+    const lanes = index.lanesOf(shape)
+    let height: number
+    if (lanes.length === 0) {
+      height = Math.max(LANE_MIN_HEIGHT, shape.height, bottom(index.tree(shape), shape.y))
+      span.set(shape.id, { left: shape.x, right: round2(shape.x + shape.width) })
+    } else {
+      const sum = round2(lanes.reduce((total, lane) => total + measure(lane), 0))
+      height = Math.max(sum, bottom(index.directContent(shape), shape.y))
+      span.set(shape.id, {
+        left: Math.min(shape.x, ...lanes.map((lane) => round2(span.get(lane.id)!.left - BAND_WIDTH))),
+        right: Math.max(round2(shape.x + shape.width), ...lanes.map((lane) => span.get(lane.id)!.right)),
+      })
+    }
+    natural.set(shape.id, round2(height))
+    return height
+  }
+  roots.forEach(measure)
+  // top-down: the positions
+  const place = (shape: CanvasShape, x: number, y: number, width: number, height: number) => {
+    const target = out.get(shape.id)!
+    const dy = round2(y - target.y)
+    const moveAll = (list: CanvasShape[]) => {
+      if (dy !== 0) list.forEach((entry) => (out.get(entry.id)!.y = limitPosition(round2(out.get(entry.id)!.y + dy))))
+    }
+    target.x = limitPosition(x)
+    target.y = limitPosition(y)
+    target.width = limitSize(width)
+    target.height = limitSize(height)
+    const lanes = index.lanesOf(shape)
+    if (lanes.length === 0) {
+      moveAll(index.tree(shape))
+      return
+    }
+    moveAll(index.directContent(shape))
+    const heights = lanes.map((lane) => natural.get(lane.id)!)
+    const sum = round2(heights.reduce((total, entry) => total + entry, 0))
+    if (height > sum) heights[heights.length - 1] = round2(heights[heights.length - 1]! + height - sum)
+    let cursor = y
+    lanes.forEach((lane, position) => {
+      place(lane, round2(x + BAND_WIDTH), cursor, round2(width - BAND_WIDTH), heights[position]!)
+      cursor = round2(cursor + heights[position]!)
+    })
+  }
+  for (const root of roots) {
+    const extent = span.get(root.id)!
+    place(root, extent.left, out.get(root.id)!.y, round2(extent.right - extent.left), natural.get(root.id)!)
+  }
+  return result
+}
+
+/**
+ * The lanes stacked (design D1, D5): the lanes nested in a pool or lane fill its width right of the label band and lie from
+ * its top one below the other without gaps, in the order of their `y`; the height of a pool or lane with lanes is the sum of
+ * the heights of its lanes, and a lane is at least 30 pt high and at least as high as its content. A lane that moves takes
+ * its content with it; the content keeps its place across the lanes, and the container widens where a lane does. The lanes
+ * of a vertical pool follow the same rules transposed: the band at the top, the lanes side by side. Without lanes the
+ * shapes are returned as they are.
+ */
+export function stackLanes(shapes: CanvasShape[], mappings: NotationMapping[]): CanvasShape[] {
+  const index = laneIndex(shapes, mappings)
+  const keys = new Map(mappings.map((mapping) => [mapping.metatypeId, mapping.notationElement]))
+  const inside = new Set<string>()
+  let current = shapes
+  for (const pool of shapes) {
+    if (pool.orientation !== 'vertical' || keys.get(pool.metatypeId) !== 'bpmn:Pool' || index.lanesOf(pool).length === 0 || inside.has(pool.id)) {
+      continue
+    }
+    inside.add(pool.id)
+    index.tree(pool).forEach((entry) => inside.add(entry.id))
+    current = inFrame(current, pool.id, (list) => stackCore(list, mappings, new Set()))
+  }
+  return stackCore(current, mappings, inside)
+}
+
+/**
+ * The shapes with every container grown to hold what is nested in it and the lanes stacked (design D1): the stacking runs
+ * after the growing and the growing once more after it, until nothing changes.
+ */
+export function layoutLanes(shapes: CanvasShape[], mappings: NotationMapping[]): CanvasShape[] {
+  let current = growContainers(shapes)
+  for (let round = 0; round < 4; round += 1) {
+    const next = growContainers(stackLanes(current, mappings))
+    if (sameGeometry(current, next)) {
+      return next
+    }
+    current = next
+  }
+  return current
+}
+
+/**
+ * Where a dropped lane goes (design D1, D5): onto the content area of a stacked lane it becomes the sibling before or after
+ * it (by the half of the lane the point lies in, the upper or, in a vertical pool, the left one); onto a label band or into a
+ * pool without lanes it is nested there, at the place of the point among the lanes; onto another shape it is nested in it as
+ * any shape. `index` is the place among the lanes of the container.
+ */
+export function laneDrop(
+  shapes: CanvasShape[],
+  id: string,
+  point: { x: number; y: number },
+  mappings: NotationMapping[],
+  canContainShape: (shape: CanvasShape) => boolean,
+): { container: CanvasShape | undefined; index?: number } {
+  const lanes = laneIndex(shapes, mappings)
+  const own = new Set([id, ...descendantsOf(shapes, id).map((shape) => shape.id)])
+  const candidate = containerAt(shapes, point, own, canContainShape)
+  if (!candidate) {
+    return { container: undefined }
+  }
+  const vertical = lanes.isVertical(candidate)
+  const along = (shape: CanvasShape) => (vertical ? { start: shape.x, size: shape.width } : { start: shape.y, size: shape.height })
+  const pointAlong = vertical ? point.x : point.y
+  const pointAcross = vertical ? point.y : point.x
+  const bandEnd = vertical ? candidate.y + BAND_WIDTH : candidate.x + BAND_WIDTH
+  if (lanes.isStacked(candidate) && pointAcross >= bandEnd) {
+    const parent = lanes.byId.get(candidate.parentShapeId!)!
+    const siblings = lanes.lanesOf(parent).filter((lane) => lane.id !== id)
+    const position = siblings.findIndex((lane) => lane.id === candidate.id)
+    const first = pointAlong < along(candidate).start + along(candidate).size / 2
+    return { container: parent, index: first ? position : position + 1 }
+  }
+  if (lanes.isHost(candidate)) {
+    const siblings = lanes.lanesOf(candidate).filter((lane) => lane.id !== id)
+    const before = siblings.findIndex((lane) => along(lane).start + along(lane).size / 2 > pointAlong)
+    return { container: candidate, index: before < 0 ? siblings.length : before }
+  }
+  return { container: candidate }
+}
+
+/**
+ * The lane put into the container at `index` among its lanes (design D1, D5): it takes the container's extent across the
+ * lanes right of (below, in a vertical pool) the label band, the extent of the container along the lanes when it is the first
+ * lane, and the lanes lie one after the other from the start of the container in the new order, each with its content. A lane
+ * of another container is nested in it first.
+ */
+export function placeLane(shapes: CanvasShape[], id: string, containerId: string, index: number, mappings: NotationMapping[]): CanvasShape[] {
+  const lanes = laneIndex(shapes, mappings)
+  const container = lanes.byId.get(containerId)
+  const lane = lanes.byId.get(id)
+  if (!container || !lane) {
+    return shapes
+  }
+  const vertical = lanes.isVertical(container)
+  const others = lanes.lanesOf(container).filter((entry) => entry.id !== id)
+  const first = others.length === 0
+  const fitted = shapes.map((shape) => {
+    if (shape.id !== id) return shape
+    return vertical
+      ? { ...shape, y: round2(container.y + BAND_WIDTH), height: limitSize(round2(container.height - BAND_WIDTH)), width: first ? limitSize(container.width) : shape.width, error: undefined }
+      : { ...shape, x: round2(container.x + BAND_WIDTH), width: limitSize(round2(container.width - BAND_WIDTH)), height: first ? limitSize(container.height) : shape.height, error: undefined }
+  })
+  const order = [...others]
+  order.splice(Math.min(Math.max(index, 0), order.length), 0, lane)
+  let list = fitted
+  let cursor = vertical ? container.x : container.y
+  for (const entry of order) {
+    const current = list.find((shape) => shape.id === entry.id)!
+    list = vertical ? moveTree(list, entry.id, round2(cursor - current.x), 0) : moveTree(list, entry.id, 0, round2(cursor - current.y))
+    cursor = round2(cursor + (vertical ? current.width : current.height))
+  }
+  return lane.parentShapeId === containerId ? list : nestShape(list, id, containerId)
+}
+
+/** The last lane below a pool or lane, at any depth: its last lane, and that one's last lane. */
+function lastLeaf(lanes: LaneIndex, shape: CanvasShape): CanvasShape {
+  const own = lanes.lanesOf(shape)
+  return own.length === 0 ? shape : lastLeaf(lanes, own[own.length - 1]!)
+}
+
+function resizeBottom(shapes: CanvasShape[], id: string, height: number, mappings: NotationMapping[]): CanvasShape[] {
+  const lanes = laneIndex(shapes, mappings)
+  const shape = lanes.byId.get(id)
+  if (!shape) {
+    return shapes
+  }
+  const leaf = lastLeaf(lanes, shape)
+  const delta = round2(limitSize(height) - shape.height)
+  const withLeaf = (leafHeight: number) => layoutLanes(shapes.map((entry) => (entry.id === leaf.id ? { ...entry, height: limitSize(leafHeight), error: undefined } : entry)), mappings)
+  // the extent of the outermost container is the bottom of its last lane: the container itself is limited to 10 000 pt
+  const total = (list: CanvasShape[]) => {
+    const found = laneIndex(list, mappings)
+    const root = laneRoot(found, id) ?? found.byId.get(id)!
+    const last = lastLeaf(found, root)
+    return round2(last.y + last.height - root.y)
+  }
+  let next = withLeaf(round2(leaf.height + delta))
+  const excess = round2(total(next) - CANVAS_LIMITS.sizeMax)
+  if (excess > 0) {
+    next = withLeaf(round2(leaf.height + delta - excess))
+  }
+  return next
+}
+
+/**
+ * A lane resized at its far edge along the lanes (its bottom edge, or its right edge in a vertical pool), or a pool or lane
+ * with lanes resized there, which changes its last lane, recursively (design D1, D5). `size` is the new height, or the new
+ * width in a vertical pool. The lanes after it shift with their content and the containers follow; a lane stays at least
+ * 30 pt in that extent and as large as its content, and the outermost container at most 10 000 pt.
+ */
+export function resizeAlong(shapes: CanvasShape[], id: string, size: number, mappings: NotationMapping[]): CanvasShape[] {
+  return framed(shapes, mappings, id, (list) => resizeBottom(list, id, size, mappings))
+}
+
+/** The lane levels below a pool or lane: 0 without lanes, 1 for lanes without lanes of their own. */
+function laneLevels(lanes: LaneIndex, shape: CanvasShape): number {
+  const own = lanes.lanesOf(shape)
+  return own.length === 0 ? 0 : 1 + Math.max(...own.map((lane) => laneLevels(lanes, lane)))
+}
+
+/** The bounds of the edges across the lanes of a horizontal pool or lane with lanes: how far left and right they may move and the least width. */
+function hostBounds(shapes: CanvasShape[], id: string, mappings: NotationMapping[]): { maxLeft: number; minRight: number; minWidth: number } {
+  const lanes = laneIndex(shapes, mappings)
+  const host = lanes.byId.get(id)!
+  let maxLeft = Number.POSITIVE_INFINITY
+  let minRight = Number.NEGATIVE_INFINITY
+  const visit = (container: CanvasShape, bands: number) => {
+    for (const shape of lanes.directContent(container)) {
+      maxLeft = Math.min(maxLeft, round2(shape.x - bands * BAND_WIDTH))
+      minRight = Math.max(minRight, round2(shape.x + shape.width))
+    }
+    lanes.lanesOf(container).forEach((lane) => visit(lane, bands + 1))
+  }
+  visit(host, 0)
+  return { maxLeft, minRight, minWidth: round2(laneLevels(lanes, host) * BAND_WIDTH + 1) }
+}
+
+function resizeSides(shapes: CanvasShape[], id: string, box: { x: number; width: number }, mappings: NotationMapping[]): CanvasShape[] {
+  const lanes = laneIndex(shapes, mappings)
+  const host = lanes.byId.get(id)
+  if (!host) {
+    return shapes
+  }
+  const bounds = hostBounds(shapes, id, mappings)
+  const leftMoved = round2(box.x) !== host.x
+  let left = Math.min(round2(box.x), leftMoved ? bounds.maxLeft : host.x)
+  let right = Math.max(round2(box.x + box.width), leftMoved ? round2(host.x + host.width) : bounds.minRight)
+  if (!leftMoved) left = host.x
+  if (round2(right - left) < bounds.minWidth) {
+    if (leftMoved) left = round2(right - bounds.minWidth)
+    else right = round2(left + bounds.minWidth)
+  }
+  const extents = new Map<string, { x: number; width: number }>()
+  const spread = (container: CanvasShape, x: number, width: number) => {
+    extents.set(container.id, { x, width })
+    lanes.lanesOf(container).forEach((lane) => spread(lane, round2(x + BAND_WIDTH), round2(width - BAND_WIDTH)))
+  }
+  spread(host, limitPosition(left), limitSize(round2(right - left)))
+  return layoutLanes(shapes.map((shape) => (extents.has(shape.id) ? { ...shape, ...extents.get(shape.id)!, error: undefined } : shape)), mappings)
+}
+
+/**
+ * A pool or lane with lanes resized at its edges across the lanes (left and right, or top and bottom in a vertical pool;
+ * design D1, D5): the extent goes to every lane, recursively, and the content keeps its place. The new edges are kept clear
+ * of the content, and the extent is at least 1 pt for the innermost lane beside one label band per lane level (31 pt for one
+ * level, 271 pt for 9); the edge that did not move gives way to the one that did. `start` and `extent` are the new left and
+ * width, or top and height in a vertical pool.
+ */
+export function resizeAcross(shapes: CanvasShape[], id: string, box: { start: number; extent: number }, mappings: NotationMapping[]): CanvasShape[] {
+  const index = laneIndex(shapes, mappings)
+  const root = laneRoot(index, id)
+  if (!root) {
+    return shapes
+  }
+  if (!index.isVertical(root)) {
+    return resizeSides(shapes, id, { x: box.start, width: box.extent }, mappings)
+  }
+  // in the frame of the pool the top is the left edge, measured from the top left corner the pool has now
+  const corner = { x: root.x, y: root.y }
+  return inFrame(shapes, root.id, (list) => resizeSides(list, id, { x: round2(corner.x + (box.start - corner.y)), width: box.extent }, mappings))
+}
+
+/**
+ * The orientation of a pool changed (design D5): the lanes keep their order and each lane's extent across the flow (a
+ * horizontal lane of 100 pt height is a vertical one of 100 pt width), the content keeps its offset to the top left corner
+ * of the lane with x and y exchanged and its size; then the stacking and the growing run.
+ */
+export function setOrientation(shapes: CanvasShape[], poolId: string, vertical: boolean, mappings: NotationMapping[]): CanvasShape[] {
+  const pool = shapes.find((shape) => shape.id === poolId)
+  if (!pool || (pool.orientation === 'vertical') === vertical) {
+    return shapes
+  }
+  const index = laneIndex(shapes, mappings)
+  const structure = new Set<string>([poolId])
+  const collect = (container: CanvasShape) => index.lanesOf(container).forEach((lane) => (structure.add(lane.id), collect(lane)))
+  collect(pool)
+  const nested = new Set(descendantsOf(shapes, poolId).map((shape) => shape.id))
+  const origin = { x: pool.x, y: pool.y }
+  const mirrored = shapes.map((shape) => {
+    if (structure.has(shape.id)) return reflect(shape, origin)
+    if (nested.has(shape.id)) return { ...shape, x: reflect(shape, origin).x, y: reflect(shape, origin).y }
+    return shape
+  })
+  return layoutLanes(
+    mirrored.map((shape) => (shape.id === poolId ? { ...shape, orientation: vertical ? ('vertical' as const) : undefined, error: undefined } : shape)),
+    mappings,
+  )
+}
+
+/** The shapes drawn at their collapsed size: a collapsed shape is {@link COLLAPSED_SIZE}, the others as stored. */
+export function drawnShapes(shapes: CanvasShape[]): CanvasShape[] {
+  return shapes.some((shape) => shape.collapsed) ? shapes.map((shape) => (shape.collapsed ? { ...shape, ...COLLAPSED_SIZE } : shape)) : shapes
+}
+
+/** The IDs of the shapes that a collapsed sub-process hides: everything nested in it, at any depth. */
+export function hiddenShapes(shapes: CanvasShape[]): Set<string> {
+  const hidden = new Set<string>()
+  for (const shape of shapes) {
+    if (shape.collapsed) {
+      descendantsOf(shapes, shape.id).forEach((entry) => hidden.add(entry.id))
+    }
+  }
+  return hidden
+}
+
+/** The shapes with the collapsed sub-processes around a shape expanded, so that the shape is shown. */
+export function expandAncestors(shapes: CanvasShape[], id: string): CanvasShape[] {
+  const byId = new Map(shapes.map((shape) => [shape.id, shape]))
+  const open = new Set<string>()
+  for (let parent = byId.get(id)?.parentShapeId; parent; parent = byId.get(parent)?.parentShapeId) {
+    if (byId.get(parent)?.collapsed) open.add(parent)
+  }
+  return open.size === 0 ? shapes : shapes.map((shape) => (open.has(shape.id) ? { ...shape, collapsed: undefined } : shape))
+}
+
+/** The lanes of a pool or lane in their order along the lanes (by `x` in a vertical pool, else by `y`). */
+export function lanesIn(shapes: CanvasShape[], mappings: NotationMapping[], containerId: string): CanvasShape[] {
+  const index = laneIndex(shapes, mappings)
+  const container = index.byId.get(containerId)
+  return container ? index.lanesOf(container) : []
+}
+
+/** Whether the lanes of the pool or lane lie side by side: its outermost pool is vertical. */
+export function laneVertical(shapes: CanvasShape[], mappings: NotationMapping[], id: string): boolean {
+  const index = laneIndex(shapes, mappings)
+  const shape = index.byId.get(id)
+  return shape !== undefined && index.isVertical(shape)
 }

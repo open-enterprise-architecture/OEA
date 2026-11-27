@@ -291,6 +291,8 @@ export function shape(overrides: Partial<DiagramShape> = {}): DiagramShape {
     y: 50,
     width: 120,
     height: 40,
+    collapsed: false,
+    orientation: 'horizontal',
     missingMandatory: [],
     conflict: false,
     ...overrides,
@@ -608,6 +610,8 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             y: entry.y,
             width: entry.width,
             height: entry.height,
+            collapsed: entry.collapsed === true,
+            orientation: entry.orientation ?? 'horizontal',
             missingMandatory: missing,
             conflict: false,
           }
