@@ -15,6 +15,20 @@ OEA besteht aus einer PostgreSQL-Datenbank, einem einmaligen Migrationsschritt u
 - PostgreSQL 15 oder neuer, wenn du eine eigene Datenbank verwendest (das Compose-Setup verwendet PostgreSQL 18)
 - Eine Datei für den Key-Encryption-Key, lesbar für den Container-Benutzer
 
+### Hardware-Dimensionierung
+
+Das sind Richtwerte, geschätzt aus der Architektur; gemessene Werte folgen mit [REQ-205](https://github.com/open-enterprise-architecture/OEA/blob/main/requirements/req/REQ-205-server-memory-footprint.md). Sie decken Backend, PostgreSQL und Betriebssystem auf einem Server ab; ein selbst betriebener Identity-Provider (zum Beispiel Keycloak) braucht etwa 1 bis 1,5 GB zusätzlich.
+
+| Größe | Repository | Gleichzeitige Nutzer | Arbeitsspeicher | CPU-Kerne | Platte für die Datenbank |
+|---|---|---|---|---|---|
+| Klein | bis etwa 10.000 Entitäten | einige Dutzend | 4 GB | 2 | 10 GB |
+| Mittel bis groß | bis etwa 50.000 Entitäten | bis 50 | 8 GB | 4 | 20 GB |
+| Sehr groß | etwa 100.000 Entitäten | 50 und mehr, mit Analysen | 16 GB | 8 | 40 GB |
+
+- **Backend**: plane etwa 1 bis 1,5 GB ein. Das Image setzt den Java-Heap auf 75 % des Container-Speichers (`-XX:MaxRAMPercentage=75`); wenn du den Backend-Container begrenzt, gib ihm also mindestens 1,5 GB.
+- **PostgreSQL**: der restliche Speicher. Setze `shared_buffers` auf etwa ein Viertel des Server-Speichers; den Rest nutzt das Betriebssystem als Datei-Cache. Jede Analyseabfrage darf bis zu 32 MB Arbeitsspeicher belegen.
+- **Platte**: die Entitätsdaten bleiben klein (etwa 500 MB für 50.000 Entitäten), aber Versionshistorie und Audit-Trail wachsen mit jeder Änderung. Die Werte oben enthalten Platz für beides und für Wachstum; lege Backups auf anderem Speicher ab.
+
 ## Mit Docker Compose installieren
 
 1. Kopiere `.env.example` nach `.env` und fülle **jeden** Wert aus. Verwende lange Zufallswerte (mindestens 16 Zeichen); bekannte Entwicklungswerte werden abgelehnt. Committe `.env` nie.

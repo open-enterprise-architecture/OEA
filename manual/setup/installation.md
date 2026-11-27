@@ -15,6 +15,20 @@ OEA consists of a PostgreSQL database, a one-shot migration step and the backend
 - PostgreSQL 15 or later if you use your own database (the Compose setup uses PostgreSQL 18)
 - A file for the key-encryption key, readable by the container user
 
+### Hardware sizing
+
+These are guide values, estimated from the architecture; measured values follow with [REQ-205](https://github.com/open-enterprise-architecture/OEA/blob/main/requirements/req/REQ-205-server-memory-footprint.md). They cover the backend, PostgreSQL and the operating system on one server; an identity provider you host yourself (such as Keycloak) needs about 1 to 1.5 GB more.
+
+| Size | Repository | Concurrent users | Memory | CPU cores | Disk for the database |
+|---|---|---|---|---|---|
+| Small | up to about 10,000 entities | a few dozen | 4 GB | 2 | 10 GB |
+| Medium to large | up to about 50,000 entities | up to 50 | 8 GB | 4 | 20 GB |
+| Very large | about 100,000 entities | 50 and more, with analytics | 16 GB | 8 | 40 GB |
+
+- **Backend**: plan about 1 to 1.5 GB. The image sets the Java heap to 75 % of the container memory (`-XX:MaxRAMPercentage=75`), so if you limit the backend container, give it at least 1.5 GB.
+- **PostgreSQL**: the rest of the memory. Set `shared_buffers` to about a quarter of the server memory; the operating system uses the remainder as file cache. Each analytics query may use up to 32 MB of working memory.
+- **Disk**: the entity data stays small (about 500 MB for 50,000 entities), but the version history and the audit trail grow with every change. The values above include room for both and for growth; keep backups on other storage.
+
 ## Install with Docker Compose
 
 1. Copy `.env.example` to `.env` and fill in **every** value. Use long random values (at least 16 characters); known development values are rejected. Never commit `.env`.
