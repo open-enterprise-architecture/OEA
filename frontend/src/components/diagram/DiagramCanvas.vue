@@ -22,11 +22,13 @@ import ConnectedElementDialog from './ConnectedElementDialog.vue'
 import ConnectionEdges, { type EdgeDraw } from './ConnectionEdges.vue'
 import ConnectionOfferDialog, { type OfferedConnection } from './ConnectionOfferDialog.vue'
 import ChildrenQuestionDialog from './ChildrenQuestionDialog.vue'
+import ConflictsPanel, { type ConflictItem } from './ConflictsPanel.vue'
 import ConnectionTypeDialog from './ConnectionTypeDialog.vue'
 import DeleteFromRepositoryDialog from './DeleteFromRepositoryDialog.vue'
 import EntityDetailsPanel from './EntityDetailsPanel.vue'
 import NewParentDialog from './NewParentDialog.vue'
 import RemoveContainerDialog from './RemoveContainerDialog.vue'
+import ViewpointChangeDialog from './ViewpointChangeDialog.vue'
 import {
   abbreviation,
   applyEdit,
@@ -127,8 +129,13 @@ const childrenAsk = ref<string>()
 const childrenOpen = ref(false)
 const parentAsk = ref<{ shapeId: string; target: ParentTarget; parentName?: string }>()
 const parentOpen = ref(false)
-const removeAsk = ref<{ id: string; name: string; count: number }>()
+const removeAsk = ref<{ ids: string[]; name: string; count: number; all?: boolean }>()
 const removeOpen = ref(false)
+// viewpoint conflicts (design D5 of us-074-diagram-viewpoint-change): the dialog "Change viewpoint", the shapes and
+// edges a save named as conflicts although the view did not mark them, and the notice that the save is blocked
+const changeOpen = ref(false)
+const flagged = ref(new Set<string>())
+const blockedByConflicts = ref(false)
 const selectedId = ref<string>()
 const selectedEdgeId = ref<string>()
 const surface = ref<HTMLElement>()
@@ -188,6 +195,8 @@ function adopt(view: DiagramView) {
   offer.value = []
   failure.value = undefined
   rejected.value = false
+  flagged.value = new Set()
+  blockedByConflicts.value = false
   edits.value = {}
   fieldErrors.value = new Map()
   staleEntities.value = []
@@ -300,6 +309,7 @@ const nodes = computed(() => {
       unsaved: isUnsaved(shape, saved.value, edits.value, parents.value),
       missingMandatory: shape.missingMandatory,
       error: shape.error,
+      conflict: isConflict(shape),
       metatypeName: metatypeNames.value.get(shape.metatypeId) ?? '',
       container: shapes.value.some((entry) => entry.parentShapeId === shape.id),
       rename: (name) => rename(shape.id, name),
@@ -318,6 +328,16 @@ const nodes = computed(() => {
     }
   })
 })
+
+/** A shape or edge the viewpoint does not allow, as the view marked it or a rejected save named it. */
+function isConflict(item: { id: string; conflict?: boolean }): boolean {
+  return item.conflict === true || flagged.value.has(item.id)
+}
+
+const conflictItems = computed<ConflictItem[]>(() => [
+  ...shapes.value.filter(isConflict).map((shape): ConflictItem => ({ id: shape.id, kind: 'shape', name: shape.name })),
+  ...edges.value.filter(isConflict).map((edge): ConflictItem => ({ id: edge.id, kind: 'edge', name: edgeLabel(edge, shapes.value) })),
+])
 
 const lineDraws = computed<EdgeDraw[]>(() =>
   lines.value.flatMap((line) => {
@@ -357,6 +377,7 @@ const edgeDraws = computed<EdgeDraw[]>(() => [
             unsaved: isEdgeUnsaved(edge, savedEdges.value, edits.value),
             incomplete: edge.missingMandatory,
             error: edge.error,
+            conflict: isConflict(edge),
           },
         ]
       : []
@@ -747,21 +768,12 @@ function removeSelected() {
     return
   }
   if (selectedEdgeId.value) {
-    // only the edge or line goes: the connection stays in the repository, the hierarchy stays as it is
-    const id = selectedEdgeId.value
-    edges.value = edges.value.filter((edge) => edge.id !== id)
-    lines.value = lines.value.filter((line) => line.id !== id)
-    pruneEdits()
+    removeEdge(selectedEdgeId.value)
   } else if (selectedId.value) {
-    const nestedCount = descendantsOf(shapes.value, selectedId.value).length
-    if (nestedCount > 0) {
-      // the shapes nested in a container leave the diagram with it: ask first
-      removeAsk.value = { id: selectedId.value, name: selectedShape.value?.name ?? '', count: nestedCount }
-      removeOpen.value = true
+    if (!removeShape(selectedId.value)) {
       menu.value = undefined
       return
     }
-    dropShape(selectedId.value)
   } else {
     return
   }
@@ -769,6 +781,74 @@ function removeSelected() {
   selectedEdgeId.value = undefined
   menu.value = undefined
   notice.value = undefined
+}
+
+/** Only the edge or line goes: the connection stays in the repository, the hierarchy stays as it is. */
+function removeEdge(id: string) {
+  edges.value = edges.value.filter((edge) => edge.id !== id)
+  lines.value = lines.value.filter((line) => line.id !== id)
+  pruneEdits()
+}
+
+/** Removes a shape; the shapes nested in a container leave the diagram with it, so that is asked first. Returns whether it was removed. */
+function removeShape(id: string): boolean {
+  const nestedCount = descendantsOf(shapes.value, id).length
+  if (nestedCount > 0) {
+    removeAsk.value = { ids: [id], name: shapes.value.find((shape) => shape.id === id)?.name ?? '', count: nestedCount }
+    removeOpen.value = true
+    return false
+  }
+  dropShape(id)
+  return true
+}
+
+/** "Remove from diagram" of a conflict (design D5 of us-074-diagram-viewpoint-change): the removal of the canvas. */
+function removeConflict(item: ConflictItem) {
+  if (!props.editable) {
+    return
+  }
+  if (item.kind === 'edge') {
+    removeEdge(item.id)
+  } else if (!removeShape(item.id)) {
+    return
+  }
+  selectedId.value = undefined
+  selectedEdgeId.value = undefined
+  notice.value = undefined
+}
+
+/** "Remove all conflicts": every conflicting shape and edge; the allowed shapes nested in a conflicting container are asked about. */
+function removeAllConflicts() {
+  if (!props.editable) {
+    return
+  }
+  const conflicting = shapes.value.filter(isConflict).map((shape) => shape.id)
+  const gone = new Set(conflicting)
+  conflicting.forEach((id) => descendantsOf(shapes.value, id).forEach((shape) => gone.add(shape.id)))
+  const nested = gone.size - conflicting.length
+  if (nested > 0) {
+    removeAsk.value = { ids: conflicting, name: t('diagrams.viewpointChange.allName'), count: nested, all: true }
+    removeOpen.value = true
+    return
+  }
+  conflicting.forEach(dropShape)
+  edges.value.filter(isConflict).forEach((edge) => removeEdge(edge.id))
+  selectedId.value = undefined
+  selectedEdgeId.value = undefined
+  notice.value = undefined
+}
+
+function selectConflict(item: ConflictItem) {
+  if (item.kind === 'shape') {
+    selectShape(item.id)
+  } else {
+    selectEdge(item.id)
+  }
+}
+
+/** The viewpoint of the diagram was changed (and saved at once): the page reads the view of the new viewpoint. */
+function viewpointChanged(next: DiagramView) {
+  emit('saved', next)
 }
 
 function dragStop(event: NodeDragEvent) {
@@ -1039,6 +1119,17 @@ async function save() {
     const rejection = outcome.rejection
     if (rejection.status === 412) {
       conflict.value = true
+    } else if (rejection.status === 409 && rejection.problemType === 'diagram-conflicts') {
+      // the layout still holds shapes or edges of a type the viewpoint does not allow: they are named, the list opens
+      const named = new Set<string>()
+      for (const field of rejection.invalidFields) {
+        const shape = /^shapes\[(\d+)]/.exec(field)
+        const edge = /^edges\[(\d+)]/.exec(field)
+        const id = shape ? request.shapes[Number(shape[1])]?.id : edge ? request.edges?.[Number(edge[1])]?.id : undefined
+        if (id) named.add(id)
+      }
+      flagged.value = named
+      blockedByConflicts.value = true
     } else if (rejection.status === 409 && rejection.problemType === 'entity-version-conflict') {
       staleEntities.value = (rejection.conflicts ?? []).map((entry) => ({
         entityId: entry.entityId,
@@ -1076,7 +1167,10 @@ function removeConfirmed() {
   if (!ask) {
     return
   }
-  dropShape(ask.id)
+  ask.ids.forEach(dropShape)
+  if (ask.all) {
+    edges.value.filter(isConflict).forEach((edge) => removeEdge(edge.id))
+  }
   selectedId.value = undefined
   selectedEdgeId.value = undefined
   notice.value = undefined
@@ -1122,6 +1216,18 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
         <UButton data-testid="canvas-add-existing" size="xs" color="neutral" variant="outline" icon="i-lucide-search" :label="t('diagrams.canvas.addExisting')" @click="adding = true" />
         <UButton data-testid="canvas-add-connected" size="xs" color="neutral" variant="outline" icon="i-lucide-git-commit-horizontal" :disabled="!selectedShape || selectedShape.editing" :label="t('diagrams.canvas.addConnected')" @click="openConnected" />
         <UButton data-testid="canvas-remove" size="xs" color="neutral" variant="outline" icon="i-lucide-square-minus" :disabled="!selectedId && !selectedEdgeId" :label="t('diagrams.canvas.remove')" @click="removeSelected" />
+        <UButton
+          data-testid="canvas-change-viewpoint"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-replace"
+          :disabled="dirty"
+          :aria-describedby="dirty ? `${flowId}-viewpoint-hint` : undefined"
+          :label="t('diagrams.viewpointChange.action')"
+          @click="changeOpen = true"
+        />
+        <span v-if="dirty" :id="`${flowId}-viewpoint-hint`" class="text-xs text-muted" data-testid="canvas-change-viewpoint-hint">{{ t('diagrams.viewpointChange.saveFirst') }}</span>
       </template>
       <div class="ms-auto flex flex-wrap items-center gap-2">
         <UBadge v-if="dirty" data-testid="canvas-unsaved" color="warning" variant="subtle" :label="t('diagrams.canvas.unsavedChanges')" />
@@ -1144,6 +1250,8 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
         </div>
       </template>
     </UAlert>
+    <UAlert v-if="blockedByConflicts && conflictItems.length > 0" data-testid="canvas-conflicts-blocked" color="warning" variant="subtle" :description="t('diagrams.viewpointChange.blocked')" />
+    <ConflictsPanel :items="conflictItems" :editable="editable" :selected-id="selectedId ?? selectedEdgeId" @select="selectConflict" @remove="removeConflict" @remove-all="removeAllConflicts" />
     <UAlert v-if="failure" data-testid="canvas-failure" color="error" variant="subtle" :description="failure" />
     <UAlert v-if="rejected" data-testid="canvas-rejected" color="error" variant="subtle" :description="t('diagrams.canvas.rejected')" />
     <UAlert v-if="staleEntities.length > 0" data-testid="canvas-entity-conflict" color="error" variant="subtle" :title="t('diagrams.canvas.entityConflictTitle')">
@@ -1272,6 +1380,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       @yes="parentConfirmed"
       @no="parentDeclined"
     />
+    <ViewpointChangeDialog v-if="editable" v-model:open="changeOpen" :view="view" :fetch-fn="fetchFn" @changed="viewpointChanged" @stale="reload" />
     <RemoveContainerDialog v-if="editable" v-model:open="removeOpen" :name="removeAsk?.name ?? ''" :count="removeAsk?.count ?? 0" @confirm="removeConfirmed" />
 
     <UModal v-model:open="conflict" :title="t('diagrams.canvas.conflictTitle')" :description="t('diagrams.canvas.conflict')">

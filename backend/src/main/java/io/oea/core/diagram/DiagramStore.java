@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +98,59 @@ public class DiagramStore {
 		return this.jdbc.queryForObject("""
 				UPDATE diagrams SET version = version + 1, updated_at = ?, updated_by = ? WHERE id = ?
 				RETURNING version""", Integer.class, Timestamp.from(now), personId, id);
+	}
+
+	/** Sets another viewpoint and raises the version; fails with a foreign key violation for an unknown viewpoint. */
+	public void changeViewpoint(UUID id, UUID viewpointId, long personId, Instant now) {
+		this.jdbc.update("""
+				UPDATE diagrams SET viewpoint_id = ?, version = version + 1, updated_at = ?, updated_by = ?
+				WHERE id = ?""", viewpointId, Timestamp.from(now), personId, id);
+	}
+
+	/**
+	 * The number of shown shapes and edges of the diagram whose exact metatype its viewpoint does not
+	 * allow (design D2 of us-074-diagram-viewpoint-change); shapes and edges of deleted entities are
+	 * hidden and do not count.
+	 */
+	public int conflictCount(UUID diagramId) {
+		return this.jdbc.queryForObject("""
+				SELECT
+				  (SELECT count(*) FROM diagram_shapes s JOIN entities e ON e.id = s.entity_id
+				   WHERE s.diagram_id = d.id AND e.deleted_at IS NULL
+				     AND NOT EXISTS (SELECT 1 FROM viewpoint_metatypes vm
+				                     WHERE vm.viewpoint_id = d.viewpoint_id AND vm.metatype_id = e.metatype_id))
+				  +
+				  (SELECT count(*) FROM diagram_edges ed JOIN entities c ON c.id = ed.connection_id
+				   JOIN diagram_shapes ss ON ss.id = ed.source_shape_id JOIN entities se ON se.id = ss.entity_id
+				   JOIN diagram_shapes ts ON ts.id = ed.target_shape_id JOIN entities te ON te.id = ts.entity_id
+				   WHERE ed.diagram_id = d.id AND c.deleted_at IS NULL AND se.deleted_at IS NULL
+				     AND te.deleted_at IS NULL
+				     AND NOT EXISTS (SELECT 1 FROM viewpoint_connection_types vc
+				                     WHERE vc.viewpoint_id = d.viewpoint_id AND vc.metatype_id = c.metatype_id))
+				FROM diagrams d WHERE d.id = ?""", Integer.class, diagramId);
+	}
+
+	/**
+	 * The number of diagrams of the viewpoint that are not deleted and have a shown shape whose
+	 * metatype is not in {@code metatypeIds} or a shown edge whose metatype is not in
+	 * {@code connectionTypeIds} (design D4 of us-074-diagram-viewpoint-change).
+	 */
+	public int countAffected(UUID viewpointId, Collection<UUID> metatypeIds, Collection<UUID> connectionTypeIds) {
+		return this.jdbc.queryForObject("""
+				SELECT count(*) FROM diagrams d
+				WHERE d.viewpoint_id = ? AND d.deleted_at IS NULL
+				  AND (EXISTS (SELECT 1 FROM diagram_shapes s JOIN entities e ON e.id = s.entity_id
+				               WHERE s.diagram_id = d.id AND e.deleted_at IS NULL
+				                 AND e.metatype_id <> ALL (?::uuid[]))
+				    OR EXISTS (SELECT 1 FROM diagram_edges ed JOIN entities c ON c.id = ed.connection_id
+				               JOIN diagram_shapes ss ON ss.id = ed.source_shape_id
+				               JOIN entities se ON se.id = ss.entity_id
+				               JOIN diagram_shapes ts ON ts.id = ed.target_shape_id
+				               JOIN entities te ON te.id = ts.entity_id
+				               WHERE ed.diagram_id = d.id AND c.deleted_at IS NULL AND se.deleted_at IS NULL
+				                 AND te.deleted_at IS NULL AND c.metatype_id <> ALL (?::uuid[])))""", Integer.class,
+				viewpointId, metatypeIds.stream().map(UUID::toString).toArray(String[]::new),
+				connectionTypeIds.stream().map(UUID::toString).toArray(String[]::new));
 	}
 
 	/** Marks the diagram as deleted and raises the version. */

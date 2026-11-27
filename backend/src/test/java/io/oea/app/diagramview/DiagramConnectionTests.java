@@ -272,7 +272,7 @@ class DiagramConnectionTests {
 	}
 
 	@Test
-	void aStoredEdgeWhoseTypeTheViewpointNoLongerAllowsIsKeptButANewOneIsRejected() {
+	void aStoredEdgeWhoseTypeTheViewpointNoLongerAllowsIsAConflictAndANewOneIsRejected() {
 		int link = connection(this.flow, "SAP ERP → CRM Cloud", this.erp, this.crm);
 		String edge = id();
 		ObjectNode body = layout();
@@ -281,15 +281,19 @@ class DiagramConnectionTests {
 		this.jdbc.update("DELETE FROM viewpoint_connection_types WHERE viewpoint_id = ?", this.viewpoint);
 		ObjectNode kept = layout();
 		kept.withArray("edges").add(edge(edge, link, this.erpShape, this.crmShape, point(1, 1)));
-		assertThat(edgeIds(saveOk(2, kept))).containsExactly(edge);
+		MvcTestResult blocked = save(2, kept, this.anna);
+		assertThat(status(blocked)).isEqualTo(409);
+		assertThat(edgeCount()).isOne();
 		ObjectNode added = layout();
 		added.withArray("edges")
 			.add(edge(edge, link, this.erpShape, this.crmShape))
 			.add(edge(id(), link, this.erpShape, this.crmShape));
-		MvcTestResult rejected = save(3, added, this.anna);
+		MvcTestResult rejected = save(2, added, this.anna);
 		assertThat(firstField(rejected)).isEqualTo("edges[1].connectionId");
 		assertThat(firstCode(rejected)).isEqualTo("METATYPE_NOT_ALLOWED");
 		assertThat(edgeCount()).isOne();
+		// removing the conflicting edge is accepted
+		assertThat(saveOk(2, layout()).path("edges")).isEmpty();
 	}
 
 	// Requirement: Edges of a diagram - rejections

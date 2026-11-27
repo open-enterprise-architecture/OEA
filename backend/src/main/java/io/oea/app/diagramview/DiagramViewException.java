@@ -7,7 +7,7 @@ import java.util.List;
  * A diagram view request that cannot be applied; nothing was changed (design D2 and D4 of
  * us-074-diagram-canvas). {@code INVALID_REQUEST} is a value outside the contract that bean
  * validation cannot see (400); {@code INVALID} lists the shapes and new entities that violate a
- * rule (422), each as an issue whose field is its path, e.g. {@code shapes[3].entityId}.
+ * rule (422) and {@code CONFLICTS} the conflicts that block a save (409), each as an issue whose field is its path, e.g. {@code shapes[3].entityId}.
  */
 public class DiagramViewException extends RuntimeException {
 
@@ -16,7 +16,9 @@ public class DiagramViewException extends RuntimeException {
 		/** A value outside the contract, e.g. more than two decimals (400 {@code validation-failed}). */
 		INVALID_REQUEST,
 		/** Shapes or new entities that violate a rule (422 {@code validation-failed}). */
-		INVALID
+		INVALID,
+		/** Shapes or edges whose type the viewpoint does not allow stay in the layout (409 {@code diagram-conflicts}). */
+		CONFLICTS
 
 	}
 

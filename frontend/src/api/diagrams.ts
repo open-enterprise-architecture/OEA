@@ -10,6 +10,7 @@ export type DeletedDiagram = components['schemas']['DeletedDiagram']
 export type DiagramPage = components['schemas']['DiagramPage']
 export type DeletedDiagramPage = components['schemas']['DeletedDiagramPage']
 export type DiagramViewpoint = components['schemas']['DiagramViewpoint']
+export type DiagramViewpointChanged = components['schemas']['DiagramViewpointChanged']
 
 /** The input limits of the contract (design D2 of us-074-diagrams). */
 export const DIAGRAM_LIMITS = { name: 200, description: 2000, filter: 200 }
@@ -96,7 +97,7 @@ export async function createDiagram(
   return diagramOutcome(response, 201)
 }
 
-/** PUT /diagrams/{id} with `If-Match`: name and description; the viewpoint is fixed. */
+/** PUT /diagrams/{id} with `If-Match`: name and description; the viewpoint changes only through {@link changeDiagramViewpoint}. */
 export async function updateDiagram(
   id: string,
   request: { name: string; description: string | null },
@@ -110,6 +111,29 @@ export async function updateDiagram(
     body: JSON.stringify(request),
   })
   return diagramOutcome(response, 200)
+}
+
+/**
+ * PUT /diagrams/{id}/viewpoint with `If-Match` (design D1 of us-074-diagram-viewpoint-change): the viewpoint is
+ * changed at once; the answer is the diagram with the number of its conflicts. 422 names `viewpointId`, 412 is a
+ * stale version.
+ */
+export async function changeDiagramViewpoint(
+  id: string,
+  viewpointId: string,
+  version: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<DiagramViewpointChanged>> {
+  const response = await fetchFn(`${DIAGRAMS}/${encodeURIComponent(id)}/viewpoint`, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: writeHeaders(version, true),
+    body: JSON.stringify({ viewpointId }),
+  })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DiagramViewpointChanged }
+  }
+  return { ok: false, rejection: await readRejection(response) }
 }
 
 /** DELETE /diagrams/{id} with `If-Match`: the diagram is marked deleted and can be restored. */

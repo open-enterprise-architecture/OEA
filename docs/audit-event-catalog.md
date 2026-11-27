@@ -868,6 +868,17 @@ A diagram was created, renamed or its description changed, deleted or restored (
 | Target | `diagram`, ID of the diagram |
 | Details | `name` and `viewpointId`; for `diagram.updated` also `fields`, the changed fields among `name` and `description` (empty when nothing changed); for `diagram.deleted` by a viewpoint deletion or a package re-import also `cause` `viewpoint-deleted` and, for a diagram that was deleted before, `wasDeleted` `true` |
 
+### `diagram.viewpoint-changed`
+
+The viewpoint of a diagram was changed ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md), [UC-10](../requirements/use-cases/UC-10-model-business-processes.md); change us-074-diagram-viewpoint-change, owner decision 2026-11-19). The change is saved at once and raises the version of the diagram; a request for the viewpoint the diagram already has changes nothing and is not audited, nor is a rejected one (unknown viewpoint, stale or missing version, missing permission, unknown or deleted diagram).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the person or service account with `entity:write` |
+| Target | `diagram`, ID of the diagram |
+| Details | `name` of the diagram, `fromViewpointId`, `toViewpointId` and `conflicts`, the number of shown shapes and edges whose type the new viewpoint does not allow |
+
 ### `diagram.layout-saved`
 
 The layout of a diagram was saved: all its shapes in drawing order and its edges, with the entities and connections created on the canvas ([US-074](../requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md); change us-074-diagram-canvas, business object [Diagram](../business-objects/diagram.md), BR-DG-08). Every accepted save is audited and raises the version of the diagram, also when nothing differs. A rejected save (invalid shape or new entity, stale or missing version, missing permission, unknown or deleted diagram, too many shapes) is not audited and changes nothing. Each new entity of the save is audited as [`entity.created`](#entitycreated--entityupdated) with the same details as a batch create, each connection created with the layout (change us-074-diagram-connections) as `entity.created` with the endpoints in its details, like a connection of a batch, one batch ID for the connections of the save; each entity or connection changed with the layout (name, description, values; change us-074-diagram-entity-details) as [`entity.updated`](#entitycreated--entityupdated) with the same details and changes as a batch update (one batch ID for the entities of the save); an update without an effective change writes no event. A save rejected for a stale entity version (409 `entity-version-conflict`), an entity with an open issue (409 `entity-blocked`) or a missing mandatory value (422) is not audited and changes nothing; a denied restricted property is audited as `authz.denied`.

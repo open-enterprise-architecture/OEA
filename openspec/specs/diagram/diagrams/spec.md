@@ -8,9 +8,9 @@ Defines diagrams as objects: creating them for a viewpoint, reading and listing 
 
 ### Requirement: Create a diagram
 
-A person or service account with `entity:write` SHALL create a diagram with a name of 1 to 200 characters, a description of at most 2000 and an existing viewpoint; the new diagram SHALL be empty with version 1. Names SHALL be stored trimmed and be unique ignoring case. The viewpoint of a diagram SHALL NOT change after creation. A principal without a person SHALL get 403.
+A person or service account with `entity:write` SHALL create a diagram with a name of 1 to 200 characters, a description of at most 2000 and an existing viewpoint; the new diagram SHALL be empty with version 1. Names SHALL be stored trimmed and be unique ignoring case. The viewpoint SHALL change only through `changeDiagramViewpoint`. A principal without a person SHALL get 403.
 
-Trace: US-074, UC-10 step 1, UC-12, business object Diagram, owner decision 2026-11-19
+Trace: US-074, UC-10 step 1, UC-12, business object Diagram, owner decisions 2026-11-19
 
 #### Scenario: Diagram created
 
@@ -50,8 +50,8 @@ Trace: US-074, UC-10 step 1, UC-12, business object Diagram, owner decision 2026
 
 #### Scenario: Viewpoint fixed
 
-- **WHEN** Anna changes "Order to Cash" with another viewpoint ID in the request
-- **THEN** the diagram keeps its viewpoint
+- **WHEN** Anna changes "Order to Cash" through `updateDiagram` with another viewpoint ID in the request
+- **THEN** the diagram keeps its viewpoint; only `changeDiagramViewpoint` changes it
 
 ### Requirement: Read and list diagrams
 

@@ -2123,7 +2123,8 @@ package "Navigation & Presentation" #EDE7F6 {
     + description       : TEXT
     .. max. 2000 characters ..
     + viewpoint_id      : UUID          {NN} {FK→viewpoints.id}
-    .. fixed at the creation; no cascade: deleting a viewpoint removes its diagrams first ..
+    .. set at the creation, changed only by changeDiagramViewpoint (change us-074-diagram-viewpoint-change); no cascade: deleting a viewpoint removes its diagrams first; ..
+    .. conflicts (a shown shape or edge whose exact metatype the viewpoint does not allow, BR-DG-14) are computed, not stored ..
     + plateau_id        : UUID          {FK→plateaus.id}
     .. planned; NULL = current state ..
     + version           : INTEGER       {NN} DEFAULT 1

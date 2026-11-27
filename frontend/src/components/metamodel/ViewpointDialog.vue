@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
+  countAffectedDiagrams,
   createViewpoint,
   elementFits,
   INSTANCE_CONFIGURATION,
@@ -52,20 +53,50 @@ const askChoices = computed(() => [
 ])
 
 /**
- * The warning "N diagrams affected" (US-090 AC2): an allowed entity type or connection type is removed from a viewpoint
- * that diagrams use. Until diagrams have shapes every diagram of the viewpoint counts (design D6 of us-074-diagrams);
- * the warning does not block saving.
+ * The warning "N diagrams affected" (US-090 AC2; design D4 of us-074-diagram-viewpoint-change): an allowed entity type
+ * or connection type is removed from a viewpoint that diagrams use. The number is that of the diagrams with a shown
+ * shape or edge of a removed type, asked of the backend for the types selected now (debounced); their shapes become
+ * conflicts. The warning does not block saving.
  */
-const affectedDiagrams = computed(() => {
+const COUNT_DEBOUNCE_MS = 250
+const affectedDiagrams = ref(0)
+const removesType = computed(() => {
   const viewpoint = props.viewpoint
   if (!viewpoint || viewpoint.diagramCount === 0) {
-    return 0
+    return false
   }
-  const removed =
+  return (
     viewpoint.allowedMetatypes.some((type) => !form.metatypeIds.includes(type.id)) ||
     viewpoint.allowedRelations.some((type) => !form.connectionTypeIds.includes(type.id))
-  return removed ? viewpoint.diagramCount : 0
+  )
 })
+let countTimer: ReturnType<typeof setTimeout> | undefined
+let countTicket = 0
+watch(
+  () => [removesType.value, [...form.metatypeIds].sort().join(), [...form.connectionTypeIds].sort().join()],
+  () => {
+    clearTimeout(countTimer)
+    const ticket = ++countTicket
+    const viewpoint = props.viewpoint
+    if (!viewpoint || !removesType.value) {
+      affectedDiagrams.value = 0
+      return
+    }
+    countTimer = setTimeout(async () => {
+      try {
+        const outcome = await countAffectedDiagrams(viewpoint.id, [...form.metatypeIds], [...form.connectionTypeIds], props.fetchFn)
+        if (ticket === countTicket) {
+          affectedDiagrams.value = outcome.ok ? outcome.value.count : 0
+        }
+      } catch {
+        if (ticket === countTicket) {
+          affectedDiagrams.value = 0
+        }
+      }
+    }, COUNT_DEBOUNCE_MS)
+  },
+)
+onBeforeUnmount(() => clearTimeout(countTimer))
 
 /** The mapping of one type as typed: the element key and the color. */
 interface MappingRow {

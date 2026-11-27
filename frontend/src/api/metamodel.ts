@@ -464,6 +464,19 @@ export function updateDiagramSettings(askNewParent: boolean, version: number, fe
   return write('PUT', DIAGRAM_SETTINGS, { askNewParent }, version, fetchFn)
 }
 
+/**
+ * POST /admin/viewpoints/{id}/affected-diagrams/query (design D4 of us-074-diagram-viewpoint-change): the number of
+ * diagrams of the viewpoint with a shown shape or edge of a type that the proposed allowed types do not contain.
+ */
+export function countAffectedDiagrams(
+  id: string,
+  metatypeIds: string[],
+  connectionTypeIds: string[],
+  fetchFn: typeof fetch = fetch,
+): Promise<WriteOutcome<{ count: number }>> {
+  return write('POST', `${VIEWPOINTS}/${at(id)}/affected-diagrams/query`, { metatypeIds, connectionTypeIds }, undefined, fetchFn)
+}
+
 /** DELETE /admin/viewpoints/{id} with `If-Match`. */
 export function deleteViewpoint(id: string, version: number | undefined, fetchFn: typeof fetch = fetch): Promise<WriteOutcome<void>> {
   return write('DELETE', `${VIEWPOINTS}/${at(id)}`, undefined, version, fetchFn)
