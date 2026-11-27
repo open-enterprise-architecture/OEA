@@ -2161,6 +2161,12 @@ package "Navigation & Presentation" #EDE7F6 {
     .. the shape lies completely within it; checked by the service); positions stay absolute. ..
     .. ON DELETE SET NULL: a nested shape that a save keeps under another container must survive the ..
     .. removal of its former container; nesting alone never changes the parent of the entity ..
+    + collapsed         : BOOLEAN       {NN} DEFAULT false
+    .. V52 (change us-074-bpmn-pools-and-lanes): the sub-process is shown collapsed in this diagram (90 x 60 pt, ..
+    .. nested shapes hidden); width and height stay the expanded size; true only for a metatype mapped to bpmn:SubProcess ..
+    + orientation       : TEXT          {NN} DEFAULT 'horizontal'
+    .. V52: CHECK IN ('horizontal', 'vertical'); the lanes of a pool lie one below the other or side by side; ..
+    .. vertical only for a metatype mapped to bpmn:Pool; both are per diagram and read as false/horizontal when the mapping is gone ..
   }
 
   ' The hierarchy lines of a diagram (V51, change us-074-diagram-nesting): a line from the shape of a parent

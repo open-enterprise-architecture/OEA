@@ -172,6 +172,11 @@ describe('DiagramCanvas BPMN', () => {
         conflict: false,
         metatypeName: 'Text Annotation',
         container: false,
+        collapsed: false,
+        collapsible: false,
+        toggle: () => undefined,
+        resizeEdges: 'all',
+        vertical: false,
         rename: () => undefined,
         resized: () => undefined,
       }

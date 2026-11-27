@@ -1683,7 +1683,17 @@
       },
       "warnings": "Keine BPMN-Warnungen | 1 BPMN-Warnung | {count} BPMN-Warnungen",
       "sequenceCrossesPool": "Sequenzfluss überschreitet eine Pool-Grenze",
-      "messageWithinPool": "Nachrichtenfluss innerhalb eines Pools"
+      "messageWithinPool": "Nachrichtenfluss innerhalb eines Pools",
+      "collapse": "Einklappen",
+      "expand": "Ausklappen",
+      "collapseShape": "Teilprozess {name} einklappen",
+      "expandShape": "Teilprozess {name} ausklappen",
+      "switchVertical": "Vertikal",
+      "switchHorizontal": "Horizontal",
+      "insertAbove": "Lane oberhalb einfügen",
+      "insertBelow": "Lane unterhalb einfügen",
+      "insertLeft": "Lane links einfügen",
+      "insertRight": "Lane rechts einfügen"
     }
   },
   "dashboards": {

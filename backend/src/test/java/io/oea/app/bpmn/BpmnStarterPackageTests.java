@@ -528,7 +528,354 @@ class BpmnStarterPackageTests {
 		assertThat(status(result)).as(() -> content(result)).isEqualTo(422);
 	}
 
+	// Requirement: Collapsed sub-processes (us-074-bpmn-pools-and-lanes D2)
+
+	@Test
+	@Order(15)
+	void aSubProcessIsSavedCollapsedWithItsExpandedSizeAndExpandedAgain() {
+		String diagram = diagram();
+		ObjectNode body = subProcessLayout(true);
+		JsonNode view = ok(save(diagram, 1, body));
+		JsonNode sub = shape(view, "Check credit");
+		assertThat(sub.path("collapsed").asBoolean()).isTrue();
+		assertThat(sub.path("width").decimalValue()).isEqualByComparingTo("270");
+		assertThat(sub.path("height").decimalValue()).isEqualByComparingTo("150");
+		JsonNode task = shape(view, "Check score");
+		assertThat(task.path("collapsed").asBoolean()).isFalse();
+		assertThat(task.path("parentShapeId").asString()).isEqualTo(sub.path("id").asString());
+		assertThat(view(diagram).path("shapes").valueStream().filter((s) -> s.path("collapsed").asBoolean()).count())
+			.isEqualTo(1);
+		// the entities and their parents are not touched
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM entities WHERE name IN ('Check credit', 'Check score') AND parent_entity_id IS NOT NULL",
+				Integer.class)).isZero();
+		// expanded again
+		JsonNode expanded = ok(save(diagram, 2, rewrite(view, Map.of(sub.path("id").asString(), false), null)));
+		assertThat(shape(expanded, "Check credit").path("collapsed").asBoolean()).isFalse();
+		assertThat(shape(expanded, "Check credit").path("height").decimalValue()).isEqualByComparingTo("150");
+		assertThat(auditDetails(diagram).path("changed").asInt()).isEqualTo(1);
+	}
+
+	@Test
+	@Order(16)
+	void theFlagIsAnAuditedChangeOnlyWhenItChanges() {
+		String diagram = diagram();
+		JsonNode view = ok(save(diagram, 1, subProcessLayout(false)));
+		String sub = shape(view, "Check credit").path("id").asString();
+		JsonNode collapsed = ok(save(diagram, 2, rewrite(view, Map.of(sub, true), null)));
+		assertThat(auditDetails(diagram).path("changed").asInt()).isEqualTo(1);
+		// the stored flag sent unchanged
+		ok(save(diagram, 3, rewrite(collapsed, Map.of(), null)));
+		assertThat(auditDetails(diagram).path("changed").asInt()).isZero();
+		// a shape without the field is saved as false
+		JsonNode omitted = ok(save(diagram, 4, rewrite(collapsed, Map.of(), sub)));
+		assertThat(shape(omitted, "Check credit").path("collapsed").asBoolean()).isFalse();
+		assertThat(auditDetails(diagram).path("changed").asInt()).isEqualTo(1);
+	}
+
+	/** metatype, whether the entity is new */
+	@ParameterizedTest
+	@CsvSource({ "User Task, true", "User Task, false", "Pool, true", "Lane, false" })
+	@Order(17)
+	void collapsedOnAShapeThatIsNoSubProcessIsRejectedAndChangesNothing(String type, boolean created) {
+		String diagram = diagram();
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		String key = id();
+		String shapeId = id();
+		ObjectNode shape;
+		if (created) {
+			body.putArray("newEntities").add(newEntity(key, metatype(type), type + " collapsed " + created));
+			shape = newShape(shapeId, key, 0, 0, 90, 60);
+		}
+		else {
+			ObjectNode setup = layout(List.of(new Item("t", type, 0, 0)));
+			JsonNode first = ok(save(diagram, 1, setup));
+			int entity = first.path("shapes").get(0).path("entity").path("id").asInt();
+			shape = JsonMapper.shared().createObjectNode().put("id", first.path("shapes").get(0).path("id").asString())
+				.put("entityId", entity).put("x", 0).put("y", 0).put("width", 90).put("height", 60);
+		}
+		shape.put("collapsed", true);
+		body.putArray("shapes").add(shape);
+		int version = created ? 1 : 2;
+		int entities = this.jdbc.queryForObject("SELECT count(*) FROM entities", Integer.class);
+		MvcTestResult result = save(diagram, version, body);
+		assertThat(status(result)).as(() -> content(result)).isEqualTo(422);
+		JsonNode error = body(result).path("errors").get(0);
+		assertThat(error.path("field").asString()).isEqualTo("shapes[0].collapsed");
+		assertThat(error.path("code").asString()).isEqualTo("COLLAPSED_NOT_SUB_PROCESS");
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM entities", Integer.class)).isEqualTo(entities);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagram_shapes WHERE diagram_id = ?::uuid AND collapsed",
+				Integer.class, diagram)).isZero();
+		assertThat(this.jdbc.queryForObject("SELECT version FROM diagrams WHERE id = ?::uuid", Integer.class, diagram))
+			.isEqualTo(version);
+	}
+
+	@Test
+	@Order(18)
+	void collapsedOnASubProcessOfAViewpointWithoutTheMappingIsRejected() {
+		UUID plain = viewpointWithSubProcess(false);
+		MvcTestResult result = save(diagram(plain), 1, subProcessLayout(true));
+		assertThat(status(result)).as(() -> content(result)).isEqualTo(422);
+		assertThat(body(result).path("errors").get(0).path("code").asString()).isEqualTo("COLLAPSED_NOT_SUB_PROCESS");
+		// the same type is accepted where the viewpoint maps it
+		UUID mapped = viewpointWithSubProcess(true);
+		JsonNode view = ok(save(diagram(mapped), 1, subProcessLayout(true)));
+		assertThat(shape(view, "Check credit").path("collapsed").asBoolean()).isTrue();
+	}
+
+	@Test
+	@Order(19)
+	void theViewReturnsFalseAfterTheViewpointLosesTheMapping() {
+		UUID mapped = viewpointWithSubProcess(true);
+		UUID plain = viewpointWithSubProcess(false);
+		String diagram = diagram(mapped);
+		ok(save(diagram, 1, subProcessLayout(true)));
+		assertThat(shape(view(diagram), "Check credit").path("collapsed").asBoolean()).isTrue();
+		MvcTestResult changed = call(HttpMethod.PUT, DIAGRAMS + "/" + diagram + "/viewpoint",
+				JsonMapper.shared().createObjectNode().put("viewpointId", plain.toString()), this.anna, "\"2\"");
+		assertThat(status(changed)).as(() -> content(changed)).isEqualTo(200);
+		JsonNode view = view(diagram);
+		assertThat(shape(view, "Check credit").path("collapsed").asBoolean()).isFalse();
+		// the stored flag is cleared by the next save and counts as a change
+		ok(save(diagram, version(diagram), rewrite(view, Map.of(), null)));
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagram_shapes WHERE diagram_id = ?::uuid AND collapsed",
+				Integer.class, diagram)).isZero();
+		assertThat(auditDetails(diagram).path("changed").asInt()).isEqualTo(1);
+	}
+
+	@Test
+	@Order(20)
+	void theFlagBelongsToTheDiagramNotToTheEntity() {
+		String first = diagram();
+		JsonNode view = ok(save(first, 1, subProcessLayout(true)));
+		int entity = shape(view, "Check credit").path("entity").path("id").asInt();
+		String second = diagram();
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		body.putArray("shapes")
+			.add(JsonMapper.shared().createObjectNode().put("id", id()).put("entityId", entity).put("x", 0).put("y", 0)
+				.put("width", 270).put("height", 150));
+		JsonNode other = ok(save(second, 1, body));
+		assertThat(other.path("shapes").get(0).path("collapsed").asBoolean()).isFalse();
+		assertThat(view(first).path("shapes").valueStream().anyMatch((s) -> s.path("collapsed").asBoolean())).isTrue();
+	}
+
+	// Requirement: Vertical pools (us-074-bpmn-pools-and-lanes D5)
+
+	@Test
+	@Order(21)
+	void aPoolIsSavedVerticalAndHorizontalAgainAndTheChangeIsAudited() {
+		String diagram = diagram();
+		ObjectNode body = poolLayout("vertical");
+		JsonNode view = ok(save(diagram, 1, body));
+		JsonNode pool = shape(view, "Customer");
+		assertThat(pool.path("orientation").asString()).isEqualTo("vertical");
+		assertThat(shape(view, "Sales").path("orientation").asString()).isEqualTo("horizontal");
+		assertThat(this.jdbc.queryForObject("SELECT orientation FROM diagram_shapes WHERE id = ?::uuid", String.class,
+				pool.path("id").asString())).isEqualTo("vertical");
+		// unchanged: not a change
+		JsonNode same = ok(save(diagram, 2, rewrite(view, Map.of(), null)));
+		assertThat(auditDetails(diagram).path("changed").asInt()).isZero();
+		// switched back
+		ObjectNode back = rewrite(same, Map.of(), null);
+		((ObjectNode) back.path("shapes").get(0)).put("orientation", "horizontal");
+		JsonNode horizontal = ok(save(diagram, 3, back));
+		assertThat(shape(horizontal, "Customer").path("orientation").asString()).isEqualTo("horizontal");
+		assertThat(auditDetails(diagram).path("changed").asInt()).isEqualTo(1);
+		// a shape without the field is horizontal
+		ObjectNode vertical = rewrite(horizontal, Map.of(), null);
+		((ObjectNode) vertical.path("shapes").get(0)).put("orientation", "vertical");
+		JsonNode again = ok(save(diagram, 4, vertical));
+		ObjectNode without = rewrite(again, Map.of(), null);
+		((ObjectNode) without.path("shapes").get(0)).remove("orientation");
+		JsonNode omitted = ok(save(diagram, 5, without));
+		assertThat(shape(omitted, "Customer").path("orientation").asString()).isEqualTo("horizontal");
+	}
+
+	/** metatype, whether the entity is new */
+	@ParameterizedTest
+	@CsvSource({ "Lane, true", "Lane, false", "User Task, true", "Sub-Process, false" })
+	@Order(22)
+	void verticalOnAShapeThatIsNoPoolIsRejectedAndChangesNothing(String type, boolean created) {
+		String diagram = diagram();
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		ObjectNode shape;
+		int version = 1;
+		if (created) {
+			String key = id();
+			body.putArray("newEntities").add(newEntity(key, metatype(type), type + " vertical"));
+			shape = newShape(id(), key, 0, 0, 90, 60);
+		}
+		else {
+			JsonNode first = ok(save(diagram, 1, layout(List.of(new Item("t", type, 0, 0)))));
+			version = 2;
+			shape = JsonMapper.shared().createObjectNode().put("id", first.path("shapes").get(0).path("id").asString())
+				.put("entityId", first.path("shapes").get(0).path("entity").path("id").asInt()).put("x", 0).put("y", 0)
+				.put("width", 90).put("height", 60);
+		}
+		shape.put("orientation", "vertical");
+		body.putArray("shapes").add(shape);
+		MvcTestResult result = save(diagram, version, body);
+		assertThat(status(result)).as(() -> content(result)).isEqualTo(422);
+		JsonNode error = body(result).path("errors").get(0);
+		assertThat(error.path("field").asString()).isEqualTo("shapes[0].orientation");
+		assertThat(error.path("code").asString()).isEqualTo("ORIENTATION_NOT_POOL");
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagram_shapes WHERE diagram_id = ?::uuid AND orientation = 'vertical'",
+				Integer.class, diagram)).isZero();
+		assertThat(version(diagram)).isEqualTo(version);
+	}
+
+	@Test
+	@Order(23)
+	void anUnknownOrientationIsRejectedWith400() {
+		ObjectNode body = poolLayout("diagonal");
+		MvcTestResult result = save(diagram(), 1, body);
+		assertThat(status(result)).as(() -> content(result)).isEqualTo(400);
+	}
+
+	@Test
+	@Order(24)
+	void theViewReturnsHorizontalAfterTheViewpointLosesThePoolMapping() {
+		UUID mapped = viewpointWithPool(true);
+		UUID plain = viewpointWithPool(false);
+		String diagram = diagram(mapped);
+		ok(save(diagram, 1, poolLayout("vertical")));
+		assertThat(shape(view(diagram), "Customer").path("orientation").asString()).isEqualTo("vertical");
+		MvcTestResult changed = call(HttpMethod.PUT, DIAGRAMS + "/" + diagram + "/viewpoint",
+				JsonMapper.shared().createObjectNode().put("viewpointId", plain.toString()), this.anna, "\"2\"");
+		assertThat(status(changed)).as(() -> content(changed)).isEqualTo(200);
+		assertThat(shape(view(diagram), "Customer").path("orientation").asString()).isEqualTo("horizontal");
+		// and it is rejected where the viewpoint has no pool mapping
+		MvcTestResult rejected = save(diagram(plain), 1, poolLayout("vertical"));
+		assertThat(status(rejected)).as(() -> content(rejected)).isEqualTo(422);
+	}
+
+	@Test
+	@Order(25)
+	void theOrientationBelongsToTheDiagram() {
+		String first = diagram();
+		JsonNode view = ok(save(first, 1, poolLayout("vertical")));
+		int entity = shape(view, "Customer").path("entity").path("id").asInt();
+		String second = diagram();
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		body.putArray("shapes").add(JsonMapper.shared().createObjectNode().put("id", id()).put("entityId", entity)
+			.put("x", 0).put("y", 0).put("width", 600).put("height", 200));
+		assertThat(shape(ok(save(second, 1, body)), "Customer").path("orientation").asString()).isEqualTo("horizontal");
+		assertThat(shape(view(first), "Customer").path("orientation").asString()).isEqualTo("vertical");
+	}
+
 	// helpers
+
+	/** The pool "Customer" (600 x 200) with the lane "Sales" and the task "Check" in it, the pool with the given orientation. */
+	private ObjectNode poolLayout(String orientation) {
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		ArrayNode entities = body.putArray("newEntities");
+		ArrayNode shapes = body.putArray("shapes");
+		String poolKey = id();
+		String poolShape = id();
+		entities.add(newEntity(poolKey, metatype("Pool"), "Customer"));
+		shapes.add(newShape(poolShape, poolKey, 0, 0, 600, 200).put("orientation", orientation));
+		String laneKey = id();
+		String laneShape = id();
+		entities.add(newEntity(laneKey, metatype("Lane"), "Sales"));
+		shapes.add(newShape(laneShape, laneKey, 30, 0, 570, 100).put("parentShapeId", poolShape));
+		return body;
+	}
+
+	private UUID viewpointWithPool(boolean mapped) {
+		UUID viewpoint = this.jdbc.queryForObject("""
+				INSERT INTO viewpoints (id, name, notation, created_by) VALUES (gen_random_uuid(), ?, 'bpmn2',
+				(SELECT min(id) FROM persons)) RETURNING id""", UUID.class, "Pools " + mapped + " " + id());
+		this.jdbc.update("INSERT INTO viewpoint_metatypes (viewpoint_id, metatype_id) VALUES (?, ?::uuid), (?, ?::uuid)",
+				viewpoint, metatype("Pool"), viewpoint, metatype("Lane"));
+		if (mapped) {
+			this.jdbc.update("INSERT INTO viewpoint_mappings (viewpoint_id, metatype_id, notation_element) VALUES (?, ?::uuid, 'bpmn:Pool')",
+					viewpoint, metatype("Pool"));
+		}
+		return viewpoint;
+	}
+
+	/** A sub-process "Check credit" (270 x 150) with the nested tasks "Check score" and "Check income". */
+	private ObjectNode subProcessLayout(boolean collapsed) {
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		ArrayNode entities = body.putArray("newEntities");
+		ArrayNode shapes = body.putArray("shapes");
+		String subKey = id();
+		String subShape = id();
+		entities.add(newEntity(subKey, metatype("Sub-Process"), "Check credit"));
+		shapes.add(newShape(subShape, subKey, 0, 0, 270, 150).put("collapsed", collapsed));
+		for (String[] task : new String[][] { { "Check score", "10" }, { "Check income", "150" } }) {
+			String key = id();
+			entities.add(newEntity(key, metatype("User Task"), task[0]));
+			shapes.add(newShape(id(), key, Double.parseDouble(task[1]), 10, 90, 60).put("parentShapeId", subShape));
+		}
+		return body;
+	}
+
+	/**
+	 * The shapes of a view as a save request: the flags in {@code overrides} replace the stored ones, and the
+	 * shape {@code withoutField} is sent without the field.
+	 */
+	private static ObjectNode rewrite(JsonNode view, Map<String, Boolean> overrides, String withoutField) {
+		ObjectNode body = JsonMapper.shared().createObjectNode();
+		ArrayNode shapes = body.putArray("shapes");
+		for (JsonNode shape : view.path("shapes")) {
+			String id = shape.path("id").asString();
+			ObjectNode write = JsonMapper.shared()
+				.createObjectNode()
+				.put("id", id)
+				.put("entityId", shape.path("entity").path("id").asInt())
+				.put("x", shape.path("x").decimalValue())
+				.put("y", shape.path("y").decimalValue())
+				.put("width", shape.path("width").decimalValue())
+				.put("height", shape.path("height").decimalValue());
+			if (!shape.path("parentShapeId").isNull()) {
+				write.put("parentShapeId", shape.path("parentShapeId").asString());
+			}
+			if ("vertical".equals(shape.path("orientation").asString())) {
+				write.put("orientation", "vertical");
+			}
+			if (!id.equals(withoutField)) {
+				write.put("collapsed", overrides.getOrDefault(id, shape.path("collapsed").asBoolean()));
+			}
+			shapes.add(write);
+		}
+		return body;
+	}
+
+	private static JsonNode shape(JsonNode view, String entityName) {
+		return view.path("shapes")
+			.valueStream()
+			.filter((s) -> entityName.equals(s.path("entity").path("name").asString()))
+			.findFirst()
+			.orElseThrow();
+	}
+
+	/** A viewpoint of notation bpmn2 that allows the sub-process and the task, with or without the mapping. */
+	private UUID viewpointWithSubProcess(boolean mapped) {
+		UUID viewpoint = this.jdbc.queryForObject("""
+				INSERT INTO viewpoints (id, name, notation, created_by) VALUES (gen_random_uuid(), ?, 'bpmn2',
+				(SELECT min(id) FROM persons)) RETURNING id""", UUID.class, "Sub-processes " + mapped + " " + id());
+		this.jdbc.update("INSERT INTO viewpoint_metatypes (viewpoint_id, metatype_id) VALUES (?, ?::uuid), (?, ?::uuid)",
+				viewpoint, metatype("Sub-Process"), viewpoint, metatype("User Task"));
+		if (mapped) {
+			this.jdbc.update("INSERT INTO viewpoint_mappings (viewpoint_id, metatype_id, notation_element) VALUES (?, ?::uuid, 'bpmn:SubProcess')",
+					viewpoint, metatype("Sub-Process"));
+		}
+		return viewpoint;
+	}
+
+	private JsonNode view(String diagram) {
+		return ok(call(HttpMethod.GET, VIEWS + "/" + diagram, null, this.franz, null));
+	}
+
+	private int version(String diagram) {
+		return this.jdbc.queryForObject("SELECT version FROM diagrams WHERE id = ?::uuid", Integer.class, diagram);
+	}
+
+	private JsonNode auditDetails(String diagram) {
+		return JsonMapper.shared()
+			.readTree(this.jdbc.queryForObject("SELECT details::text FROM audit.events WHERE event_type = 'diagram.layout-saved' "
+					+ "AND target_id = ? ORDER BY id DESC LIMIT 1", String.class, diagram));
+	}
 
 	private record Item(String key, String type, double x, double y) {
 	}

@@ -149,7 +149,7 @@ Elements beyond Descriptive (send/receive/business-rule/script tasks, intermedia
 
 - Given: Process diagram with pool → lane → task hierarchy (parents of the entities and nested shapes)
 - When: Canvas loads the diagram
-- Then: Pool appears as the outer container; lanes as swim lanes; tasks within the correct lanes; layout correctly nested
+- Then: Pool appears as the outer container; lanes as swim lanes; tasks within the correct lanes; layout correctly nested. The lanes of a pool stack automatically (one below the other, or side by side in a vertical pool, change `us-074-bpmn-pools-and-lanes`)
 
 **AC5** (SequenceFlow constraint):
 
@@ -168,7 +168,7 @@ Elements beyond Descriptive (send/receive/business-rule/script tasks, intermedia
 
 **AC8** (Sub-process display):
 
-- When: User collapses an expanded `bpmn-sub-process` in a diagram (follows with change `us-074-bpmn-pools-and-lanes`)
+- When: User collapses an expanded `bpmn-sub-process` in a diagram (change `us-074-bpmn-pools-and-lanes`)
 - Then: The sub-process is shown with the collapsed marker; its contained elements remain unchanged in the repository; the display state is stored per diagram
 
 ## Verification Method
@@ -184,9 +184,9 @@ Elements beyond Descriptive (send/receive/business-rule/script tasks, intermedia
 ## Implementation
 
 - ADR(s): ADR-007 (Vue Flow — nested nodes via `parentId`)
-- Implemented by: OpenSpec change `us-074-bpmn-process-diagrams` (package, symbols, palette, containers, warnings; without data objects, organizational units and AC8)
+- Implemented by: OpenSpec change `us-074-bpmn-process-diagrams` (package, symbols, palette, containers, warnings; without data objects and organizational units) and `us-074-bpmn-pools-and-lanes` (stacked and vertical lanes, collapsed sub-processes: AC4, AC8)
 - Tests: `BpmnStarterPackageTests`, `bpmn-process-diagrams.feature`, `DiagramBpmn.spec.ts`
-- Verification status: partly verified (AC1 to AC7 without data and organizational units)
+- Verification status: partly verified (AC1 to AC8 without data and organizational units)
 
 ## Change History
 

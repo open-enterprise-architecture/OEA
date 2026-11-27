@@ -1,4 +1,5 @@
-# Spec: openspec metamodel/starter-packages (BPMN starter package), diagram/bpmn-process-diagrams (us-074-bpmn-process-diagrams)
+# Spec: openspec metamodel/starter-packages (BPMN starter package), diagram/bpmn-process-diagrams (us-074-bpmn-process-diagrams),
+#       diagram/bpmn-pools-and-lanes (us-074-bpmn-pools-and-lanes: collapsed sub-processes)
 # Source material: requirements/user-stories/US-074-create-process-diagram-and-place-bpmn-elements.md; REQ-076; UC-10; owner decision 2026-11-27
 # The scenarios share one instance of their own (the import changes its metamodel, design D9) and run in file order.
 # The editor scenarios (symbols, palette groups, containers, flow warnings, the section on SCR-030) are covered by the
@@ -52,3 +53,44 @@ Feature: BPMN starter package and process diagrams
     Given a BPMN diagram "Order to SAP" that also allows "Application Component"
     When the enterprise architect saves the task "Check order" and the component "SAP ERP" with a "Sequence Flow"
     Then the BPMN save is rejected with 422 and the code "TARGET_NOT_ALLOWED"
+
+  Scenario: Collapse a sub-process and expand it again
+    Given a BPMN diagram "Credit" with the sub-process "Check credit" holding the tasks "Check score" and "Check income"
+    When the enterprise architect collapses "Check credit" and saves
+    Then the BPMN view shows "Check credit" collapsed with the size 270 x 150
+    And the task "Check score" is still nested in "Check credit"
+    And the layout is audited with 1 changed shape
+    When the enterprise architect expands "Check credit" and saves
+    Then the BPMN view shows "Check credit" expanded with the size 270 x 150
+
+  Scenario: Collapsed in one diagram only
+    Given a BPMN diagram "Credit" with the sub-process "Check credit" holding the tasks "Check score" and "Check income"
+    And a second BPMN diagram showing "Check credit"
+    When the enterprise architect collapses "Check credit" and saves
+    Then the second BPMN diagram shows "Check credit" expanded
+
+  Scenario: Collapsed on a task
+    Given a BPMN diagram "Credit" with the sub-process "Check credit" holding the tasks "Check score" and "Check income"
+    When the enterprise architect collapses the task "Check score" and saves
+    Then the BPMN save is rejected with 422 and the code "COLLAPSED_NOT_SUB_PROCESS"
+    And the BPMN view shows "Check credit" expanded with the size 270 x 150
+
+  Scenario: Pool switched to vertical and back
+    Given a BPMN diagram "Customer process" with the pool "Customer"
+    When the enterprise architect switches "Customer" to vertical and saves
+    Then the BPMN view shows "Customer" as vertical
+    And the layout is audited with 1 changed shape
+    When the enterprise architect switches "Customer" to horizontal and saves
+    Then the BPMN view shows "Customer" as horizontal
+
+  Scenario: Orientation per diagram
+    Given a BPMN diagram "Customer process" with the pool "Customer"
+    And a second BPMN diagram showing "Customer"
+    When the enterprise architect switches "Customer" to vertical and saves
+    Then the second BPMN diagram shows "Customer" as horizontal
+
+  Scenario: Vertical on a lane
+    Given a BPMN diagram "Customer process" with the pool "Customer"
+    When the enterprise architect switches the lane "Sales" to vertical and saves
+    Then the BPMN save is rejected with 422 and the code "ORIENTATION_NOT_POOL"
+    And the BPMN view shows "Customer" as horizontal

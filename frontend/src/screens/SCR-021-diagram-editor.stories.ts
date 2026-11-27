@@ -430,3 +430,76 @@ export const BpmnProcess: Story = {
     await expect(canvas.getByRole('button', { name: 'Connection Order received → Check order' })).toBeInTheDocument()
   },
 }
+
+// lanes that stack in a pool, nested lanes and a collapsed sub-process (us-074-bpmn-pools-and-lanes)
+const LANES = [
+  bpmnShape('l-pool', 'Customer', 'pool', 0, 0, 760, 400),
+  bpmnShape('l-sales', 'Sales', 'lane', 30, 0, 730, 160, 'l-pool'),
+  bpmnShape('l-office', 'Back office', 'lane', 30, 160, 730, 240, 'l-pool'),
+  bpmnShape('l-billing', 'Billing', 'lane', 60, 160, 700, 110, 'l-office'),
+  bpmnShape('l-shipping', 'Shipping', 'lane', 60, 270, 700, 130, 'l-office'),
+  bpmnShape('l-check', 'Check order', 'userTask', 100, 50, 90, 60, 'l-sales'),
+  bpmnShape('l-invoice', 'Send invoice', 'task', 120, 190, 90, 60, 'l-billing'),
+  { ...bpmnShape('l-pack', 'Pack items', 'subProcess', 120, 290, 270, 100, 'l-shipping'), collapsed: true },
+  bpmnShape('l-scan', 'Scan item', 'task', 140, 320, 90, 60, 'l-pack'),
+]
+
+/** Lanes stack in a pool, nested lanes stack in their lane, and a collapsed sub-process hides its content. */
+export const StackedLanes: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: LANES, viewpoint: bpmnViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('group', { name: 'Lane: Billing' })).toBeInTheDocument()
+    await expect(canvas.getByRole('group', { name: 'Lane: Shipping' })).toBeInTheDocument()
+    // the sub-process is collapsed: its task is hidden and the button expands it
+    await expect(canvas.queryByRole('group', { name: 'Task: Scan item' })).toBeNull()
+    await userEvent.click(canvas.getByRole('button', { name: 'Expand sub-process Pack items' }))
+    await waitFor(() => expect(canvas.getByRole('button', { name: 'Collapse sub-process Pack items' })).toBeInTheDocument())
+    await expect(canvas.getByText('Scan item')).toBeInTheDocument()
+    // and collapses again: real pointer clicks reach the toggle although Vue Flow selects the node on the same click
+    await userEvent.click(canvas.getByRole('button', { name: 'Collapse sub-process Pack items' }))
+    await waitFor(() => expect(canvas.getByRole('button', { name: 'Expand sub-process Pack items' })).toBeInTheDocument())
+    await expect(canvas.queryByText('Scan item')).toBeNull()
+  },
+}
+
+/** A selected lane offers the icons to insert a lane next to it; a reader sees none. */
+export const InsertLane: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: LANES, viewpoint: bpmnViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('group', { name: 'Lane: Sales' }))
+    await expect(await canvas.findByRole('button', { name: 'Insert lane above' })).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Insert lane below' }))
+    await expect(await canvas.findByRole('textbox', { name: /Name of the new/ })).toBeInTheDocument()
+  },
+}
+
+export const InsertLaneReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: LANES, viewpoint: bpmnViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('group', { name: 'Lane: Sales' }))
+    await expect(canvas.queryByRole('button', { name: 'Insert lane below' })).toBeNull()
+  },
+}
+
+// a vertical pool: the label band at the top and the lanes side by side
+const VERTICAL = [
+  { ...bpmnShape('v-pool', 'Customer', 'pool', 0, 0, 420, 420), orientation: 'vertical' as const },
+  bpmnShape('v-sales', 'Sales', 'lane', 0, 30, 200, 390, 'v-pool'),
+  bpmnShape('v-office', 'Back office', 'lane', 200, 30, 220, 390, 'v-pool'),
+  bpmnShape('v-check', 'Check order', 'userTask', 50, 90, 90, 60, 'v-sales'),
+  bpmnShape('v-ship', 'Ship order', 'task', 250, 200, 90, 60, 'v-office'),
+]
+
+/** A vertical pool with lanes side by side; its lane offers the icons "Insert lane left" and "Insert lane right". */
+export const VerticalPool: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: VERTICAL, viewpoint: bpmnViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('group', { name: 'Lane: Sales' }))
+    await expect(await canvas.findByRole('button', { name: 'Insert lane left' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Insert lane right' })).toBeInTheDocument()
+  },
+}

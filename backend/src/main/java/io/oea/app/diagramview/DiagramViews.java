@@ -81,6 +81,14 @@ public class DiagramViews {
 	/** The most connections that {@link #connections} returns. */
 	public static final int MAX_OFFERED_CONNECTIONS = 5000;
 
+	private static final String SUB_PROCESS = "bpmn:SubProcess";
+
+	private static final String POOL = "bpmn:Pool";
+
+	private static final String HORIZONTAL = "horizontal";
+
+	private static final String VERTICAL = "vertical";
+
 	private static final Pattern INDEXED = Pattern.compile("^entities\\[(\\d+)]");
 
 	private static final Pattern INDEXED_CONNECTION = Pattern.compile("^connections\\[(\\d+)](?:\\.(\\w+))?");
@@ -155,8 +163,8 @@ public class DiagramViews {
 	 * contains the shape completely; {@code childCount} and {@code parentEntityId} are those of the entity.
 	 */
 	public record Shape(UUID id, int entityId, String entityName, UUID metatypeId, BigDecimal x, BigDecimal y,
-			BigDecimal width, BigDecimal height, UUID parentShapeId, int childCount, Integer parentEntityId,
-			List<String> missingMandatory, boolean conflict) {
+			BigDecimal width, BigDecimal height, UUID parentShapeId, boolean collapsed, String orientation,
+			int childCount, Integer parentEntityId, List<String> missingMandatory, boolean conflict) {
 	}
 
 	/** A hierarchy line from a container shape to the shape of a child placed elsewhere. */
@@ -250,7 +258,8 @@ public class DiagramViews {
 
 	/** A shape to save: exactly one of {@code entityId} and {@code newEntityKey} is set (checked). */
 	public record ShapeInput(UUID id, Integer entityId, UUID newEntityKey, BigDecimal x, BigDecimal y,
-			BigDecimal width, BigDecimal height, UUID parentShapeId) {
+			BigDecimal width, BigDecimal height, UUID parentShapeId, boolean collapsed,
+			String orientation) {
 	}
 
 	/**
@@ -533,7 +542,8 @@ public class DiagramViews {
 		List<StoredShape> stored = this.shapes.stored(id);
 		List<StoredEdge> storedEdges = this.edges.stored(id);
 		List<String> conflicts = new ArrayList<>();
-		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, stored, conflicts);
+		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, typesMappedTo(viewpoint, SUB_PROCESS), typesMappedTo(viewpoint, POOL), stored,
+				conflicts);
 		errors.addAll(validateNesting(shapeInputs));
 		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, allowedConnections, storedEdges,
 				conflicts));
@@ -563,7 +573,7 @@ public class DiagramViews {
 		for (ShapeInput shape : shapeInputs) {
 			int entityId = (shape.entityId() != null) ? shape.entityId() : created.get(shape.newEntityKey());
 			writes.add(new ShapeWrite(shape.id(), entityId, shape.x(), shape.y(), shape.width(), shape.height(),
-					shape.parentShapeId()));
+					shape.parentShapeId(), shape.collapsed(), shape.orientation()));
 		}
 		List<EdgeWrite> edgeWrites = new ArrayList<>();
 		for (EdgeInput edge : edgeInputs) {
@@ -620,7 +630,7 @@ public class DiagramViews {
 	}
 
 	private List<Issue> validate(UUID diagramId, List<ShapeInput> shapeInputs, List<NewEntityInput> newEntities,
-			Set<UUID> allowed, List<StoredShape> stored, List<String> conflicts) {
+			Set<UUID> allowed, Set<UUID> subProcesses, Set<UUID> pools, List<StoredShape> stored, List<String> conflicts) {
 		List<Issue> errors = new ArrayList<>();
 		Map<UUID, Integer> keys = new HashMap<>();
 		for (int i = 0; i < newEntities.size(); i++) {
@@ -658,6 +668,14 @@ public class DiagramViews {
 			else if (shape.newEntityKey() != null) {
 				if (keys.containsKey(shape.newEntityKey())) {
 					usedKeys.add(shape.newEntityKey());
+					if (shape.collapsed()
+							&& !subProcesses.contains(newEntities.get(keys.get(shape.newEntityKey())).metatypeId())) {
+						collapsedIssue(errors, path);
+					}
+					if (VERTICAL.equals(shape.orientation())
+							&& !pools.contains(newEntities.get(keys.get(shape.newEntityKey())).metatypeId())) {
+						orientationIssue(errors, path);
+					}
 				}
 				else {
 					errors.add(new Issue(path + ".newEntityKey", "NEW_ENTITY_UNKNOWN",
@@ -666,6 +684,12 @@ public class DiagramViews {
 			}
 			else {
 				EntityRef entity = entities.get(shape.entityId());
+				if (shape.collapsed() && entity != null && !subProcesses.contains(entity.metatypeId())) {
+					collapsedIssue(errors, path);
+				}
+				if (VERTICAL.equals(shape.orientation()) && entity != null && !pools.contains(entity.metatypeId())) {
+					orientationIssue(errors, path);
+				}
 				StoredShape kept = storedById.get(shape.id());
 				if (entity == null || entity.deleted()) {
 					errors.add(new Issue(path + ".entityId", "ENTITY_NOT_FOUND",
@@ -693,6 +717,16 @@ public class DiagramViews {
 			}
 		}
 		return errors;
+	}
+
+	private static void orientationIssue(List<Issue> errors, String path) {
+		errors.add(new Issue(path + ".orientation", "ORIENTATION_NOT_POOL",
+				"Only the shape of a pool can be vertical: the viewpoint must map its metatype to bpmn:Pool."));
+	}
+
+	private static void collapsedIssue(List<Issue> errors, String path) {
+		errors.add(new Issue(path + ".collapsed", "COLLAPSED_NOT_SUB_PROCESS",
+				"Only the shape of a sub-process can be collapsed: the viewpoint must map its metatype to bpmn:SubProcess."));
 	}
 
 	/** The entity a shape shows: an existing one by ID, or a new one by key. */
@@ -1230,12 +1264,23 @@ public class DiagramViews {
 					|| old.y().compareTo(write.y()) != 0 || old.width().compareTo(write.width()) != 0
 					|| old.height().compareTo(write.height()) != 0
 					|| !Objects.equals(old.parentShapeId(), write.parentShapeId())
+					|| old.collapsed() != write.collapsed() || !old.orientation().equals(write.orientation())
 					|| orderBefore.indexOf(write.id()) != orderAfter.indexOf(write.id())) {
 				changed++;
 			}
 		}
 		int removed = (int) before.keySet().stream().filter((id) -> !after.contains(id)).count();
 		return new Counts(added, changed, removed);
+	}
+
+	/** The allowed metatypes that the viewpoint renders as the notation element (the effective mapping). */
+	private static Set<UUID> typesMappedTo(Viewpoints.Viewpoint viewpoint, String element) {
+		Set<UUID> types = new HashSet<>();
+		viewpoint.effectiveMappings()
+			.stream()
+			.filter((mapping) -> element.equals(mapping.notationElement()))
+			.forEach((mapping) -> types.add(mapping.metatypeId()));
+		return types;
 	}
 
 	private View buildView(Diagrams.Diagram diagram) {
@@ -1251,16 +1296,21 @@ public class DiagramViews {
 		viewpoint.metatypes().forEach((type) -> allowed.add(type.id()));
 		Set<UUID> allowedConnections = new HashSet<>();
 		viewpoint.connectionTypes().forEach((type) -> allowedConnections.add(type.id()));
+		Set<UUID> subProcesses = typesMappedTo(viewpoint, SUB_PROCESS);
+		Set<UUID> pools = typesMappedTo(viewpoint, POOL);
 		int conflicts = 0;
 		Map<UUID, ShownShape> before = new HashMap<>();
 		List<Shape> view = new ArrayList<>();
 		for (ShownShape shape : shown) {
+			// collapsed counts only while the viewpoint still maps the type to a sub-process (design D2)
+			boolean collapsed = shape.collapsed() && subProcesses.contains(shape.metatypeId());
+			String orientation = pools.contains(shape.metatypeId()) ? shape.orientation() : HORIZONTAL;
 			ShownShape container = (shape.parentShapeId() != null) ? before.get(shape.parentShapeId()) : null;
 			UUID parent = (container != null && contains(container.x(), container.y(), container.width(),
 					container.height(), shape.x(), shape.y(), shape.width(), shape.height())) ? container.id() : null;
 			view.add(new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
-					shape.y(), shape.width(), shape.height(), parent, shape.childCount(), shape.parentEntityId(),
-					missing.getOrDefault(shape.entityId(), List.of()), !allowed.contains(shape.metatypeId())));
+					shape.y(), shape.width(), shape.height(), parent, collapsed, orientation, shape.childCount(),
+					shape.parentEntityId(), missing.getOrDefault(shape.entityId(), List.of()), !allowed.contains(shape.metatypeId())));
 			before.put(shape.id(), shape);
 		}
 		conflicts += (int) view.stream().filter(Shape::conflict).count();

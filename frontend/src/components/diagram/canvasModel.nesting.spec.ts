@@ -191,7 +191,7 @@ describe('canvasModel nesting', () => {
 
   it('keeps the container of a shape of the view and nothing for a shape on the canvas', () => {
     expect(fromView({ ...diagramView().shapes[0]!, id: 's', entity: { id: 1, name: 'A', metatypeId: METATYPE_COMPONENT, childCount: 2, parentEntityId: 9 }, parentShapeId: 'c', x: 0, y: 0, width: 1, height: 1, missingMandatory: [] })).toMatchObject({ parentShapeId: 'c', childCount: 2, parentEntityId: 9 })
-    expect('parentShapeId' in fromView({ id: 's', entity: { id: 1, name: 'A', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, parentShapeId: null, x: 0, y: 0, width: 1, height: 1, missingMandatory: [], conflict: false })).toBe(false)
+    expect('parentShapeId' in fromView({ id: 's', entity: { id: 1, name: 'A', metatypeId: METATYPE_COMPONENT, childCount: 0, parentEntityId: null }, parentShapeId: null, x: 0, y: 0, width: 1, height: 1, collapsed: false, orientation: 'horizontal', missingMandatory: [], conflict: false })).toBe(false)
   })
 
   describe('the request of the save', () => {
