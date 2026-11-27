@@ -45,6 +45,9 @@ public final class OeaPostgres {
 			.withCopyFileToContainer(MountableFile.forHostPath(PROVISIONING_SCRIPT, 0755),
 					"/docker-entrypoint-initdb.d/10-oea-roles.sh");
 		ROLE_PASSWORDS.forEach((role, password) -> container.withEnv(environmentVariable(role), password));
+		// every Cucumber feature with an instance of its own keeps its connection pools until the end
+		// of the run; the default of 100 connections no longer suffices (us-074-bpmn-process-diagrams)
+		container.setCommand("postgres", "-c", "fsync=off", "-c", "max_connections=200");
 		return container;
 	}
 

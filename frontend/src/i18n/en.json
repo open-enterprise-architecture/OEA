@@ -380,6 +380,7 @@
       "categories": "Categories",
       "layers": "Layers",
       "translations": "Translations",
+      "starter": "Starter packages",
       "changes": "Changes",
       "settings": "Settings",
       "viewpoints": "Viewpoints"
@@ -739,6 +740,21 @@
       "loadFailed": "The diagram settings could not be loaded.",
       "on": "Yes",
       "off": "No"
+    },
+    "starter": {
+      "title": "Starter packages",
+      "intro": "Metamodel packages shipped with OEA. A package can be imported next to the content that exists: the BPMN package, for example, adds the process types to an instance that already has the TOGAF types. If a name is already taken, nothing is imported.",
+      "counts": "{types} entity types, {properties} properties",
+      "import": "Import",
+      "imported": "Imported",
+      "confirmTitle": "Import {name}?",
+      "confirmText": "The package creates {types} entity types and {properties} properties. Existing content is not changed.",
+      "confirm": "Import",
+      "result": "{name} imported: {created} elements created.",
+      "conflicts": "The package conflicts with existing names: {elements}. Nothing was imported.",
+      "failed": "The starter package could not be imported.",
+      "loadFailed": "The starter packages could not be loaded.",
+      "none": "No starter packages are shipped."
     }
   },
   "navigation": {
@@ -1655,6 +1671,19 @@
       "blocked": "The diagram was not saved: it still has conflicts. Resolve them first.",
       "willConflictShapes": "No shape becomes a conflict. | {count} shape becomes a conflict. | {count} shapes become conflicts.",
       "willConflictEdges": "No edge becomes a conflict. | {count} edge becomes a conflict. | {count} edges become conflicts."
+    },
+    "bpmn": {
+      "group": {
+        "pools": "Pools and lanes",
+        "activities": "Activities",
+        "events": "Events",
+        "gateways": "Gateways",
+        "artifacts": "Artifacts",
+        "other": "Other"
+      },
+      "warnings": "No BPMN warnings | 1 BPMN warning | {count} BPMN warnings",
+      "sequenceCrossesPool": "Sequence flow crosses a pool boundary",
+      "messageWithinPool": "Message flow within one pool"
     }
   },
   "dashboards": {

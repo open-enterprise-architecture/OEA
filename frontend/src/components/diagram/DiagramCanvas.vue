@@ -29,9 +29,12 @@ import EntityDetailsPanel from './EntityDetailsPanel.vue'
 import NewParentDialog from './NewParentDialog.vue'
 import RemoveContainerDialog from './RemoveContainerDialog.vue'
 import ViewpointChangeDialog from './ViewpointChangeDialog.vue'
+import { bpmnSymbol, flowStyle, PALETTE_GROUPS, paletteGroup, type PaletteGroup } from './bpmnSymbols'
 import {
   abbreviation,
   applyEdit,
+  bpmnFlowWarnings,
+  canContain,
   applyNewEntityEdit,
   containerAt,
   descendantsOf,
@@ -42,6 +45,7 @@ import {
   growContainers,
   hasUnsavedChanges,
   isEdgeUnsaved,
+  isBpmnView,
   isUnsaved,
   keyStep,
   layoutChildren,
@@ -50,6 +54,7 @@ import {
   limitSize,
   moveTree,
   nestBlock,
+  notationElementOf,
   nestShape,
   parentOfShape,
   sameParent,
@@ -127,6 +132,8 @@ const savedLines = ref<CanvasLine[]>(props.view.hierarchyLines.map(fromViewLine)
 const parents = ref<ParentChanges>({})
 const childrenAsk = ref<string>()
 const childrenOpen = ref(false)
+// BPMN (design D3 to D6 of us-074-bpmn-process-diagrams): the descriptions the details panel read (shown by text annotations)
+const descriptions = ref<Record<number, string>>({})
 const parentAsk = ref<{ shapeId: string; target: ParentTarget; parentName?: string }>()
 const parentOpen = ref(false)
 const removeAsk = ref<{ ids: string[]; name: string; count: number; all?: boolean }>()
@@ -190,6 +197,7 @@ function adopt(view: DiagramView) {
   lines.value = view.hierarchyLines.map(fromViewLine)
   savedLines.value = view.hierarchyLines.map(fromViewLine)
   parents.value = {}
+  descriptions.value = {}
   selectedId.value = shapes.value.some((shape) => shape.id === selectedId.value) ? selectedId.value : undefined
   selectedEdgeId.value = edges.value.some((edge) => edge.id === selectedEdgeId.value) ? selectedEdgeId.value : undefined
   offer.value = []
@@ -206,6 +214,34 @@ function adopt(view: DiagramView) {
 }
 
 const metatypeNames = computed(() => new Map(props.view.viewpoint.allowedMetatypes.map((type) => [type.id, type.name])))
+const bpmn = computed(() => isBpmnView(props.view))
+/** Whether a shape takes nested shapes: every shape, but in a `bpmn2` diagram only pool, lane and sub-process (design D5). */
+const mayContain = computed(() => canContain(props.view))
+const notation = computed(() => props.view.viewpoint.notation)
+
+/** The groups of the palette of a `bpmn2` diagram, by the notation element of the type; empty groups are left out (design D4). */
+const paletteGroups = computed(() => {
+  if (!bpmn.value) {
+    return undefined
+  }
+  const grouped = new Map<PaletteGroup, typeof props.view.viewpoint.allowedMetatypes>()
+  for (const type of props.view.viewpoint.allowedMetatypes) {
+    const group = paletteGroup(notationElementOf(props.view, type.id))
+    grouped.set(group, [...(grouped.get(group) ?? []), type])
+  }
+  return PALETTE_GROUPS.filter((group) => grouped.has(group)).map((group) => ({ id: group, types: grouped.get(group)! }))
+})
+
+/** The warnings of the pool rules of the flows for the layout as it is now (design D6); never stored, never sent. */
+const flowWarnings = computed(() => (bpmn.value ? bpmnFlowWarnings(shapes.value, edges.value, props.view.viewpoint.effectiveMappings) : new Map()))
+const warningText = (kind: 'sequence-crosses-pool' | 'message-within-pool') =>
+  kind === 'sequence-crosses-pool' ? t('diagrams.bpmn.sequenceCrossesPool') : t('diagrams.bpmn.messageWithinPool')
+function selectFirstWarning() {
+  const first = edges.value.find((edge) => flowWarnings.value.has(edge.id))
+  if (first) {
+    selectEdge(first.id)
+  }
+}
 
 function update(id: string, change: (shape: CanvasShape) => CanvasShape) {
   shapes.value = shapes.value.map((shape) => (shape.id === id ? change(shape) : shape))
@@ -312,6 +348,9 @@ const nodes = computed(() => {
       conflict: isConflict(shape),
       metatypeName: metatypeNames.value.get(shape.metatypeId) ?? '',
       container: shapes.value.some((entry) => entry.parentShapeId === shape.id),
+      symbol: bpmnSymbol(notation.value, notationElementOf(props.view, shape.metatypeId)),
+      description:
+        shape.newEntity?.description ?? (shape.entityId !== undefined ? (edits.value[shape.entityId]?.description ?? descriptions.value[shape.entityId]) : undefined),
       rename: (name) => rename(shape.id, name),
       resized: (params) => resized(shape.id, params),
     }
@@ -378,6 +417,8 @@ const edgeDraws = computed<EdgeDraw[]>(() => [
             incomplete: edge.missingMandatory,
             error: edge.error,
             conflict: isConflict(edge),
+            flow: flowStyle(notation.value, notationElementOf(props.view, edge.metatypeId)),
+            ...(flowWarnings.value.has(edge.id) ? { warning: warningText(flowWarnings.value.get(edge.id)!) } : {}),
           },
         ]
       : []
@@ -456,7 +497,7 @@ function addNew(metatypeId: string, at?: { x: number; y: number }) {
  * whatever the setting says (design D4 of us-074-diagram-nesting).
  */
 function dropInto(shape: CanvasShape, center: { x: number; y: number }) {
-  const container = containerAt(shapes.value, center, new Set([shape.id]))
+  const container = containerAt(shapes.value, center, new Set([shape.id]), mayContain.value)
   if (!container || nestBlock(shapes.value, shape.id, container.id)) {
     return
   }
@@ -483,7 +524,7 @@ function addExisting(entity: DiagramEntity) {
   shapes.value = [...shapes.value, shape]
   selectShape(shape.id)
   void offerConnections(shape)
-  if ((shape.childCount ?? 0) > 0) {
+  if ((shape.childCount ?? 0) > 0 && mayContain.value(shape)) {
     childrenAsk.value = shape.id
     childrenOpen.value = true
   }
@@ -880,7 +921,7 @@ function settle(id: string) {
     return
   }
   const own = new Set([id, ...descendantsOf(shapes.value, id).map((entry) => entry.id)])
-  const container = containerAt(shapes.value, { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 }, own)
+  const container = containerAt(shapes.value, { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 }, own, mayContain.value)
   if ((container?.id ?? undefined) === shape.parentShapeId) {
     shapes.value = growContainers(shapes.value)
     return
@@ -1076,6 +1117,7 @@ function loaded(details: DiagramEntityDetails | undefined) {
     entry.connectionId === details.id && !edits.value[details.id]
       ? { ...entry, name: details.name, missingMandatory: [...details.missingMandatory] }
       : entry
+  descriptions.value = { ...descriptions.value, [details.id]: details.description }
   shapes.value = shapes.value.map(refresh)
   saved.value = saved.value.map(refresh)
   edges.value = edges.value.map(refreshEdge)
@@ -1198,20 +1240,31 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
     <div class="flex flex-wrap items-center gap-2" role="toolbar" :aria-label="t('diagrams.canvas.toolbar')">
       <template v-if="editable">
         <div class="flex flex-wrap items-center gap-1" role="group" :aria-label="t('diagrams.canvas.palette')" data-testid="canvas-palette">
-          <UButton
-            v-for="type in view.viewpoint.allowedMetatypes"
-            :key="type.id"
-            size="xs"
-            color="neutral"
-            variant="outline"
-            draggable="true"
-            :label="type.name"
-            :aria-label="t('diagrams.canvas.addNew', { name: type.name })"
-            :title="t('diagrams.canvas.dragHint')"
-            :data-testid="`palette-${type.id}`"
-            @dragstart="dragPalette($event, type.id)"
-            @click="addNew(type.id)"
-          />
+          <template v-for="group in paletteGroups ?? [{ id: undefined, types: view.viewpoint.allowedMetatypes }]" :key="group.id ?? 'all'">
+            <div
+              class="flex flex-wrap items-center gap-1"
+              :class="group.id ? 'rounded-md border border-default px-1.5 py-1' : ''"
+              :role="group.id ? 'group' : undefined"
+              :aria-label="group.id ? t(`diagrams.bpmn.group.${group.id}`) : undefined"
+              :data-testid="group.id ? `palette-group-${group.id}` : undefined"
+            >
+              <span v-if="group.id" class="text-[10px] font-medium uppercase text-muted" aria-hidden="true">{{ t(`diagrams.bpmn.group.${group.id}`) }}</span>
+              <UButton
+                v-for="type in group.types"
+                :key="type.id"
+                size="xs"
+                color="neutral"
+                variant="outline"
+                draggable="true"
+                :label="type.name"
+                :aria-label="t('diagrams.canvas.addNew', { name: type.name })"
+                :title="t('diagrams.canvas.dragHint')"
+                :data-testid="`palette-${type.id}`"
+                @dragstart="dragPalette($event, type.id)"
+                @click="addNew(type.id)"
+              />
+            </div>
+          </template>
         </div>
         <UButton data-testid="canvas-add-existing" size="xs" color="neutral" variant="outline" icon="i-lucide-search" :label="t('diagrams.canvas.addExisting')" @click="adding = true" />
         <UButton data-testid="canvas-add-connected" size="xs" color="neutral" variant="outline" icon="i-lucide-git-commit-horizontal" :disabled="!selectedShape || selectedShape.editing" :label="t('diagrams.canvas.addConnected')" @click="openConnected" />
@@ -1230,6 +1283,16 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
         <span v-if="dirty" :id="`${flowId}-viewpoint-hint`" class="text-xs text-muted" data-testid="canvas-change-viewpoint-hint">{{ t('diagrams.viewpointChange.saveFirst') }}</span>
       </template>
       <div class="ms-auto flex flex-wrap items-center gap-2">
+        <UButton
+          v-if="flowWarnings.size > 0"
+          data-testid="canvas-bpmn-warnings"
+          size="xs"
+          color="warning"
+          variant="subtle"
+          icon="i-lucide-triangle-alert"
+          :label="t('diagrams.bpmn.warnings', flowWarnings.size)"
+          @click="selectFirstWarning"
+        />
         <UBadge v-if="dirty" data-testid="canvas-unsaved" color="warning" variant="subtle" :label="t('diagrams.canvas.unsavedChanges')" />
         <UBadge v-else-if="!editable" data-testid="canvas-read-only" color="neutral" variant="subtle" :label="t('diagrams.canvas.readOnly')" />
         <UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-zoom-in" :aria-label="t('diagrams.canvas.zoomIn')" data-testid="canvas-zoom-in" @click="zoom(zoomIn)" />
@@ -1351,7 +1414,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       <button v-if="editable && !menu.edge" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-connected" @click="openConnected">
         {{ t('diagrams.canvas.addConnected') }}
       </button>
-      <button v-if="editable && !menu.edge && selectedShape?.entityId !== undefined && (selectedShape.childCount ?? 0) > 0" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-children" @click="showChildren(selectedId)">
+      <button v-if="editable && !menu.edge && selectedShape?.entityId !== undefined && (selectedShape.childCount ?? 0) > 0 && mayContain(selectedShape)" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-children" @click="showChildren(selectedId)">
         {{ t('diagrams.nesting.showChildren') }}
       </button>
       <button v-if="canDelete && deletableEntityId !== undefined" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm text-error hover:bg-elevated" data-testid="canvas-menu-delete-repository" @click="startRepositoryDelete">

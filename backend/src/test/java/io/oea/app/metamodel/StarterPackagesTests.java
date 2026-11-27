@@ -78,7 +78,7 @@ class StarterPackagesTests {
 	void packageListOfANewInstance() {
 		MvcTestResult result = get("/api/v1/metamodel/starter-packages", principals().personWithIdpRole("metamodel-admin"));
 		assertThat(result).hasStatus(HttpStatus.OK);
-		JsonNode togaf = body(result).get(0);
+		JsonNode togaf = shipped(body(result), TOGAF);
 		assertThat(togaf.path("packageId").asString()).isEqualTo(TOGAF);
 		assertThat(togaf.path("metatypeCount").asInt()).isEqualTo(8);
 		assertThat(togaf.path("propertyDefinitionCount").asInt()).isOne();
@@ -107,8 +107,8 @@ class StarterPackagesTests {
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM audit.events WHERE event_type = "
 				+ "'metamodel.metatype-imported' AND details ->> 'batchId' = ?", Integer.class,
 				outcome.path("batchId").asString())).isEqualTo(8);
-		assertThat(body(get("/api/v1/metamodel/starter-packages",
-				principals().personWithIdpRole("metamodel-admin"))).get(0).path("imported").asBoolean()).isTrue();
+		assertThat(shipped(body(get("/api/v1/metamodel/starter-packages",
+				principals().personWithIdpRole("metamodel-admin"))), TOGAF).path("imported").asBoolean()).isTrue();
 	}
 
 	@Test
@@ -164,6 +164,14 @@ class StarterPackagesTests {
 			.cookie(new Cookie(SessionCookie.NAME, session.token()))
 			.header(CsrfOriginFilter.HEADER, session.csrfToken())
 			.exchange();
+	}
+
+	/** The package with this identifier; the list is sorted by identifier, so the position changes with new packages. */
+	private static JsonNode shipped(JsonNode packages, String packageId) {
+		return packages.valueStream()
+			.filter((candidate) -> packageId.equals(candidate.path("packageId").asString()))
+			.findFirst()
+			.orElseThrow();
 	}
 
 	private static JsonNode body(MvcTestResult result) {

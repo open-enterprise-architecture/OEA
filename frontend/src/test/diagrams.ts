@@ -350,6 +350,8 @@ export interface DiagramApiOptions {
   /** the hierarchy lines of the diagram and the effective setting "Ask for a new parent" (us-074-diagram-nesting) */
   lines?: DiagramHierarchyLine[]
   askNewParent?: boolean
+  /** the viewpoint of the diagram, default the one of {@link viewpointConfig} (us-074-bpmn-process-diagrams) */
+  viewpoint?: Viewpoint
   /** the direct children of an entity by its ID, as `listDiagramEntityChildren` answers; default the children of "Finance Suite" */
   children?: Record<number, DiagramEntityChild[]>
   /** the children list answers this status (e.g. 404 or 500) */
@@ -412,7 +414,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     saves: [] as DiagramViewWrite[],
     queries: [] as { entityIds: number[]; shownEntityIds: number[] }[],
     entities: structuredClone(options.entityStates ?? fakeEntities()),
-    viewpoint: undefined as Viewpoint | undefined,
+    viewpoint: options.viewpoint,
   }
   let counter = 100
   let entityCounter = 200

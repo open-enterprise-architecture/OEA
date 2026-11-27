@@ -122,8 +122,8 @@ All process elements are ArchitectureEntities. The following types are built-in;
 |---|---|---|---|---|
 | `bpmn-sequence-flow` | SequenceFlow | `bpmn:SequenceFlow` | Any BPMN flow element | Any BPMN flow element |
 | `bpmn-message-flow` | MessageFlow | `bpmn:MessageFlow` | Pool or task | Pool or task |
-| `bpmn-contained-in` | ContainedIn | – | Any BPMN element | `bpmn-lane` or `bpmn-pool` |
-| `bpmn-lane-in-pool` | LaneInPool | – | `bpmn-lane` | `bpmn-pool` |
+| ~~`bpmn-contained-in`~~ | ContainedIn | – | Any BPMN element | `bpmn-lane` or `bpmn-pool` (replaced by the entity hierarchy, 2026-11-27) |
+| ~~`bpmn-lane-in-pool`~~ | LaneInPool | – | `bpmn-lane` | `bpmn-pool` (replaced by the entity hierarchy, 2026-11-27) |
 | `bpmn-lane-in-lane` | LaneSet (childLaneSet) | `bpmn:LaneSet` | `bpmn-lane` | `bpmn-lane` |
 | `bpmn-pool-references-process` | Participant.processRef | `processRef` | `bpmn-pool` | `bpmn-process` |
 | `bpmn-calls` | CallActivity.calledElement | `calledElement` | `bpmn-call-activity` | `bpmn-process` |
@@ -215,7 +215,7 @@ Pools and lanes are hierarchically nested elements on the canvas:
 - **Elements** (tasks, events, gateways, DataObjects) = regular nodes whose `parentId` points to a lane
 - **DataObjects** can also be placed outside of pools at the process level (cross-pool data)
 
-The `parentId` relationship is modeled in the repository via `bpmn-contained-in`.
+The `parentId` relationship is modeled in the repository by the parent of the entity (the entity hierarchy, US-135); the connections `bpmn-contained-in` and `bpmn-lane-in-pool` are not created (decision 2026-11-27, change `us-074-bpmn-process-diagrams`).
 
 ---
 
@@ -228,7 +228,7 @@ The `parentId` relationship is modeled in the repository via `bpmn-contained-in`
 | BR-03 | A `bpmn-lane` has at most one `bpmn-lane-belongs-to-org-unit` connection (1 OrgUnit per lane) | onConnectionCreate | API |
 | BR-04 | A `bpmn-lane` can have multiple `bpmn-lane-performs-role` connections (a lane can bundle multiple roles) | – | Data |
 | BR-05 | A `bpmn-user-task` SHOULD have at most one `bpmn-task-assigned-to` connection | onConnectionCreate | UI warning |
-| BR-06 | Process elements within a pool MUST be connected to a lane or the pool via `bpmn-contained-in` | onSave | API |
+| BR-06 | Process elements within a pool MUST be children of a lane or the pool (entity hierarchy) | onSave | API |
 | BR-07 | `bpmn-data-input-association` always runs from DataObject/DataStore **to** task (arrow direction: data source → task); `bpmn-data-output-association` always runs from task **to** DataObject/DataStore | onConnectionCreate | API |
 | BR-08 | A `bpmn-data-object` with `transformationType: create` must not simultaneously have a `bpmn-data-input-association` on the same object (newly created = not present before) | onSave | API warning |
 

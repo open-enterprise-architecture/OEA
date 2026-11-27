@@ -10,6 +10,7 @@ import type {
 } from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { Viewpoint } from '../../api/metamodel'
+import { isBpmnContainer, type BpmnSymbol } from './bpmnSymbols'
 import { edgeFingerprint, type CanvasEdge } from './edgeModel'
 
 // The state of the canvas editor without the canvas library (design D6 of us-074-diagram-canvas):
@@ -103,6 +104,10 @@ export interface ShapeData {
   metatypeName: string
   /** the shape holds other shapes: it is a container */
   container: boolean
+  /** the BPMN symbol of the notation element, in a diagram of the notation `bpmn2` (design D3 of us-074-bpmn-process-diagrams); none draws the box */
+  symbol?: BpmnSymbol
+  /** the description of the entity, shown by a text annotation */
+  description?: string
   rename: (name: string) => void
   resized: (params: { x: number; y: number; width: number; height: number }) => void
 }
@@ -607,15 +612,22 @@ export function lies(outer: CanvasShape, inner: CanvasShape): boolean {
 /**
  * The shape whose box holds the point and that is drawn on top: the candidate for the container of a shape
  * that is dropped there. Shapes of `exclude` (the shape itself and what is nested in it) and shapes that are
- * still named are skipped.
+ * still named are skipped; with `canContain` (design D5 of us-074-bpmn-process-diagrams) only shapes that
+ * may take nested shapes are candidates, so a drop onto another shape falls through to the container below it.
  */
-export function containerAt(shapes: CanvasShape[], point: { x: number; y: number }, exclude: Set<string>): CanvasShape | undefined {
+export function containerAt(
+  shapes: CanvasShape[],
+  point: { x: number; y: number },
+  exclude: Set<string>,
+  canContain: (shape: CanvasShape) => boolean = () => true,
+): CanvasShape | undefined {
   return [...shapes]
     .reverse()
     .find(
       (shape) =>
         !exclude.has(shape.id) &&
         !shape.editing &&
+        canContain(shape) &&
         point.x >= shape.x &&
         point.x <= shape.x + shape.width &&
         point.y >= shape.y &&
@@ -763,4 +775,65 @@ export function withoutShapeLines(lines: CanvasLine[], shapeIds: Set<string>): C
 /** The line of a saved view. */
 export function fromViewLine(line: DiagramHierarchyLine): CanvasLine {
   return { id: line.id, parentShapeId: line.parentShapeId, childShapeId: line.childShapeId }
+}
+
+// ── BPMN (design D3 to D6 of us-074-bpmn-process-diagrams) ──────────────────────────────────────────────────
+
+/** Whether the viewpoint of the view has the notation `bpmn2`. */
+export function isBpmnView(view: DiagramView): boolean {
+  return view.viewpoint.notation === 'bpmn2'
+}
+
+/** The notation element of a metatype in the viewpoint of the view (`generic:Box` and `generic:Arrow` for an unmapped one). */
+export function notationElementOf(view: DiagramView, metatypeId: string): string | undefined {
+  return view.viewpoint.effectiveMappings.find((entry) => entry.metatypeId === metatypeId)?.notationElement
+}
+
+/**
+ * Whether a shape takes nested shapes, "Show children" and the children question: every shape, except in a
+ * `bpmn2` diagram, where only shapes drawn as pool, lane or sub-process do (design D5).
+ */
+export function canContain(view: DiagramView): (shape: CanvasShape) => boolean {
+  if (!isBpmnView(view)) {
+    return () => true
+  }
+  const keys = new Map(view.viewpoint.effectiveMappings.map((entry) => [entry.metatypeId, entry.notationElement]))
+  return (shape) => isBpmnContainer(keys.get(shape.metatypeId))
+}
+
+/** The warnings of the pool rules for a flow (design D6): they are computed from the layout and never stored. */
+export type FlowWarning = 'sequence-crosses-pool' | 'message-within-pool'
+
+/**
+ * The warnings of the sequence and message flows for the current layout, by edge ID. The pool of a shape is
+ * its nearest ancestor shape drawn as a pool, or the shape itself when it is a pool. A sequence flow whose ends
+ * have different pools (one end without a pool counts, both without do not) and a message flow whose ends have
+ * the same pool are warned. Flows of conflicts and flows with an end that is not on the canvas are not checked.
+ */
+export function bpmnFlowWarnings(
+  shapes: CanvasShape[],
+  edges: CanvasEdge[],
+  mappings: { metatypeId: string; notationElement: string }[],
+): Map<string, FlowWarning> {
+  const keys = new Map(mappings.map((entry) => [entry.metatypeId, entry.notationElement]))
+  const byId = new Map(shapes.map((shape) => [shape.id, shape]))
+  const poolOf = (id: string): string | undefined => {
+    const seen = new Set<string>()
+    for (let shape = byId.get(id); shape && !seen.has(shape.id); shape = shape.parentShapeId ? byId.get(shape.parentShapeId) : undefined) {
+      seen.add(shape.id)
+      if (keys.get(shape.metatypeId) === 'bpmn:Pool') return shape.id
+    }
+    return undefined
+  }
+  const warnings = new Map<string, FlowWarning>()
+  for (const edge of edges) {
+    const source = byId.get(edge.sourceShapeId)
+    const target = byId.get(edge.targetShapeId)
+    if (!source || !target || edge.conflict || source.conflict || target.conflict) continue
+    const key = keys.get(edge.metatypeId)
+    const [from, to] = [poolOf(source.id), poolOf(target.id)]
+    if (key === 'bpmn:SequenceFlow' && from !== to) warnings.set(edge.id, 'sequence-crosses-pool')
+    else if (key === 'bpmn:MessageFlow' && from !== undefined && from === to) warnings.set(edge.id, 'message-within-pool')
+  }
+  return warnings
 }

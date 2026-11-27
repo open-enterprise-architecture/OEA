@@ -380,6 +380,7 @@
       "categories": "Kategorien",
       "layers": "Schichten",
       "translations": "Übersetzungen",
+      "starter": "Starterpakete",
       "changes": "Änderungen",
       "settings": "Einstellungen",
       "viewpoints": "Viewpoints"
@@ -739,6 +740,21 @@
       "loadFailed": "Die Diagrammeinstellungen konnten nicht geladen werden.",
       "on": "Ja",
       "off": "Nein"
+    },
+    "starter": {
+      "title": "Starterpakete",
+      "intro": "Mit OEA ausgelieferte Metamodell-Pakete. Ein Paket lässt sich neben vorhandenen Inhalten importieren: Das BPMN-Paket ergänzt zum Beispiel die Prozesstypen in einer Instanz, die schon die TOGAF-Typen hat. Ist ein Name schon vergeben, wird nichts importiert.",
+      "counts": "{types} Entitätstypen, {properties} Eigenschaften",
+      "import": "Importieren",
+      "imported": "Importiert",
+      "confirmTitle": "{name} importieren?",
+      "confirmText": "Das Paket legt {types} Entitätstypen und {properties} Eigenschaften an. Vorhandene Inhalte werden nicht geändert.",
+      "confirm": "Importieren",
+      "result": "{name} importiert: {created} Elemente angelegt.",
+      "conflicts": "Das Paket kollidiert mit vorhandenen Namen: {elements}. Es wurde nichts importiert.",
+      "failed": "Das Starterpaket konnte nicht importiert werden.",
+      "loadFailed": "Die Starterpakete konnten nicht geladen werden.",
+      "none": "Es werden keine Starterpakete mitgeliefert."
     }
   },
   "navigation": {
@@ -1655,6 +1671,19 @@
       "blocked": "Das Diagramm wurde nicht gespeichert: Es hat noch Konflikte. Löse sie zuerst auf.",
       "willConflictShapes": "Kein Shape wird zum Konflikt. | {count} Shape wird zum Konflikt. | {count} Shapes werden zu Konflikten.",
       "willConflictEdges": "Keine Kante wird zum Konflikt. | {count} Kante wird zum Konflikt. | {count} Kanten werden zu Konflikten."
+    },
+    "bpmn": {
+      "group": {
+        "pools": "Pools und Bahnen",
+        "activities": "Aktivitäten",
+        "events": "Ereignisse",
+        "gateways": "Gateways",
+        "artifacts": "Artefakte",
+        "other": "Sonstige"
+      },
+      "warnings": "Keine BPMN-Warnungen | 1 BPMN-Warnung | {count} BPMN-Warnungen",
+      "sequenceCrossesPool": "Sequenzfluss überschreitet eine Pool-Grenze",
+      "messageWithinPool": "Nachrichtenfluss innerhalb eines Pools"
     }
   },
   "dashboards": {

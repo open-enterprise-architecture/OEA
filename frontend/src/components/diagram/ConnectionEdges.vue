@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { labelPoint, type Point } from './edgeModel'
+import type { FlowStyle } from './bpmnSymbols'
 import { ptToPx } from './canvasModel'
 
 // The edges of the canvas (SCR-021, US-074 AC6; design D5 of us-074-diagram-connections): straight
@@ -25,6 +26,10 @@ export interface EdgeDraw {
   conflict?: boolean
   /** a hierarchy line (design D4 of us-074-diagram-nesting): dashed, without an arrowhead and without a name */
   hierarchy?: boolean
+  /** the line of a BPMN flow (design D3 of us-074-bpmn-process-diagrams): solid with a filled arrow, dashed with an open circle and arrow, dotted without an arrow */
+  flow?: FlowStyle
+  /** the warning of a flow that breaks a pool rule (design D6): the text and a warning style; the save is not blocked */
+  warning?: string
 }
 
 const props = defineProps<{
@@ -45,12 +50,21 @@ const { t } = useI18n()
 interface Drawn extends EdgeDraw {
   d: string
   arrow: string
+  /** the open arrowhead of a message flow */
+  openArrow: string
+  start: Point
   label_: { x: number; y: number }
   bendsPx: Point[]
 }
 
 function px(point: Point): Point {
   return { x: ptToPx(point.x), y: ptToPx(point.y) }
+}
+
+/** The two wings of the arrowhead at the end of the line, open (a message flow). */
+function openArrowhead(line: Point[]): string {
+  const [tip, left, right] = arrowhead(line).split(' ')
+  return `${left} ${tip} ${right}`
 }
 
 /** The triangle at the end of the line, pointing along its last segment. */
@@ -70,6 +84,8 @@ const drawn = computed<Drawn[]>(() =>
       ...edge,
       d: line.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' '),
       arrow: arrowhead(line),
+      openArrow: openArrowhead(line),
+      start: line[0]!,
       label_: px(labelPoint(edge.line)),
       bendsPx: edge.bends.map(px),
     }
@@ -77,7 +93,18 @@ const drawn = computed<Drawn[]>(() =>
 )
 
 function color(edge: Drawn): string {
-  return edge.error ? 'var(--ui-error)' : edge.conflict ? 'var(--ui-warning)' : (edge.hint ?? 'var(--ui-text-muted)')
+  return edge.error ? 'var(--ui-error)' : edge.conflict || edge.warning ? 'var(--ui-warning)' : (edge.hint ?? 'var(--ui-text-muted)')
+}
+
+function dashes(edge: Drawn): string | undefined {
+  if (edge.hierarchy) return '2 4'
+  if (edge.flow === 'message') return '8 4'
+  if (edge.flow === 'association') return '2 3'
+  return edge.unsaved || edge.conflict ? '6 4' : undefined
+}
+
+function tooltip(edge: Drawn): string | undefined {
+  return edge.error ?? (edge.conflict ? t('diagrams.viewpointChange.conflictText') : undefined) ?? edge.warning ?? (edge.incomplete.length > 0 ? t('diagrams.canvas.incomplete', { properties: edge.incomplete.join(', ') }) : undefined)
 }
 
 function toPt(clientX: number, clientY: number): Point {
@@ -118,17 +145,19 @@ onBeforeUnmount(() => stop?.())
 
 <template>
   <svg class="pointer-events-none absolute left-0 top-0 h-px w-px overflow-visible" data-testid="canvas-edges">
-    <g v-for="edge in drawn" :key="edge.id" :data-testid="`edge-${edge.id}`" :data-unsaved="edge.unsaved ? 'true' : undefined" :data-selected="edge.selected ? 'true' : undefined" :data-error="edge.error ? 'true' : undefined" :data-conflict="edge.conflict ? 'true' : undefined">
-      <title v-if="edge.error || edge.conflict || edge.incomplete.length > 0">{{ edge.error ?? (edge.conflict ? t('diagrams.viewpointChange.conflictText') : t('diagrams.canvas.incomplete', { properties: edge.incomplete.join(', ') })) }}</title>
+    <g v-for="edge in drawn" :key="edge.id" :data-testid="`edge-${edge.id}`" :data-unsaved="edge.unsaved ? 'true' : undefined" :data-selected="edge.selected ? 'true' : undefined" :data-error="edge.error ? 'true' : undefined" :data-conflict="edge.conflict ? 'true' : undefined" :data-flow="edge.flow" :data-warning="edge.warning ? 'true' : undefined">
+      <title v-if="tooltip(edge)">{{ tooltip(edge) }}</title>
       <path
         :d="edge.d"
         fill="none"
         :stroke="color(edge)"
-        :stroke-width="edge.selected ? 3 : 1.5"
-        :stroke-dasharray="edge.hierarchy ? '2 4' : edge.unsaved || edge.conflict ? '6 4' : undefined"
+        :stroke-width="edge.selected ? 3 : edge.warning ? 2.5 : 1.5"
+        :stroke-dasharray="dashes(edge)"
         stroke-linejoin="round"
       />
-      <polygon v-if="!edge.hierarchy" :points="edge.arrow" :fill="color(edge)" />
+      <circle v-if="edge.flow === 'message'" :cx="edge.start.x" :cy="edge.start.y" r="4" fill="var(--ui-bg)" :stroke="color(edge)" stroke-width="1.5" data-testid="edge-source-circle" />
+      <polyline v-if="edge.flow === 'message'" :points="edge.openArrow" fill="none" :stroke="color(edge)" stroke-width="1.5" stroke-linejoin="round" data-testid="edge-open-arrow" />
+      <polygon v-else-if="!edge.hierarchy && edge.flow !== 'association'" :points="edge.arrow" :fill="color(edge)" />
       <path
         :d="edge.d"
         fill="none"
@@ -138,7 +167,7 @@ onBeforeUnmount(() => stop?.())
         style="pointer-events: stroke"
         tabindex="0"
         role="button"
-        :aria-label="edge.hierarchy ? t('diagrams.nesting.lineLabel', { name: edge.label }) : edge.conflict ? `${t('diagrams.canvas.edgeLabel', { name: edge.label })}. ${t('diagrams.viewpointChange.conflictText')}` : t('diagrams.canvas.edgeLabel', { name: edge.label })"
+        :aria-label="edge.hierarchy ? t('diagrams.nesting.lineLabel', { name: edge.label }) : edge.conflict ? `${t('diagrams.canvas.edgeLabel', { name: edge.label })}. ${t('diagrams.viewpointChange.conflictText')}` : edge.warning ? `${t('diagrams.canvas.edgeLabel', { name: edge.label })}. ${edge.warning}` : t('diagrams.canvas.edgeLabel', { name: edge.label })"
         :aria-pressed="edge.selected"
         :data-testid="`edge-hit-${edge.id}`"
         @click.stop="emit('select', edge.id)"
@@ -160,6 +189,21 @@ onBeforeUnmount(() => stop?.())
         data-testid="edge-label"
       >
         {{ edge.conflict ? `${edge.label} – ${t('diagrams.viewpointChange.conflictShort')}` : edge.label }}
+      </text>
+      <text
+        v-if="edge.warning && !edge.hierarchy"
+        :x="edge.label_.x"
+        :y="edge.label_.y + 10"
+        text-anchor="middle"
+        class="text-[10px] font-medium"
+        fill="var(--ui-warning)"
+        paint-order="stroke"
+        stroke="var(--ui-bg)"
+        stroke-width="3"
+        aria-hidden="true"
+        data-testid="edge-warning"
+      >
+        ⚠ {{ edge.warning }}
       </text>
       <template v-if="edge.selected && editable">
         <circle

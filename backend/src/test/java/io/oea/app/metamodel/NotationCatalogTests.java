@@ -49,7 +49,7 @@ class NotationCatalogTests {
 			.collect(Collectors.groupingBy(NotationCatalog.Element::notation, Collectors.counting()));
 		assertThat(counts).containsEntry("archimate3", (long) ARCHIMATE_ELEMENTS.size() + ARCHIMATE_RELATIONSHIPS.size())
 			.containsEntry("uml", 12L)
-			.containsEntry("bpmn2", 13L)
+			.containsEntry("bpmn2", 32L)
 			.containsEntry("generic", 2L);
 		assertThat(ARCHIMATE_ELEMENTS).hasSize(60);
 	}
@@ -69,6 +69,15 @@ class NotationCatalogTests {
 		for (String name : List.of("SequenceFlow", "MessageFlow", "Association")) {
 			assertThat(this.catalog.element("bpmn:" + name).orElseThrow().relationship()).as(name).isTrue();
 		}
+		for (String name : List.of("UserTask", "ServiceTask", "SendTask", "ReceiveTask", "BusinessRuleTask", "ScriptTask",
+				"CallActivity", "IntermediateCatchEvent", "IntermediateThrowEvent", "MessageStartEvent",
+				"TimerStartEvent", "MessageEndEvent", "TerminateEndEvent", "ExclusiveGateway", "ParallelGateway",
+				"InclusiveGateway", "EventBasedGateway", "TextAnnotation", "Group")) {
+			assertThat(this.catalog.element("bpmn:" + name).orElseThrow().relationship()).as(name).isFalse();
+			assertThat(this.catalog.fits("bpmn2", "bpmn:" + name)).as(name).isTrue();
+			assertThat(this.catalog.fits("archimate3", "bpmn:" + name)).as(name).isFalse();
+		}
+		assertThat(this.catalog.element("bpmn:Unknown")).isEmpty();
 		assertThat(this.catalog.element("generic:Box").orElseThrow().relationship()).isFalse();
 		assertThat(this.catalog.element("generic:Arrow").orElseThrow().relationship()).isTrue();
 	}

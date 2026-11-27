@@ -39,7 +39,9 @@ const mounted: VueWrapper[] = []
 
 async function mountCanvas(shapes: DiagramShape[] = NESTED, options: Partial<DiagramApiOptions> = {}, editable = true, lines: DiagramHierarchyLine[] = []) {
   const fetchFn = diagramApi({ me: editable ? ME_DIAGRAM_WRITER : ME_DIAGRAM_READER, shapes, lines, entities: [...ENTITIES, FINANCE_SUITE], ...options })
-  const view = diagramView(shapes, {}, [], lines, options.askNewParent ?? true)
+  // any shape is a container in the notations other than `bpmn2` (design D5 of us-074-bpmn-process-diagrams); DiagramBpmn.spec.ts has the BPMN rule
+  const base = diagramView(shapes, {}, [], lines, options.askNewParent ?? true)
+  const view = { ...base, viewpoint: { ...base.viewpoint, notation: 'generic' as const } }
   const wrapper = mount(DiagramCanvas, {
     props: { view, version: view.diagram.version, editable, fetchFn },
     global: { plugins: [ui, testRouter()] },
