@@ -21,6 +21,8 @@ export interface EdgeDraw {
   unsaved: boolean
   incomplete: string[]
   error?: string
+  /** the viewpoint does not allow the type of the connection (design D2 of us-074-diagram-viewpoint-change) */
+  conflict?: boolean
   /** a hierarchy line (design D4 of us-074-diagram-nesting): dashed, without an arrowhead and without a name */
   hierarchy?: boolean
 }
@@ -75,7 +77,7 @@ const drawn = computed<Drawn[]>(() =>
 )
 
 function color(edge: Drawn): string {
-  return edge.error ? 'var(--ui-error)' : (edge.hint ?? 'var(--ui-text-muted)')
+  return edge.error ? 'var(--ui-error)' : edge.conflict ? 'var(--ui-warning)' : (edge.hint ?? 'var(--ui-text-muted)')
 }
 
 function toPt(clientX: number, clientY: number): Point {
@@ -116,14 +118,14 @@ onBeforeUnmount(() => stop?.())
 
 <template>
   <svg class="pointer-events-none absolute left-0 top-0 h-px w-px overflow-visible" data-testid="canvas-edges">
-    <g v-for="edge in drawn" :key="edge.id" :data-testid="`edge-${edge.id}`" :data-unsaved="edge.unsaved ? 'true' : undefined" :data-selected="edge.selected ? 'true' : undefined" :data-error="edge.error ? 'true' : undefined">
-      <title v-if="edge.error || edge.incomplete.length > 0">{{ edge.error ?? t('diagrams.canvas.incomplete', { properties: edge.incomplete.join(', ') }) }}</title>
+    <g v-for="edge in drawn" :key="edge.id" :data-testid="`edge-${edge.id}`" :data-unsaved="edge.unsaved ? 'true' : undefined" :data-selected="edge.selected ? 'true' : undefined" :data-error="edge.error ? 'true' : undefined" :data-conflict="edge.conflict ? 'true' : undefined">
+      <title v-if="edge.error || edge.conflict || edge.incomplete.length > 0">{{ edge.error ?? (edge.conflict ? t('diagrams.viewpointChange.conflictText') : t('diagrams.canvas.incomplete', { properties: edge.incomplete.join(', ') })) }}</title>
       <path
         :d="edge.d"
         fill="none"
         :stroke="color(edge)"
         :stroke-width="edge.selected ? 3 : 1.5"
-        :stroke-dasharray="edge.hierarchy ? '2 4' : edge.unsaved ? '6 4' : undefined"
+        :stroke-dasharray="edge.hierarchy ? '2 4' : edge.unsaved || edge.conflict ? '6 4' : undefined"
         stroke-linejoin="round"
       />
       <polygon v-if="!edge.hierarchy" :points="edge.arrow" :fill="color(edge)" />
@@ -136,7 +138,7 @@ onBeforeUnmount(() => stop?.())
         style="pointer-events: stroke"
         tabindex="0"
         role="button"
-        :aria-label="edge.hierarchy ? t('diagrams.nesting.lineLabel', { name: edge.label }) : t('diagrams.canvas.edgeLabel', { name: edge.label })"
+        :aria-label="edge.hierarchy ? t('diagrams.nesting.lineLabel', { name: edge.label }) : edge.conflict ? `${t('diagrams.canvas.edgeLabel', { name: edge.label })}. ${t('diagrams.viewpointChange.conflictText')}` : t('diagrams.canvas.edgeLabel', { name: edge.label })"
         :aria-pressed="edge.selected"
         :data-testid="`edge-hit-${edge.id}`"
         @click.stop="emit('select', edge.id)"
@@ -157,7 +159,7 @@ onBeforeUnmount(() => stop?.())
         aria-hidden="true"
         data-testid="edge-label"
       >
-        {{ edge.label }}
+        {{ edge.conflict ? `${edge.label} – ${t('diagrams.viewpointChange.conflictShort')}` : edge.label }}
       </text>
       <template v-if="edge.selected && editable">
         <circle

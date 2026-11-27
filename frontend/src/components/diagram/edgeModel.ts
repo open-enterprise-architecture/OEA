@@ -34,6 +34,8 @@ export interface CanvasEdge {
   missingMandatory: string[]
   /** the reason a save rejected the edge; cleared by the next change of the edge */
   error?: string
+  /** the viewpoint does not allow the type of the connection: a conflict (design D2 of us-074-diagram-viewpoint-change) */
+  conflict?: boolean
 }
 
 /** The edge of a saved view. */
@@ -47,6 +49,7 @@ export function fromViewEdge(edge: DiagramEdge): CanvasEdge {
     targetShapeId: edge.targetShapeId,
     points: edge.points.map((point) => ({ x: point.x, y: point.y })),
     missingMandatory: [...edge.missingMandatory],
+    ...(edge.conflict ? { conflict: true } : {}),
   }
 }
 

@@ -56,7 +56,7 @@ export const CreateDialog: Story = {
     const dialog = within(canvasElement.ownerDocument.body)
     await expect(await dialog.findByRole('dialog')).toBeInTheDocument()
     await userEvent.type(await dialog.findByTestId('diagram-name'), 'Lead to Order')
-    await expect(dialog.getByText('Fixed after the creation. The notation of the viewpoint is used for the diagram.')).toBeInTheDocument()
+    await expect(dialog.getByText('The notation of the viewpoint is used for the diagram. It can be changed later with “Change viewpoint”.')).toBeInTheDocument()
     await expect(dialog.getByRole('button', { name: 'Create' })).toBeEnabled()
   },
 }

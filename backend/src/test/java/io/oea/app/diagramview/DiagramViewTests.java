@@ -442,17 +442,21 @@ class DiagramViewTests {
 	}
 
 	@Test
-	void aStoredShapeThatKeepsItsEntityIsAcceptedWhenTheViewpointNoLongerAllowsItsMetatype() {
+	void aStoredShapeThatKeepsItsEntityIsAConflictWhenTheViewpointNoLongerAllowsItsMetatype() {
 		int erp = entity("SAP ERP", this.component);
 		String shape = id();
 		saveOk(1, shapes(shape(shape, erp, 1, 1, 90, 30)));
 		this.jdbc.update("DELETE FROM viewpoint_metatypes WHERE viewpoint_id = ? AND metatype_id = ?", this.viewpoint,
 				this.component);
-		saveOk(2, shapes(shape(shape, erp, 7, 7, 90, 30)));
+		// the shape that stays is a conflict and blocks the save (change us-074-diagram-viewpoint-change)
+		MvcTestResult blocked = save(2, shapes(shape(shape, erp, 7, 7, 90, 30)), this.anna);
+		assertThat(status(blocked)).isEqualTo(409);
 		// a new shape of the same entity is not accepted
-		MvcTestResult added = save(3, shapes(shape(shape, erp, 7, 7, 90, 30), shape(id(), erp, 8, 8, 90, 30)), this.anna);
+		MvcTestResult added = save(2, shapes(shape(shape, erp, 7, 7, 90, 30), shape(id(), erp, 8, 8, 90, 30)), this.anna);
 		assertThat(status(added)).isEqualTo(422);
 		assertThat(firstField(added)).isEqualTo("shapes[1].entityId");
+		// removing the conflict is accepted
+		saveOk(2, shapes());
 	}
 
 	@Test

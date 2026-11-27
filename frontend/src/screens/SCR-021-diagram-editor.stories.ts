@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import NewParentDialog from '../components/diagram/NewParentDialog.vue'
 import DiagramPage from '../pages/DiagramPage.vue'
-import { diagram, diagramApi, edge, ENTITIES, FINANCE_SUITE, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_ARCHITECT, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, type DiagramApi } from '../test/diagrams'
+import { diagram, diagramApi, edge, ENTITIES, FINANCE_SUITE, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_ARCHITECT, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, viewpointConfigs, type DiagramApi } from '../test/diagrams'
 
 // SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
 // us-074-diagram-entity-details and D5 of us-074-diagram-connections): the canvas of a diagram with the
@@ -318,5 +318,64 @@ export const NewParentQuestion: Story = {
     await expect(await body.findByText('Make Finance Suite the parent of SAP ERP?')).toBeInTheDocument()
     await expect(body.getByRole('button', { name: 'Yes' })).toBeInTheDocument()
     await expect(body.getByRole('button', { name: 'No' })).toBeInTheDocument()
+  },
+}
+
+/** After a viewpoint change: the shape and edge of types the viewpoint does not allow are conflicts, marked with a text, listed, and removed from the diagram. */
+const CONFLICT_SHAPES = [SHAPES[0]!, SHAPES[1]!, { ...SHAPES[2]!, missingMandatory: [], conflict: true }]
+const CONFLICT_EDGES = [edge({ points: [{ x: 200, y: 120 }], conflict: true })]
+
+export const Conflicts: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: CONFLICT_SHAPES, edges: CONFLICT_EDGES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Conflicts (2)')).toBeInTheDocument()
+    await expect(canvas.getAllByText('Conflict: type not allowed in this viewpoint').length).toBeGreaterThan(0)
+    await expect(canvas.getByRole('button', { name: 'Select shape Invoice Approval' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Remove from diagram: Invoice Approval' })).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove all conflicts' }))
+    await waitFor(() => expect(canvas.queryByText(/^Conflicts \(/)).toBeNull())
+    await expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled()
+  },
+}
+
+/** A save with conflicts left is refused: the list stays and says what to do. */
+export const ConflictsBlockSave: Story = {
+  args: {
+    id: ID,
+    fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: CONFLICT_SHAPES, edges: CONFLICT_EDGES }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Remove from diagram: Invoice Approval' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(await canvas.findByText(/The diagram was not saved: it still has conflicts/)).toBeInTheDocument()
+    await expect(canvas.getByText('Conflicts (1)')).toBeInTheDocument()
+  },
+}
+
+/** A reader sees the marks and the list of conflicts without the actions. */
+export const ConflictsReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: CONFLICT_SHAPES, edges: CONFLICT_EDGES }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Conflicts (2)')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Remove all conflicts' })).toBeNull()
+    await expect(canvas.queryByRole('button', { name: /^Remove from diagram: / })).toBeNull()
+  },
+}
+
+/** "Change viewpoint": the viewpoints to choose from, and before the change the shapes and edges that become conflicts. */
+export const ChangeViewpoint: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: SHAPES, edges: EDGES, viewpoints: viewpointConfigs() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Change viewpoint' }))
+    const body = within(canvasElement.ownerDocument.body)
+    const dialog = within(await body.findByTestId('viewpoint-change-form'))
+    await userEvent.click(await dialog.findByRole('radio', { name: /Integration View/ }))
+    await expect(await dialog.findByText('1 shape becomes a conflict.')).toBeInTheDocument()
+    await expect(dialog.getByText('1 edge becomes a conflict.')).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Change viewpoint' })).toBeEnabled()
   },
 }

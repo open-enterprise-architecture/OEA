@@ -156,7 +156,7 @@ public class DiagramViews {
 	 */
 	public record Shape(UUID id, int entityId, String entityName, UUID metatypeId, BigDecimal x, BigDecimal y,
 			BigDecimal width, BigDecimal height, UUID parentShapeId, int childCount, Integer parentEntityId,
-			List<String> missingMandatory) {
+			List<String> missingMandatory, boolean conflict) {
 	}
 
 	/** A hierarchy line from a container shape to the shape of a child placed elsewhere. */
@@ -172,15 +172,16 @@ public class DiagramViews {
 	 * {@code missingMandatory} names the mandatory properties of the connection without a value.
 	 */
 	public record Edge(UUID id, int connectionId, String connectionName, UUID metatypeId, UUID sourceShapeId,
-			UUID targetShapeId, List<Point> points, List<String> missingMandatory) {
+			UUID targetShapeId, List<Point> points, List<String> missingMandatory, boolean conflict) {
 	}
 
 	/**
 	 * The diagram with its viewpoint, its shapes in drawing order, its edges, its hierarchy lines and
-	 * the effective setting "Ask for a new parent".
+	 * the effective setting "Ask for a new parent"; {@code conflictCount} is the number of shapes and
+	 * edges that are conflicts (their type is not allowed by the viewpoint).
 	 */
 	public record View(Diagrams.Diagram diagram, Viewpoints.Viewpoint viewpoint, List<Shape> shapes,
-			List<Edge> edges, List<HierarchyLine> hierarchyLines, boolean askNewParent) {
+			List<Edge> edges, List<HierarchyLine> hierarchyLines, boolean askNewParent, int conflictCount) {
 	}
 
 	/** A connection to offer when an entity is placed. */
@@ -531,14 +532,26 @@ public class DiagramViews {
 		viewpoint.connectionTypes().forEach((type) -> allowedConnections.add(type.id()));
 		List<StoredShape> stored = this.shapes.stored(id);
 		List<StoredEdge> storedEdges = this.edges.stored(id);
-		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, stored);
+		List<String> conflicts = new ArrayList<>();
+		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, stored, conflicts);
 		errors.addAll(validateNesting(shapeInputs));
-		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, allowedConnections, storedEdges));
+		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, allowedConnections, storedEdges,
+				conflicts));
 		errors.addAll(validateUpdates(updates, shapeInputs, edgeInputs));
 		errors.addAll(validateLines(id, shapeInputs, lineInputs));
 		errors.addAll(validateParentChanges(parentChanges, shapeInputs, newEntities));
 		if (!errors.isEmpty()) {
 			throw invalid(errors);
+		}
+		if (!conflicts.isEmpty()) {
+			// after the 422 of the layout, before the entity writes and their 403 (design D3)
+			throw new DiagramViewException(DiagramViewException.Reason.CONFLICTS,
+					conflicts.size() + " shape(s) or edge(s) of the layout are conflicts: the viewpoint does not allow "
+							+ "their type; nothing was saved.",
+					conflicts.stream()
+						.map((path) -> new Issue(path, "DIAGRAM_CONFLICT",
+								"The viewpoint of the diagram does not allow the type."))
+						.toList());
 		}
 		update(principal, updates, parentChanges, agent);
 		Map<UUID, Integer> created = create(principal, newEntities, agent);
@@ -607,7 +620,7 @@ public class DiagramViews {
 	}
 
 	private List<Issue> validate(UUID diagramId, List<ShapeInput> shapeInputs, List<NewEntityInput> newEntities,
-			Set<UUID> allowed, List<StoredShape> stored) {
+			Set<UUID> allowed, List<StoredShape> stored, List<String> conflicts) {
 		List<Issue> errors = new ArrayList<>();
 		Map<UUID, Integer> keys = new HashMap<>();
 		for (int i = 0; i < newEntities.size(); i++) {
@@ -664,9 +677,12 @@ public class DiagramViews {
 				}
 				else if (!allowed.contains(entity.metatypeId())
 						&& !(kept != null && kept.entityId() == shape.entityId())) {
-					// a stored shape that keeps its entity is accepted when the viewpoint changed (design D4)
 					errors.add(new Issue(path + ".entityId", "METATYPE_NOT_ALLOWED",
 							"The viewpoint of the diagram does not allow the metatype of the entity."));
+				}
+				else if (!allowed.contains(entity.metatypeId())) {
+					// a stored shape that keeps its entity is no 422 but a conflict (design D3)
+					conflicts.add(path);
 				}
 			}
 		}
@@ -684,7 +700,8 @@ public class DiagramViews {
 	}
 
 	private List<Issue> validateEdges(UUID diagramId, List<ShapeInput> shapeInputs, List<EdgeInput> edgeInputs,
-			List<NewConnectionInput> newConnections, Set<UUID> allowedConnections, List<StoredEdge> storedEdges) {
+			List<NewConnectionInput> newConnections, Set<UUID> allowedConnections, List<StoredEdge> storedEdges,
+			List<String> conflicts) {
 		List<Issue> errors = new ArrayList<>();
 		Map<UUID, Shown> shapes = new HashMap<>();
 		shapeInputs.forEach((shape) -> shapes.put(shape.id(), new Shown(shape.entityId(), shape.newEntityKey())));
@@ -768,9 +785,12 @@ public class DiagramViews {
 					}
 					if (!allowedConnections.contains(ref.metatypeId())
 							&& !(kept != null && kept.connectionId() == edge.connectionId())) {
-						// a stored edge that keeps its connection is accepted when the viewpoint changed
 						errors.add(new Issue(path + ".connectionId", "METATYPE_NOT_ALLOWED",
 								"The viewpoint of the diagram does not allow the metatype of the connection."));
+					}
+					else if (!allowedConnections.contains(ref.metatypeId())) {
+						// a stored edge that keeps its connection is no 422 but a conflict (design D3)
+						conflicts.add(path);
 					}
 				}
 			}
@@ -1227,6 +1247,11 @@ public class DiagramViews {
 		shownEdges.forEach((edge) -> metatypes.put(edge.connectionId(), edge.metatypeId()));
 		Map<Integer, List<String>> missing = missingMandatory(metatypes);
 		// a container counts only when it is shown, earlier in the drawing order and contains the shape
+		Set<UUID> allowed = new HashSet<>();
+		viewpoint.metatypes().forEach((type) -> allowed.add(type.id()));
+		Set<UUID> allowedConnections = new HashSet<>();
+		viewpoint.connectionTypes().forEach((type) -> allowedConnections.add(type.id()));
+		int conflicts = 0;
 		Map<UUID, ShownShape> before = new HashMap<>();
 		List<Shape> view = new ArrayList<>();
 		for (ShownShape shape : shown) {
@@ -1235,22 +1260,26 @@ public class DiagramViews {
 					container.height(), shape.x(), shape.y(), shape.width(), shape.height())) ? container.id() : null;
 			view.add(new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
 					shape.y(), shape.width(), shape.height(), parent, shape.childCount(), shape.parentEntityId(),
-					missing.getOrDefault(shape.entityId(), List.of())));
+					missing.getOrDefault(shape.entityId(), List.of()), !allowed.contains(shape.metatypeId())));
 			before.put(shape.id(), shape);
 		}
+		conflicts += (int) view.stream().filter(Shape::conflict).count();
 		List<Edge> edgeView = shownEdges.stream()
 			.map((edge) -> new Edge(edge.id(), edge.connectionId(), edge.connectionName(), edge.metatypeId(),
 					edge.sourceShapeId(), edge.targetShapeId(),
 					edge.points().stream().map((point) -> new Point(point.x(), point.y())).toList(),
-					missing.getOrDefault(edge.connectionId(), List.of())))
+					missing.getOrDefault(edge.connectionId(), List.of()),
+					!allowedConnections.contains(edge.metatypeId())))
 			.toList();
+		conflicts += (int) edgeView.stream().filter(Edge::conflict).count();
 		Set<UUID> shownIds = before.keySet();
 		List<HierarchyLine> lineView = this.lines.shown(diagram.id())
 			.stream()
 			.filter((line) -> shownIds.contains(line.parentShapeId()) && shownIds.contains(line.childShapeId()))
 			.map((line) -> new HierarchyLine(line.id(), line.parentShapeId(), line.childShapeId()))
 			.toList();
-		return new View(diagram, viewpoint, view, edgeView, lineView, this.settings.effective(viewpoint.askNewParent()));
+		return new View(diagram, viewpoint, view, edgeView, lineView, this.settings.effective(viewpoint.askNewParent()),
+				conflicts);
 	}
 
 	/**

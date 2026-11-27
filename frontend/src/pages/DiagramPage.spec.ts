@@ -6,15 +6,15 @@ import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
 import DiagramCanvas from '../components/diagram/DiagramCanvas.vue'
 import PlaceInNavigation from '../components/PlaceInNavigation.vue'
 import { session } from '../session/store'
-import { diagram, diagramApi, ME_DIAGRAM_MANAGER, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, shape } from '../test/diagrams'
+import { diagram, diagramApi, ME_DIAGRAM_MANAGER, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, shape, VIEWPOINT_INTEGRATION, viewpointConfigs, type DiagramApiOptions } from '../test/diagrams'
 import DiagramPage from './DiagramPage.vue'
 
 const ID = diagram().id
 
 const mounted: { unmount: () => void }[] = []
 
-async function mountPage(me: unknown, id = ID) {
-  const fetchFn = diagramApi({ me, diagrams: [diagram({ description: 'From order to payment.' })], shapes: [shape()] })
+async function mountPage(me: unknown, id = ID, options: Partial<DiagramApiOptions> = {}) {
+  const fetchFn = diagramApi({ me, diagrams: [diagram({ description: 'From order to payment.' })], shapes: [shape()], ...options })
   // the page runs in a router view, as in the application (its guard for unsaved changes needs the route)
   const placeholder = { template: '<div />' }
   const router = createRouter({
@@ -70,6 +70,21 @@ describe('DiagramPage', () => {
     session.loaded = false
     const manager = await mountPage(ME_DIAGRAM_MANAGER)
     expect(manager.wrapper.findComponent(PlaceInNavigation).props('placement')).toEqual({ itemType: 'diagram', referenceId: ID, name: 'Order to Cash' })
+  })
+
+  // spec diagram/diagram-viewpoint-change "Viewpoint changed": the page shows the new viewpoint, the canvas its conflicts
+  it('shows the new viewpoint and the conflicts after "Change viewpoint"', async () => {
+    const { wrapper, fetchFn } = await mountPage(ME_DIAGRAM_WRITER, ID, { viewpoints: viewpointConfigs(), shapes: [shape(), shape({ id: 'd1000000-0000-4000-8000-000000000002', entity: { id: 14, name: 'Invoice Approval', metatypeId: 'c1000000-0000-4000-8000-000000000002', childCount: 0, parentEntityId: null } })] })
+    expect(wrapper.find('[data-testid="conflicts-panel"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="canvas-change-viewpoint"]').trigger('click')
+    await vi.waitFor(() => expect(document.body.querySelector(`[data-testid="viewpoint-change-choice"] [value="${VIEWPOINT_INTEGRATION}"]`)).not.toBeNull())
+    ;(document.body.querySelector(`[data-testid="viewpoint-change-choice"] [value="${VIEWPOINT_INTEGRATION}"]`) as HTMLElement).click()
+    await flushPromises()
+    ;(document.body.querySelector('[data-testid="viewpoint-change-submit"]') as HTMLElement).click()
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="diagram-viewpoint-name"]').text()).toContain('Integration View'))
+    expect(wrapper.get('[data-testid="conflicts-title"]').text()).toBe('Conflicts (1)')
+    expect(fetchFn.state.diagrams[0]!.version).toBe(2)
   })
 
   it('shows an unknown or deleted diagram as not found', async () => {

@@ -30,6 +30,8 @@ import io.oea.api.generated.model.DiagramViewWrite;
 import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.api.generated.model.DiagramUpdate;
 import io.oea.api.generated.model.DiagramViewpoint;
+import io.oea.api.generated.model.DiagramViewpointChanged;
+import io.oea.api.generated.model.DiagramViewpointWrite;
 import io.oea.api.generated.model.PageMeta;
 import io.oea.api.generated.model.PrincipalRef;
 import io.oea.api.generated.model.ViewpointNotation;
@@ -108,6 +110,19 @@ public class DiagramController implements DiagramsApi {
 	public ResponseEntity<Diagram> updateDiagram(UUID id, String ifMatch, DiagramUpdate request) {
 		return versioned(diagram(this.diagrams.update(principal(), id, request.getName(), request.getDescription(),
 				expectedVersion(ifMatch))));
+	}
+
+	@Override
+	public ResponseEntity<DiagramViewpointChanged> changeDiagramViewpoint(UUID id, String ifMatch,
+			DiagramViewpointWrite request) {
+		Diagrams.ViewpointChange changed = this.diagrams.changeViewpoint(principal(), id, request.getViewpointId(),
+				expectedVersion(ifMatch));
+		Diagram diagram = diagram(changed.diagram());
+		return ResponseEntity.ok()
+			.eTag(etag(diagram.getVersion()))
+			.body(new DiagramViewpointChanged(diagram.getId(), diagram.getName(), diagram.getDescription(),
+					diagram.getViewpoint(), diagram.getVersion(), diagram.getCreatedBy(), diagram.getCreatedAt(),
+					diagram.getUpdatedAt(), changed.conflictCount()));
 	}
 
 	@Override
@@ -300,7 +315,7 @@ public class DiagramController implements DiagramsApi {
 								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId(),
 										shape.childCount(), shape.parentEntityId()),
 								shape.parentShapeId(), shape.x(), shape.y(), shape.width(), shape.height(),
-								shape.missingMandatory()))
+								shape.missingMandatory(), shape.conflict()))
 						.toList(),
 					view.edges()
 						.stream()
@@ -309,13 +324,13 @@ public class DiagramController implements DiagramsApi {
 										edge.metatypeId()),
 								edge.sourceShapeId(), edge.targetShapeId(),
 								edge.points().stream().map((point) -> new DiagramPoint(point.x(), point.y())).toList(),
-								edge.missingMandatory()))
+								edge.missingMandatory(), edge.conflict()))
 						.toList(),
 					view.hierarchyLines()
 						.stream()
 						.map((line) -> new DiagramHierarchyLine(line.id(), line.parentShapeId(), line.childShapeId()))
 						.toList(),
-					view.askNewParent()));
+					view.askNewParent(), view.conflictCount()));
 	}
 
 	private static PageMeta meta(Diagrams.Page result) {

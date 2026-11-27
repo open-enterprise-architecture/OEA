@@ -336,7 +336,8 @@ class PackageViewpointImportTests {
 		MvcTestResult unchanged = post(kept);
 		assertThat(unchanged).as(() -> content(unchanged)).hasStatus(HttpStatus.OK);
 		assertThat(body(unchanged).path("diagramsDeleted").asInt()).isZero();
-		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagrams", Integer.class)).isEqualTo(5);
+		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM diagrams WHERE viewpoint_id IN (?::uuid, ?::uuid)",
+				Integer.class, keepId, dropId)).isEqualTo(5);
 
 		// a re-import without the viewpoint removes its diagrams, the deleted one included
 		ObjectNode second = pkg("reimport-diagrams");
@@ -359,6 +360,45 @@ class PackageViewpointImportTests {
 				SELECT details ->> 'diagramsDeleted' FROM audit.events
 				WHERE event_type = 'metamodel.package-imported' AND target_id = 'reimport-diagrams'
 				ORDER BY id DESC LIMIT 1""", String.class)).isEqualTo("2");
+	}
+
+	@Test
+	void aReimportThatDropsATypeOfAPackageViewpointMakesItsShapesConflicts() {
+		ObjectNode first = pkg("reimport-conflicts");
+		viewpointWithId(first, UUID.nameUUIDFromBytes("reimport-conflicts/vp".getBytes()).toString(), "Conflict Apps",
+				List.of(typeId(first, 0), typeId(first, 1)));
+		assertThat(post(first)).hasStatus(HttpStatus.OK);
+		String viewpointId = UUID.nameUUIDFromBytes("reimport-conflicts/vp".getBytes()).toString();
+		String diagram = diagram(viewpointId, "Conflict Diagram", false);
+		long person = this.jdbc.queryForObject("SELECT min(id) FROM persons", Long.class);
+		for (int i = 0; i < 2; i++) {
+			int entity = this.jdbc.queryForObject("""
+					INSERT INTO entities (metatype_id, name, created_by) VALUES (?::uuid, ?, ?) RETURNING id""", Integer.class,
+					typeId(first, i), "Entity of type " + i, person);
+			this.jdbc.update("""
+					INSERT INTO diagram_shapes (id, diagram_id, entity_id, x_pt, y_pt, width_pt, height_pt, z_order)
+					VALUES (gen_random_uuid(), ?::uuid, ?, 0, ?, 90, 30, ?)""", diagram, entity, i * 100, i);
+		}
+		TestSession reader = new TestPrincipals(this.sessions, this.accounts, this.jdbc).personWithIdpRole("viewer");
+		assertThat(conflicts(diagram, reader)).isEqualTo("false,false");
+		ObjectNode second = pkg("reimport-conflicts");
+		second.put("packageVersion", "1.1.0");
+		viewpointWithId(second, viewpointId, "Conflict Apps", List.of(typeId(second, 0)));
+		MvcTestResult again = post(second);
+		assertThat(again).as(() -> content(again)).hasStatus(HttpStatus.OK);
+		// the shape of the dropped type stays and is a conflict; the import is not blocked
+		assertThat(conflicts(diagram, reader)).isEqualTo("false,true");
+	}
+
+	private String conflicts(String diagram, TestSession reader) {
+		MvcTestResult view = this.mvc.get()
+			.uri("/api/v1/views/diagrams/" + diagram)
+			.cookie(new Cookie(SessionCookie.NAME, reader.token()))
+			.exchange();
+		assertThat(view).as(() -> content(view)).hasStatus(HttpStatus.OK);
+		List<String> marks = new java.util.ArrayList<>();
+		body(view).path("shapes").forEach((shape) -> marks.add(shape.path("conflict").asString()));
+		return String.join(",", marks);
 	}
 
 	private String diagram(String viewpointId, String name, boolean deleted) {

@@ -38,6 +38,8 @@ export const ME_DIAGRAM_READER = me('Franz', 10, ['portal:read', 'entity:read'])
 
 export const VIEWPOINT_BPMN = 'b1000000-0000-4000-8000-000000000001'
 export const VIEWPOINT_ARCHIMATE = 'b1000000-0000-4000-8000-000000000002'
+/** "Integration View": allows "Application Component" and "Association" only (viewpoint change, US-074). */
+export const VIEWPOINT_INTEGRATION = 'b1000000-0000-4000-8000-000000000003'
 
 const ACTOR = { principalType: 'person', id: 7, displayName: 'Anna' } as const
 
@@ -125,6 +127,27 @@ export function viewpointConfig(): ViewpointConfig {
     createdAt: '2026-11-19T09:00:00Z',
     createdBy: { id: 7, name: 'Anna' },
   }
+}
+
+/** The viewpoint "Integration View": no "Business Process" and no "Flow", so that their shapes and edges are conflicts. */
+export function integrationViewpoint(): ViewpointConfig {
+  const base = viewpointConfig()
+  return {
+    ...base,
+    id: VIEWPOINT_INTEGRATION,
+    name: 'Integration View',
+    notation: 'generic',
+    sizes: [],
+    effectiveMappings: base.effectiveMappings.filter((entry) => entry.metatypeId === METATYPE_COMPONENT || entry.metatypeId === METATYPE_ASSOCIATION),
+    allowedMetatypes: base.allowedMetatypes.filter((type) => type.id === METATYPE_COMPONENT),
+    allowedRelations: base.allowedRelations.filter((type) => type.id === METATYPE_ASSOCIATION),
+    diagramCount: 0,
+  }
+}
+
+/** The viewpoints the dialog "Change viewpoint" lists: the one of the canvas and "Integration View". */
+export function viewpointConfigs(): ViewpointConfig[] {
+  return [viewpointConfig(), integrationViewpoint()]
 }
 
 export const ENTITIES: DiagramEntity[] = [
@@ -269,6 +292,7 @@ export function shape(overrides: Partial<DiagramShape> = {}): DiagramShape {
     width: 120,
     height: 40,
     missingMandatory: [],
+    conflict: false,
     ...overrides,
   }
 }
@@ -282,6 +306,7 @@ export function edge(overrides: Partial<DiagramEdge> = {}): DiagramEdge {
     targetShapeId: 'd1000000-0000-4000-8000-000000000002',
     points: [],
     missingMandatory: [],
+    conflict: false,
     ...overrides,
   }
 }
@@ -294,7 +319,8 @@ export function diagramView(
   hierarchyLines: DiagramHierarchyLine[] = [],
   askNewParent = true,
 ): DiagramView {
-  return { diagram: diagram(overrides), viewpoint: viewpointConfig(), shapes, edges, hierarchyLines, askNewParent }
+  const conflictCount = shapes.filter((entry) => entry.conflict).length + edges.filter((entry) => entry.conflict).length
+  return { diagram: diagram(overrides), viewpoint: viewpointConfig(), shapes, edges, hierarchyLines, askNewParent, conflictCount }
 }
 
 function respond(status: number, body: unknown, headers: Record<string, string> = {}): Response {
@@ -315,6 +341,8 @@ export interface DiagramApiOptions {
   recorded?: RecordedRequest[]
   /** the page size of the fake list (the contract allows 1 to 200) */
   pageSize?: number
+  /** the viewpoints of the instance as the dialog "Change viewpoint" lists them (full configurations); default the summaries of the diagram form */
+  viewpoints?: Viewpoint[]
   /** the shapes of the diagram "Order to Cash" (SCR-021) */
   shapes?: DiagramShape[]
   /** the edges of the diagram "Order to Cash" (SCR-021) */
@@ -364,6 +392,8 @@ export type DiagramApi = typeof fetch & {
     saves: DiagramViewWrite[]
     entities: Record<number, FakeEntity>
     queries: { entityIds: number[]; shownEntityIds: number[] }[]
+    /** the viewpoint of the canvas after a change; `undefined` while the fake shows the viewpoint of the stories */
+    viewpoint?: Viewpoint
   }
 }
 
@@ -382,6 +412,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     saves: [] as DiagramViewWrite[],
     queries: [] as { entityIds: number[]; shownEntityIds: number[] }[],
     entities: structuredClone(options.entityStates ?? fakeEntities()),
+    viewpoint: undefined as Viewpoint | undefined,
   }
   let counter = 100
   let entityCounter = 200
@@ -400,6 +431,17 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
       nextCursor: more ? `cursor-${index + 1}` : null,
     }
   }
+  // the conflicts follow the viewpoint after a change; before, the flags of the stories are kept
+  const shapeConflict = (entry: DiagramShape): boolean =>
+    state.viewpoint ? !state.viewpoint.allowedMetatypes.some((type) => type.id === entry.entity.metatypeId) : entry.conflict
+  const edgeConflict = (entry: DiagramEdge): boolean =>
+    state.viewpoint ? !state.viewpoint.allowedRelations.some((type) => type.id === entry.connection.metatypeId) : entry.conflict
+  const viewOf = (found: Diagram): DiagramView => {
+    const shapes = state.shapes.map((entry) => ({ ...entry, conflict: shapeConflict(entry) }))
+    const edges = state.edges.map((entry) => ({ ...entry, conflict: edgeConflict(entry) }))
+    const conflictCount = shapes.filter((entry) => entry.conflict).length + edges.filter((entry) => entry.conflict).length
+    return { diagram: found, viewpoint: state.viewpoint ?? viewpointConfig(), shapes, edges, hierarchyLines: state.lines, askNewParent: options.askNewParent ?? true, conflictCount }
+  }
   const api = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost')
     const path = url.pathname
@@ -413,7 +455,27 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
       return respond(200, options.me)
     }
     if (path === '/api/v1/admin/viewpoints' && method === 'GET') {
-      return respond(200, VIEWPOINTS)
+      return respond(200, options.viewpoints ?? VIEWPOINTS)
+    }
+    const change = /^\/api\/v1\/diagrams\/([^/]+)\/viewpoint$/.exec(path)
+    if (change && method === 'PUT') {
+      const found = state.diagrams.find((entry) => entry.id === change[1])
+      if (!found) {
+        return problem(404, 'not-found')
+      }
+      if (version !== found.version) {
+        return problem(412, 'stale-version', { currentVersion: found.version })
+      }
+      const target = (options.viewpoints ?? viewpointConfigs()).find((entry) => entry.id === body?.viewpointId)
+      if (!target) {
+        return problem(422, 'validation-failed', { invalidFields: ['viewpointId'] })
+      }
+      if (target.id !== found.viewpoint.id) {
+        found.viewpoint = { id: target.id, name: target.name, notation: target.notation }
+        state.viewpoint = target
+        found.version += 1
+      }
+      return respond(200, { ...found, conflictCount: viewOf(found).conflictCount }, { ETag: `"${found.version}"` })
     }
     const view = /^\/api\/v1\/views\/diagrams\/([^/]+)$/.exec(path)
     if (view) {
@@ -422,7 +484,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         return problem(404, 'not-found')
       }
       if (method === 'GET') {
-        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges, hierarchyLines: state.lines, askNewParent: options.askNewParent ?? true }, { ETag: `"${found.version}"` })
+        return respond(200, viewOf(found), { ETag: `"${found.version}"` })
       }
       if (method === 'PUT') {
         if (version !== found.version) {
@@ -435,6 +497,18 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             invalidFields: (options.rejectSave.errors ?? []).map((error) => error.field),
             ...options.rejectSave.extra,
           })
+        }
+        // shapes and edges that keep their entity or connection and are conflicts block the save (design D3 of us-074-diagram-viewpoint-change)
+        const blockedShapes = request.shapes.flatMap((entry, index) => {
+          const kept = state.shapes.find((candidate) => candidate.id === entry.id && candidate.entity.id === entry.entityId)
+          return kept && shapeConflict(kept) ? [`shapes[${index}]`] : []
+        })
+        const blockedEdges = (request.edges ?? []).flatMap((entry, index) => {
+          const kept = state.edges.find((candidate) => candidate.id === entry.id && candidate.connection.id === entry.connectionId)
+          return kept && edgeConflict(kept) ? [`edges[${index}]`] : []
+        })
+        if (blockedShapes.length + blockedEdges.length > 0) {
+          return problem(409, 'diagram-conflicts', { invalidFields: [...blockedShapes, ...blockedEdges] })
         }
         const updates = request.entityUpdates ?? []
         const stale = updates.flatMap((update, index) => {
@@ -533,6 +607,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             width: entry.width,
             height: entry.height,
             missingMandatory: missing,
+            conflict: false,
           }
         })
         // the connections created with the save: named after their ends unless named, incomplete without a mandatory value
@@ -556,10 +631,11 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             targetShapeId: entry.targetShapeId,
             points: entry.points,
             missingMandatory: connection ? mandatoryMissing(connection) : [],
+            conflict: false,
           }
         })
         found.version += 1
-        return respond(200, { diagram: found, viewpoint: viewpointConfig(), shapes: state.shapes, edges: state.edges, hierarchyLines: state.lines, askNewParent: options.askNewParent ?? true }, { ETag: `"${found.version}"` })
+        return respond(200, viewOf(found), { ETag: `"${found.version}"` })
       }
     }
     const detail = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities\/(\d+)$/.exec(path)

@@ -9,6 +9,7 @@ import type {
   DiagramViewWrite,
 } from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
+import type { Viewpoint } from '../../api/metamodel'
 import { edgeFingerprint, type CanvasEdge } from './edgeModel'
 
 // The state of the canvas editor without the canvas library (design D6 of us-074-diagram-canvas):
@@ -46,6 +47,8 @@ export interface CanvasShape {
   missingMandatory: string[]
   /** the reason a save rejected the shape; cleared by the next change of the shape */
   error?: string
+  /** the viewpoint does not allow the type of the entity: a conflict that blocks the save until it is resolved (design D2 of us-074-diagram-viewpoint-change) */
+  conflict?: boolean
   /** the name of a new shape is entered in the shape itself */
   editing?: boolean
 }
@@ -94,6 +97,8 @@ export interface ShapeData {
   unsaved: boolean
   missingMandatory: string[]
   error?: string
+  /** the shape is a conflict: the viewpoint does not allow its type */
+  conflict: boolean
   /** the name of the metatype, for the label of the input of a new shape */
   metatypeName: string
   /** the shape holds other shapes: it is a container */
@@ -165,6 +170,20 @@ export function fromView(shape: DiagramShape): CanvasShape {
     width: shape.width,
     height: shape.height,
     missingMandatory: [...shape.missingMandatory],
+    ...(shape.conflict ? { conflict: true } : {}),
+  }
+}
+
+/**
+ * The names of the shapes and edges of the view that the viewpoint does not allow, so that they would be conflicts
+ * (design D5 of us-074-diagram-viewpoint-change): the exact type is allowed or not, as the save checks it.
+ */
+export function previewConflicts(view: DiagramView, viewpoint: Viewpoint): { shapes: string[]; edges: string[] } {
+  const types = new Set(viewpoint.allowedMetatypes.map((type) => type.id))
+  const connections = new Set(viewpoint.allowedRelations.map((type) => type.id))
+  return {
+    shapes: view.shapes.filter((shape) => !types.has(shape.entity.metatypeId)).map((shape) => shape.entity.name),
+    edges: view.edges.filter((edge) => !connections.has(edge.connection.metatypeId)).map((edge) => edge.connection.name),
   }
 }
 

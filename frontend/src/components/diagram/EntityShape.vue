@@ -34,13 +34,14 @@ function resizeEnd(event: OnResizeEnd) {
 <template>
   <div
     class="flex h-full w-full flex-col gap-0.5 overflow-hidden rounded-md border-2 bg-default px-2 text-xs text-highlighted shadow-sm"
-    :class="[data.container ? 'justify-start pt-1' : 'justify-center', selected ? 'ring-2 ring-primary' : '', data.error ? 'border-error!' : 'border-accented']"
+    :class="[data.container ? 'justify-start pt-1' : 'justify-center', selected ? 'ring-2 ring-primary' : '', data.error ? 'border-error!' : data.conflict ? 'border-warning! border-dashed!' : 'border-accented']"
     :data-container="data.container ? 'true' : undefined"
-    :style="data.hint && !data.error ? { borderColor: data.hint } : undefined"
+    :style="data.hint && !data.error && !data.conflict ? { borderColor: data.hint } : undefined"
     :data-testid="`shape-${id}`"
     :data-unsaved="data.unsaved ? 'true' : undefined"
     :data-incomplete="data.missingMandatory.length > 0 ? 'true' : undefined"
-    :title="data.error ?? (data.missingMandatory.length > 0 ? t('diagrams.canvas.incomplete', { properties: data.missingMandatory.join(', ') }) : undefined)"
+    :data-conflict="data.conflict ? 'true' : undefined"
+    :title="data.error ?? (data.conflict ? t('diagrams.viewpointChange.conflictText') : undefined) ?? (data.missingMandatory.length > 0 ? t('diagrams.canvas.incomplete', { properties: data.missingMandatory.join(', ') }) : undefined)"
   >
     <template v-if="data.connectable && !data.editing">
       <Handle id="left" type="source" :position="Position.Left" class="size-2.5! border-default! bg-primary!" aria-hidden="true" :title="t('diagrams.canvas.connectFrom')" />
@@ -69,6 +70,10 @@ function resizeEnd(event: OnResizeEnd) {
     <div v-if="data.missingMandatory.length > 0" class="flex items-center gap-1 truncate text-[10px] text-default" data-testid="shape-incomplete">
       <UIcon name="i-lucide-triangle-alert" class="size-3 shrink-0 text-warning" />
       <span class="truncate">{{ t('diagrams.canvas.incomplete', { properties: data.missingMandatory.join(', ') }) }}</span>
+    </div>
+    <div v-if="data.conflict" class="flex items-center gap-1 truncate text-[10px] text-default" data-testid="shape-conflict">
+      <UIcon name="i-lucide-triangle-alert" class="size-3 shrink-0 text-warning" />
+      <span class="truncate">{{ t('diagrams.viewpointChange.conflictText') }}</span>
     </div>
     <div v-if="data.error" class="truncate text-[10px] font-medium text-default" role="alert" data-testid="shape-error">{{ data.error }}</div>
   </div>

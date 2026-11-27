@@ -180,6 +180,18 @@ public class Viewpoints {
 	}
 
 	/**
+	 * The number of diagrams of the viewpoint that are not deleted and have a shown shape or edge of a
+	 * type that the proposed allowed types do not contain; unknown IDs are ignored.
+	 *
+	 * @throws NoSuchElementException for an unknown ID (404)
+	 */
+	@Transactional(readOnly = true)
+	public int affectedDiagrams(UUID id, List<UUID> metatypeIds, List<UUID> connectionTypeIds) {
+		row(id);
+		return this.diagrams.countAffected(id, metatypeIds, connectionTypeIds);
+	}
+
+	/**
 	 * Creates the viewpoint and audits {@code viewpoint.created}.
 	 *
 	 * @throws MetamodelChangeException naming the field for a rule the input violates (422)

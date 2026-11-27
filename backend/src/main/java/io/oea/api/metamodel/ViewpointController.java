@@ -7,6 +7,8 @@ import io.oea.api.generated.model.EffectiveViewpointMapping;
 import io.oea.api.generated.model.EntityHistoryActor;
 import io.oea.api.generated.model.MetatypeSummary;
 import io.oea.api.generated.model.NotationElement;
+import io.oea.api.generated.model.ViewpointAffectedCount;
+import io.oea.api.generated.model.ViewpointAffectedQuery;
 import io.oea.api.generated.model.ViewpointNotation;
 import io.oea.api.generated.model.ViewpointSize;
 import io.oea.api.generated.model.SourcePackage;
@@ -97,6 +99,13 @@ public class ViewpointController implements ViewpointsApi {
 		ViewpointConfig viewpoint = viewpoint(this.viewpoints.update(principal(), id, input(request),
 				MetamodelController.expectedVersion(ifMatch)));
 		return ResponseEntity.ok().eTag(etag(viewpoint.getVersion())).body(viewpoint);
+	}
+
+	@Override
+	public ResponseEntity<ViewpointAffectedCount> countViewpointAffectedDiagrams(UUID id,
+			ViewpointAffectedQuery request) {
+		return ResponseEntity.ok(new ViewpointAffectedCount(
+				this.viewpoints.affectedDiagrams(id, request.getMetatypeIds(), request.getConnectionTypeIds())));
 	}
 
 	@Override

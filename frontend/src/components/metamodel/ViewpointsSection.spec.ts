@@ -20,6 +20,12 @@ async function check(group: string, value: string) {
   await flushPromises()
 }
 
+/** The count of the affected diagrams is asked after a pause of 250 ms. */
+async function debounced() {
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  await flushPromises()
+}
+
 async function type(testId: string, value: string) {
   const input = el<HTMLInputElement>(testId)!
   input.value = value
@@ -121,38 +127,93 @@ describe('ViewpointsSection', () => {
     expect(el('delete-warning')).toBeNull()
   })
 
-  // spec "Section Viewpoints" (US-090 AC2): removing an allowed type from a used viewpoint warns without blocking
-  it('warns "5 diagrams affected" when a type is removed from a used viewpoint, and still saves', async () => {
-    const { wrapper, api } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5 })
+  // spec "Section Viewpoints" (US-090 AC2, owner decision 2026-11-26): removing an allowed type from a used viewpoint
+  // warns with the number of diagrams that get conflicts, without blocking
+  it('warns "3 diagrams affected" with the number the backend counts, and still saves', async () => {
+    const { wrapper, api } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5, affectedCount: 3 })
     await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
     await flushPromises()
     expect(el('viewpoint-diagrams-affected')).toBeNull()
     await check('viewpoint-metatypes', IDS.service)
-    expect(el('viewpoint-diagrams-affected')!.textContent).toContain('5 diagrams affected')
+    await debounced()
+    expect(el('viewpoint-diagrams-affected')!.textContent).toContain('3 diagrams affected – their shapes of removed types become conflicts')
     el<HTMLButtonElement>('viewpoint-submit')!.click()
     await flushPromises()
     expect(api.requests.find((request) => request.method === 'PUT')).toBeDefined()
   })
 
+  it('asks for the types selected now and shows the answer for the last selection', async () => {
+    const asked: string[][] = []
+    const { wrapper } = await mountWithMetamodel(
+      ViewpointsSection,
+      { canManage: true },
+      {
+        me: ME_ARCHITECT,
+        diagramCount: 5,
+        affectedCount: (metatypeIds, connectionTypeIds) => {
+          asked.push([...metatypeIds, ...connectionTypeIds])
+          return connectionTypeIds.length === 0 ? 4 : 2
+        },
+      },
+    )
+    await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await check('viewpoint-metatypes', IDS.service)
+    await check('viewpoint-connections', IDS.dataFlow)
+    await debounced()
+    // the quick selections count once, for what is selected now
+    expect(asked).toHaveLength(1)
+    expect(asked[0]).not.toContain(IDS.service)
+    expect(asked[0]).not.toContain(IDS.dataFlow)
+    expect(el('viewpoint-diagrams-affected')!.textContent).toContain('4 diagrams affected')
+  })
+
   it('warns "1 diagram affected" in the singular', async () => {
-    const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 1 })
+    const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5, affectedCount: 1 })
     await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
     await flushPromises()
     await check('viewpoint-connections', IDS.dataFlow)
+    await debounced()
     expect(el('viewpoint-diagrams-affected')!.textContent).toContain('1 diagram affected')
   })
 
-  it('warns about no diagrams when a viewpoint is unused, and when a type is only added', async () => {
-    const unused = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 0 })
+  it('shows no warning when a type is removed that no diagram shows', async () => {
+    const { wrapper, api } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5, affectedCount: 0 })
+    await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await check('viewpoint-metatypes', IDS.service)
+    await debounced()
+    expect(api.requests.some((request) => request.path.endsWith('/affected-diagrams/query'))).toBe(true)
+    expect(el('viewpoint-diagrams-affected')).toBeNull()
+  })
+
+  it('asks nothing for an unused viewpoint and when a type is only added', async () => {
+    const unused = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 0, affectedCount: 9 })
     await unused.wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
     await flushPromises()
     await check('viewpoint-metatypes', IDS.service)
+    await debounced()
     expect(el('viewpoint-diagrams-affected')).toBeNull()
+    expect(unused.api.requests.some((request) => request.path.endsWith('/affected-diagrams/query'))).toBe(false)
     document.body.innerHTML = ''
-    const used = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5 })
+    const used = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5, affectedCount: 9 })
     await used.wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
     await flushPromises()
     await check('viewpoint-metatypes', IDS.zone)
+    await debounced()
+    expect(el('viewpoint-diagrams-affected')).toBeNull()
+    expect(used.api.requests.some((request) => request.path.endsWith('/affected-diagrams/query'))).toBe(false)
+  })
+
+  it('takes the warning back when the removed type is selected again', async () => {
+    const { wrapper } = await mountWithMetamodel(ViewpointsSection, { canManage: true }, { me: ME_ARCHITECT, diagramCount: 5, affectedCount: 3 })
+    await wrapper.find('[data-testid="viewpoint-edit"]').trigger('click')
+    await flushPromises()
+    await check('viewpoint-metatypes', IDS.service)
+    await debounced()
+    expect(el('viewpoint-diagrams-affected')).not.toBeNull()
+    await check('viewpoint-metatypes', IDS.service)
+    await debounced()
     expect(el('viewpoint-diagrams-affected')).toBeNull()
   })
 })

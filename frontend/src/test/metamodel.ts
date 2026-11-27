@@ -124,6 +124,11 @@ export interface MetamodelApiOptions {
   noSystemViewpoints?: boolean
   /** The number of diagrams that use the first viewpoint, "Application Landscape" (us-074-diagrams). */
   diagramCount?: number
+  /**
+   * The answer of `countViewpointAffectedDiagrams` (us-074-diagram-viewpoint-change): a number, or a function of the
+   * allowed types of the request, to see that the section sends the types selected now.
+   */
+  affectedCount?: number | ((metatypeIds: string[], connectionTypeIds: string[]) => number)
 }
 
 /** A request the fake received, with the headers that matter for the metamodel writes. */
@@ -565,6 +570,10 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       }
       const stored = state.viewpoints.find((viewpoint) => viewpoint.id === viewpointId)
       if (!stored) return problem(404, 'not-found')
+      if (parts[3] === 'affected-diagrams' && method === 'POST') {
+        const count = options.affectedCount ?? 0
+        return json({ count: typeof count === 'function' ? count((body?.metatypeIds ?? []) as string[], (body?.connectionTypeIds ?? []) as string[]) : count })
+      }
       if (method === 'GET') return json(stored, 200, stored.version)
       if (ifMatch !== `"${stored.version}"`) return problem(412, 'stale-version', { currentVersion: stored.version })
       if (stored.viewpointType === 'system-defined') {

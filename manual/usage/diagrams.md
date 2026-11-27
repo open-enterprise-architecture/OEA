@@ -34,7 +34,7 @@ Choose a diagram to open its page.
 
 3. Choose *Create*. The new, empty diagram opens.
 
-The viewpoint is fixed when you create the diagram and cannot be changed later. If the name is taken, the dialog says *A diagram with this name already exists.*
+You can change the viewpoint later (see [Change the viewpoint](#change-the-viewpoint)). If the name is taken, the dialog says *A diagram with this name already exists.*
 
 ## The canvas
 
@@ -54,7 +54,7 @@ With the permission `entity:write` you also edit the layout:
 
 If you leave the page with unsaved changes, OEA asks whether to discard them. If someone else (or you in another window) changed the diagram since you opened it, *Save* answers *The diagram was changed by someone else*; choose *Reload and discard my changes* to continue with the current state, or *Keep editing* to copy your work elsewhere first. Renaming the diagram counts as a change too.
 
-If a shape cannot be saved, for example because the viewpoint no longer allows its type or its entity was deleted meanwhile, the canvas marks the shape with the reason and keeps all your changes; nothing is saved until every shape is valid.
+If a shape cannot be saved, for example because its entity was deleted meanwhile, the canvas marks the shape with the reason and keeps all your changes; nothing is saved until every shape is valid. A shape whose type the viewpoint does not allow is a *conflict* and has its own rules (see [Change the viewpoint](#change-the-viewpoint)).
 
 ### Entities with missing values
 
@@ -98,7 +98,15 @@ A connection is an entity of its own: it joins a source entity with a target ent
 - **Select and remove:** reach an edge with Tab or click it; its details open next to the canvas (see [Details of an entity](#details-of-an-entity)). *Remove from diagram*, Delete or the context menu of the edge removes only the edge; **the connection stays in the repository.** Removing a shape removes its edges, and a connection that was only drawn and not yet saved disappears with its last edge.
 - **Limits:** a diagram holds at most 4000 edges, and one save creates at most 500 new connections; the canvas tells when a limit is reached.
 
-If a connection is deleted, its edges are hidden; they show again when it is restored. A stored edge stays when the viewpoint no longer allows its connection type, but you cannot draw new ones of that type.
+If a connection is deleted, its edges are hidden; they show again when it is restored. A stored edge stays when the viewpoint no longer allows its connection type, but it is a conflict (see [Change the viewpoint](#change-the-viewpoint)), and you cannot draw new ones of that type.
+
+## Change the viewpoint {#change-the-viewpoint}
+
+With `entity:write`, *Change viewpoint* above the canvas changes the viewpoint of the diagram. The button is disabled while you have unsaved changes: save or discard them first. The dialog lists the viewpoints; when you choose one, it names before the change the shapes and edges whose type that viewpoint does not allow (*2 shapes become conflicts.*, or *No conflicts arise.*). The change is saved at once, as a change of its own; the shapes, edges and lines stay as they are, and the canvas reloads with the palette and the default sizes of the new viewpoint. If someone else changed the diagram meanwhile, the dialog says so and offers to reload.
+
+**Conflicts.** A shape or edge whose type the diagram's viewpoint does not allow is a *conflict*. This happens after a change of the viewpoint, and also when an administrator removes the type from the viewpoint or a new version of a [metamodel package](../administration/metamodel-packages) does. OEA checks the exact type: a viewpoint that allows a type does not allow its subtypes. Conflicts are marked by a dashed border (or line) and the text *Conflict: type not allowed in this viewpoint*, not only by color. The list *Conflicts (N)* above the canvas names them; choosing a name selects the shape or edge. Shapes of a deleted entity are hidden and are no conflicts, but they can become conflicts when the entity is restored.
+
+**Resolve them.** *Remove from diagram* in the list removes one conflict with its edges and hierarchy lines (for a container with nested shapes, OEA asks first, because the nested shapes leave the diagram with it), and *Remove all conflicts* removes all. The entities stay in the repository. Or an administrator allows the type again in the viewpoint; the mark then disappears. **As long as a conflict is left, you cannot save the diagram:** *Save* answers *The diagram was not saved: it still has conflicts*, whatever else you changed, and keeps your changes. A reader sees the marks and the list without the buttons.
 
 ## Rename and delete a diagram
 
@@ -119,10 +127,12 @@ Diagrams cannot exist without their viewpoint. When you delete a viewpoint that 
 The diagrams are available through `/diagrams` (see the [API reference](../api/)):
 
 - `GET /diagrams` lists the diagrams by name. `q` is a part of the name (at most 200 characters), `pageSize` is 1 to 200 (default 50), and `page` starts at 0. The answer carries `nextCursor`; send it as `cursor` together with `page` increased by 1 to continue. A cursor of another query is rejected with 400 naming `cursor`.
-- `POST /diagrams` creates a diagram from `name`, `description` and `viewpointId`; `GET /diagrams/{id}` reads it; `PUT /diagrams/{id}` changes `name` and `description` (a `viewpointId` is ignored); `DELETE /diagrams/{id}` deletes it. Every change needs the header `If-Match` with the version that was read (`"3"`); without it the answer is 428, with another version 412. The answers carry the new version as `ETag`.
+- `POST /diagrams` creates a diagram from `name`, `description` and `viewpointId`; `GET /diagrams/{id}` reads it; `PUT /diagrams/{id}` changes `name` and `description` (a `viewpointId` is ignored; `PUT /diagrams/{id}/viewpoint` changes the viewpoint, see below); `DELETE /diagrams/{id}` deletes it. Every change needs the header `If-Match` with the version that was read (`"3"`); without it the answer is 428, with another version 412. The answers carry the new version as `ETag`.
 - `GET /diagrams/deleted` lists the deleted diagrams, and `POST /diagrams/{id}/restore` with `If-Match` restores one; both need `entity:restore`. A diagram that is not deleted answers 409 (`urn:oea:problem:diagram-not-deleted`).
 - A taken name answers 422 with the problem type `urn:oea:problem:diagram-name-taken`; other invalid input answers 422 and names the field in `invalidFields` (`name`, `description` or `viewpointId`). An unknown or deleted diagram answers 404.
 - Every change is recorded in the audit trail as `diagram.created`, `diagram.updated`, `diagram.deleted` or `diagram.restored`.
+- `PUT /diagrams/{id}/viewpoint` with `If-Match` and `entity:write` changes the viewpoint to the one in `viewpointId`; it is saved at once and the answer is the diagram with `conflictCount`, the number of conflicts. Shapes, edges and lines stay. An unknown viewpoint answers 422 naming `viewpointId`; the viewpoint the diagram already has changes nothing (no new version, no audit). The change is recorded as `diagram.viewpoint-changed` with `fromViewpointId`, `toViewpointId` and `conflicts`.
+- `GET /views/diagrams/{id}` marks every shape and edge with `conflict` and carries `conflictCount`. `PUT /views/diagrams/{id}` answers 409 with the problem type `urn:oea:problem:diagram-conflicts` and `invalidFields` such as `shapes[3]` and `edges[1]` while the saved layout still contains a shape or edge that is a conflict, whatever else the save changes (also a save without any change); nothing is changed then. A layout error (422) is answered first, the missing permission to write a property after the conflicts. A save that removes all conflicts is accepted; a new shape or edge of a type the viewpoint does not allow is still rejected with 422 `METATYPE_NOT_ALLOWED`.
 - `GET /views/diagrams/{id}` returns the view of a diagram: the diagram with its version (`ETag`), its viewpoint with the effective default sizes, and the shapes in drawing order (the last is drawn on top) with the shape ID, the entity, the position and the size in pt, and `missingMandatory`, the names of the mandatory properties without a value. Shapes of a deleted entity are left out.
 - `PUT /views/diagrams/{id}` saves the layout with `If-Match`: all `shapes` in drawing order (`id`, exactly one of `entityId` and `newEntityKey`, `x`, `y`, `width`, `height`) and the `newEntities` (`key`, `metatypeId`, `name`) that the shapes with `newEntityKey` refer to. The save is atomic and raises the version. New entities are created like entities of the batch write (`entity.created`), but an entity with a missing mandatory property is created incomplete instead of being rejected. Limits: 2000 shapes, 500 new entities, positions within ±100 000 pt, sizes 1 to 10 000 pt, at most two decimals, a body of 4 MB; violations answer 400 or 413. A faulty shape or new entity answers 422 with `invalidFields` and `errors` (for example `shapes[3].entityId` or `newEntities[1].name`); nothing is saved then. A shape ID of another diagram is rejected too.
 - `GET /views/diagrams/{id}/entities` searches the entities that the viewpoint allows (`q` up to 255 characters, `metatypeId`, `page`, `pageSize` 1 to 200); a metatype the viewpoint does not allow answers 422 naming `metatypeId`.

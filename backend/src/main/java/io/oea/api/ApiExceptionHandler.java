@@ -773,6 +773,12 @@ public class ApiExceptionHandler {
 	/** Shapes or new entities of a diagram layout that violate a rule, or a value outside the contract (design D2, D4 of us-074-diagram-canvas). */
 	@ExceptionHandler(DiagramViewException.class)
 	ResponseEntity<ProblemDetail> diagramView(DiagramViewException ex) {
+		if (ex.getReason() == DiagramViewException.Reason.CONFLICTS) {
+			ProblemDetail conflicts = problem(HttpStatus.CONFLICT, "diagram-conflicts", "Diagram has conflicts",
+					ex.getMessage());
+			conflicts.setProperty("invalidFields", ex.getInvalidFields());
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(conflicts);
+		}
 		boolean request = ex.getReason() == DiagramViewException.Reason.INVALID_REQUEST;
 		HttpStatus status = request ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
 		ProblemDetail problem = problem(status, "validation-failed",

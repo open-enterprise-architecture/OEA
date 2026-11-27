@@ -3,7 +3,7 @@ import { expect, userEvent, within } from 'storybook/test'
 import type { Me } from '../api/session'
 import MetamodelPage from '../pages/MetamodelPage.vue'
 import { session } from '../session/store'
-import { ME_ARCHITECT, ME_READER, metamodelApi } from '../test/metamodel'
+import { ME_ARCHITECT, ME_READER, metamodelApi, type MetamodelApiOptions } from '../test/metamodel'
 
 // SCR-031 Viewpoints (UC-12, US-090 to US-093; design D4 of us-090-viewpoints, D6 of
 // us-091-viewpoint-notations): the section "Viewpoints" of the metamodel page with the viewpoints in
@@ -11,7 +11,7 @@ import { ME_ARCHITECT, ME_READER, metamodelApi } from '../test/metamodel'
 // allowed entity and connection types, and the dialog to create or edit one with the notation and
 // the mapping of each type to an element and the default sizes in pt (docs/screens/SCREENS.md). The first story is the screen
 // image.
-function page(me: unknown, prepare?: (api: ReturnType<typeof metamodelApi>) => void): Story {
+function page(me: unknown, prepare?: (api: ReturnType<typeof metamodelApi>) => void, options: Partial<MetamodelApiOptions> = {}): Story {
   return {
     render: () => ({
       components: { MetamodelPage },
@@ -19,7 +19,7 @@ function page(me: unknown, prepare?: (api: ReturnType<typeof metamodelApi>) => v
         // the session of the previous story must not show its actions
         session.me = me as Me
         session.loaded = true
-        const api = metamodelApi({ me })
+        const api = metamodelApi({ me, ...options })
         prepare?.(api)
         return { fetchFn: api.fetch }
       },
@@ -148,18 +148,22 @@ export const DeleteWithDiagrams: Story = {
   },
 }
 
-/** Removing an allowed type from a viewpoint that diagrams use warns without blocking (US-090 AC2). */
+/** Removing an allowed type from a viewpoint that diagrams use warns with the number of diagrams that get conflicts, without blocking (US-090 AC2). */
 export const EditAffectsDiagrams: Story = {
-  ...page(ME_ARCHITECT, (api) => {
-    api.state.viewpoints[0]!.diagramCount = 5
-  }),
+  ...page(
+    ME_ARCHITECT,
+    (api) => {
+      api.state.viewpoints[0]!.diagramCount = 5
+    },
+    { affectedCount: 3 },
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Edit' }))
     const body = within(canvasElement.ownerDocument.body)
     const metatypes = within(await body.findByTestId('viewpoint-metatypes'))
     await userEvent.click(metatypes.getByRole('checkbox', { name: /Application Service/ }))
-    await expect(await body.findByText('5 diagrams affected')).toBeInTheDocument()
+    await expect(await body.findByText('3 diagrams affected – their shapes of removed types become conflicts')).toBeInTheDocument()
     await expect(body.getByRole('button', { name: 'Save' })).toBeEnabled()
   },
 }

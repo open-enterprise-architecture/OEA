@@ -196,6 +196,55 @@ public class Diagrams {
 		return Diagram.of(row(id));
 	}
 
+	/** A diagram after a viewpoint change, with the number of its conflicts. */
+	public record ViewpointChange(Diagram diagram, int conflictCount) {
+	}
+
+	/**
+	 * Changes the viewpoint with the expected version (design D1 of us-074-diagram-viewpoint-change)
+	 * and audits {@code diagram.viewpoint-changed} with the old and new viewpoint and the number of
+	 * conflicts. The same viewpoint changes nothing: no new version, no audit.
+	 *
+	 * @throws PermissionDeniedException for a principal without a person (403)
+	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
+	 * @throws DiagramChangeException for a missing (428) or stale (412) version or an unknown viewpoint (422)
+	 */
+	@Transactional
+	public ViewpointChange changeViewpoint(OeaPrincipal principal, UUID id, UUID viewpointId, Long expectedVersion) {
+		long person = person(principal);
+		Row current = locked(id, expectedVersion);
+		if (viewpointId == null || !this.store.viewpointExists(viewpointId)) {
+			throw DiagramChangeException.invalid("viewpointId", "The viewpoint does not exist.");
+		}
+		if (current.viewpointId().equals(viewpointId)) {
+			return new ViewpointChange(Diagram.of(current), this.store.conflictCount(id));
+		}
+		try {
+			this.store.changeViewpoint(id, viewpointId, person, this.clock.instant());
+		}
+		catch (DataIntegrityViolationException ex) {
+			// the viewpoint was deleted meanwhile
+			throw DiagramChangeException.invalid("viewpointId", "The viewpoint does not exist.");
+		}
+		int conflicts = this.store.conflictCount(id);
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put(NAME, current.name());
+		details.put("fromViewpointId", current.viewpointId().toString());
+		details.put("toViewpointId", viewpointId.toString());
+		details.put("conflicts", conflicts);
+		audit(principal, "diagram.viewpoint-changed", id, details);
+		return new ViewpointChange(Diagram.of(row(id)), conflicts);
+	}
+
+	/**
+	 * The number of diagrams of the viewpoint that are not deleted and have a shown shape or edge of a
+	 * type that the proposed sets do not allow (design D4 of us-074-diagram-viewpoint-change).
+	 */
+	@Transactional(readOnly = true)
+	public int countAffected(UUID viewpointId, List<UUID> metatypeIds, List<UUID> connectionTypeIds) {
+		return this.store.countAffected(viewpointId, metatypeIds, connectionTypeIds);
+	}
+
 	/**
 	 * Marks the diagram as deleted, with the expected version, and audits {@code diagram.deleted}.
 	 *
