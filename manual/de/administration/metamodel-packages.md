@@ -15,7 +15,7 @@ Der Import von Paketen verlangt die Berechtigung `metamodel:write`, die nur die 
 
 OEA liefert das Starterpaket `oea-starter-togaf-classic` mit den Entitätstypen Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software und Network Node, jeweils mit der Eigenschaft *Status*. Version 1.4.0 fügt die vier [Schichten](./metamodel-editing#layers) *Geschäft*, *Daten*, *Anwendung* und *Technologie* (englisch *Business*, *Data*, *Application* und *Technology*) hinzu und ordnet sie den Entitätstypen zu: *Application Component* und *Application Service* der Schicht Anwendung, *Data Object* der Schicht Daten und *Technology Component*, *Technology Service*, *System Software* und *Network Node* der Schicht Technologie (*Komposition* hat keine). Der erneute Import in eine Instanz mit einer eigenen Schicht desselben Namens, zum Beispiel *Business*, wird als Konflikt abgelehnt; benenne diese Schicht zuerst um oder lösche sie. Version 1.3.0 fügt den Verbindungstyp *Komposition* hinzu, gekennzeichnet als [Komposition](./metamodel-editing#composition) der Hierarchie von Komponenten. Version 1.2.0 fügt die zwei systemdefinierten Viewpoints *Application Landscape* und *Technology Landscape* in ArchiMate hinzu (siehe [Viewpoints in Paketen](#viewpoints-in-packages)). Version 1.1.0 brachte deutsche Labels für seine Entitätstypen, *Status* und dessen Werte sowie englische Labels für die Werte mit (siehe [Labels übersetzen](./metamodel-editing#translating-labels)). Eine Instanz, die eine frühere Version importiert hat, erhält die Labels und Viewpoints durch einen erneuten Import des Pakets.
 
-Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Startkonfiguration importieren*. Wähle *Importieren* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
+Neben dem TOGAF-Paket liefert OEA das Starterpaket `oea-starter-bpmn` (siehe [Das BPMN-Starterpaket](#bpmn-package)). Solange die Instanz keinen Entitätstyp hat, zeigt die Startseite einer Person mit `metamodel:write` den Bereich *Startkonfiguration importieren*. Wähle *Importieren* neben dem Paket; die Seite bestätigt, wie viele Entitätstypen jetzt verfügbar sind.
 
 <Screenshot name="starter-import" alt="Startseite mit der Starterkonfiguration zum Import" />
 
@@ -26,6 +26,22 @@ curl "${auth[@]}" "$OEA/metamodel/starter-packages"                    # Liste m
 curl "${auth[@]}" -X POST "$OEA/metamodel/starter-packages/oea-starter-togaf-classic/import"
 curl "${auth[@]}" "$OEA/metamodel/metatypes"                                       # importierte Entitätstypen
 ```
+
+## Ein Starterpaket später importieren {#starter-packages-section}
+
+Ein Starterpaket lässt sich auch in eine Instanz importieren, die schon Entitätstypen hat, zum Beispiel das BPMN-Paket neben dem TOGAF-Paket. Wähle in der Kopfzeile *Metamodell* und den Bereich *Starterpakete* (für Inhaber von `metamodel:write`). Er listet die mitgelieferten Pakete mit Name, Version, Beschreibung, der Zahl der Entitätstypen und Eigenschaften und der Angabe, ob das Paket importiert ist. Wähle *Importieren* neben einem Paket, das noch nicht importiert ist, und bestätige. Die Seite zeigt danach, wie viele Elemente angelegt wurden; die Entitätstypen erscheinen sofort im Metamodell. Ist ein Name des Pakets schon vergeben, von deiner Organisation oder von einem anderen Paket, wird nichts importiert, und der Bereich listet die kollidierenden Namen; benenne dein eigenes Element um oder lösche es und versuche es erneut. Der Bereich ist auch bei [gesperrtem](./metamodel-editing#lock-mode) Metamodell verfügbar, wie jeder Paketimport.
+
+## Das BPMN-Starterpaket {#bpmn-package}
+
+Das Paket `oea-starter-bpmn` (*BPMN 2.0 process modeling*) bringt die Typen von Geschäftsprozessmodellen:
+
+- 26 Entitätstypen: *Process*, *Pool*, *Lane*, die Aktivitäten *Task*, *User Task*, *Service Task*, *Send Task*, *Receive Task*, *Business Rule Task*, *Script Task*, *Sub-Process* und *Call Activity*, die Ereignisse *Start Event*, *Message Start Event*, *Timer Start Event*, *End Event*, *Message End Event*, *Terminate End Event*, *Intermediate Catch Event* und *Intermediate Throw Event*, die Gateways *Exclusive Gateway*, *Parallel Gateway*, *Inclusive Gateway* und *Event-Based Gateway* sowie die Artefakte *Text Annotation* und *Group*. Die Aufgabenvarianten haben den Basistyp *Task*, die Startereignis-Varianten *Start Event* und die Endereignis-Varianten *End Event*, sodass eine Regel für *Task* auch *User Task* und die Untertypen deiner Organisation umfasst.
+- die Verbindungstypen *Sequence Flow*, *Message Flow*, *Association* (von einer Textanmerkung aus), *Calls* (von einer Aufrufaktivität zu einem Prozess) und *References Process* (von einem Pool zu einem Prozess), jeweils auf BPMN-Elemente als Quelle und Ziel beschränkt, sowie die Eigenschaften *Association direction* (`none`, `one`, `both`) und *Group category* (bis zu 255 Zeichen);
+- deutsche Bezeichnungen für alle diese Elemente und der systemdefinierte Viewpoint *Process Model (BPMN 2.0)* mit der Notation BPMN 2.0, allen diesen Typen, BPMN-Symbolen und Standardgrößen. Der Viewpoint behält in jeder Sprache seinen englischen Namen.
+
+**Was das Paket auslässt:** Datenobjekte und Datenspeicher sowie Organisationseinheiten und die Zuordnung von Bahnen zu ihnen folgen mit späteren Versionen. **Einschluss ist die Hierarchie der Entitäten:** Eine Bahn ist Kind ihres Pools, eine Aufgabe Kind ihrer Bahn; das Paket definiert keine Kompositionsverbindung, sodass mit diesem Paket allein für die Hierarchie keine Verbindung angelegt wird. Ist das TOGAF-Paket importiert, wird seine Verbindung *Composition* wie bei anderen Entitäten angelegt. Die Typen sind importierte Typen wie jede andere: schreibgeschützt, aber du kannst Eigenschaften und Untertypen hinzufügen. Importiere das Paket über die Startseite oder über den Bereich *Starterpakete*; dieses Paket und das TOGAF-Paket lassen sich in beliebiger Reihenfolge importieren.
+
+Über die API ist die Liste der Pakete nach `packageId` sortiert; suche ein Paket daher über seine Kennung, nicht über seine Position.
 
 ## Eigenes Paket importieren
 

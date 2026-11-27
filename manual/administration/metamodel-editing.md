@@ -21,6 +21,7 @@ Choose *Metamodel* in the header. The page has these sections:
 | Layers | the [architecture layers](#layers) that entity types belong to |
 | Viewpoints | the [viewpoints](#viewpoints) with their notation |
 | Translations | the names of all elements per language |
+| Starter packages | the packages shipped with OEA and their [import](./metamodel-packages#starter-packages-section) (administrators only) |
 | Changes | who changed the metamodel and when (administrators only) |
 | Settings | the lock mode, and what happens to your own properties when a package is imported again (administrators only) |
 

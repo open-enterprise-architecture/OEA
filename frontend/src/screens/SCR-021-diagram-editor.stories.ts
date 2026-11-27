@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import NewParentDialog from '../components/diagram/NewParentDialog.vue'
 import DiagramPage from '../pages/DiagramPage.vue'
+import { bpmnEdge, bpmnShape, bpmnViewpoint } from '../test/bpmn'
 import { diagram, diagramApi, edge, ENTITIES, FINANCE_SUITE, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_ARCHITECT, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, viewpointConfigs, type DiagramApi } from '../test/diagrams'
 
 // SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
@@ -272,7 +273,8 @@ export const NestedShapes: Story = {
 
 /** Placing an entity with children asks whether they are shown; "Show children" nests them in a grid and grows the entity. */
 export const ShowChildren: Story = {
-  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: [], entities: [...ENTITIES, FINANCE_SUITE] }) },
+  // every shape takes children in a viewpoint of another notation than `bpmn2` (design D5 of us-074-bpmn-process-diagrams)
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: [], entities: [...ENTITIES, FINANCE_SUITE], viewpoint: { ...viewpointConfigs()[0]!, notation: 'generic' } }) },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Add existing' }))
@@ -377,5 +379,54 @@ export const ChangeViewpoint: Story = {
     await expect(await dialog.findByText('1 shape becomes a conflict.')).toBeInTheDocument()
     await expect(dialog.getByText('1 edge becomes a conflict.')).toBeInTheDocument()
     await expect(dialog.getByRole('button', { name: 'Change viewpoint' })).toBeEnabled()
+  },
+}
+
+/**
+ * A BPMN process (us-074-bpmn-process-diagrams): two pools, the first with the lanes "Sales" and "Back office",
+ * tasks, events, gateway, sub-process, text annotation and group drawn with their BPMN symbols, the flows with
+ * their lines, and the sequence flow from "Ship order" to "Deliver goods" across the pool boundary marked with a
+ * warning. The palette is grouped.
+ */
+const PROCESS = [
+  bpmnShape('p-customer', 'Customer', 'pool', 0, 0, 820, 360),
+  bpmnShape('p-sales', 'Sales', 'lane', 30, 0, 790, 180, 'p-customer'),
+  bpmnShape('p-office', 'Back office', 'lane', 30, 180, 790, 180, 'p-customer'),
+  bpmnShape('p-start', 'Order received', 'messageStart', 60, 70, 27, 27, 'p-sales'),
+  bpmnShape('p-check', 'Check order', 'userTask', 140, 50, 90, 60, 'p-sales'),
+  bpmnShape('p-valid', 'Valid?', 'gateway', 280, 60, 38, 38, 'p-sales'),
+  bpmnShape('p-ship', 'Ship order', 'task', 380, 50, 90, 60, 'p-sales'),
+  bpmnShape('p-note', 'Pays within 14 days', 'textAnnotation', 600, 50, 120, 45, 'p-sales'),
+  bpmnShape('p-sub', 'Pack items', 'subProcess', 100, 200, 270, 140, 'p-office'),
+  bpmnShape('p-pack', 'Scan item', 'task', 120, 245, 90, 60, 'p-sub'),
+  bpmnShape('p-wait', 'Payment received', 'catchEvent', 420, 250, 27, 27, 'p-office'),
+  bpmnShape('p-end', 'Order closed', 'endEvent', 540, 250, 27, 27, 'p-office'),
+  bpmnShape('p-group', 'Billing steps', 'group', 620, 200, 170, 140, 'p-office'),
+  bpmnShape('p-supplier', 'Supplier', 'pool', 0, 440, 820, 160),
+  bpmnShape('p-deliver', 'Deliver goods', 'task', 380, 490, 90, 60, 'p-supplier'),
+]
+const PROCESS_EDGES = [
+  bpmnEdge('f-1', 'sequenceFlow', 'p-start', 'p-check', 'Order received → Check order'),
+  bpmnEdge('f-2', 'sequenceFlow', 'p-check', 'p-valid', 'Check order → Valid?'),
+  bpmnEdge('f-3', 'sequenceFlow', 'p-valid', 'p-ship', 'Valid? → Ship order'),
+  bpmnEdge('f-4', 'messageFlow', 'p-customer', 'p-supplier', 'Customer → Supplier'),
+  bpmnEdge('f-5', 'sequenceFlow', 'p-ship', 'p-deliver', 'Ship order → Deliver goods'),
+  bpmnEdge('f-6', 'association', 'p-note', 'p-check', 'Pays within 14 days → Check order'),
+]
+
+export const BpmnProcess: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: PROCESS, edges: PROCESS_EDGES, viewpoint: bpmnViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('group', { name: 'User Task: Check order' })).toBeInTheDocument()
+    await expect(canvas.getByRole('group', { name: 'Exclusive Gateway: Valid?' })).toBeInTheDocument()
+    await expect(canvas.getByRole('group', { name: 'Pool: Customer' })).toBeInTheDocument()
+    // the palette is grouped
+    await expect(canvas.getByRole('group', { name: 'Pools and lanes' })).toBeInTheDocument()
+    await expect(canvas.getByRole('group', { name: 'Activities' })).toBeInTheDocument()
+    // the flow across the pool boundary is marked, the others are not
+    await expect(canvas.getByRole('button', { name: '1 BPMN warning' })).toBeInTheDocument()
+    await expect(canvas.getAllByText(/Sequence flow crosses a pool boundary/).length).toBeGreaterThan(0)
+    await expect(canvas.getByRole('button', { name: 'Connection Order received → Check order' })).toBeInTheDocument()
   },
 }

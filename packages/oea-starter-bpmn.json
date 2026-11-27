@@ -1,0 +1,1196 @@
+{
+  "formatVersion": "1.0",
+  "exportedAt": "2026-11-27T00:00:00Z",
+  "packageId": "oea-starter-bpmn",
+  "packageVersion": "1.0.0",
+  "publisher": "OEA",
+  "name": "BPMN 2.0 process modeling",
+  "description": "BPMN 2.0 process types: process, pools and lanes, tasks and their variants, sub-process, call activity, start, end and intermediate events, gateways, text annotation and group, with the connections sequence flow, message flow, association, calls and references process, and the viewpoint \"Process Model (BPMN 2.0)\". Containment is the entity hierarchy.",
+  "propertyCategories": [
+    {
+      "id": "084cdd58-5531-5dc0-b6dd-2ec4354b602f",
+      "name": "BPMN",
+      "description": "Properties of BPMN elements",
+      "sortOrder": 0
+    }
+  ],
+  "propertyDefinitions": [
+    {
+      "id": "28e72e01-1724-54d4-88d0-070fc0f35829",
+      "name": "Association direction",
+      "dataType": "enum",
+      "category": {
+        "id": "084cdd58-5531-5dc0-b6dd-2ec4354b602f",
+        "name": "BPMN",
+        "sortOrder": 0
+      },
+      "enumValues": [
+        {
+          "id": "c5e1320b-1f17-58e9-8d82-065124ad37f7",
+          "value": "none",
+          "sortOrder": 0
+        },
+        {
+          "id": "8ae8f6fe-80f0-5977-93a3-12d72d044576",
+          "value": "one",
+          "sortOrder": 1
+        },
+        {
+          "id": "5f721406-40fc-52a2-8a09-06c81dea905d",
+          "value": "both",
+          "sortOrder": 2
+        }
+      ]
+    },
+    {
+      "id": "022d8119-7669-51aa-b34e-9b91b71fce58",
+      "name": "Group category",
+      "dataType": "string",
+      "maxLength": 255,
+      "category": {
+        "id": "084cdd58-5531-5dc0-b6dd-2ec4354b602f",
+        "name": "BPMN",
+        "sortOrder": 0
+      }
+    }
+  ],
+  "metatypes": [
+    {
+      "id": "5e24450f-129f-5109-9318-1ff592449b3e",
+      "name": "Process",
+      "abbreviation": "PR",
+      "isConnection": false,
+      "sortOrder": 10,
+      "propertyMappings": []
+    },
+    {
+      "id": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+      "name": "Pool",
+      "abbreviation": "PL",
+      "isConnection": false,
+      "sortOrder": 20,
+      "propertyMappings": []
+    },
+    {
+      "id": "b47c2243-0132-53b7-9cc0-eccc75d30b1b",
+      "name": "Lane",
+      "abbreviation": "LN",
+      "isConnection": false,
+      "sortOrder": 30,
+      "propertyMappings": []
+    },
+    {
+      "id": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+      "name": "Task",
+      "abbreviation": "TK",
+      "isConnection": false,
+      "sortOrder": 40,
+      "propertyMappings": []
+    },
+    {
+      "id": "6174752d-af0b-5541-8195-aa617e8c01ad",
+      "name": "User Task",
+      "abbreviation": "UT",
+      "isConnection": false,
+      "sortOrder": 50,
+      "propertyMappings": [],
+      "baseMetatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce"
+    },
+    {
+      "id": "be823e10-0338-5b16-9a3e-c40137063351",
+      "name": "Service Task",
+      "abbreviation": "ST",
+      "isConnection": false,
+      "sortOrder": 60,
+      "propertyMappings": [],
+      "baseMetatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce"
+    },
+    {
+      "id": "7e3c3b15-fa32-5cd1-ae04-579382a98e46",
+      "name": "Send Task",
+      "abbreviation": "SNT",
+      "isConnection": false,
+      "sortOrder": 70,
+      "propertyMappings": [],
+      "baseMetatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce"
+    },
+    {
+      "id": "7441e089-e403-52ea-84a1-b544a59e7f22",
+      "name": "Receive Task",
+      "abbreviation": "RT",
+      "isConnection": false,
+      "sortOrder": 80,
+      "propertyMappings": [],
+      "baseMetatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce"
+    },
+    {
+      "id": "2d501a3f-6123-5831-a7e9-2116be5a632e",
+      "name": "Business Rule Task",
+      "abbreviation": "BRT",
+      "isConnection": false,
+      "sortOrder": 90,
+      "propertyMappings": [],
+      "baseMetatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce"
+    },
+    {
+      "id": "1d5fa204-dc07-51c0-93bf-3aef7455b52d",
+      "name": "Script Task",
+      "abbreviation": "SCT",
+      "isConnection": false,
+      "sortOrder": 100,
+      "propertyMappings": [],
+      "baseMetatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce"
+    },
+    {
+      "id": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+      "name": "Sub-Process",
+      "abbreviation": "SP",
+      "isConnection": false,
+      "sortOrder": 110,
+      "propertyMappings": []
+    },
+    {
+      "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+      "name": "Call Activity",
+      "abbreviation": "CA",
+      "isConnection": false,
+      "sortOrder": 120,
+      "propertyMappings": []
+    },
+    {
+      "id": "5a68e806-7262-540c-aa17-5dd903d1a574",
+      "name": "Start Event",
+      "abbreviation": "SE",
+      "isConnection": false,
+      "sortOrder": 130,
+      "propertyMappings": []
+    },
+    {
+      "id": "5242e056-0f49-5319-9441-c8de520d70bc",
+      "name": "Message Start Event",
+      "abbreviation": "MSE",
+      "isConnection": false,
+      "sortOrder": 140,
+      "propertyMappings": [],
+      "baseMetatypeId": "5a68e806-7262-540c-aa17-5dd903d1a574"
+    },
+    {
+      "id": "88dcbd24-012b-50f5-add5-f4100beb1dbd",
+      "name": "Timer Start Event",
+      "abbreviation": "TSE",
+      "isConnection": false,
+      "sortOrder": 150,
+      "propertyMappings": [],
+      "baseMetatypeId": "5a68e806-7262-540c-aa17-5dd903d1a574"
+    },
+    {
+      "id": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+      "name": "End Event",
+      "abbreviation": "EE",
+      "isConnection": false,
+      "sortOrder": 160,
+      "propertyMappings": []
+    },
+    {
+      "id": "8d7e32e6-3bbb-5a27-a2ce-d7d17b5237ca",
+      "name": "Message End Event",
+      "abbreviation": "MEE",
+      "isConnection": false,
+      "sortOrder": 170,
+      "propertyMappings": [],
+      "baseMetatypeId": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df"
+    },
+    {
+      "id": "6d146833-91a1-5846-a27e-ad5aabb8e7e3",
+      "name": "Terminate End Event",
+      "abbreviation": "TEE",
+      "isConnection": false,
+      "sortOrder": 180,
+      "propertyMappings": [],
+      "baseMetatypeId": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df"
+    },
+    {
+      "id": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+      "name": "Intermediate Catch Event",
+      "abbreviation": "ICE",
+      "isConnection": false,
+      "sortOrder": 190,
+      "propertyMappings": []
+    },
+    {
+      "id": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+      "name": "Intermediate Throw Event",
+      "abbreviation": "ITE",
+      "isConnection": false,
+      "sortOrder": 200,
+      "propertyMappings": []
+    },
+    {
+      "id": "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+      "name": "Exclusive Gateway",
+      "abbreviation": "XG",
+      "isConnection": false,
+      "sortOrder": 210,
+      "propertyMappings": []
+    },
+    {
+      "id": "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+      "name": "Parallel Gateway",
+      "abbreviation": "PG",
+      "isConnection": false,
+      "sortOrder": 220,
+      "propertyMappings": []
+    },
+    {
+      "id": "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+      "name": "Inclusive Gateway",
+      "abbreviation": "IG",
+      "isConnection": false,
+      "sortOrder": 230,
+      "propertyMappings": []
+    },
+    {
+      "id": "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+      "name": "Event-Based Gateway",
+      "abbreviation": "EG",
+      "isConnection": false,
+      "sortOrder": 240,
+      "propertyMappings": []
+    },
+    {
+      "id": "9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad",
+      "name": "Text Annotation",
+      "abbreviation": "TA",
+      "isConnection": false,
+      "sortOrder": 250,
+      "propertyMappings": []
+    },
+    {
+      "id": "14fbf58a-eb17-5f60-b4d6-e43cd7ebf950",
+      "name": "Group",
+      "abbreviation": "GR",
+      "isConnection": false,
+      "sortOrder": 260,
+      "propertyMappings": [
+        {
+          "id": "aa3075b1-7ba0-53c8-bf8b-c070781be8e9",
+          "propertyDefinition": {
+            "id": "022d8119-7669-51aa-b34e-9b91b71fce58",
+            "name": "Group category",
+            "dataType": "string"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "13576795-7b46-5f25-a487-1e6c4db1d0a7",
+      "name": "Sequence Flow",
+      "abbreviation": "SF",
+      "isConnection": true,
+      "sortOrder": 270,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+            "name": "Task",
+            "abbreviation": "TK"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+            "name": "Sub-Process",
+            "abbreviation": "SP"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+            "name": "Call Activity",
+            "abbreviation": "CA"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "5a68e806-7262-540c-aa17-5dd903d1a574",
+            "name": "Start Event",
+            "abbreviation": "SE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+            "name": "End Event",
+            "abbreviation": "EE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+            "name": "Intermediate Catch Event",
+            "abbreviation": "ICE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+            "name": "Intermediate Throw Event",
+            "abbreviation": "ITE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+            "name": "Exclusive Gateway",
+            "abbreviation": "XG"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+            "name": "Parallel Gateway",
+            "abbreviation": "PG"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+            "name": "Inclusive Gateway",
+            "abbreviation": "IG"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+            "name": "Event-Based Gateway",
+            "abbreviation": "EG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+            "name": "Task",
+            "abbreviation": "TK"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+            "name": "Sub-Process",
+            "abbreviation": "SP"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+            "name": "Call Activity",
+            "abbreviation": "CA"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "5a68e806-7262-540c-aa17-5dd903d1a574",
+            "name": "Start Event",
+            "abbreviation": "SE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+            "name": "End Event",
+            "abbreviation": "EE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+            "name": "Intermediate Catch Event",
+            "abbreviation": "ICE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+            "name": "Intermediate Throw Event",
+            "abbreviation": "ITE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+            "name": "Exclusive Gateway",
+            "abbreviation": "XG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+            "name": "Parallel Gateway",
+            "abbreviation": "PG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+            "name": "Inclusive Gateway",
+            "abbreviation": "IG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+            "name": "Event-Based Gateway",
+            "abbreviation": "EG"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0f1afa51-fc55-52aa-841e-ac62f8bf61e6",
+      "name": "Message Flow",
+      "abbreviation": "MF",
+      "isConnection": true,
+      "sortOrder": 280,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+            "name": "Pool",
+            "abbreviation": "PL"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+            "name": "Task",
+            "abbreviation": "TK"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+            "name": "Sub-Process",
+            "abbreviation": "SP"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+            "name": "Call Activity",
+            "abbreviation": "CA"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "5a68e806-7262-540c-aa17-5dd903d1a574",
+            "name": "Start Event",
+            "abbreviation": "SE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+            "name": "End Event",
+            "abbreviation": "EE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+            "name": "Intermediate Catch Event",
+            "abbreviation": "ICE"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+            "name": "Intermediate Throw Event",
+            "abbreviation": "ITE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+            "name": "Pool",
+            "abbreviation": "PL"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+            "name": "Task",
+            "abbreviation": "TK"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+            "name": "Sub-Process",
+            "abbreviation": "SP"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+            "name": "Call Activity",
+            "abbreviation": "CA"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "5a68e806-7262-540c-aa17-5dd903d1a574",
+            "name": "Start Event",
+            "abbreviation": "SE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+            "name": "End Event",
+            "abbreviation": "EE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+            "name": "Intermediate Catch Event",
+            "abbreviation": "ICE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+            "name": "Intermediate Throw Event",
+            "abbreviation": "ITE"
+          }
+        }
+      ]
+    },
+    {
+      "id": "88b115e6-1b90-5022-a632-660467b009ac",
+      "name": "Association",
+      "abbreviation": "ASC",
+      "isConnection": true,
+      "sortOrder": 290,
+      "propertyMappings": [
+        {
+          "id": "9e79ac20-b093-502d-bac7-ff574362a1bd",
+          "propertyDefinition": {
+            "id": "28e72e01-1724-54d4-88d0-070fc0f35829",
+            "name": "Association direction",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad",
+            "name": "Text Annotation",
+            "abbreviation": "TA"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+            "name": "Pool",
+            "abbreviation": "PL"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b47c2243-0132-53b7-9cc0-eccc75d30b1b",
+            "name": "Lane",
+            "abbreviation": "LN"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+            "name": "Task",
+            "abbreviation": "TK"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+            "name": "Sub-Process",
+            "abbreviation": "SP"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+            "name": "Call Activity",
+            "abbreviation": "CA"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "5a68e806-7262-540c-aa17-5dd903d1a574",
+            "name": "Start Event",
+            "abbreviation": "SE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+            "name": "End Event",
+            "abbreviation": "EE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+            "name": "Intermediate Catch Event",
+            "abbreviation": "ICE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+            "name": "Intermediate Throw Event",
+            "abbreviation": "ITE"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+            "name": "Exclusive Gateway",
+            "abbreviation": "XG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+            "name": "Parallel Gateway",
+            "abbreviation": "PG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+            "name": "Inclusive Gateway",
+            "abbreviation": "IG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+            "name": "Event-Based Gateway",
+            "abbreviation": "EG"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad",
+            "name": "Text Annotation",
+            "abbreviation": "TA"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "14fbf58a-eb17-5f60-b4d6-e43cd7ebf950",
+            "name": "Group",
+            "abbreviation": "GR"
+          }
+        }
+      ]
+    },
+    {
+      "id": "be335411-2002-59ba-9628-0603b52ce678",
+      "name": "Calls",
+      "abbreviation": "CL",
+      "isConnection": true,
+      "sortOrder": 300,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+            "name": "Call Activity",
+            "abbreviation": "CA"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "5e24450f-129f-5109-9318-1ff592449b3e",
+            "name": "Process",
+            "abbreviation": "PR"
+          }
+        }
+      ]
+    },
+    {
+      "id": "3df7b0d5-80c7-56c3-b0c7-c0b6262d649a",
+      "name": "References Process",
+      "abbreviation": "RP",
+      "isConnection": true,
+      "sortOrder": 310,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+            "name": "Pool",
+            "abbreviation": "PL"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "5e24450f-129f-5109-9318-1ff592449b3e",
+            "name": "Process",
+            "abbreviation": "PR"
+          }
+        }
+      ]
+    }
+  ],
+  "viewpoints": [
+    {
+      "id": "1b746dc7-a1fe-53a5-9fdc-ce9ed55266d0",
+      "name": "Process Model (BPMN 2.0)",
+      "description": "BPMN 2.0 processes: pools, lanes, activities, events, gateways, artifacts and the flows between them.",
+      "notation": "bpmn2",
+      "metatypeIds": [
+        "5e24450f-129f-5109-9318-1ff592449b3e",
+        "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+        "b47c2243-0132-53b7-9cc0-eccc75d30b1b",
+        "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+        "6174752d-af0b-5541-8195-aa617e8c01ad",
+        "be823e10-0338-5b16-9a3e-c40137063351",
+        "7e3c3b15-fa32-5cd1-ae04-579382a98e46",
+        "7441e089-e403-52ea-84a1-b544a59e7f22",
+        "2d501a3f-6123-5831-a7e9-2116be5a632e",
+        "1d5fa204-dc07-51c0-93bf-3aef7455b52d",
+        "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+        "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+        "5a68e806-7262-540c-aa17-5dd903d1a574",
+        "5242e056-0f49-5319-9441-c8de520d70bc",
+        "88dcbd24-012b-50f5-add5-f4100beb1dbd",
+        "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+        "8d7e32e6-3bbb-5a27-a2ce-d7d17b5237ca",
+        "6d146833-91a1-5846-a27e-ad5aabb8e7e3",
+        "15905c65-24a2-5d49-9b54-e29a49943dcf",
+        "189922ee-6657-5fde-9643-7c99a7ed54bc",
+        "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+        "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+        "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+        "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+        "9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad",
+        "14fbf58a-eb17-5f60-b4d6-e43cd7ebf950"
+      ],
+      "connectionTypeIds": [
+        "13576795-7b46-5f25-a487-1e6c4db1d0a7",
+        "0f1afa51-fc55-52aa-841e-ac62f8bf61e6",
+        "88b115e6-1b90-5022-a632-660467b009ac",
+        "be335411-2002-59ba-9628-0603b52ce678",
+        "3df7b0d5-80c7-56c3-b0c7-c0b6262d649a"
+      ],
+      "mappings": [
+        {
+          "metatypeId": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+          "notationElement": "bpmn:Pool"
+        },
+        {
+          "metatypeId": "b47c2243-0132-53b7-9cc0-eccc75d30b1b",
+          "notationElement": "bpmn:Lane"
+        },
+        {
+          "metatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+          "notationElement": "bpmn:Task"
+        },
+        {
+          "metatypeId": "6174752d-af0b-5541-8195-aa617e8c01ad",
+          "notationElement": "bpmn:UserTask"
+        },
+        {
+          "metatypeId": "be823e10-0338-5b16-9a3e-c40137063351",
+          "notationElement": "bpmn:ServiceTask"
+        },
+        {
+          "metatypeId": "7e3c3b15-fa32-5cd1-ae04-579382a98e46",
+          "notationElement": "bpmn:SendTask"
+        },
+        {
+          "metatypeId": "7441e089-e403-52ea-84a1-b544a59e7f22",
+          "notationElement": "bpmn:ReceiveTask"
+        },
+        {
+          "metatypeId": "2d501a3f-6123-5831-a7e9-2116be5a632e",
+          "notationElement": "bpmn:BusinessRuleTask"
+        },
+        {
+          "metatypeId": "1d5fa204-dc07-51c0-93bf-3aef7455b52d",
+          "notationElement": "bpmn:ScriptTask"
+        },
+        {
+          "metatypeId": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+          "notationElement": "bpmn:SubProcess"
+        },
+        {
+          "metatypeId": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+          "notationElement": "bpmn:CallActivity"
+        },
+        {
+          "metatypeId": "5a68e806-7262-540c-aa17-5dd903d1a574",
+          "notationElement": "bpmn:StartEvent"
+        },
+        {
+          "metatypeId": "5242e056-0f49-5319-9441-c8de520d70bc",
+          "notationElement": "bpmn:MessageStartEvent"
+        },
+        {
+          "metatypeId": "88dcbd24-012b-50f5-add5-f4100beb1dbd",
+          "notationElement": "bpmn:TimerStartEvent"
+        },
+        {
+          "metatypeId": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+          "notationElement": "bpmn:EndEvent"
+        },
+        {
+          "metatypeId": "8d7e32e6-3bbb-5a27-a2ce-d7d17b5237ca",
+          "notationElement": "bpmn:MessageEndEvent"
+        },
+        {
+          "metatypeId": "6d146833-91a1-5846-a27e-ad5aabb8e7e3",
+          "notationElement": "bpmn:TerminateEndEvent"
+        },
+        {
+          "metatypeId": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+          "notationElement": "bpmn:IntermediateCatchEvent"
+        },
+        {
+          "metatypeId": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+          "notationElement": "bpmn:IntermediateThrowEvent"
+        },
+        {
+          "metatypeId": "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+          "notationElement": "bpmn:ExclusiveGateway"
+        },
+        {
+          "metatypeId": "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+          "notationElement": "bpmn:ParallelGateway"
+        },
+        {
+          "metatypeId": "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+          "notationElement": "bpmn:InclusiveGateway"
+        },
+        {
+          "metatypeId": "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+          "notationElement": "bpmn:EventBasedGateway"
+        },
+        {
+          "metatypeId": "9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad",
+          "notationElement": "bpmn:TextAnnotation"
+        },
+        {
+          "metatypeId": "14fbf58a-eb17-5f60-b4d6-e43cd7ebf950",
+          "notationElement": "bpmn:Group"
+        },
+        {
+          "metatypeId": "13576795-7b46-5f25-a487-1e6c4db1d0a7",
+          "notationElement": "bpmn:SequenceFlow"
+        },
+        {
+          "metatypeId": "0f1afa51-fc55-52aa-841e-ac62f8bf61e6",
+          "notationElement": "bpmn:MessageFlow"
+        },
+        {
+          "metatypeId": "88b115e6-1b90-5022-a632-660467b009ac",
+          "notationElement": "bpmn:Association"
+        }
+      ],
+      "sizes": [
+        {
+          "metatypeId": "5e24450f-129f-5109-9318-1ff592449b3e",
+          "width": 90,
+          "height": 30
+        },
+        {
+          "metatypeId": "613b3bd5-3da7-5441-b6e9-030b25d2ac3b",
+          "width": 600,
+          "height": 200
+        },
+        {
+          "metatypeId": "b47c2243-0132-53b7-9cc0-eccc75d30b1b",
+          "width": 570,
+          "height": 100
+        },
+        {
+          "metatypeId": "dbfb1ae9-362c-5f5d-8ed1-654eec8723ce",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "6174752d-af0b-5541-8195-aa617e8c01ad",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "be823e10-0338-5b16-9a3e-c40137063351",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "7e3c3b15-fa32-5cd1-ae04-579382a98e46",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "7441e089-e403-52ea-84a1-b544a59e7f22",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "2d501a3f-6123-5831-a7e9-2116be5a632e",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "1d5fa204-dc07-51c0-93bf-3aef7455b52d",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "b3763b2c-6649-5ef9-b90a-62aa1efa0542",
+          "width": 270,
+          "height": 150
+        },
+        {
+          "metatypeId": "fd3e2160-94a5-5de6-bcd1-906638fd4824",
+          "width": 90,
+          "height": 60
+        },
+        {
+          "metatypeId": "5a68e806-7262-540c-aa17-5dd903d1a574",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "5242e056-0f49-5319-9441-c8de520d70bc",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "88dcbd24-012b-50f5-add5-f4100beb1dbd",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "8d7e32e6-3bbb-5a27-a2ce-d7d17b5237ca",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "6d146833-91a1-5846-a27e-ad5aabb8e7e3",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "15905c65-24a2-5d49-9b54-e29a49943dcf",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "189922ee-6657-5fde-9643-7c99a7ed54bc",
+          "width": 27,
+          "height": 27
+        },
+        {
+          "metatypeId": "534c65ac-89e2-559a-94cf-37848ed5ff7b",
+          "width": 38,
+          "height": 38
+        },
+        {
+          "metatypeId": "e5beeca9-0228-52ca-a9d0-63fc18e52696",
+          "width": 38,
+          "height": 38
+        },
+        {
+          "metatypeId": "cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1",
+          "width": 38,
+          "height": 38
+        },
+        {
+          "metatypeId": "7eeb41d6-cc52-5f22-a4e8-96edb55812d8",
+          "width": 38,
+          "height": 38
+        },
+        {
+          "metatypeId": "9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad",
+          "width": 90,
+          "height": 45
+        },
+        {
+          "metatypeId": "14fbf58a-eb17-5f60-b4d6-e43cd7ebf950",
+          "width": 180,
+          "height": 120
+        },
+        {
+          "metatypeId": "13576795-7b46-5f25-a487-1e6c4db1d0a7",
+          "length": 45
+        },
+        {
+          "metatypeId": "0f1afa51-fc55-52aa-841e-ac62f8bf61e6",
+          "length": 90
+        },
+        {
+          "metatypeId": "88b115e6-1b90-5022-a632-660467b009ac",
+          "length": 45
+        }
+      ]
+    }
+  ],
+  "i18nBundles": {
+    "de": {
+      "metatype.5e24450f-129f-5109-9318-1ff592449b3e.name": "Prozess",
+      "metatype.613b3bd5-3da7-5441-b6e9-030b25d2ac3b.name": "Pool",
+      "metatype.b47c2243-0132-53b7-9cc0-eccc75d30b1b.name": "Bahn",
+      "metatype.dbfb1ae9-362c-5f5d-8ed1-654eec8723ce.name": "Aufgabe",
+      "metatype.6174752d-af0b-5541-8195-aa617e8c01ad.name": "Benutzeraufgabe",
+      "metatype.be823e10-0338-5b16-9a3e-c40137063351.name": "Serviceaufgabe",
+      "metatype.7e3c3b15-fa32-5cd1-ae04-579382a98e46.name": "Sendeaufgabe",
+      "metatype.7441e089-e403-52ea-84a1-b544a59e7f22.name": "Empfangsaufgabe",
+      "metatype.2d501a3f-6123-5831-a7e9-2116be5a632e.name": "Geschäftsregelaufgabe",
+      "metatype.1d5fa204-dc07-51c0-93bf-3aef7455b52d.name": "Skriptaufgabe",
+      "metatype.b3763b2c-6649-5ef9-b90a-62aa1efa0542.name": "Teilprozess",
+      "metatype.fd3e2160-94a5-5de6-bcd1-906638fd4824.name": "Aufrufaktivität",
+      "metatype.5a68e806-7262-540c-aa17-5dd903d1a574.name": "Startereignis",
+      "metatype.5242e056-0f49-5319-9441-c8de520d70bc.name": "Nachrichtenstartereignis",
+      "metatype.88dcbd24-012b-50f5-add5-f4100beb1dbd.name": "Zeitstartereignis",
+      "metatype.b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df.name": "Endereignis",
+      "metatype.8d7e32e6-3bbb-5a27-a2ce-d7d17b5237ca.name": "Nachrichtenendereignis",
+      "metatype.6d146833-91a1-5846-a27e-ad5aabb8e7e3.name": "Abbruchendereignis",
+      "metatype.15905c65-24a2-5d49-9b54-e29a49943dcf.name": "Zwischenereignis (fangend)",
+      "metatype.189922ee-6657-5fde-9643-7c99a7ed54bc.name": "Zwischenereignis (werfend)",
+      "metatype.534c65ac-89e2-559a-94cf-37848ed5ff7b.name": "Exklusives Gateway",
+      "metatype.e5beeca9-0228-52ca-a9d0-63fc18e52696.name": "Paralleles Gateway",
+      "metatype.cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1.name": "Inklusives Gateway",
+      "metatype.7eeb41d6-cc52-5f22-a4e8-96edb55812d8.name": "Ereignisbasiertes Gateway",
+      "metatype.9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad.name": "Textanmerkung",
+      "metatype.14fbf58a-eb17-5f60-b4d6-e43cd7ebf950.name": "Gruppe",
+      "metatype.13576795-7b46-5f25-a487-1e6c4db1d0a7.name": "Sequenzfluss",
+      "metatype.0f1afa51-fc55-52aa-841e-ac62f8bf61e6.name": "Nachrichtenfluss",
+      "metatype.88b115e6-1b90-5022-a632-660467b009ac.name": "Assoziation",
+      "metatype.be335411-2002-59ba-9628-0603b52ce678.name": "Ruft auf",
+      "metatype.3df7b0d5-80c7-56c3-b0c7-c0b6262d649a.name": "Referenziert Prozess",
+      "property-category.084cdd58-5531-5dc0-b6dd-2ec4354b602f.name": "BPMN",
+      "property-def.28e72e01-1724-54d4-88d0-070fc0f35829.label": "Assoziationsrichtung",
+      "property-def.022d8119-7669-51aa-b34e-9b91b71fce58.label": "Gruppenkategorie",
+      "enum-value.c5e1320b-1f17-58e9-8d82-065124ad37f7.label": "Keine",
+      "enum-value.8ae8f6fe-80f0-5977-93a3-12d72d044576.label": "Eine Richtung",
+      "enum-value.5f721406-40fc-52a2-8a09-06c81dea905d.label": "Beide Richtungen"
+    },
+    "en": {
+      "metatype.5e24450f-129f-5109-9318-1ff592449b3e.name": "Process",
+      "metatype.613b3bd5-3da7-5441-b6e9-030b25d2ac3b.name": "Pool",
+      "metatype.b47c2243-0132-53b7-9cc0-eccc75d30b1b.name": "Lane",
+      "metatype.dbfb1ae9-362c-5f5d-8ed1-654eec8723ce.name": "Task",
+      "metatype.6174752d-af0b-5541-8195-aa617e8c01ad.name": "User Task",
+      "metatype.be823e10-0338-5b16-9a3e-c40137063351.name": "Service Task",
+      "metatype.7e3c3b15-fa32-5cd1-ae04-579382a98e46.name": "Send Task",
+      "metatype.7441e089-e403-52ea-84a1-b544a59e7f22.name": "Receive Task",
+      "metatype.2d501a3f-6123-5831-a7e9-2116be5a632e.name": "Business Rule Task",
+      "metatype.1d5fa204-dc07-51c0-93bf-3aef7455b52d.name": "Script Task",
+      "metatype.b3763b2c-6649-5ef9-b90a-62aa1efa0542.name": "Sub-Process",
+      "metatype.fd3e2160-94a5-5de6-bcd1-906638fd4824.name": "Call Activity",
+      "metatype.5a68e806-7262-540c-aa17-5dd903d1a574.name": "Start Event",
+      "metatype.5242e056-0f49-5319-9441-c8de520d70bc.name": "Message Start Event",
+      "metatype.88dcbd24-012b-50f5-add5-f4100beb1dbd.name": "Timer Start Event",
+      "metatype.b2b935a7-fb4a-5951-a4a5-f16b5ee2f4df.name": "End Event",
+      "metatype.8d7e32e6-3bbb-5a27-a2ce-d7d17b5237ca.name": "Message End Event",
+      "metatype.6d146833-91a1-5846-a27e-ad5aabb8e7e3.name": "Terminate End Event",
+      "metatype.15905c65-24a2-5d49-9b54-e29a49943dcf.name": "Intermediate Catch Event",
+      "metatype.189922ee-6657-5fde-9643-7c99a7ed54bc.name": "Intermediate Throw Event",
+      "metatype.534c65ac-89e2-559a-94cf-37848ed5ff7b.name": "Exclusive Gateway",
+      "metatype.e5beeca9-0228-52ca-a9d0-63fc18e52696.name": "Parallel Gateway",
+      "metatype.cb0fbf2d-f5ba-50e8-bb1d-4417fcc9dee1.name": "Inclusive Gateway",
+      "metatype.7eeb41d6-cc52-5f22-a4e8-96edb55812d8.name": "Event-Based Gateway",
+      "metatype.9f6c8d7d-18a3-5b4b-ac12-ee6ade2496ad.name": "Text Annotation",
+      "metatype.14fbf58a-eb17-5f60-b4d6-e43cd7ebf950.name": "Group",
+      "metatype.13576795-7b46-5f25-a487-1e6c4db1d0a7.name": "Sequence Flow",
+      "metatype.0f1afa51-fc55-52aa-841e-ac62f8bf61e6.name": "Message Flow",
+      "metatype.88b115e6-1b90-5022-a632-660467b009ac.name": "Association",
+      "metatype.be335411-2002-59ba-9628-0603b52ce678.name": "Calls",
+      "metatype.3df7b0d5-80c7-56c3-b0c7-c0b6262d649a.name": "References Process",
+      "property-category.084cdd58-5531-5dc0-b6dd-2ec4354b602f.name": "BPMN",
+      "property-def.28e72e01-1724-54d4-88d0-070fc0f35829.label": "Association direction",
+      "property-def.022d8119-7669-51aa-b34e-9b91b71fce58.label": "Group category",
+      "enum-value.c5e1320b-1f17-58e9-8d82-065124ad37f7.label": "None",
+      "enum-value.8ae8f6fe-80f0-5977-93a3-12d72d044576.label": "One direction",
+      "enum-value.5f721406-40fc-52a2-8a09-06c81dea905d.label": "Both directions"
+    }
+  }
+}

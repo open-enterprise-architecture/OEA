@@ -8,6 +8,7 @@ import ChangesSection from '../components/metamodel/ChangesSection.vue'
 import MetatypesSection from '../components/metamodel/MetatypesSection.vue'
 import PropertiesSection from '../components/metamodel/PropertiesSection.vue'
 import SettingsSection from '../components/metamodel/SettingsSection.vue'
+import StarterPackagesSection from '../components/metamodel/StarterPackagesSection.vue'
 import TranslationsSection from '../components/metamodel/TranslationsSection.vue'
 import ViewpointsSection from '../components/metamodel/ViewpointsSection.vue'
 import { manualUrl } from '../components/metamodel/messages'
@@ -21,9 +22,9 @@ const props = defineProps<{ fetchFn?: typeof fetch; section?: string; id?: strin
 const router = useRouter()
 const { t } = useI18n()
 
-const SECTIONS = ['metatypes', 'properties', 'categories', 'layers', 'viewpoints', 'translations', 'changes', 'settings'] as const
-// sections for metamodel administrators only (changes: US-034)
-const ADMINISTRATION: readonly Section[] = ['changes', 'settings']
+const SECTIONS = ['metatypes', 'properties', 'categories', 'layers', 'viewpoints', 'translations', 'starter', 'changes', 'settings'] as const
+// sections for metamodel administrators only (changes: US-034; starter packages: us-074-bpmn-process-diagrams)
+const ADMINISTRATION: readonly Section[] = ['starter', 'changes', 'settings']
 type Section = (typeof SECTIONS)[number]
 
 const permissions = computed(() => new Set(session.me?.permissions.map((entry) => entry.permission) ?? []))
@@ -117,6 +118,7 @@ async function select(section: string | number) {
  <ArchitectureLayersSection v-else-if="active === 'layers'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <ViewpointsSection v-else-if="active === 'viewpoints'" :can-manage="canManageViewpoints" :fetch-fn="fetchFn" />
       <TranslationsSection v-else-if="active === 'translations'" :can-write="canWrite" :fetch-fn="fetchFn" />
+      <StarterPackagesSection v-else-if="active === 'starter' && canAdminister" :fetch-fn="fetchFn" />
       <ChangesSection v-else-if="active === 'changes' && canAdminister" :fetch-fn="fetchFn" />
       <SettingsSection v-else-if="active === 'settings' && canAdminister" :can-write="canAdminister" :fetch-fn="fetchFn" />
     </template>

@@ -54,6 +54,21 @@ export const RestrictedProperty: Story = {
 
 export const Translations: Story = page('translations')
 
+/** The starter packages shipped with OEA: TOGAF is imported, BPMN can be imported next to it (us-074-bpmn-process-diagrams). */
+export const StarterPackages: Story = {
+  ...page('starter'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('BPMN 2.0 process modeling')).toBeInTheDocument()
+    await expect(canvas.getByText('Imported')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Import: BPMN 2.0 process modeling' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText('Import BPMN 2.0 process modeling?')).toBeInTheDocument()
+    await userEvent.click(body.getByRole('button', { name: 'Import' }))
+    await waitFor(() => expect(canvas.getByText(/imported: 33 elements created/)).toBeInTheDocument())
+  },
+}
+
 /** The architecture layers: the layers of the starter package and one of the organization (change s17-architecture-layers). */
 export const Layers: Story = {
   ...page('layers'),

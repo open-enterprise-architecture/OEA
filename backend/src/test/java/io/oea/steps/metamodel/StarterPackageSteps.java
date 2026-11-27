@@ -23,6 +23,8 @@ public class StarterPackageSteps {
 
 	private static String lastBatchId;
 
+	private static String lastPackageId;
+
 	private HttpResponse<String> response;
 
 	@Given("a new instance with a metamodel administrator, a viewer and a person without role logged in through the IdP")
@@ -54,6 +56,7 @@ public class StarterPackageSteps {
 		this.response = shared.post("/api/v1/metamodel/starter-packages/" + packageId + "/import", "",
 				shared.metamodelAdmin());
 		if (this.response.statusCode() == 200) {
+			lastPackageId = packageId;
 			lastBatchId = body().path("batchId").asString();
 		}
 	}
@@ -90,7 +93,8 @@ public class StarterPackageSteps {
 	public void metatypesWithStatus(int count, String scope, int elements, String property, String values)
 			throws Exception {
 		assertThat(this.response.statusCode()).isEqualTo(200);
-		assertThat(shared.oidc().single("SELECT count(*)::text FROM metatypes WHERE scope = '" + scope + "'"))
+		assertThat(shared.oidc().single("SELECT count(*)::text FROM metatypes WHERE scope = '" + scope
+				+ "' AND source_package_id = '" + lastPackageId + "'"))
 			.isEqualTo(String.valueOf(count));
 		assertThat(shared.oidc().single("""
 				SELECT count(*)::text FROM metatype_property_mappings m JOIN property_definitions d

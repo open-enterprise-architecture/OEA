@@ -150,6 +150,19 @@ class ViewpointNotationTests {
 		assertThat(byMetatype(mapped, this.dataFlow).path("visualHint").isNull()).isTrue();
 	}
 
+	/** The element keys of the BPMN starter package are in the catalog (us-074-bpmn-process-diagrams D2). */
+	@ParameterizedTest
+	@ValueSource(strings = { "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask",
+			"bpmn:BusinessRuleTask", "bpmn:ScriptTask", "bpmn:CallActivity", "bpmn:IntermediateCatchEvent",
+			"bpmn:IntermediateThrowEvent", "bpmn:MessageStartEvent", "bpmn:TimerStartEvent", "bpmn:MessageEndEvent",
+			"bpmn:TerminateEndEvent", "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:InclusiveGateway",
+			"bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:Group", "bpmn:Task", "bpmn:Gateway" })
+	void aBpmnElementIsMapped(String element) {
+		JsonNode created = created(write(unique("Bpmn"), "bpmn2", List.of(this.application), List.of())
+			.set("mappings", mappings(mapping(this.application, element, null))));
+		assertThat(created.path("mappings").get(0).path("notationElement").asString()).isEqualTo(element);
+	}
+
 	@Test
 	void aMappingMayBeChangedAndRemoved() {
 		JsonNode created = created(write(unique("Changed"), "archimate3", List.of(this.application), List.of())
@@ -173,7 +186,8 @@ class ViewpointNotationTests {
 	@CsvSource({ "archimate3, bpmn:Task, element", "archimate3, archimate:NoSuchElement, element",
 			"archimate3, archimate:Flow, element", "archimate3, archimate:ApplicationComponent, connection",
 			"uml, archimate:Node, element", "generic, archimate:Node, element", "bpmn2, generic:Arrow, element",
-			"bpmn2, generic:Box, connection" })
+			"bpmn2, generic:Box, connection", "bpmn2, bpmn:Unknown, element", "bpmn2, bpmn:UserTask, connection",
+			"bpmn2, bpmn:SequenceFlow, element", "archimate3, bpmn:UserTask, element" })
 	void aWrongElementIsRejected(String notation, String element, String kind) {
 		boolean connection = "connection".equals(kind);
 		UUID type = connection ? this.dataFlow : this.application;

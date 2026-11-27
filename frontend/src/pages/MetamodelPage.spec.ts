@@ -1,6 +1,6 @@
 import ui from '@nuxt/ui/vue-plugin'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
 import { defineComponent, h } from 'vue'
 import { session } from '../session/store'
@@ -154,6 +154,26 @@ describe('MetamodelPage', () => {
     const { wrapper } = await open(`/metamodel/metatypes/${IDS.zone}`)
     expect(wrapper.get('[data-testid="metatype-list-panel"]').classes()).toContain('hidden')
     expect(wrapper.find('[data-testid="metatype-back"]').exists()).toBe(true)
+  })
+
+  // spec metamodel/starter-packages "Starter packages on the metamodel configuration" (us-074-bpmn-process-diagrams)
+  it('offers the section "Starter packages" to a metamodel administrator, also with metatypes, and imports BPMN from it', async () => {
+    const { wrapper, api } = await open('/metamodel/starter')
+    expect(wrapper.get('[data-testid="metamodel-sections"]').text()).toContain('Starter packages')
+    expect(wrapper.get('[data-testid="starter-package-oea-starter-togaf-classic"]').text()).toContain('Imported')
+    await wrapper.get('[data-testid="starter-import-oea-starter-bpmn"]').trigger('click')
+    await vi.waitFor(() => expect(document.body.querySelector('[data-testid="starter-confirm-import"]')).not.toBeNull())
+    ;(document.body.querySelector('[data-testid="starter-confirm-import"]') as HTMLElement).click()
+    await flushPromises()
+    expect(api.requests.some((request) => request.method === 'POST' && request.path.endsWith('/oea-starter-bpmn/import'))).toBe(true)
+    expect(wrapper.get('[data-testid="starter-result"]').text()).toContain('33 elements created')
+  })
+
+  it('offers no section "Starter packages" to a reader', async () => {
+    const { wrapper, api } = await open('/metamodel/starter', { me: ME_READER })
+    expect(wrapper.get('[data-testid="metamodel-sections"]').text()).not.toContain('Starter packages')
+    expect(wrapper.find('[data-testid="starter-packages-section"]').exists()).toBe(false)
+    expect(api.requests.some((request) => request.path.includes('starter-packages'))).toBe(false)
   })
 
   // "Translating a metatype name"

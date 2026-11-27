@@ -21,6 +21,7 @@ Wähle in der Kopfzeile *Metamodell*. Die Seite hat diese Bereiche:
 | Schichten | die [Architekturschichten](#layers), zu denen Entitätstypen gehören |
 | Viewpoints | die [Viewpoints](#viewpoints) mit ihrer Notation |
 | Übersetzungen | die Namen aller Elemente pro Sprache |
+| Starterpakete | die mit OEA gelieferten Pakete und ihr [Import](./metamodel-packages#starter-packages-section) (nur für die Administration) |
 | Änderungen | wer das Metamodell wann geändert hat (nur für die Administration) |
 | Einstellungen | der Sperrmodus und was beim erneuten Import eines Pakets mit deinen eigenen Eigenschaften geschieht (nur für die Administration) |
 

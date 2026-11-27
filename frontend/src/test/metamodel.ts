@@ -104,6 +104,8 @@ interface Stored {
   viewpoints: Viewpoint[]
   /** The global settings of diagrams (us-074-diagram-nesting). */
   diagramSettings: { askNewParent: boolean; version: number }
+  /** The starter packages shipped with OEA and whether each is imported (us-074-bpmn-process-diagrams). */
+  starterPackages: components['schemas']['StarterPackage'][]
 }
 
 export interface MetamodelApiOptions {
@@ -120,6 +122,8 @@ export interface MetamodelApiOptions {
   rejectMappings?: boolean
   /** Every viewpoint write with a size is rejected with 422 naming `sizes` (s17-viewpoint-default-sizes). */
   rejectSizes?: boolean
+  /** The import of a starter package is rejected with 409 and these conflicting elements (us-074-bpmn-process-diagrams). */
+  starterConflicts?: string[]
   /** The instance has no system-defined viewpoints (no package with viewpoints installed). */
   noSystemViewpoints?: boolean
   /** The number of diagrams that use the first viewpoint, "Application Landscape" (us-074-diagrams). */
@@ -163,6 +167,30 @@ function seed(): Stored {
       { id: IDS.layerStrategy, name: 'Strategy', sortOrder: 3, scope: 'organization', sourcePackage: null, version: 1 },
     ],
     diagramSettings: { askNewParent: true, version: 1 },
+    starterPackages: [
+      {
+        packageId: 'oea-starter-bpmn',
+        name: 'BPMN 2.0 process modeling',
+        version: '1.0.0',
+        publisher: 'OEA',
+        description: 'BPMN 2.0 process types and the viewpoint "Process Model (BPMN 2.0)".',
+        metatypeCount: 31,
+        propertyDefinitionCount: 2,
+        metatypeNames: ['Pool', 'Lane', 'User Task', 'Sequence Flow'],
+        imported: false,
+      },
+      {
+        packageId: 'oea-starter-togaf-classic',
+        name: 'TOGAF classic starter configuration',
+        version: '1.4.0',
+        publisher: 'OEA',
+        description: 'Starter metamodel after the classic TOGAF/ArchiMate reading.',
+        metatypeCount: 8,
+        propertyDefinitionCount: 1,
+        metatypeNames: ['Application Component', 'Data Object', 'Technology Component'],
+        imported: true,
+      },
+    ],
     viewpoints: [
       {
         id: 'b0000000-0000-4000-8000-000000000001',
@@ -595,6 +623,24 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       return problem(500, 'internal')
     }
     const [, kind, id, sub, subId] = parts
+
+    // the starter packages shipped with OEA, sorted by identifier as the API does (us-074-bpmn-process-diagrams)
+    if (kind === 'starter-packages') {
+      if (method === 'GET') {
+        return json([...state.starterPackages].sort((a, b) => a.packageId.localeCompare(b.packageId)))
+      }
+      const starter = state.starterPackages.find((candidate) => candidate.packageId === id)
+      if (!starter) {
+        return problem(404, 'not-found')
+      }
+      if (options.starterConflicts?.length) {
+        return problem(409, 'package-conflict', {
+          conflictList: options.starterConflicts.map((element) => ({ element, reason: 'organization' })),
+        })
+      }
+      starter.imported = true
+      return json({ status: 'completed', created: starter.metatypeCount + starter.propertyDefinitionCount, updated: 0, conflicts: 0, conflictList: [] })
+    }
 
     if (kind === 'changes') {
       const filtered = state.changes.filter(

@@ -31,23 +31,25 @@ OpenSpec change `us-074-diagram-viewpoint-change` (S17) – changing the viewpoi
 
 OpenSpec change `s17-entity-delete` (S17) – "Delete from repository" on the canvas (REQ-146, SCR-021): a holder of `entity:delete` deletes the entity of a shape or edge from the context menu or with Ctrl+Delete after a confirmation that names the children, connections and active solutions (`previewEntityDeletion`); `deleteEntity` soft-deletes the entity, its children on all levels and their connections with the version of the preview, at once and outside the explicit save, and the canvas removes their shapes and edges while the other unsaved changes stay. The stored shapes stay hidden and show again after `restoreDeletedEntity` (`entity:restore`).
 
+OpenSpec change `us-074-bpmn-process-diagrams` (S17) – BPMN process diagrams (owner decisions 2026-11-27, SCR-021 and SCR-030): the starter package `oea-starter-bpmn` (26 element types, the connection types "Sequence Flow", "Message Flow", "Association", "Calls" and "References Process" limited to BPMN endpoints, the properties "Association direction" and "Group category", en and de labels, the viewpoint "Process Model (BPMN 2.0)"; importable alone or next to the TOGAF package, from the start page or the new section "Starter packages" of SCR-030), 19 further element keys in the catalog, BPMN symbols and lines on the canvas of a `bpmn2` viewpoint, the palette grouped by symbol, pools, lanes and sub-processes as the only containers of such a canvas (also for "Show children"), a new element dropped into a lane becomes a child of the lane's entity (the entity hierarchy replaces the connections `bpmn-contained-in`, `bpmn-lane-in-pool` and `bpmn-lane-in-lane`), and the warnings "Sequence flow crosses a pool boundary" and "Message flow within one pool" computed in the editor (the save is accepted). AC1 and AC4 to AC9 are done; AC2 and AC3 stay open until the data objects (change 20) and the automatic stacking of lanes (change `us-074-bpmn-pools-and-lanes`) follow.
+
 ## Acceptance Criteria
 
-- [ ] Viewpoint "bpmn-process-view" is available for selection when creating a diagram
+- [x] Viewpoint "Process Model (BPMN 2.0)" (`bpmn-process-view`) of the package `oea-starter-bpmn` is available for selection when creating a diagram
 - [ ] Canvas palette shows all built-in BPMN elements grouped: pools/lanes, tasks (incl. call activity), events (incl. message/timer start, message/terminate end), gateways, data, artifacts (text annotation, group)
 - [ ] Every element of the BPMN 2.0.2 Descriptive conformance sub-class can be placed and saved (REQ-076 AC7); lanes can be nested
-- [ ] A pool can be dragged onto the canvas; a pool is a container; lanes can be inserted into the pool
-- [ ] Elements (tasks, events, gateways) can be dropped from the palette into a lane by drag; a `bpmn-contained-in` connection is created automatically
-- [ ] A SequenceFlow can be connected between two BPMN elements by handle drag
-- [ ] Connecting a SequenceFlow to a non-BPMN element is rejected with an error message (BR-01)
-- [ ] The diagram saves all entities and connections atomically; after reload the layout is restored correctly
-- [ ] Company-specific subtypes (e.g. `approval-task`) also appear in the palette (AC2 REQ-076)
+- [x] A pool can be dragged onto the canvas; a pool is a container; lanes can be inserted into the pool (the stacking of nested lanes follows with change `us-074-bpmn-pools-and-lanes`)
+- [x] Elements (tasks, events, gateways) can be dropped from the palette into a lane by drag; the element becomes a child of the lane's entity and its shape is nested in the lane
+- [x] A SequenceFlow can be connected between two BPMN elements by handle drag
+- [x] Connecting a SequenceFlow to a non-BPMN element is not offered, and the API rejects it with 422 (BR-01); a sequence flow across pools is marked with a warning and saved
+- [x] The diagram saves all entities and connections atomically; after reload the layout is restored correctly
+- [x] Company-specific subtypes (e.g. `approval-task`) also appear in the palette (AC2 REQ-076)
 
 ## Technical Notes
 
-- Vue Flow `parentId` for pool/lane containment; `bpmn-contained-in` connection as repository representation
-- Palette grouping: "Containers" (pool, lane, subprocess), "Tasks", "Events", "Gateways"
-- Lane resize: lane must be vertically resizable; the pool adjusts automatically
+- Vue Flow `parentNode` for pool/lane containment; the entity hierarchy (parent of the entity) as repository representation
+- Palette grouping: "Pools and lanes", "Activities", "Events", "Gateways", "Artifacts", "Other"
+- Lane resize: lane must be vertically resizable; the pool adjusts automatically (change `us-074-bpmn-pools-and-lanes`)
 
 ## Out of Scope
 

@@ -558,6 +558,120 @@
   "kind": "element"
  },
  {
+  "key": "bpmn:UserTask",
+  "notation": "bpmn2",
+  "label": "User Task",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:ServiceTask",
+  "notation": "bpmn2",
+  "label": "Service Task",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:SendTask",
+  "notation": "bpmn2",
+  "label": "Send Task",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:ReceiveTask",
+  "notation": "bpmn2",
+  "label": "Receive Task",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:BusinessRuleTask",
+  "notation": "bpmn2",
+  "label": "Business Rule Task",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:ScriptTask",
+  "notation": "bpmn2",
+  "label": "Script Task",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:CallActivity",
+  "notation": "bpmn2",
+  "label": "Call Activity",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:IntermediateCatchEvent",
+  "notation": "bpmn2",
+  "label": "Intermediate Catch Event",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:IntermediateThrowEvent",
+  "notation": "bpmn2",
+  "label": "Intermediate Throw Event",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:MessageStartEvent",
+  "notation": "bpmn2",
+  "label": "Message Start Event",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:TimerStartEvent",
+  "notation": "bpmn2",
+  "label": "Timer Start Event",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:MessageEndEvent",
+  "notation": "bpmn2",
+  "label": "Message End Event",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:TerminateEndEvent",
+  "notation": "bpmn2",
+  "label": "Terminate End Event",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:ExclusiveGateway",
+  "notation": "bpmn2",
+  "label": "Exclusive Gateway",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:ParallelGateway",
+  "notation": "bpmn2",
+  "label": "Parallel Gateway",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:InclusiveGateway",
+  "notation": "bpmn2",
+  "label": "Inclusive Gateway",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:EventBasedGateway",
+  "notation": "bpmn2",
+  "label": "Event-Based Gateway",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:TextAnnotation",
+  "notation": "bpmn2",
+  "label": "Text Annotation",
+  "kind": "element"
+ },
+ {
+  "key": "bpmn:Group",
+  "notation": "bpmn2",
+  "label": "Group",
+  "kind": "element"
+ },
+ {
   "key": "bpmn:SequenceFlow",
   "notation": "bpmn2",
   "label": "Sequence Flow",

@@ -15,7 +15,7 @@ Importing packages requires the permission `metamodel:write`, which only the rol
 
 OEA ships the starter package `oea-starter-togaf-classic` with the entity types Application Component, Application Service, Data Object, Technology Component, Technology Service, System Software and Network Node, each with the property *Status*. Version 1.4.0 adds the four [layers](./metamodel-editing#layers) *Business*, *Data*, *Application* and *Technology* with German names and assigns them to the entity types: *Application Component* and *Application Service* to Application, *Data Object* to Data, and *Technology Component*, *Technology Service*, *System Software* and *Network Node* to Technology (*Composition* has none). Importing it again into an instance that has an own layer of the same name, for example *Business*, is refused as a conflict; rename or delete that layer first. Version 1.3.0 adds the connection type *Composition*, marked as the [composition](./metamodel-editing#composition) of the hierarchy of components. Version 1.2.0 adds the two system-defined viewpoints *Application Landscape* and *Technology Landscape* in ArchiMate (see [Viewpoints in packages](#viewpoints-in-packages)). Version 1.1.0 brought German labels for its entity types, *Status* and its values, and English labels for the values (see [Translating labels](./metamodel-editing#translating-labels)). An instance that imported an earlier version receives the labels and viewpoints by importing the package again.
 
-While the instance has no entity type, the start page shows *Import starter configuration* to a person with `metamodel:write`. Choose *Import* next to the package; the page confirms how many entity types are now available.
+Besides the TOGAF package, OEA ships the starter package `oea-starter-bpmn` (see [The BPMN starter package](#bpmn-package)). While the instance has no entity type, the start page shows *Import starter configuration* to a person with `metamodel:write`. Choose *Import* next to the package; the page confirms how many entity types are now available.
 
 <Screenshot name="starter-import" alt="Start page with the starter configuration ready for import" />
 
@@ -26,6 +26,22 @@ curl "${auth[@]}" "$OEA/metamodel/starter-packages"                    # list wi
 curl "${auth[@]}" -X POST "$OEA/metamodel/starter-packages/oea-starter-togaf-classic/import"
 curl "${auth[@]}" "$OEA/metamodel/metatypes"                                       # imported entity types
 ```
+
+## Import a starter package later {#starter-packages-section}
+
+A starter package can also be imported into an instance that has entity types already, for example the BPMN package next to the TOGAF package. Choose *Metamodel* in the header and the section *Starter packages* (for holders of `metamodel:write`). It lists the shipped packages with name, version, description, the number of entity types and properties, and whether the package is imported. Choose *Import* next to a package that is not imported and confirm. The page then shows how many elements were created; the entity types appear in the metamodel at once. If a name of the package is already taken, by your organization or by another package, nothing is imported and the section lists the conflicting names; rename or delete your own element and try again. The section is available while the metamodel is [locked](./metamodel-editing#lock-mode), as every package import is.
+
+## The BPMN starter package {#bpmn-package}
+
+The package `oea-starter-bpmn` (*BPMN 2.0 process modeling*) brings the types of business process models:
+
+- 26 entity types: *Process*, *Pool*, *Lane*, the activities *Task*, *User Task*, *Service Task*, *Send Task*, *Receive Task*, *Business Rule Task*, *Script Task*, *Sub-Process* and *Call Activity*, the events *Start Event*, *Message Start Event*, *Timer Start Event*, *End Event*, *Message End Event*, *Terminate End Event*, *Intermediate Catch Event* and *Intermediate Throw Event*, the gateways *Exclusive Gateway*, *Parallel Gateway*, *Inclusive Gateway* and *Event-Based Gateway*, and the artifacts *Text Annotation* and *Group*. The task variants have the base type *Task*, the start event variants *Start Event* and the end event variants *End Event*, so that a rule for *Task* also covers *User Task* and the subtypes of your organization.
+- the connection types *Sequence Flow*, *Message Flow*, *Association* (from a text annotation), *Calls* (from a call activity to a process) and *References Process* (from a pool to a process), each limited to BPMN elements as source and target, and the properties *Association direction* (`none`, `one`, `both`) and *Group category* (up to 255 characters);
+- German labels for all of them, and the system-defined viewpoint *Process Model (BPMN 2.0)* with the notation BPMN 2.0, all these types, BPMN symbols and default sizes. The viewpoint keeps its English name in every language.
+
+**What the package leaves out:** data objects and data stores, organizational units and the assignment of lanes to them follow with later versions. **Containment is the hierarchy of the entities:** a lane is a child of its pool, a task a child of its lane; the package defines no composition connection, so with this package alone no connection is created for the hierarchy. If the TOGAF package is imported, its connection *Composition* is created as for other entities. The types are imported types like any other: read-only, but you can add properties and subtypes. Import the package from the start page or from the section *Starter packages*; the package and the TOGAF package can be imported in any order.
+
+Through the API, the list of the packages is sorted by `packageId`, so look a package up by its identifier, not by its position.
 
 ## Import your own package
 

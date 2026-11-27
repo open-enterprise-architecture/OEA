@@ -77,7 +77,7 @@ The business analyst persona can model business processes directly in the OEA to
 ## Preconditions
 
 1. OEA instance is running; Anna is logged in with role "Modeler" or higher
-2. BPMN process view viewpoint is configured in the metamodel (built-in or adapted by admin)
+2. The viewpoint "Process Model (BPMN 2.0)" is in the metamodel: it comes with the starter package `oea-starter-bpmn`, which a metamodel administrator imports (also next to the TOGAF package) and can adapt by subtypes
 3. OrganizationalUnit and role entities exist in the repository (may also be empty)
 
 ## Postconditions
@@ -95,9 +95,9 @@ The business analyst persona can model business processes directly in the OEA to
 4. Anna inserts one or more **lanes** into the pool; for each lane she can:
    - Assign an **organizational unit** (`bpmn-lane-belongs-to-org-unit`)
    - Assign one or more **roles** (`bpmn-lane-performs-role`)
-5. Anna places **tasks** (UserTask, ServiceTask, BusinessRuleTask etc.) within the lanes; elements are automatically linked to the lane via `bpmn-contained-in`
+5. Anna places **tasks** (UserTask, ServiceTask, BusinessRuleTask etc.) within the lanes; a task dropped into a lane is nested in the lane and becomes a child of the lane's entity (the entity hierarchy replaces the connection `bpmn-contained-in`; change `us-074-bpmn-process-diagrams`)
 6. For UserTasks, Anna opens the detail panel and assigns a **person** from the repository (`bpmn-task-assigned-to`). The detail panel of every shape shows the name, description and property values of its entity; Anna changes them there and saves them with the diagram (change `us-074-diagram-entity-details`; the assignment of persons follows with `us-075-lane-assignments`)
-7. Anna connects elements with **SequenceFlow** connections (generic connections between shapes, with bend points, are drawn by handle drag from change `us-074-diagram-connections`; existing connections are shown only on request, and "Add connected element" places a new element at the default length of the connection type; change `us-074-diagram-nesting` nests shapes in containers, so that the pools and lanes of BPMN can follow); gateways (exclusive, parallel, inclusive) are inserted via the palette
+7. Anna connects elements with **SequenceFlow** connections (generic connections between shapes, with bend points, are drawn by handle drag from change `us-074-diagram-connections`; existing connections are shown only on request, and "Add connected element" places a new element at the default length of the connection type; change `us-074-diagram-nesting` nests shapes in containers, so that the pools and lanes of BPMN can follow); gateways (exclusive, parallel, inclusive) are inserted via the palette; the BPMN symbols, the grouped palette and the flow lines come with change `us-074-bpmn-process-diagrams`, which marks a sequence flow across pools or a message flow within one pool with a warning without blocking the save
 8. Anna optionally selects "Link to application": a task-to-application connection links the process step with the supporting system in the EA repository
 9. Anna saves the diagram; all entities and connections are persisted atomically
 

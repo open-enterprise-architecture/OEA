@@ -3820,7 +3820,10 @@ components:
     NotationElement:
       type: object
       required: [key, notation, label, kind]
-      description: An element of the shipped element catalog (US-091 AC1, REQ-091)
+      description: |
+        An element of the shipped element catalog (US-091 AC1, REQ-091). The notation `bpmn2` has
+        one key per BPMN type, e.g. `bpmn:Task`, `bpmn:UserTask`, `bpmn:CallActivity`,
+        `bpmn:IntermediateCatchEvent`, `bpmn:EventBasedGateway`, `bpmn:SequenceFlow`.
       properties:
         key:           { type: string, maxLength: 100, example: "archimate:ApplicationComponent" }
         notation:      { $ref: '#/components/schemas/ViewpointNotation' }
@@ -10776,7 +10779,9 @@ paths:
       summary: Element catalog of the notations (US-091 AC1, SCR-031)
       description: |
         The elements of the shipped element catalog: ArchiMate 3.2, the component and class
-        elements of UML, the core elements of BPMN 2.0 and the generic elements, each with key,
+        elements of UML, the elements of BPMN 2.0 (one key per BPMN type of the starter package
+        `oea-starter-bpmn`, e.g. `bpmn:UserTask`, `bpmn:ExclusiveGateway`, `bpmn:MessageStartEvent`,
+        `bpmn:TextAnnotation`, `bpmn:Group`, `bpmn:SequenceFlow`) and the generic elements, each with key,
         notation, label, kind and default size, ordered by notation and key. Static data of the
         release; it holds nothing of the instance. The literal path takes precedence over
         `/admin/viewpoints/{id}`.
@@ -14007,7 +14012,12 @@ paths:
     get:
       operationId: listStarterPackages
       summary: Starter packages shipped with OEA (ADR-005, REQ-112)
-      description: Lists the shipped metamodel packages with a summary and whether they have been imported.
+      description: |
+        Lists the shipped metamodel packages, ordered by `packageId`, with a summary and whether they
+        have been imported: `oea-starter-bpmn` (BPMN 2.0 process modeling: 31 metatypes, 2 property
+        definitions, imported on its own or next to the other package, US-074, REQ-076) and
+        `oea-starter-togaf-classic` (eight metatypes). The position of a package in the list is not
+        stable; clients look a package up by its identifier.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       responses:
@@ -14026,7 +14036,11 @@ paths:
     post:
       operationId: importStarterPackage
       summary: Import a shipped starter package (ADR-005, REQ-112)
-      description: Imports the shipped package like `importMetamodelPackage` with strategy `merge`, without upload.
+      description: |
+        Imports the shipped package like `importMetamodelPackage` with strategy `merge`, without upload.
+        Packages can be imported in any order and next to each other, also into an instance that has
+        metatypes already; a name that another package or the organization uses gives 409 and imports
+        nothing.
       tags: [Admin]
       x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
       parameters:
