@@ -2,7 +2,7 @@
 title: Editing the metamodel
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-057, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-075, US-076, US-032, US-057, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Editing the metamodel
@@ -181,6 +181,15 @@ Users see the names of entity types, categories and properties and the values of
 - You can translate every element, also those of a package. Your translation wins over the one of the package; without either, users see the name in your corporate language. Clearing a field removes your translation.
 - Texts have at most 200 characters.
 - Your portal shows the new names at once; other open portals pick them up within five minutes, without a reload.
+
+## Organization model {#organization-model}
+
+The section *Organization model* says which entity types play which part in [assignments](../usage/diagrams#assignments): the element parts *organizational unit*, *role* and *person*, and the connection parts *belongs to*, *performs role* and *responsible*. Everyone who reads the metamodel sees them; holders of `metamodel:write` choose a type per part (or *Not set*) and choose *Save*, which writes all six parts with the version read. A locked metamodel offers no change.
+
+- A part of the first kind needs an entity type, a part of the second kind a connection type; otherwise the page names the part (`422`). A connection part whose allowed targets exclude its element part and the base types of it is refused too, unless its target list is empty (it then reaches every type). The check applies whenever both parts are set.
+- The import of the [organization package](./metamodel-packages#organization-package) fills the parts that are not set. Without an organizational unit, a role or a person no assignment is offered for it, and a missing connection part blocks assignments of that part.
+- The **person** here is separate from the [entity type of persons](./property-visibility#person-metatype) of property visibility, which belongs to security administration; when both are set and differ, the section shows a hint. Account links use the one of property visibility.
+- If the entity type of a part is deleted, the part is not set any more. Every change is audited as `metamodel.organization-model-updated` with the changed parts; `GET` and `PUT /metamodel/organization-model` read and set the setting (`If-Match` with the version; `412` and `428` as for other settings, `403` with `urn:oea:problem:metamodel-locked` in a locked metamodel).
 
 ## Locking the metamodel {#lock-mode}
 

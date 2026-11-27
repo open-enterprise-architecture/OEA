@@ -51,10 +51,14 @@ public class PropertyDefinitions {
 
 	private final io.oea.core.solution.SnapshotStore snapshots;
 
+	private final PersonLinkMappings personLinks;
+
 	public PropertyDefinitions(PropertyDefinitionStore store, PropertyMappingStore mappingStore,
 			MetatypeStore metatypes, PropertyValueStore values, MetamodelEffects effects,
 			MetamodelAudit audit, MetamodelVersions versions, MetamodelConfigurations configurations,
-			SolutionImpact impact, io.oea.core.solution.SnapshotStore snapshots) {
+			SolutionImpact impact, io.oea.core.solution.SnapshotStore snapshots,
+			PersonLinkMappings personLinks) {
+		this.personLinks = personLinks;
 		this.impact = impact;
 		this.snapshots = snapshots;
 		this.store = store;
@@ -134,6 +138,7 @@ public class PropertyDefinitions {
 			throw MetamodelChangeException.inUse("A solution keeps the property definition as a snapshot.", null);
 		}
 		boolean retired = this.values.hasValues(id, true);
+		this.personLinks.propertyRemoved(principal, id, retired ? "property-retired" : "property-deleted");
 		if (retired) {
 			this.store.retire(id, this.effects.now());
 		}

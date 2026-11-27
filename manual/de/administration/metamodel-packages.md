@@ -2,7 +2,7 @@
 title: Metamodell-Pakete
 covers:
   screens: []
-  stories: [US-033, US-057]
+  stories: [US-033, US-057, US-075, US-076]
 ---
 
 # Metamodell-Pakete
@@ -39,9 +39,19 @@ Das Paket `oea-starter-bpmn` (*BPMN 2.0 process modeling*) bringt die Typen von 
 - die Verbindungstypen *Sequence Flow*, *Message Flow*, *Association* (von einer Textanmerkung aus), *Calls* (von einer Aufrufaktivität zu einem Prozess) und *References Process* (von einem Pool zu einem Prozess), jeweils auf BPMN-Elemente als Quelle und Ziel beschränkt, sowie die Eigenschaften *Association direction* (`none`, `one`, `both`) und *Group category* (bis zu 255 Zeichen);
 - deutsche Bezeichnungen für alle diese Elemente und der systemdefinierte Viewpoint *Process Model (BPMN 2.0)* mit der Notation BPMN 2.0, allen diesen Typen, BPMN-Symbolen und Standardgrößen. Der Viewpoint behält in jeder Sprache seinen englischen Namen.
 
-**Was das Paket auslässt:** Datenobjekte und Datenspeicher sowie Organisationseinheiten und die Zuordnung von Bahnen zu ihnen folgen mit späteren Versionen. **Einschluss ist die Hierarchie der Entitäten:** Eine Bahn ist Kind ihres Pools, eine Aufgabe Kind ihrer Bahn; das Paket definiert keine Kompositionsverbindung, sodass mit diesem Paket allein für die Hierarchie keine Verbindung angelegt wird. Ist das TOGAF-Paket importiert, wird seine Verbindung *Composition* wie bei anderen Entitäten angelegt. Die Typen sind importierte Typen wie jede andere: schreibgeschützt, aber du kannst Eigenschaften und Untertypen hinzufügen. Importiere das Paket über die Startseite oder über den Bereich *Starterpakete*; dieses Paket und das TOGAF-Paket lassen sich in beliebiger Reihenfolge importieren.
+**Was das Paket auslässt:** Datenobjekte und Datenspeicher folgen mit einer späteren Version; Organisationseinheiten, Rollen und die [Zuordnung von Bahnen](../usage/diagrams#assignments) kommen mit dem [Organisations-Paket](#organization-package). **Einschluss ist die Hierarchie der Entitäten:** Eine Bahn ist Kind ihres Pools, eine Aufgabe Kind ihrer Bahn; das Paket definiert keine Kompositionsverbindung, sodass mit diesem Paket allein für die Hierarchie keine Verbindung angelegt wird. Ist das TOGAF-Paket importiert, wird seine Verbindung *Composition* wie bei anderen Entitäten angelegt. Die Typen sind importierte Typen wie jede andere: schreibgeschützt, aber du kannst Eigenschaften und Untertypen hinzufügen. Importiere das Paket über die Startseite oder über den Bereich *Starterpakete*; dieses Paket und das TOGAF-Paket lassen sich in beliebiger Reihenfolge importieren.
 
 Über die API ist die Liste der Pakete nach `packageId` sortiert; suche ein Paket daher über seine Kennung, nicht über seine Position.
+
+## Das Organisations-Starterpaket {#organization-package}
+
+Das Paket `oea-starter-organization` (*Organisationsmodell*) benennt, wer ausführt und wer verantwortlich ist, in einem BPMN-Diagramm und für jedes Architekturobjekt:
+
+- die Entitätstypen *Organizational Unit*, *Role* und *Person* (die Eigenschaft *Account ID* der Person hat bis zu 255 Zeichen; sie ist die Eigenschaft, [die ein Konto mit der Person verknüpft](./property-visibility#account-mapping)) und die Verbindungstypen *Belongs To* (zu einer Organisationseinheit), *Performs Role* (zu einer Rolle) und *Responsible* (zu einer Person), jeweils von **jedem** Entitätstyp aus – einer Bahn, einer *Application Component* oder einem anderen –, sodass das Paket weder das BPMN- noch das TOGAF-Paket braucht. *Responsible* nennt nur Personen, keine Rollen oder Organisationseinheiten. Die Hierarchie der Organisationseinheiten ist die Hierarchie der Entitäten;
+- deutsche Labels, keinen Viewpoint;
+- den Abschnitt `organizationModel`, der das [Organisationsmodell](./metamodel-editing#organization-model) der Instanz füllt: Der Import setzt die sechs Teile, die noch nicht gesetzt sind, und überschreibt nie einen gesetzten Teil. Das Importergebnis listet sie in `organizationModelFilled`, und ein Audit-Ereignis `metamodel.organization-model-updated` mit `cause: package-import` hält sie fest.
+
+Das Paket lässt sich allein oder neben den anderen Paketen importieren. Ein eigenes Paket kann die Teile genauso mit `organizationModel` füllen: je Teil die ID eines Entitätstyps des Pakets (*orgUnit*, *role*, *person*) oder eines Verbindungstyps (*belongsTo*, *performsRole*, *responsible*); ein anderer Typ oder einer der falschen Art antwortet mit `422` und nennt `/organizationModel/<Teil>`.
 
 ## Eigenes Paket importieren
 

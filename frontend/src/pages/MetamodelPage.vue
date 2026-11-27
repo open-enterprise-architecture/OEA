@@ -6,6 +6,7 @@ import ArchitectureLayersSection from '../components/metamodel/ArchitectureLayer
 import CategoriesSection from '../components/metamodel/CategoriesSection.vue'
 import ChangesSection from '../components/metamodel/ChangesSection.vue'
 import MetatypesSection from '../components/metamodel/MetatypesSection.vue'
+import OrganizationModelSection from '../components/metamodel/OrganizationModelSection.vue'
 import PropertiesSection from '../components/metamodel/PropertiesSection.vue'
 import SettingsSection from '../components/metamodel/SettingsSection.vue'
 import StarterPackagesSection from '../components/metamodel/StarterPackagesSection.vue'
@@ -22,7 +23,7 @@ const props = defineProps<{ fetchFn?: typeof fetch; section?: string; id?: strin
 const router = useRouter()
 const { t } = useI18n()
 
-const SECTIONS = ['metatypes', 'properties', 'categories', 'layers', 'viewpoints', 'translations', 'starter', 'changes', 'settings'] as const
+const SECTIONS = ['metatypes', 'properties', 'categories', 'layers', 'organization', 'viewpoints', 'translations', 'starter', 'changes', 'settings'] as const
 // sections for metamodel administrators only (changes: US-034; starter packages: us-074-bpmn-process-diagrams)
 const ADMINISTRATION: readonly Section[] = ['starter', 'changes', 'settings']
 type Section = (typeof SECTIONS)[number]
@@ -116,6 +117,7 @@ async function select(section: string | number) {
       <PropertiesSection v-else-if="active === 'properties'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <CategoriesSection v-else-if="active === 'categories'" :can-write="canWrite" :fetch-fn="fetchFn" />
  <ArchitectureLayersSection v-else-if="active === 'layers'" :can-write="canWrite" :fetch-fn="fetchFn" />
+      <OrganizationModelSection v-else-if="active === 'organization'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <ViewpointsSection v-else-if="active === 'viewpoints'" :can-manage="canManageViewpoints" :fetch-fn="fetchFn" />
       <TranslationsSection v-else-if="active === 'translations'" :can-write="canWrite" :fetch-fn="fetchFn" />
       <StarterPackagesSection v-else-if="active === 'starter' && canAdminister" :fetch-fn="fetchFn" />

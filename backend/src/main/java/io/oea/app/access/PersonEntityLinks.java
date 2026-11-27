@@ -79,6 +79,7 @@ public class PersonEntityLinks implements PropertyAccess.PersonEntityLinksView {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("oldEntityId", (old != null) ? old : "");
 		details.put("newEntityId", (entityId != null) ? entityId : "");
+		details.put("source", "manual");
 		this.audit.append(new AuditEvent("person.account-linked", AuditEvent.Category.SECURITY,
 				AuditEvent.Severity.WARNING, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"person", Long.toString(personId), details));

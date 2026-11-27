@@ -146,6 +146,45 @@ public class EntityDeletions {
 		if (expectedVersion != entity.version()) {
 			throw new StaleEntityVersionException(entity.version());
 		}
+		return cascadeDelete(principal, entityId, row);
+	}
+
+	/** A connection to delete with the version the client read; {@code path} names it in a conflict. */
+	public record Removal(int connectionId, int expectedVersion, String path) {
+	}
+
+	/**
+	 * Deletes connections in the transaction of the caller, as {@link #delete} does for each, with
+	 * the version of each checked together first (design D4 of us-075-lane-assignments). The
+	 * caller took the hierarchy lock.
+	 *
+	 * @throws io.oea.app.entity.EntityVersionConflictException naming every stale connection (409)
+	 * @throws io.oea.app.security.PermissionDeniedException for a connection of a scoping type
+	 *         without {@code visibility-scope:assign} (403)
+	 * @throws io.oea.app.entity.EntityBlockedException while a connection has open issues (409)
+	 */
+	@Transactional
+	public void deleteConnections(OeaPrincipal principal, List<Removal> removals) {
+		List<io.oea.app.entity.EntityVersionConflictException.Conflict> conflicts = new ArrayList<>();
+		for (int i = 0; i < removals.size(); i++) {
+			Removal removal = removals.get(i);
+			StoredEntity entity = this.entities.lock(removal.connectionId())
+				.filter((stored) -> !stored.deleted())
+				.orElseThrow(() -> new NoSuchElementException("no entity " + removal.connectionId()));
+			if (entity.version() != removal.expectedVersion()) {
+				conflicts.add(new io.oea.app.entity.EntityVersionConflictException.Conflict(i, entity.id(),
+						entity.version(), removal.path()));
+			}
+		}
+		if (!conflicts.isEmpty()) {
+			throw new io.oea.app.entity.EntityVersionConflictException(conflicts);
+		}
+		for (Removal removal : removals) {
+			cascadeDelete(principal, removal.connectionId(), deletable(removal.connectionId()));
+		}
+	}
+
+	private List<Integer> cascadeDelete(OeaPrincipal principal, int entityId, Row row) {
 		Cascade cascade = cascade(row);
 		this.entities.lockAll(cascade.all());
 		List<Row> rows = this.deletions.findAll(cascade.all());

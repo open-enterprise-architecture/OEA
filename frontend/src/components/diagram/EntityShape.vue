@@ -5,6 +5,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import { BAND_WIDTH, eventRings, eventStroke, MARKER_PATHS, type MarkerPath } from './bpmnSymbols'
+import { initials, roleChips } from './assignments'
 import { ptToPx, type ShapeData } from './canvasModel'
 
 // A shape of the canvas (SCR-021; design D6 of us-074-diagram-canvas, design D3 of
@@ -34,6 +35,10 @@ function resizeEnd(event: OnResizeEnd) {
 }
 
 const symbol = computed(() => props.data.symbol)
+// the assignments (us-075-lane-assignments D6): the badge of the organizational unit and the chips of the roles on a lane or pool, the avatar of the person on a user task
+const chips = computed(() => roleChips(props.data.assignments?.roles ?? []))
+const person = computed(() => props.data.assignments?.persons[0])
+const carriesBand = computed(() => symbol.value?.kind === 'lane' || symbol.value?.kind === 'pool')
 function insertLabel(side: 'before' | 'after'): string {
   const vertical = props.data.insertLane?.vertical === true
   return t(vertical ? (side === 'before' ? 'diagrams.bpmn.insertLeft' : 'diagrams.bpmn.insertRight') : side === 'before' ? 'diagrams.bpmn.insertAbove' : 'diagrams.bpmn.insertBelow')
@@ -209,6 +214,53 @@ const complaint = computed(
           @blur="commit"
         />
         <span v-else-if="symbol.label !== 'band'" class="min-w-0 font-medium" :class="symbol.kind === 'annotation' ? 'line-clamp-4 whitespace-pre-line' : 'line-clamp-3 break-words'" data-testid="shape-name">{{ shown }}</span>
+        <div v-if="carriesBand && data.assignments && !data.editing && (data.assignments.orgUnit || chips.shown.length > 0)" class="flex max-w-full flex-wrap justify-end gap-1" data-testid="shape-assignments">
+          <span v-if="data.assignments.orgUnit" class="nodrag inline-flex max-w-full items-center gap-0.5 rounded-full border border-accented bg-elevated px-1.5 text-[10px] text-default" :data-pending="data.assignments.orgUnit.pending ? 'true' : undefined" data-testid="assignment-badge" :title="t('diagrams.assignments.orgUnit')">
+            <UIcon name="i-lucide-building-2" class="size-3 shrink-0" />
+            <span class="truncate">{{ data.assignments.orgUnit.name }}</span>
+            <button
+              v-if="data.assignments.removable(data.assignments.orgUnit)"
+              type="button"
+              class="rounded-full leading-none hover:text-highlighted"
+              :aria-label="t('diagrams.assignments.remove', { name: data.assignments.orgUnit.name })"
+              data-testid="assignment-remove"
+              @click.stop="data.assignments.remove(data.assignments.orgUnit)"
+            >
+              ×
+            </button>
+          </span>
+          <span
+            v-for="role in chips.shown"
+            :key="`${role.entityId ?? role.newEntityKey}`"
+            class="nodrag inline-flex max-w-full items-center gap-0.5 rounded-full border border-default bg-default px-1.5 text-[10px] text-default"
+            :data-pending="role.pending ? 'true' : undefined"
+            data-testid="assignment-chip"
+            :title="t('diagrams.assignments.role')"
+          >
+            <span class="truncate">{{ role.name }}</span>
+            <button
+              v-if="data.assignments.removable(role)"
+              type="button"
+              class="rounded-full leading-none hover:text-highlighted"
+              :aria-label="t('diagrams.assignments.remove', { name: role.name })"
+              data-testid="assignment-remove"
+              @click.stop="data.assignments.remove(role)"
+            >
+              ×
+            </button>
+          </span>
+          <span v-if="chips.more > 0" class="inline-flex items-center rounded-full border border-default px-1.5 text-[10px] text-muted" data-testid="assignment-more" :title="data.assignments.roles.slice(3).map((role) => role.name).join(', ')">+{{ chips.more }}</span>
+        </div>
+        <span
+          v-if="person && !data.editing"
+          class="absolute end-1 top-1 flex size-5 items-center justify-center rounded-full bg-primary text-[9px] font-semibold text-inverted"
+          :title="person.name"
+          :aria-label="t('diagrams.assignments.responsible', { name: person.name })"
+          role="img"
+          data-testid="assignment-avatar"
+        >
+          {{ initials(person.name) }}
+        </span>
         <span v-if="data.unsaved && !data.editing" class="size-1.5 shrink-0 rounded-full bg-warning" data-testid="shape-unsaved" role="img" :aria-label="t('diagrams.canvas.unsaved')" :title="t('diagrams.canvas.unsaved')" />
         <div v-if="data.missingMandatory.length > 0" class="flex items-center gap-1 text-[10px] text-default" data-testid="shape-incomplete">
           <UIcon name="i-lucide-triangle-alert" class="size-3 shrink-0 text-warning" />

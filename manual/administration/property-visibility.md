@@ -2,7 +2,7 @@
 title: Property visibility
 covers:
   screens: [SCR-032, SCR-040]
-  stories: [US-098, US-124, US-125, US-126, US-127, US-128]
+  stories: [US-075, US-076, US-098, US-124, US-125, US-126, US-127, US-128]
 ---
 
 # Property visibility
@@ -36,6 +36,17 @@ Connection-based visibility starts from the element that represents a person in 
 As long as connection-based properties exist but no entity type is set, the page shows a warning: the values of these properties are visible to nobody.
 
 The account of a person is linked to their element through the API (see [Identity providers and persons](./identity-providers#link-an-account-to-an-element)). A link counts only while the element exists and is of the chosen entity type or one of its subtypes; changing the entity type keeps the links, but links to elements of another type stop counting.
+
+## Account mapping {#account-mapping}
+
+Besides the manual link, an account can be linked to its person element **through a property**: the element whose value of a chosen *string* property equals an attribute of the account. Next to the entity type of persons, *Account mapping* sets the property (a text property of the entity type of persons, for example *Account ID* of the [organization package](./metamodel-packages#organization-package)) and the attribute: the **e-mail address** (compared ignoring case) or the **IdP subject** of an identity binding of the account. Employee ID and external reference follow with the provisioning that fills them. With *No mapping* all links through the mapping end; manual links stay.
+
+- **Who is linked:** an account in status `invited` or `active` that has no manual link, if **exactly one** active person element, not linked manually to another account, has that value and no other account has the same attribute. A value that matches several elements or several accounts gives **no link**; the person view then shows the conflict (`mappingConflict` with the element IDs and the number of accounts). A manual link always takes precedence, and linking an element that another account holds through the mapping by hand answers `409`.
+- **Follows the data:** the links are recomputed in the same step as the write of the value (also in batch writes, diagram saves and when a solution goes live), as the element is deleted or restored (also by cascade), as an identity binding is added or removed, as the status of an account changes and as the mapping or the entity type of persons changes. Every change is audited as `person.account-linked` with `source: mapping` (a manual link with `source: manual`).
+- **Responsibilities stay with the elements:** deactivating or offboarding an account, or unbinding its identity, only ends the link; the person element and its *Responsible* connections stay unchanged, and the link returns when the account is active again.
+- **The property must be write-restricted:** it needs the visibility mode *Role-based* (otherwise `422` naming `propertyDefId`), so that only the roles you chose can write values that link accounts. While it is the mapping property, its mode cannot leave *Role-based* (`422` naming `visibilityMode`). Deleting the property, or removing it from the entity type of persons, clears the mapping and its links.
+- **Separation of duties:** a request that would give **your own** account a new link – writing your own value, restoring an element, a go-live or binding an identity to your own account – is refused with `403`, recorded as `authz.denied` with the reason `self-administration`, and nothing changes. Together with the write restriction, a writer cannot link their own account to an element that carries scope. A service account with a write role writes values for others; choose the write roles with care.
+- The change of the mapping is audited as `visibility.person-link-mapping-changed`. `GET` and `PUT /admin/property-visibility/person-link-mapping` read (`visibility:configure` or `person:manage`) and set (`visibility:configure`) it: `{"propertyDefId": "<ID>", "accountAttribute": "idp-subject"}`, or `{"propertyDefId": null}` to clear it. `GET /admin/persons/{personId}` shows `mappedEntityId`, `linkSource` (`manual` or `mapping`) and `mappingConflict`; the link that counts for visibility is `entityId` if set, else `mappedEntityId`.
 
 ## Override roles {#override-roles}
 

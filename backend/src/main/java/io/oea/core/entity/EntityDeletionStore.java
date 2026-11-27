@@ -1,5 +1,6 @@
 package io.oea.core.entity;
 
+import io.oea.core.access.PersonLinkTrigger;
 import io.oea.core.metamodel.BuiltInMetatypes;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -7,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -29,8 +31,16 @@ public class EntityDeletionStore {
 
 	private final JdbcTemplate jdbc;
 
+	private final PersonLinkTrigger links;
+
 	public EntityDeletionStore(JdbcTemplate jdbc) {
+		this(jdbc, PersonLinkTrigger.NONE);
+	}
+
+	@Autowired
+	public EntityDeletionStore(JdbcTemplate jdbc, PersonLinkTrigger links) {
 		this.jdbc = jdbc;
+		this.links = links;
 	}
 
 	/**
@@ -127,6 +137,7 @@ public class EntityDeletionStore {
 		if (ids.isEmpty()) {
 			return;
 		}
+		this.links.changed();
 		this.jdbc.update("""
 				UPDATE entities SET deleted_at = ?, deleted_by = ?, deletion_reason = ?, deleted_with_entity_id = ?
 				WHERE id = ANY(?) AND deleted_at IS NULL""", Timestamp.from(now), personId, reason, originId,
@@ -138,6 +149,7 @@ public class EntityDeletionStore {
 		if (ids.isEmpty()) {
 			return;
 		}
+		this.links.changed();
 		this.jdbc.update("""
 				UPDATE entities SET deleted_at = NULL, deleted_by = NULL, deletion_reason = NULL,
 				    deleted_with_entity_id = NULL

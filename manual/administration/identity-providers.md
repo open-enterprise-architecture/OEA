@@ -2,7 +2,7 @@
 title: Identity providers and persons
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-127, US-148]
+  stories: [US-075, US-076, US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-127, US-148]
 ---
 
 # Identity providers and persons
@@ -71,7 +71,7 @@ curl "${auth[@]}" -X PUT -d '{"entityId": null}' "$OEA/admin/persons/$PERSON/ent
 - The element must exist and be of the entity type of persons or one of its subtypes; otherwise, and while no entity type of persons is set, the answer is `422` with `entityId` in `invalidFields`.
 - An element can be linked to one account only; a second link answers `409`.
 - Your own person is refused with `403`, recorded as `authz.denied`, and a service account with `422`.
-- `GET /admin/persons/{personId}` shows the link in `entityId`.
+- `GET /admin/persons/{personId}` shows the link in `entityId`, a link through the [account mapping](./property-visibility#account-mapping) in `mappedEntityId` with `linkSource` (`manual` or `mapping`), and, while a value matches several elements or accounts, `mappingConflict` (the person administration is the API; there is no screen for it yet).
 - Every change is recorded in the audit trail (`person.account-linked`) with the old and the new element.
 
 ## Set an initial password {#set-an-initial-password}

@@ -1,11 +1,13 @@
 package io.oea.app.access;
 
+import io.oea.app.metamodel.PersonLinkMappings;
 import io.oea.app.security.OeaPrincipal;
 import io.oea.app.security.Sessions;
 import io.oea.app.security.SetupPhase;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.PersonLinkTrigger;
 import io.oea.core.domain.auth.AuthProvider;
 import io.oea.core.domain.person.Person;
 import io.oea.core.domain.person.PersonIdentity;
@@ -41,8 +43,15 @@ public class Persons {
 
 	private final Clock clock;
 
+	private final PersonLinkTrigger links;
+
+	private final PersonLinkMappings linkMappings;
+
 	public Persons(PersonRepository persons, PersonIdentityRepository identities, AuthProviderRepository providers,
-			SetupPhase setupPhase, AuditWriter audit, Clock clock) {
+			SetupPhase setupPhase, AuditWriter audit, Clock clock, PersonLinkTrigger links,
+			PersonLinkMappings linkMappings) {
+		this.linkMappings = linkMappings;
+		this.links = links;
 		this.persons = persons;
 		this.identities = identities;
 		this.providers = providers;
@@ -53,11 +62,17 @@ public class Persons {
 
 	/** A person as shown to administrators. */
 	public record PersonView(long id, String personType, String name, String email, String status, Instant createdAt,
-			Integer entityId) {
+			Integer entityId, Integer mappedEntityId, PersonLinkMappings.Conflict mappingConflict) {
 
-		static PersonView of(Person person) {
+		static PersonView of(Person person, Map<Long, PersonLinkMappings.Conflict> conflicts) {
 			return new PersonView(person.getId(), person.getPersonType(), person.getName(), person.getEmail(),
-					person.getStatus().name().toLowerCase(Locale.ROOT), person.getCreatedAt(), person.getEntityId());
+					person.getStatus().name().toLowerCase(Locale.ROOT), person.getCreatedAt(), person.getEntityId(),
+					person.getMappedEntityId(), conflicts.get(person.getId()));
+		}
+
+		/** Where the effective link comes from: {@code manual}, {@code mapping} or {@code null}. */
+		public String linkSource() {
+			return (this.entityId != null) ? "manual" : (this.mappedEntityId != null) ? "mapping" : null;
 		}
 
 	}
@@ -75,12 +90,13 @@ public class Persons {
 
 	@Transactional(readOnly = true)
 	public List<PersonView> list() {
-		return this.persons.findAllByOrderById().stream().map(PersonView::of).toList();
+		Map<Long, PersonLinkMappings.Conflict> conflicts = this.linkMappings.conflicts();
+		return this.persons.findAllByOrderById().stream().map((person) -> PersonView.of(person, conflicts)).toList();
 	}
 
 	@Transactional(readOnly = true)
 	public PersonView get(long personId) {
-		return PersonView.of(find(personId));
+		return PersonView.of(find(personId), this.linkMappings.conflicts());
 	}
 
 	private Person find(long personId) {
@@ -93,10 +109,11 @@ public class Persons {
 		if (this.persons.existsByEmailIgnoreCase(normalizedEmail)) {
 			throw new AccessConflictException("A person with this e-mail address exists.");
 		}
-		Person person = this.persons.save(Person.invited(name.strip(), normalizedEmail,
+		Person person = this.persons.saveAndFlush(Person.invited(name.strip(), normalizedEmail,
 				principal.systemAdminAccountId(), this.clock.instant()));
+		this.links.changed();
 		append(principal, "person.created", AuditEvent.Severity.INFO, person.getId(), Map.of("status", "invited"));
-		return PersonView.of(person);
+		return PersonView.of(person, Map.of());
 	}
 
 	@Transactional(readOnly = true)
@@ -115,8 +132,10 @@ public class Persons {
 		}
 		this.setupPhase.requireSecondFactorFor("identity-binding", principal);
 		Instant now = this.clock.instant();
-		PersonIdentity identity = this.identities.save(PersonIdentity.adminEntered(person.getId(), provider.getId(),
-				provider.getIssuer(), subject, principal.systemAdminAccountId(), principal.personId(), now));
+		PersonIdentity identity = this.identities.saveAndFlush(PersonIdentity.adminEntered(person.getId(),
+				provider.getId(), provider.getIssuer(), subject, principal.systemAdminAccountId(),
+				principal.personId(), now));
+		this.links.changed();
 		append(principal, "person.identity-bound", AuditEvent.Severity.HIGH, person.getId(),
 				Map.of("identityId", identity.getId().toString(), "authProviderId", provider.getId().toString(),
 						"linkMethod", identity.getLinkMethod()));
@@ -129,6 +148,8 @@ public class Persons {
 			.filter((candidate) -> candidate.getPersonId() == personId)
 			.orElseThrow(() -> new NoSuchElementException("no identity " + identityId));
 		this.identities.delete(identity);
+		this.identities.flush();
+		this.links.changed();
 		append(principal, "person.identity-unbound", AuditEvent.Severity.HIGH, personId,
 				Map.of("identityId", identityId.toString(), "authProviderId", identity.getAuthProviderId().toString()));
 	}

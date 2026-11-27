@@ -13,11 +13,13 @@ import java.util.UUID;
  * @param labels locale → label key → text of the package's own elements (us-140-dynamic-labels D5)
  * @param viewpoints the viewpoints the package installs as system-defined ones
  * @param layers the architecture layers the package installs as imported ones (s17-architecture-layers D3)
+ * @param organizationModel the metatypes of the package for the parts of the organization model, a part
+ *        {@code null} when the package names none (us-075-lane-assignments D2)
  */
 public record PackageDefinition(String packageId, String version, String publisher, String strategy,
 		List<String> unsupportedSections, List<Category> categories, List<Property> properties,
 		List<Metatype> metatypes, Map<String, Map<String, String>> labels, List<Viewpoint> viewpoints,
-		List<Layer> layers) {
+		List<Layer> layers, OrganizationModels.Parts organizationModel) {
 
 	/** An architecture layer of the package, identified by its stable ID within the package. */
 	public record Layer(UUID id, String name, int sortOrder) {

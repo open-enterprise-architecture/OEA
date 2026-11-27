@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.14.0
+version: 1.15.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -448,6 +448,8 @@ Version 1.11.0 (change `us-124-property-visibility`) stores `readRoles` and `wri
 
 Version 1.14.0 (change `s17-architecture-layers`, owner decisions 2026-11-18) makes the layers real: dashboards group charts by layer (US-057 AC4, REQ-053 BR-04), so the layers are a configurable list of the instance metamodel, not a fixed set. They are rows of `architecture_layers` (migration V44) with a UUID instead of the kebab-case ID, because packages bring their own layers and an ID must stay stable across renames and translations. `metatypes.architecture_layer_id`, a free-text column since V5 that nothing wrote, becomes a reference. A package re-import removes the layers its new version no longer has and clears the assignments to them, organization types included, because rejecting the re-import would block package updates over a cosmetic attribute.
 
+Version 1.15.0 (change `us-075-lane-assignments`, owner decisions 2026-11-27) adds the **organization model**: one setting (`organization_model`, V53) naming the metatypes that play organizational unit, role, person, belongs-to, performs-role and responsible, each unset until set. It is separate from the person metatype of property visibility, because that one drives connection-scoped visibility and belongs to security administration (SoD-2), while the organization model belongs to metamodel administration. A package fills only the parts that are unset and never overwrites a part that is set; a re-import therefore cannot take away the choice of the organization. Without such a setting the canvas would have to recognize the types by name, which are translated and can be changed.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -476,3 +478,4 @@ Version 1.14.0 (change `s17-architecture-layers`, owner decisions 2026-11-18) ma
 | 1.12.0 | 2026-11-13 | Change us-044-conflict-warning | `showParallelChanges` per EntityType: the marker of parallel changes in the baseline of a solution, off by default (owner decision 2026-11-13) |
 | 1.13.0 | 2026-11-18 | Change us-135-component-hierarchy | `isComposition` of connection types, the built-in element type "Structuring aid"; BR-33 |
 | 1.14.0 | 2026-11-18 | Change s17-architecture-layers | `ArchitectureLayerDefinition` as rows with UUID, `sortOrder`, `scope` and `version`; `architectureLayerId` references a layer; BR-15 and BR-18 aligned; `color` and `description` not implemented |
+| 1.15.0 | 2026-11-27 | Change us-075-lane-assignments | The organization model setting (six nullable parts, version) and the package section `organizationModel` that fills the unset parts |

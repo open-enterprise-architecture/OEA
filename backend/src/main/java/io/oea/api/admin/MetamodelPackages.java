@@ -3,6 +3,7 @@ package io.oea.api.admin;
 import io.oea.api.generated.model.ImportMetamodelPackageRequest;
 import io.oea.api.generated.model.ImportResult;
 import io.oea.api.generated.model.ImportResultConflictListInner;
+import io.oea.api.generated.model.MetamodelPackageOrganizationModel;
 import io.oea.api.generated.model.MetatypeDetail;
 import io.oea.api.generated.model.MetatypePropertyMapping;
 import io.oea.api.generated.model.PackageArchitectureLayer;
@@ -12,6 +13,7 @@ import io.oea.api.generated.model.PropertyDefinitionDetail;
 import io.oea.api.generated.model.PropertyEnumValue;
 import io.oea.app.metamodel.PackageDefinition;
 import io.oea.app.metamodel.PackageImporter;
+import io.oea.app.metamodel.OrganizationModels;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,7 +40,16 @@ final class MetamodelPackages {
 				list(request.getMetatypes()).stream().map(MetamodelPackages::metatype).toList(),
 				labels(request.getI18nBundles()),
 				list(request.getViewpoints()).stream().map(MetamodelPackages::viewpoint).toList(),
-				list(request.getArchitectureLayers()).stream().map(MetamodelPackages::layer).toList());
+				list(request.getArchitectureLayers()).stream().map(MetamodelPackages::layer).toList(),
+				organizationModel(request.getOrganizationModel()));
+	}
+
+	private static OrganizationModels.Parts organizationModel(MetamodelPackageOrganizationModel model) {
+		if (model == null) {
+			return new OrganizationModels.Parts(null, null, null, null, null, null);
+		}
+		return new OrganizationModels.Parts(model.getOrgUnit(), model.getRole(), model.getPerson(),
+				model.getBelongsTo(), model.getPerformsRole(), model.getResponsible());
 	}
 
 	private static PackageDefinition.Layer layer(PackageArchitectureLayer layer) {
@@ -86,6 +97,9 @@ final class MetamodelPackages {
 			.layersUpdated(outcome.layersUpdated())
 			.layersDeleted(outcome.layersDeleted())
 			.layerAssignmentsCleared(outcome.layerAssignmentsCleared())
+			.organizationModelFilled(outcome.organizationModelFilled().stream()
+				.map(ImportResult.OrganizationModelFilledEnum::fromValue)
+				.toList())
 			.conflictList(List.of());
 	}
 

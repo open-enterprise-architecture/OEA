@@ -49,6 +49,10 @@ public class Person {
 	@Column(name = "entity_id", insertable = false, updatable = false)
 	private Integer entityId;
 
+	/** The element linked through the account mapping (V53); written only by the recomputation. */
+	@Column(name = "mapped_entity_id", insertable = false, updatable = false)
+	private Integer mappedEntityId;
+
 	protected Person() {
 	}
 
@@ -103,6 +107,10 @@ public class Person {
 
 	public Integer getEntityId() {
 		return this.entityId;
+	}
+
+	public Integer getMappedEntityId() {
+		return this.mappedEntityId;
 	}
 
 	public Instant getCreatedAt() {

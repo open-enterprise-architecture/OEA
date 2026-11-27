@@ -1,5 +1,6 @@
 package io.oea.app.diagramview;
 
+import io.oea.app.deletion.EntityDeletions;
 import io.oea.app.diagram.Diagrams;
 import io.oea.app.entity.AtomicBatchFailedException;
 import io.oea.app.entity.EntityBatch;
@@ -11,6 +12,7 @@ import io.oea.app.hierarchy.InvalidHierarchyException;
 import io.oea.app.entity.MetatypeRules;
 import io.oea.app.entity.PropertyWriteAccess;
 import io.oea.app.metamodel.DiagramSettings;
+import io.oea.app.metamodel.OrganizationModels;
 import io.oea.app.metamodel.OverrideAccessAudit;
 import io.oea.app.metamodel.PropertyAccess;
 import io.oea.app.metamodel.Viewpoints;
@@ -20,6 +22,7 @@ import io.oea.app.security.PermissionDeniedException;
 import io.oea.app.security.Sessions;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.diagram.DiagramAssignmentStore;
 import io.oea.core.diagram.DiagramEdgeStore;
 import io.oea.core.diagram.DiagramEdgeStore.EdgeWrite;
 import io.oea.core.diagram.DiagramEdgeStore.ShownEdge;
@@ -85,6 +88,15 @@ public class DiagramViews {
 
 	private static final String POOL = "bpmn:Pool";
 
+	private static final String LANE = "bpmn:Lane";
+
+	/** The notation keys of the shapes that carry assignments besides lanes and pools (design D3). */
+	private static final Set<String> TASKS = Set.of("bpmn:Task", "bpmn:UserTask", "bpmn:ServiceTask",
+			"bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:BusinessRuleTask", "bpmn:ScriptTask");
+
+	/** The most connections of a save that remove assignments. */
+	public static final int MAX_REMOVED_CONNECTIONS = 500;
+
 	private static final String HORIZONTAL = "horizontal";
 
 	private static final String VERTICAL = "vertical";
@@ -131,11 +143,22 @@ public class DiagramViews {
 
 	private final DiagramSettings settings;
 
+	private final OrganizationModels organizationModels;
+
+	private final DiagramAssignmentStore assignmentStore;
+
+	private final EntityDeletions deletions;
+
 	DiagramViews(Diagrams diagrams, Viewpoints viewpoints, EntityBatch entities, DiagramShapeStore shapes,
 			DiagramEdgeStore edges, EntitySearchStore search, MetatypeRuleStore ruleStore, AuditWriter audit, Clock clock,
 			EntityStore entityStore, PropertyValueStore valueStore, MetatypeStore metatypes, PropertyAccess access,
 			PermissionResolver permissions, OverrideAccessAudit overrideAudit, DiagramHierarchyLineStore lines,
-			EntityHierarchy hierarchy, EntityHierarchyStore hierarchyStore, DiagramSettings settings) {
+			EntityHierarchy hierarchy, EntityHierarchyStore hierarchyStore, DiagramSettings settings,
+			OrganizationModels organizationModels, DiagramAssignmentStore assignmentStore,
+			EntityDeletions deletions) {
+		this.organizationModels = organizationModels;
+		this.assignmentStore = assignmentStore;
+		this.deletions = deletions;
 		this.lines = lines;
 		this.hierarchy = hierarchy;
 		this.hierarchyStore = hierarchyStore;
@@ -164,7 +187,19 @@ public class DiagramViews {
 	 */
 	public record Shape(UUID id, int entityId, String entityName, UUID metatypeId, BigDecimal x, BigDecimal y,
 			BigDecimal width, BigDecimal height, UUID parentShapeId, boolean collapsed, String orientation,
-			int childCount, Integer parentEntityId, List<String> missingMandatory, boolean conflict) {
+			int childCount, Integer parentEntityId, List<String> missingMandatory, boolean conflict,
+			Assignments assignments) {
+	}
+
+	/** An assignment: the connection with its version and the organizational unit, role or person. */
+	public record Assignment(int connectionId, int connectionVersion, int entityId, String name) {
+	}
+
+	/**
+	 * The assignments of a shape (design D3 of us-075-lane-assignments): organizational units by
+	 * belongs-to, roles by performs-role and persons by responsible.
+	 */
+	public record Assignments(List<Assignment> orgUnits, List<Assignment> roles, List<Assignment> persons) {
 	}
 
 	/** A hierarchy line from a container shape to the shape of a child placed elsewhere. */
@@ -215,12 +250,22 @@ public class DiagramViews {
 
 	/** A new connection to create with the save; its endpoints are those of the shapes of its first edge. */
 	public record NewConnectionInput(UUID key, UUID metatypeId, String name, String description,
-			List<EntityInput.PropertyInput> properties) {
+			List<EntityInput.PropertyInput> properties, UUID sourceShapeId, Integer targetEntityId,
+			UUID targetNewEntityKey) {
 
 		public NewConnectionInput {
 			properties = (properties != null) ? List.copyOf(properties) : List.of();
 		}
 
+		/** Whether the request names its own endpoints, which an assignment does and an edge's connection does not. */
+		boolean hasEndpoints() {
+			return this.sourceShapeId != null || this.targetEntityId != null || this.targetNewEntityKey != null;
+		}
+
+	}
+
+	/** An assignment connection to delete with the save, with the connection version read. */
+	public record RemovedConnectionInput(int connectionId, int expectedVersion) {
 	}
 
 	/** An entity the viewpoint allows, with its number of children and its parent. */
@@ -305,7 +350,7 @@ public class DiagramViews {
 	/** The details of an entity shown in the diagram. */
 	public record Details(int id, String name, String description, UUID metatypeId, String metatypeName,
 			String metatypeAbbreviation, int version, List<Value> properties, List<Field> fields,
-			List<String> missingMandatory) {
+			List<String> missingMandatory, Assignments assignments) {
 	}
 
 	/**
@@ -395,8 +440,9 @@ public class DiagramViews {
 	 */
 	@Transactional(readOnly = true)
 	public Details details(OeaPrincipal principal, UUID id, int entityId) {
-		this.diagrams.get(id);
-		boolean byShape = this.shapes.shown(id).stream().anyMatch((shape) -> shape.entityId() == entityId);
+		Diagrams.Diagram diagram = this.diagrams.get(id);
+		List<ShownShape> shownShapes = this.shapes.shown(id);
+		boolean byShape = shownShapes.stream().anyMatch((shape) -> shape.entityId() == entityId);
 		if (!byShape && !this.edges.shownConnections(id, List.of(entityId)).contains(entityId)) {
 			throw new NoSuchElementException("entity " + entityId);
 		}
@@ -437,8 +483,17 @@ public class DiagramViews {
 			overridden.keySet().forEach((definition) -> entities.put(definition, List.of(entityId)));
 			this.overrideAudit.append(principal, "diagram", 0, "diagram", id.toString(), overridden, entities);
 		}
+		Assignments assignments = null;
+		if (byShape) {
+			Map<UUID, Assignments> carried = assignmentsOf(this.viewpoints.get(diagram.viewpoint().id()), shownShapes);
+			assignments = shownShapes.stream()
+				.filter((shape) -> shape.entityId() == entityId && carried.containsKey(shape.id()))
+				.map((shape) -> carried.get(shape.id()))
+				.findFirst()
+				.orElse(null);
+		}
 		return new Details(entity.id(), entity.name(), entity.description(), entity.metatypeId(), name.name(),
-				name.abbreviation(), entity.version(), values, fields, missing);
+				name.abbreviation(), entity.version(), values, fields, missing, assignments);
 	}
 
 	/**
@@ -482,17 +537,28 @@ public class DiagramViews {
 	 *         one that is not a reference property (422)
 	 */
 	@Transactional(readOnly = true)
-	public EntityPage referenceTargets(UUID id, UUID propertyDefId, String q, int page, int pageSize) {
+	public EntityPage referenceTargets(UUID id, UUID propertyDefId, String part, String q, int page, int pageSize) {
 		this.diagrams.get(id);
-		MetatypeRules.Definition definition = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
-			.definition(propertyDefId);
-		if (definition == null || !"reference".equals(definition.dataType()) || definition.refMetatypeId() == null) {
+		if ((propertyDefId == null) == (part == null)) {
 			throw new DiagramViewException(DiagramViewException.Reason.INVALID,
-					"The property definition is unknown or not a reference property.",
-					List.of(new Issue("propertyDefId", "NOT_A_REFERENCE_PROPERTY",
-							"The property definition is unknown or not a reference property.")));
+					"Exactly one of propertyDefId and part is needed.",
+					List.of(new Issue("part", "PART_OR_PROPERTY", "Exactly one of propertyDefId and part is needed.")));
 		}
-		List<UUID> types = List.of(definition.refMetatypeId());
+		List<UUID> types;
+		if (part != null) {
+			types = partTypes(part);
+		}
+		else {
+			MetatypeRules.Definition definition = MetatypeRules.load(this.ruleStore, LocalDate.now(this.clock))
+				.definition(propertyDefId);
+			if (definition == null || !"reference".equals(definition.dataType()) || definition.refMetatypeId() == null) {
+				throw new DiagramViewException(DiagramViewException.Reason.INVALID,
+						"The property definition is unknown or not a reference property.",
+						List.of(new Issue("propertyDefId", "NOT_A_REFERENCE_PROPERTY",
+								"The property definition is unknown or not a reference property.")));
+			}
+			types = List.of(definition.refMetatypeId());
+		}
 		String like = (q != null && !q.isBlank()) ? "%" + escape(q) + "%" : null;
 		long total = this.search.count(types, like);
 		List<Found> items = this.search.page(types, like, pageSize, (long) page * pageSize)
@@ -503,6 +569,26 @@ public class DiagramViews {
 			.toList();
 		int totalPages = Math.toIntExact((total + pageSize - 1) / pageSize);
 		return new EntityPage(items, page, pageSize, total, totalPages);
+	}
+
+	/** The metatype of an element part of the organization model and its subtypes; 422 naming {@code part} if unset. */
+	private List<UUID> partTypes(String part) {
+		OrganizationModels.Parts parts = this.organizationModels.get().parts();
+		UUID root = switch (part) {
+			case "org-unit" -> parts.orgUnit();
+			case "role" -> parts.role();
+			case "person" -> parts.person();
+			default -> null;
+		};
+		if (root == null) {
+			throw new DiagramViewException(DiagramViewException.Reason.INVALID,
+					"The part is unknown or not set in the organization model.",
+					List.of(new Issue("part", "PART_NOT_SET", "The part is unknown or not set in the organization model.")));
+		}
+		Map<UUID, UUID> bases = this.metatypes.bases();
+		List<UUID> types = new ArrayList<>(List.of(root));
+		this.metatypes.ids().stream().filter((type) -> !type.equals(root) && isOf(type, root, bases)).forEach(types::add);
+		return types;
 	}
 
 	/**
@@ -522,14 +608,16 @@ public class DiagramViews {
 	public View save(OeaPrincipal principal, UUID id, Long expectedVersion, List<ShapeInput> shapeInputs,
 			List<NewEntityInput> newEntities, List<EntityUpdateInput> updates, List<EdgeInput> edgeInputs,
 			List<NewConnectionInput> newConnections, List<LineInput> lineInputs,
-			List<ParentChangeInput> parentChanges, AuditEvent.Agent agent) {
+			List<ParentChangeInput> parentChanges, List<RemovedConnectionInput> removed, AuditEvent.Agent agent) {
 		if (principal.personId() == null) {
 			throw new PermissionDeniedException();
 		}
 		checkNumbers(shapeInputs, edgeInputs);
+		requireRemoval(principal, removed);
 		Diagrams.Diagram diagram = this.diagrams.lockForLayout(id, expectedVersion);
-		// the hierarchy lock comes before any entity lock, as in setEntityParent (design D3 step 1)
-		boolean parents = !parentChanges.isEmpty()
+		// the hierarchy lock comes before any entity lock, as in setEntityParent (design D3 step 1);
+		// the removal of connections takes it as the deletion does
+		boolean parents = !parentChanges.isEmpty() || !removed.isEmpty()
 				|| newEntities.stream().anyMatch((entity) -> entity.parentEntityId() != null || entity.parentNewEntityKey() != null);
 		if (parents) {
 			this.hierarchyStore.lock();
@@ -542,11 +630,13 @@ public class DiagramViews {
 		List<StoredShape> stored = this.shapes.stored(id);
 		List<StoredEdge> storedEdges = this.edges.stored(id);
 		List<String> conflicts = new ArrayList<>();
-		List<Issue> errors = validate(id, shapeInputs, newEntities, allowed, typesMappedTo(viewpoint, SUB_PROCESS), typesMappedTo(viewpoint, POOL), stored,
-				conflicts);
+		AssignmentRules rules = new AssignmentRules(this.organizationModels.get().parts(), this.metatypes.bases());
+		List<Issue> errors = validate(id, shapeInputs, newEntities, newConnections, allowed, rules,
+				typesMappedTo(viewpoint, SUB_PROCESS), typesMappedTo(viewpoint, POOL), stored, conflicts);
 		errors.addAll(validateNesting(shapeInputs));
-		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, allowedConnections, storedEdges,
-				conflicts));
+		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, newEntities, allowedConnections,
+				rules, storedEdges, conflicts));
+		errors.addAll(validateRemovals(removed, shapeInputs, stored, edgeInputs, rules));
 		errors.addAll(validateUpdates(updates, shapeInputs, edgeInputs));
 		errors.addAll(validateLines(id, shapeInputs, lineInputs));
 		errors.addAll(validateParentChanges(parentChanges, shapeInputs, newEntities));
@@ -567,8 +657,10 @@ public class DiagramViews {
 		Map<UUID, Integer> created = create(principal, newEntities, agent);
 		int parentsChanged = writeParents(principal, newEntities, parentChanges, created, agent);
 		checkLines(shapeInputs, lineInputs, created);
+		removeConnections(principal, removed);
 		Map<UUID, Integer> createdConnections = createConnections(principal, shapeInputs, edgeInputs, newConnections,
 				created, agent);
+		checkOrgUnitLimit(shapeInputs, newEntities, newConnections, created, rules, viewpoint);
 		List<ShapeWrite> writes = new ArrayList<>();
 		for (ShapeInput shape : shapeInputs) {
 			int entityId = (shape.entityId() != null) ? shape.entityId() : created.get(shape.newEntityKey());
@@ -590,8 +682,37 @@ public class DiagramViews {
 		this.edges.upsert(id, edgeWrites);
 		int version = this.diagrams.layoutSaved(principal, id);
 		audit(principal, id, diagram.name(), version, count(stored, writes), countEdges(storedEdges, edgeWrites),
-				created.size(), createdConnections.size(), parentsChanged);
+				created.size(), createdConnections.size(), parentsChanged, removed.size());
 		return buildView(this.diagrams.get(id));
+	}
+
+	/**
+	 * Requires {@code entity:delete} when the save removes connections (design D4 of
+	 * us-075-lane-assignments); the controller calls it with the scoping check, so that the 403 comes before
+	 * the version check and every 422.
+	 *
+	 * @throws PermissionDeniedException without the permission (403)
+	 */
+	public void requireRemoval(OeaPrincipal principal, List<RemovedConnectionInput> removed) {
+		if (!removed.isEmpty() && !this.permissions.permissions(principal).contains("entity:delete")) {
+			throw new PermissionDeniedException();
+		}
+	}
+
+	/** The organization model as the rules of assignments need it, with the base types of the metatypes. */
+	private record AssignmentRules(OrganizationModels.Parts parts, Map<UUID, UUID> bases) {
+
+		boolean isAssignmentConnection(UUID metatype) {
+			return isOf(metatype, this.parts.belongsTo(), this.bases)
+					|| isOf(metatype, this.parts.performsRole(), this.bases)
+					|| isOf(metatype, this.parts.responsible(), this.bases);
+		}
+
+		boolean isPartElement(UUID metatype) {
+			return isOf(metatype, this.parts.orgUnit(), this.bases) || isOf(metatype, this.parts.role(), this.bases)
+					|| isOf(metatype, this.parts.person(), this.bases);
+		}
+
 	}
 
 	/**
@@ -630,16 +751,30 @@ public class DiagramViews {
 	}
 
 	private List<Issue> validate(UUID diagramId, List<ShapeInput> shapeInputs, List<NewEntityInput> newEntities,
-			Set<UUID> allowed, Set<UUID> subProcesses, Set<UUID> pools, List<StoredShape> stored, List<String> conflicts) {
+			List<NewConnectionInput> newConnections, Set<UUID> allowed, AssignmentRules rules, Set<UUID> subProcesses,
+			Set<UUID> pools, List<StoredShape> stored, List<String> conflicts) {
 		List<Issue> errors = new ArrayList<>();
 		Map<UUID, Integer> keys = new HashMap<>();
+		Set<UUID> shownKeys = new HashSet<>();
+		shapeInputs.stream().filter((shape) -> shape.newEntityKey() != null).forEach((shape) -> shownKeys.add(shape.newEntityKey()));
+		Set<UUID> targetKeys = new HashSet<>();
+		newConnections.stream()
+			.filter((connection) -> connection.targetNewEntityKey() != null)
+			.forEach((connection) -> targetKeys.add(connection.targetNewEntityKey()));
 		for (int i = 0; i < newEntities.size(); i++) {
 			NewEntityInput entity = newEntities.get(i);
 			if (keys.putIfAbsent(entity.key(), i) != null) {
 				errors.add(new Issue("newEntities[" + i + "].key", "DUPLICATE_KEY",
 						"The key occurs earlier in the new entities."));
 			}
-			if (!allowed.contains(entity.metatypeId())) {
+			if (!shownKeys.contains(entity.key()) && targetKeys.contains(entity.key())) {
+				// no shape shows it: an organizational unit, a role or a person, instead of a type the viewpoint allows
+				if (!rules.isPartElement(entity.metatypeId())) {
+					errors.add(new Issue("newEntities[" + i + "].metatypeId", "METATYPE_NOT_ALLOWED",
+							"An entity without a shape is an organizational unit, a role or a person of the organization model."));
+				}
+			}
+			else if (!allowed.contains(entity.metatypeId())) {
 				errors.add(new Issue("newEntities[" + i + "].metatypeId", "METATYPE_NOT_ALLOWED",
 						"The viewpoint of the diagram does not allow this metatype."));
 			}
@@ -711,9 +846,9 @@ public class DiagramViews {
 			}
 		}
 		for (int i = 0; i < newEntities.size(); i++) {
-			if (!usedKeys.contains(newEntities.get(i).key())) {
+			if (!usedKeys.contains(newEntities.get(i).key()) && !targetKeys.contains(newEntities.get(i).key())) {
 				errors.add(new Issue("newEntities[" + i + "]", "NEW_ENTITY_UNUSED",
-						"No shape shows the new entity."));
+						"No shape shows the new entity and no new connection has it as target."));
 			}
 		}
 		return errors;
@@ -734,22 +869,35 @@ public class DiagramViews {
 	}
 
 	private List<Issue> validateEdges(UUID diagramId, List<ShapeInput> shapeInputs, List<EdgeInput> edgeInputs,
-			List<NewConnectionInput> newConnections, Set<UUID> allowedConnections, List<StoredEdge> storedEdges,
-			List<String> conflicts) {
+			List<NewConnectionInput> newConnections, List<NewEntityInput> newEntities, Set<UUID> allowedConnections,
+			AssignmentRules rules, List<StoredEdge> storedEdges, List<String> conflicts) {
 		List<Issue> errors = new ArrayList<>();
 		Map<UUID, Shown> shapes = new HashMap<>();
 		shapeInputs.forEach((shape) -> shapes.put(shape.id(), new Shown(shape.entityId(), shape.newEntityKey())));
 		Map<UUID, StoredEdge> storedById = new HashMap<>();
 		storedEdges.forEach((edge) -> storedById.put(edge.id(), edge));
 		Map<UUID, Integer> keys = new HashMap<>();
+		Set<UUID> referencedByEdge = new HashSet<>();
+		edgeInputs.stream().filter((edge) -> edge.newConnectionKey() != null).forEach((edge) -> referencedByEdge.add(edge.newConnectionKey()));
+		Set<UUID> newEntityKeys = new HashSet<>();
+		newEntities.forEach((entity) -> newEntityKeys.add(entity.key()));
 		for (int i = 0; i < newConnections.size(); i++) {
 			NewConnectionInput connection = newConnections.get(i);
 			if (keys.putIfAbsent(connection.key(), i) != null) {
 				errors.add(new Issue("newConnections[" + i + "].key", "DUPLICATE_KEY",
 						"The key occurs earlier in the new connections."));
 			}
-			if (!allowedConnections.contains(connection.metatypeId())) {
-				errors.add(new Issue("newConnections[" + i + "].metatypeId", "METATYPE_NOT_ALLOWED",
+			String path = "newConnections[" + i + "]";
+			if (connection.hasEndpoints() && !referencedByEdge.contains(connection.key())) {
+				assignmentIssues(errors, path, connection, rules, shapes, newEntityKeys);
+			}
+			else if (connection.hasEndpoints()) {
+				errors.add(new Issue(path, "ENDPOINTS_WITH_EDGE",
+						"A new connection that an edge shows takes its endpoints from the edge and names none."));
+			}
+			if ((!connection.hasEndpoints() || referencedByEdge.contains(connection.key()))
+					&& !allowedConnections.contains(connection.metatypeId())) {
+				errors.add(new Issue(path + ".metatypeId", "METATYPE_NOT_ALLOWED",
 						"The viewpoint of the diagram does not allow this connection metatype."));
 			}
 		}
@@ -832,12 +980,133 @@ public class DiagramViews {
 		Set<UUID> referenced = new HashSet<>();
 		edgeInputs.stream().filter((edge) -> edge.newConnectionKey() != null).forEach((edge) -> referenced.add(edge.newConnectionKey()));
 		for (int i = 0; i < newConnections.size(); i++) {
-			if (!referenced.contains(newConnections.get(i).key())) {
+			if (!referenced.contains(newConnections.get(i).key()) && !newConnections.get(i).hasEndpoints()) {
 				errors.add(new Issue("newConnections[" + i + "]", "NEW_CONNECTION_UNUSED",
-						"No edge shows the new connection."));
+						"No edge shows the new connection and it names no endpoints."));
 			}
 		}
 		return errors;
+	}
+
+	/**
+	 * A new connection without an edge is an assignment (design D4 of us-075-lane-assignments): its
+	 * metatype is the belongs-to, performs-role or responsible type of the organization model or a
+	 * subtype, its source a shape of the request and its target exactly one of an entity and a new entity.
+	 */
+	private static void assignmentIssues(List<Issue> errors, String path, NewConnectionInput connection,
+			AssignmentRules rules, Map<UUID, Shown> shapes, Set<UUID> newEntityKeys) {
+		if (!rules.isAssignmentConnection(connection.metatypeId())) {
+			errors.add(new Issue(path + ".metatypeId", "METATYPE_NOT_ALLOWED",
+					"A connection without an edge is an assignment of the organization model."));
+		}
+		if (connection.sourceShapeId() == null || !shapes.containsKey(connection.sourceShapeId())) {
+			errors.add(new Issue(path + ".sourceShapeId", "SHAPE_NOT_IN_LAYOUT",
+					"The source shape is missing or not a shape of the saved layout."));
+		}
+		if ((connection.targetEntityId() == null) == (connection.targetNewEntityKey() == null)) {
+			errors.add(new Issue(path, "ASSIGNMENT_TARGET_INVALID",
+					"A connection without an edge names exactly one of targetEntityId and targetNewEntityKey."));
+		}
+		else if (connection.targetNewEntityKey() != null && !newEntityKeys.contains(connection.targetNewEntityKey())) {
+			errors.add(new Issue(path + ".targetNewEntityKey", "NEW_ENTITY_UNKNOWN",
+					"The key names no entity of newEntities."));
+		}
+	}
+
+	/**
+	 * The removed connections (design D4): each once, not deleted, an assignment, from an entity of a
+	 * shape of the request or the stored layout, and shown by no edge of the request.
+	 */
+	private List<Issue> validateRemovals(List<RemovedConnectionInput> removed, List<ShapeInput> shapeInputs,
+			List<StoredShape> stored, List<EdgeInput> edgeInputs, AssignmentRules rules) {
+		List<Issue> errors = new ArrayList<>();
+		if (removed.isEmpty()) {
+			return errors;
+		}
+		List<Integer> ids = removed.stream().map(RemovedConnectionInput::connectionId).distinct().toList();
+		Map<Integer, EntityRef> refs = this.shapes.entities(ids);
+		Map<Integer, Integer> sources = this.assignmentStore.sources(ids);
+		Set<Integer> onDiagram = new HashSet<>();
+		shapeInputs.stream().filter((shape) -> shape.entityId() != null).forEach((shape) -> onDiagram.add(shape.entityId()));
+		stored.forEach((shape) -> onDiagram.add(shape.entityId()));
+		Set<Integer> shownByEdge = new HashSet<>();
+		edgeInputs.stream().filter((edge) -> edge.connectionId() != null).forEach((edge) -> shownByEdge.add(edge.connectionId()));
+		Set<Integer> seen = new HashSet<>();
+		for (int i = 0; i < removed.size(); i++) {
+			int id = removed.get(i).connectionId();
+			String path = "removedConnections[" + i + "].connectionId";
+			EntityRef ref = refs.get(id);
+			if (!seen.add(id)) {
+				errors.add(new Issue(path, "DUPLICATE_ENTITY", "The connection is removed earlier in the request."));
+			}
+			else if (ref == null || ref.deleted() || !ref.connection()) {
+				errors.add(new Issue(path, "CONNECTION_NOT_FOUND", "The connection does not exist or is deleted."));
+			}
+			else if (!rules.isAssignmentConnection(ref.metatypeId())) {
+				errors.add(new Issue(path, "NOT_AN_ASSIGNMENT",
+						"Only the connections of belongs-to, performs-role and responsible are removed this way."));
+			}
+			else if (!onDiagram.contains(sources.get(id))) {
+				errors.add(new Issue(path, "SOURCE_NOT_ON_DIAGRAM",
+						"No shape of the request or of the stored layout shows the source of the connection."));
+			}
+			else if (shownByEdge.contains(id)) {
+				errors.add(new Issue(path, "REMOVED_CONNECTION_SHOWN", "An edge of the request shows the connection."));
+			}
+		}
+		return errors;
+	}
+
+	private void removeConnections(OeaPrincipal principal, List<RemovedConnectionInput> removed) {
+		if (removed.isEmpty()) {
+			return;
+		}
+		List<EntityDeletions.Removal> removals = new ArrayList<>();
+		for (int i = 0; i < removed.size(); i++) {
+			removals.add(new EntityDeletions.Removal(removed.get(i).connectionId(), removed.get(i).expectedVersion(),
+					"removedConnections[" + i + "]"));
+		}
+		this.deletions.deleteConnections(principal, removals);
+	}
+
+	/**
+	 * A lane or pool has one organizational unit at most (BR-03, design D4): each shape drawn as lane
+	 * or pool that is the source of a new belongs-to connection must end with one active belongs-to
+	 * connection at most; checked in the diagram save only.
+	 */
+	private void checkOrgUnitLimit(List<ShapeInput> shapeInputs, List<NewEntityInput> newEntities,
+			List<NewConnectionInput> newConnections, Map<UUID, Integer> created, AssignmentRules rules,
+			Viewpoints.Viewpoint viewpoint) {
+		Set<UUID> containers = new HashSet<>(typesMappedTo(viewpoint, LANE));
+		containers.addAll(typesMappedTo(viewpoint, POOL));
+		Map<UUID, UUID> newTypes = new HashMap<>();
+		newEntities.forEach((entity) -> newTypes.put(entity.key(), entity.metatypeId()));
+		Map<Integer, EntityRef> existing = this.shapes
+			.entities(shapeInputs.stream().map(ShapeInput::entityId).filter(Objects::nonNull).distinct().toList());
+		Set<Integer> checked = new HashSet<>();
+		List<Issue> errors = new ArrayList<>();
+		for (NewConnectionInput connection : newConnections) {
+			if (connection.sourceShapeId() == null || !isOf(connection.metatypeId(), rules.parts().belongsTo(), rules.bases())) {
+				continue;
+			}
+			for (int i = 0; i < shapeInputs.size(); i++) {
+				ShapeInput shape = shapeInputs.get(i);
+				if (!shape.id().equals(connection.sourceShapeId())) {
+					continue;
+				}
+				UUID type = (shape.entityId() != null) ? existing.get(shape.entityId()).metatypeId()
+						: newTypes.get(shape.newEntityKey());
+				int entityId = entityOf(shape, created);
+				if (containers.contains(type) && checked.add(entityId)
+						&& this.assignmentStore.countFrom(entityId, rules.parts().belongsTo()) > 1) {
+					errors.add(new Issue("shapes[" + i + "]", "ORG_UNIT_LIMIT",
+							"A lane or a pool belongs to one organizational unit at most."));
+				}
+			}
+		}
+		if (!errors.isEmpty()) {
+			throw invalid(errors);
+		}
 	}
 
 	/** Each change names an entity that a shape or a connection that an edge of the request shows, once. */
@@ -1132,9 +1401,17 @@ public class DiagramViews {
 			.forEach((edge) -> first.putIfAbsent(edge.newConnectionKey(), edge));
 		List<ConnectionInput> inputs = new ArrayList<>();
 		for (NewConnectionInput connection : newConnections) {
-			EdgeInput edge = first.get(connection.key());
 			EntityInput entity = new EntityInput(connection.name(), connection.metatypeId(), null,
 					connection.description(), null, null, null, connection.properties());
+			if (connection.hasEndpoints()) {
+				// an assignment: no edge, the endpoints are named (design D4 of us-075-lane-assignments)
+				int target = (connection.targetEntityId() != null) ? connection.targetEntityId()
+						: createdEntities.get(connection.targetNewEntityKey());
+				inputs.add(new ConnectionInput(entity, entityOf(shapes.get(connection.sourceShapeId()), createdEntities),
+						null, target, null));
+				continue;
+			}
+			EdgeInput edge = first.get(connection.key());
 			inputs.add(new ConnectionInput(entity, entityOf(shapes.get(edge.sourceShapeId()), createdEntities), null,
 					entityOf(shapes.get(edge.targetShapeId()), createdEntities), null));
 		}
@@ -1273,6 +1550,76 @@ public class DiagramViews {
 		return new Counts(added, changed, removed);
 	}
 
+	/** Whether the metatype is the part or one of its subtypes. */
+	private static boolean isOf(UUID metatype, UUID part, Map<UUID, UUID> bases) {
+		if (part == null) {
+			return false;
+		}
+		UUID next = metatype;
+		int guard = 0;
+		while (next != null && guard++ < 64) {
+			if (next.equals(part)) {
+				return true;
+			}
+			next = bases.get(next);
+		}
+		return false;
+	}
+
+	/**
+	 * The assignments of the shapes that carry them (design D3 of us-075-lane-assignments): shapes
+	 * drawn as lane, pool, task or a task variant, and shapes lying in an assignment lane or pool,
+	 * by shape ID. A part that is unset in the organization model gives no entries.
+	 */
+	private Map<UUID, Assignments> assignmentsOf(Viewpoints.Viewpoint viewpoint, List<ShownShape> shown) {
+		Map<UUID, Assignments> result = new HashMap<>();
+		if (shown.isEmpty()) {
+			return result;
+		}
+		OrganizationModels.Parts parts = this.organizationModels.get().parts();
+		Map<UUID, UUID> bases = this.metatypes.bases();
+		Set<UUID> containers = new HashSet<>(typesMappedTo(viewpoint, LANE));
+		containers.addAll(typesMappedTo(viewpoint, POOL));
+		Set<UUID> carriers = new HashSet<>(containers);
+		TASKS.forEach((key) -> carriers.addAll(typesMappedTo(viewpoint, key)));
+		Map<UUID, Boolean> inAssignmentLane = new HashMap<>();
+		Set<UUID> eligible = new HashSet<>();
+		Set<Integer> entityIds = new HashSet<>();
+		for (ShownShape shape : shown) {
+			boolean inside = shape.parentShapeId() != null && inAssignmentLane.containsKey(shape.parentShapeId())
+					&& inAssignmentLane.get(shape.parentShapeId());
+			boolean assignmentLane = containers.contains(shape.metatypeId())
+					&& (isOf(shape.metatypeId(), parts.orgUnit(), bases) || isOf(shape.metatypeId(), parts.role(), bases));
+			inAssignmentLane.put(shape.id(), inside || assignmentLane);
+			if (carriers.contains(shape.metatypeId()) || inside) {
+				eligible.add(shape.id());
+				entityIds.add(shape.entityId());
+			}
+		}
+		Map<Integer, List<DiagramAssignmentStore.Assignment>> orgUnits = this.assignmentStore.assignments(entityIds,
+				parts.belongsTo(), parts.orgUnit());
+		Map<Integer, List<DiagramAssignmentStore.Assignment>> roles = this.assignmentStore.assignments(entityIds,
+				parts.performsRole(), parts.role());
+		Map<Integer, List<DiagramAssignmentStore.Assignment>> persons = this.assignmentStore.assignments(entityIds,
+				parts.responsible(), parts.person());
+		for (ShownShape shape : shown) {
+			if (eligible.contains(shape.id())) {
+				result.put(shape.id(), new Assignments(assignmentList(orgUnits, shape.entityId()),
+						assignmentList(roles, shape.entityId()), assignmentList(persons, shape.entityId())));
+			}
+		}
+		return result;
+	}
+
+	private static List<Assignment> assignmentList(Map<Integer, List<DiagramAssignmentStore.Assignment>> found,
+			int entityId) {
+		return found.getOrDefault(entityId, List.of())
+			.stream()
+			.map((assignment) -> new Assignment(assignment.connectionId(), assignment.connectionVersion(),
+					assignment.entityId(), assignment.name()))
+			.toList();
+	}
+
 	/** The allowed metatypes that the viewpoint renders as the notation element (the effective mapping). */
 	private static Set<UUID> typesMappedTo(Viewpoints.Viewpoint viewpoint, String element) {
 		Set<UUID> types = new HashSet<>();
@@ -1298,6 +1645,7 @@ public class DiagramViews {
 		viewpoint.connectionTypes().forEach((type) -> allowedConnections.add(type.id()));
 		Set<UUID> subProcesses = typesMappedTo(viewpoint, SUB_PROCESS);
 		Set<UUID> pools = typesMappedTo(viewpoint, POOL);
+		Map<UUID, Assignments> assignments = assignmentsOf(viewpoint, shown);
 		int conflicts = 0;
 		Map<UUID, ShownShape> before = new HashMap<>();
 		List<Shape> view = new ArrayList<>();
@@ -1310,7 +1658,8 @@ public class DiagramViews {
 					container.height(), shape.x(), shape.y(), shape.width(), shape.height())) ? container.id() : null;
 			view.add(new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
 					shape.y(), shape.width(), shape.height(), parent, collapsed, orientation, shape.childCount(),
-					shape.parentEntityId(), missing.getOrDefault(shape.entityId(), List.of()), !allowed.contains(shape.metatypeId())));
+					shape.parentEntityId(), missing.getOrDefault(shape.entityId(), List.of()),
+					!allowed.contains(shape.metatypeId()), assignments.get(shape.id())));
 			before.put(shape.id(), shape);
 		}
 		conflicts += (int) view.stream().filter(Shape::conflict).count();
@@ -1370,7 +1719,8 @@ public class DiagramViews {
 	}
 
 	private void audit(OeaPrincipal principal, UUID id, String name, int version, Counts counts,
-			EdgeCounts edgeCounts, int entitiesCreated, int connectionsCreated, int parentsChanged) {
+			EdgeCounts edgeCounts, int entitiesCreated, int connectionsCreated, int parentsChanged,
+			int connectionsRemoved) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("name", name);
 		details.put("version", version);
@@ -1383,6 +1733,7 @@ public class DiagramViews {
 		details.put("edgesRemoved", edgeCounts.removed());
 		details.put("connectionsCreated", connectionsCreated);
 		details.put("parentsChanged", parentsChanged);
+		details.put("connectionsRemoved", connectionsRemoved);
 		this.audit.append(new AuditEvent("diagram.layout-saved", AuditEvent.Category.CHANGE, AuditEvent.Severity.INFO,
 				AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal), "diagram", id.toString(),
 				details));

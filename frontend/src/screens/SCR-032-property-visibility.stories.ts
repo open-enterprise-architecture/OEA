@@ -106,3 +106,16 @@ export const ChangeHistory: Story = {
     await expect(await section.findByText('The change history settings are saved.')).toBeInTheDocument()
   },
 }
+
+/** The account mapping next to the person metatype: the property of the person metatype and the account attribute. */
+export const AccountMapping: Story = {
+  ...screen(visibilityApi({ personMetatype: VISIBILITY_IDS.actor }).fetch),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('heading', { name: 'Account mapping' })).toBeInTheDocument()
+    await userEvent.click(canvas.getByTestId('person-link-mapping-property'))
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('option', { name: 'Account ID' }))
+    await userEvent.click(await within(await canvas.findByTestId('person-link-mapping')).findByRole('button', { name: 'Save' }))
+    await expect(await canvas.findByText('The account mapping is saved.')).toBeInTheDocument()
+  },
+}

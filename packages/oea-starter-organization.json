@@ -1,0 +1,152 @@
+{
+  "formatVersion": "1.0",
+  "exportedAt": "2026-11-27T00:00:00Z",
+  "packageId": "oea-starter-organization",
+  "packageVersion": "1.0.0",
+  "publisher": "OEA",
+  "name": "Organization model",
+  "description": "Organizational units, roles and persons with the connections Belongs To, Performs Role and Responsible, each from any element, so that lanes, tasks and architecture objects can name who performs and who is responsible. The hierarchy of organizational units is the entity hierarchy.",
+  "propertyCategories": [
+    {
+      "id": "6080a2dd-00d9-5dbe-955d-a17dfe322b6c",
+      "name": "Organization",
+      "description": "Properties of organization elements",
+      "sortOrder": 0
+    }
+  ],
+  "propertyDefinitions": [
+    {
+      "id": "6448a86f-b203-51f4-825c-5299b3802bc7",
+      "name": "Account ID",
+      "dataType": "string",
+      "maxLength": 255,
+      "category": {
+        "id": "6080a2dd-00d9-5dbe-955d-a17dfe322b6c",
+        "name": "Organization",
+        "sortOrder": 0
+      }
+    }
+  ],
+  "metatypes": [
+    {
+      "id": "3d51595e-a1c2-5baa-aab1-6cbf52f9ee86",
+      "name": "Organizational Unit",
+      "abbreviation": "OU",
+      "isConnection": false,
+      "sortOrder": 10,
+      "propertyMappings": []
+    },
+    {
+      "id": "fb0ed0c1-3c4e-5a34-afc1-a4e321ef24c1",
+      "name": "Role",
+      "abbreviation": "RO",
+      "isConnection": false,
+      "sortOrder": 20,
+      "propertyMappings": []
+    },
+    {
+      "id": "6ab880c2-6ed2-5980-a184-25e0a4070775",
+      "name": "Person",
+      "abbreviation": "PE",
+      "isConnection": false,
+      "sortOrder": 30,
+      "propertyMappings": [
+        {
+          "id": "2de05259-4b6f-5df4-bc73-1df8faa0ccd6",
+          "propertyDefinition": {
+            "id": "6448a86f-b203-51f4-825c-5299b3802bc7",
+            "name": "Account ID",
+            "dataType": "string"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        }
+      ]
+    },
+    {
+      "id": "b5b5868c-bcb1-536b-bec5-81d9367ff206",
+      "name": "Belongs To",
+      "abbreviation": "BT",
+      "isConnection": true,
+      "sortOrder": 40,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "3d51595e-a1c2-5baa-aab1-6cbf52f9ee86",
+            "name": "Organizational Unit",
+            "abbreviation": "OU"
+          }
+        }
+      ]
+    },
+    {
+      "id": "1566c698-0f62-5441-9cef-a4361183b4d0",
+      "name": "Performs Role",
+      "abbreviation": "PRL",
+      "isConnection": true,
+      "sortOrder": 50,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "fb0ed0c1-3c4e-5a34-afc1-a4e321ef24c1",
+            "name": "Role",
+            "abbreviation": "RO"
+          }
+        }
+      ]
+    },
+    {
+      "id": "b53c8866-4e66-5335-aecd-274b9a48cafa",
+      "name": "Responsible",
+      "abbreviation": "RSP",
+      "isConnection": true,
+      "sortOrder": 60,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "6ab880c2-6ed2-5980-a184-25e0a4070775",
+            "name": "Person",
+            "abbreviation": "PE"
+          }
+        }
+      ]
+    }
+  ],
+  "organizationModel": {
+    "orgUnit": "3d51595e-a1c2-5baa-aab1-6cbf52f9ee86",
+    "role": "fb0ed0c1-3c4e-5a34-afc1-a4e321ef24c1",
+    "person": "6ab880c2-6ed2-5980-a184-25e0a4070775",
+    "belongsTo": "b5b5868c-bcb1-536b-bec5-81d9367ff206",
+    "performsRole": "1566c698-0f62-5441-9cef-a4361183b4d0",
+    "responsible": "b53c8866-4e66-5335-aecd-274b9a48cafa"
+  },
+  "i18nBundles": {
+    "en": {
+      "property-category.6080a2dd-00d9-5dbe-955d-a17dfe322b6c.name": "Organization",
+      "property-def.6448a86f-b203-51f4-825c-5299b3802bc7.label": "Account ID",
+      "metatype.3d51595e-a1c2-5baa-aab1-6cbf52f9ee86.name": "Organizational Unit",
+      "metatype.fb0ed0c1-3c4e-5a34-afc1-a4e321ef24c1.name": "Role",
+      "metatype.6ab880c2-6ed2-5980-a184-25e0a4070775.name": "Person",
+      "metatype.b5b5868c-bcb1-536b-bec5-81d9367ff206.name": "Belongs To",
+      "metatype.1566c698-0f62-5441-9cef-a4361183b4d0.name": "Performs Role",
+      "metatype.b53c8866-4e66-5335-aecd-274b9a48cafa.name": "Responsible"
+    },
+    "de": {
+      "property-category.6080a2dd-00d9-5dbe-955d-a17dfe322b6c.name": "Organisation",
+      "property-def.6448a86f-b203-51f4-825c-5299b3802bc7.label": "Konto-ID",
+      "metatype.3d51595e-a1c2-5baa-aab1-6cbf52f9ee86.name": "Organisationseinheit",
+      "metatype.fb0ed0c1-3c4e-5a34-afc1-a4e321ef24c1.name": "Rolle",
+      "metatype.6ab880c2-6ed2-5980-a184-25e0a4070775.name": "Person",
+      "metatype.b5b5868c-bcb1-536b-bec5-81d9367ff206.name": "Gehört zu",
+      "metatype.1566c698-0f62-5441-9cef-a4361183b4d0.name": "Übernimmt Rolle",
+      "metatype.b53c8866-4e66-5335-aecd-274b9a48cafa.name": "Verantwortlich"
+    }
+  }
+}

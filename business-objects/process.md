@@ -1,10 +1,10 @@
 ---
 id: process
 title: Process Modeling (BPMN 2.0)
-version: 0.3.0
+version: 0.4.0
 status: draft
 created: 2026-06-26
-last_updated: 2026-10-13
+last_updated: 2026-11-27
 references:
   concept:
     - concept/20-entities/09-process-architecture.md
@@ -135,15 +135,17 @@ All process elements are ArchitectureEntities. The following types are built-in;
 
 ## 3. Assignment Connections (Roles, OrgUnits, Persons)
 
-| Connection ID | Source | Target | Semantics |
-|---|---|---|---|
-| `bpmn-lane-performs-role` | `bpmn-lane` | `role` | Lane is responsible for this role |
-| `bpmn-lane-belongs-to-org-unit` | `bpmn-lane` | `organizational-unit` | Lane belongs to this OrgUnit |
-| `bpmn-pool-represents-org-unit` | `bpmn-pool` | `organizational-unit` | Pool represents this OrgUnit/company |
-| `bpmn-task-assigned-to` | `bpmn-user-task` | `person` | A specific person is responsible for this task |
-| `bpmn-task-requires-role` | `bpmn-task` (+ subtypes) | `role` | Task requires this role |
+Realized by the starter package `oea-starter-organization` and the organization model setting (change `us-075-lane-assignments`; owner decisions 2026-11-27). The package brings the entity types "Organizational Unit", "Role" and "Person" and **three** connection types, each **from any element** (an empty source list) to one target type:
 
-Through these connections, all responsibilities can be queried in the shared ID space.
+| Connection type | Source | Target | Semantics |
+|---|---|---|---|
+| "Belongs To" | any element: a lane or pool, any TOGAF object | "Organizational Unit" | The lane or pool belongs to this OrgUnit, the participant of a pool; replaces `bpmn-lane-belongs-to-org-unit` and `bpmn-pool-represents-org-unit` |
+| "Performs Role" | any element | "Role" | A lane is responsible for this role, a task requires it; replaces `bpmn-lane-performs-role` and `bpmn-task-requires-role` |
+| "Responsible" | any element | "Person" | This person is responsible for the task or object; replaces `bpmn-task-assigned-to`. Names persons only, never roles or OrgUnits |
+
+The instance setting "organization model" says which metatypes play these six parts, so that an instance can use its own types; a package import fills the unset parts. An assignment is an ordinary connection that no edge shows: the canvas saves it with the layout and shows it as a badge, a chip or an avatar. Responsibilities are connections to entities, never to accounts, so they stay when an employee is deactivated; an account is linked to its person entity manually or through the account mapping (see person.md). Through these connections, all responsibilities can be queried in the shared ID space, and a catalog of lanes or user tasks can join and filter them.
+
+**Assignment lanes (owner decision 2026-11-27):** a lane or pool may be drawn from any element type. If its entity is an organizational unit or a role, a shape in it is assigned to that entity (Belongs To or Performs Role) instead of having it as parent; the parent of a new shape is the nearest container that is no such lane or pool.
 
 ---
 
@@ -225,9 +227,9 @@ The `parentId` relationship is modeled in the repository by the parent of the en
 |---|---|---|---|
 | BR-01 | `bpmn-sequence-flow` connects only BPMN flow elements (tasks, events, gateways); no connection to DataObjects or DataStores | onConnectionCreate | API |
 | BR-02 | `bpmn-message-flow` connects only `bpmn-pool` or task elements of different pools | onConnectionCreate | API |
-| BR-03 | A `bpmn-lane` has at most one `bpmn-lane-belongs-to-org-unit` connection (1 OrgUnit per lane) | onConnectionCreate | API |
-| BR-04 | A `bpmn-lane` can have multiple `bpmn-lane-performs-role` connections (a lane can bundle multiple roles) | – | Data |
-| BR-05 | A `bpmn-user-task` SHOULD have at most one `bpmn-task-assigned-to` connection | onConnectionCreate | UI warning |
+| BR-03 | A shape drawn as lane or pool has at most one "Belongs To" connection (1 OrgUnit per lane or pool); a diagram save that adds a second one is rejected with 422 `ORG_UNIT_LIMIT`, batch writes do not check it (owner decision 2026-11-27) | onSave | API |
+| BR-04 | A lane can have multiple "Performs Role" connections (a lane can bundle multiple roles) | – | Data |
+| BR-05 | A user task SHOULD have at most one "Responsible" connection | onConnectionCreate | UI warning |
 | BR-06 | Process elements within a pool MUST be children of a lane or the pool (entity hierarchy) | onSave | API |
 | BR-07 | `bpmn-data-input-association` always runs from DataObject/DataStore **to** task (arrow direction: data source → task); `bpmn-data-output-association` always runs from task **to** DataObject/DataStore | onConnectionCreate | API |
 | BR-08 | A `bpmn-data-object` with `transformationType: create` must not simultaneously have a `bpmn-data-input-association` on the same object (newly created = not present before) | onSave | API warning |
@@ -279,6 +281,7 @@ EntityTypeDefinition:
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.4.0 | 2026-11-27 | Change us-075-lane-assignments | Assignment connections realized by the package `oea-starter-organization`: "Belongs To", "Performs Role" and "Responsible", each from any element; the organization model setting; assignment lanes (a lane or pool of an OrgUnit or role assigns instead of nesting); BR-03 checked in the diagram save, BR-05 as a warning in the editor (owner decisions 2026-11-27) |
 | 0.3.0 | 2026-10-13 | Lukas Mathis | Full BPMN 2.0.2 Descriptive conformance (REQ-076 v0.2.0): call activity, message/timer start events, message/terminate end events, text annotation, group, association, nested lanes, pool processRef |
 | 0.2.0 | 2026-06-26 | business-engineer | DataObject/DataStore integration: bpmn-data-object (extends data-object), bpmn-data-store; DataAssociation connections; process data lineage (§4); BR-07/08; Vue Flow |
 | 0.1.0 | 2026-06-26 | business-engineer | Initial draft: OrganizationalUnit, BPMN types, assignment connections, BR-01–06 |

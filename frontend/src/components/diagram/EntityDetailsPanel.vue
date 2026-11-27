@@ -10,6 +10,7 @@ import { fetchMetatype, type PropertyMapping } from '../../api/metamodel'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { components } from '../../api/generated/schema'
 import PropertyInput, { type ReferenceChoice } from '../PropertyInput.vue'
+import type { AssignmentField, ShownAssignment } from './assignments'
 import type { EntityEdit, FieldChange } from './canvasModel'
 import type { DetailsSubject } from './edgeModel'
 
@@ -32,12 +33,16 @@ const props = defineProps<{
   errors?: Map<string, string>
   /** raised by the canvas to read the entity again (after a version conflict) */
   reloadToken?: number
+  /** the assignments of the shape that the panel lists: "Required role" and "Responsible person" (us-075-lane-assignments D6) */
+  assignmentFields?: AssignmentField[]
   fetchFn?: typeof fetch
 }>()
 const emit = defineEmits<{
   change: [change: FieldChange, version: number]
   close: []
   loaded: [details: DiagramEntityDetails | undefined]
+  assign: [part: AssignmentField['part']]
+  unassign: [assignment: ShownAssignment]
 }>()
 const { t } = useI18n()
 
@@ -212,6 +217,51 @@ const metatypeName = computed(() => details.value?.metatype.name ?? '')
           @update:model-value="(value: string | undefined) => setDescription(String(value ?? ''))"
         />
         <p v-else data-testid="details-description-text">{{ description || t('diagrams.details.noValue') }}</p>
+      </UFormField>
+
+      <UFormField
+        v-for="field in assignmentFields ?? []"
+        :key="field.part"
+        :label="field.label"
+        :data-testid="`details-assignments-${field.part}`"
+      >
+        <ul v-if="field.items.length > 0" class="mb-1 flex flex-wrap gap-1" :aria-label="field.label">
+          <li
+            v-for="item in field.items"
+            :key="`${item.entityId ?? item.newEntityKey}`"
+            class="inline-flex items-center gap-1 rounded-full border border-accented bg-elevated px-2 py-0.5 text-xs"
+            :data-pending="item.pending ? 'true' : undefined"
+            data-testid="details-assignment"
+          >
+            <span>{{ item.name }}</span>
+            <button
+              v-if="canEdit && field.removable(item)"
+              type="button"
+              class="rounded-full leading-none text-muted hover:text-highlighted"
+              :aria-label="t('diagrams.assignments.remove', { name: item.name })"
+              data-testid="details-assignment-remove"
+              @click="emit('unassign', item)"
+            >
+              ×
+            </button>
+          </li>
+        </ul>
+        <p v-else class="text-muted" data-testid="details-assignment-none">{{ t('diagrams.details.noValue') }}</p>
+        <p v-if="field.several" class="flex items-center gap-1 text-xs text-warning" role="status" data-testid="details-assignment-warning">
+          <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0" />
+          <span>{{ t('diagrams.assignments.severalPersons') }}</span>
+        </p>
+        <UButton
+          v-if="canEdit && field.mayAdd"
+          class="mt-1"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+          :label="t('diagrams.assignments.add')"
+          :data-testid="`details-assignment-add-${field.part}`"
+          @click="emit('assign', field.part)"
+        />
       </UFormField>
 
       <UFormField

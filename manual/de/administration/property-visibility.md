@@ -2,7 +2,7 @@
 title: Sichtbarkeit von Eigenschaften
 covers:
   screens: [SCR-032, SCR-040]
-  stories: [US-098, US-124, US-125, US-126, US-127, US-128]
+  stories: [US-075, US-076, US-098, US-124, US-125, US-126, US-127, US-128]
 ---
 
 # Sichtbarkeit von Eigenschaften
@@ -36,6 +36,17 @@ Verbindungsbasierte Sichtbarkeit geht von dem Element aus, das eine Person im Mo
 Solange es verbindungsbasierte Eigenschaften gibt, aber kein Entitätstyp gesetzt ist, zeigt die Seite eine Warnung: Die Werte dieser Eigenschaften sieht niemand.
 
 Das Konto einer Person wird über die API mit ihrem Element verknüpft (siehe [Identity-Provider und Personen](./identity-providers#link-an-account-to-an-element)). Eine Verknüpfung zählt nur, solange das Element existiert und vom gewählten Entitätstyp oder einem seiner Untertypen ist; ein Wechsel des Entitätstyps behält die Verknüpfungen, aber Verknüpfungen zu Elementen eines anderen Typs zählen nicht mehr.
+
+## Konto-Zuordnung {#account-mapping}
+
+Neben der manuellen Verknüpfung kann ein Konto **über eine Eigenschaft** mit seinem Personenelement verknüpft werden: dem Element, dessen Wert einer gewählten *Text*-Eigenschaft einem Attribut des Kontos entspricht. Neben dem Entitätstyp von Personen legt die *Konto-Zuordnung* die Eigenschaft (eine Texteigenschaft des Entitätstyps von Personen, etwa *Account ID* des [Organisations-Pakets](./metamodel-packages#organization-package)) und das Attribut fest: die **E-Mail-Adresse** (ohne Beachtung der Groß- und Kleinschreibung) oder das **IdP-Subject** einer Identitätsbindung des Kontos. Mitarbeiter-ID und externe Referenz folgen mit der Bereitstellung, die sie füllt. Mit *Keine Zuordnung* enden alle Verknüpfungen über die Zuordnung; manuelle Verknüpfungen bleiben.
+
+- **Wer verknüpft wird:** ein Konto im Status `invited` oder `active` ohne manuelle Verknüpfung, wenn **genau ein** aktives Personenelement, das nicht manuell mit einem anderen Konto verknüpft ist, diesen Wert hat und kein anderes Konto dasselbe Attribut hat. Ein Wert, der mehrere Elemente oder mehrere Konten trifft, ergibt **keine Verknüpfung**; die Personenansicht zeigt dann den Konflikt (`mappingConflict` mit den Element-IDs und der Zahl der Konten). Eine manuelle Verknüpfung hat immer Vorrang, und ein von Hand verknüpftes Element, das ein anderes Konto über die Zuordnung hält, antwortet mit `409`.
+- **Folgt den Daten:** Die Verknüpfungen werden im selben Schritt wie das Schreiben des Werts neu berechnet (auch bei Stapelschreibvorgängen, Diagramm-Speichern und wenn eine Lösung live geht), beim Löschen oder Wiederherstellen des Elements (auch per Kaskade), beim Hinzufügen oder Entfernen einer Identitätsbindung, bei einem Statuswechsel eines Kontos und bei einer Änderung der Zuordnung oder des Entitätstyps von Personen. Jede Änderung wird als `person.account-linked` mit `source: mapping` protokolliert (eine manuelle mit `source: manual`).
+- **Verantwortlichkeiten bleiben bei den Elementen:** Ein Konto zu deaktivieren oder zu offboarden oder seine Identität zu lösen beendet nur die Verknüpfung; das Personenelement und seine *Responsible*-Verbindungen bleiben unverändert, und die Verknüpfung kehrt zurück, wenn das Konto wieder aktiv ist.
+- **Die Eigenschaft muss schreibgeschützt sein:** Sie braucht den Sichtbarkeitsmodus *Rollenbasiert* (sonst `422` mit `propertyDefId`), damit nur die gewählten Rollen Werte schreiben, die Konten verknüpfen. Solange sie die Zuordnungseigenschaft ist, kann ihr Modus *Rollenbasiert* nicht verlassen (`422` mit `visibilityMode`). Die Eigenschaft zu löschen oder vom Entitätstyp von Personen zu entfernen löscht die Zuordnung und ihre Verknüpfungen.
+- **Funktionstrennung:** Eine Anfrage, die **deinem eigenen** Konto eine neue Verknüpfung geben würde – deinen eigenen Wert schreiben, ein Element wiederherstellen, ein Go-live oder eine Identität an dein eigenes Konto binden –, wird mit `403` abgelehnt, als `authz.denied` mit dem Grund `self-administration` protokolliert, und nichts ändert sich. Zusammen mit dem Schreibschutz kann kein Schreibender sein eigenes Konto mit einem Element verknüpfen, das einen Geltungsbereich trägt. Ein Servicekonto mit Schreibrolle schreibt Werte für andere; wähle die Schreibrollen mit Sorgfalt.
+- Die Änderung der Zuordnung wird als `visibility.person-link-mapping-changed` protokolliert. `GET` und `PUT /admin/property-visibility/person-link-mapping` lesen (`visibility:configure` oder `person:manage`) und setzen (`visibility:configure`) sie: `{"propertyDefId": "<ID>", "accountAttribute": "idp-subject"}` oder `{"propertyDefId": null}` zum Löschen. `GET /admin/persons/{personId}` zeigt `mappedEntityId`, `linkSource` (`manual` oder `mapping`) und `mappingConflict`; die Verknüpfung, die für die Sichtbarkeit zählt, ist `entityId`, falls gesetzt, sonst `mappedEntityId`.
 
 ## Override-Rollen {#override-roles}
 

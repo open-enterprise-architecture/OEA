@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -29,8 +30,16 @@ public class PersonStore {
 
 	private final JdbcTemplate jdbc;
 
+	private final PersonLinkTrigger links;
+
 	public PersonStore(JdbcTemplate jdbc) {
+		this(jdbc, PersonLinkTrigger.NONE);
+	}
+
+	@Autowired
+	public PersonStore(JdbcTemplate jdbc, PersonLinkTrigger links) {
 		this.jdbc = jdbc;
+		this.links = links;
 	}
 
 	/** Locks the person row ({@code FOR UPDATE}); empty for an unknown person. */
@@ -76,6 +85,7 @@ public class PersonStore {
 
 	/** Changes the status with the principal that did it. */
 	public void updateStatus(long personId, String status, Instant at, Long byPersonId, UUID byAdminId) {
+		this.links.changed();
 		this.jdbc.update("""
 				UPDATE persons SET status = ?, status_changed_at = ?, status_changed_by_person_id = ?,
 				       status_changed_by_admin_id = ?
@@ -103,13 +113,15 @@ public class PersonStore {
 
 	/** Whether another account than the person links the element. */
 	public boolean isLinkedToOtherPerson(int entityId, long personId) {
-		Integer others = this.jdbc.queryForObject("SELECT count(*) FROM persons WHERE entity_id = ? AND id <> ?",
-				Integer.class, entityId, personId);
+		Integer others = this.jdbc.queryForObject(
+				"SELECT count(*) FROM persons WHERE (entity_id = ? OR mapped_entity_id = ?) AND id <> ?", Integer.class,
+				entityId, entityId, personId);
 		return others != null && others > 0;
 	}
 
 	/** Sets or, with {@code null}, removes the link of the person to an element. */
 	public void updateEntityLink(long personId, Integer entityId) {
+		this.links.changed();
 		this.jdbc.update("UPDATE persons SET entity_id = ? WHERE id = ?", entityId, personId);
 	}
 
@@ -121,7 +133,8 @@ public class PersonStore {
 	/** The effective element of a person: linked, active and of the person metatype; {@code null} otherwise. */
 	public Integer anchor(long personId) {
 		List<Integer> anchors = this.jdbc.queryForList(
-				"SELECT p.entity_id FROM persons p WHERE p.id = ? AND p.entity_id IN (" + PERSON_ELEMENTS + ")",
+				"SELECT coalesce(p.entity_id, p.mapped_entity_id) FROM persons p WHERE p.id = ? "
+						+ "AND coalesce(p.entity_id, p.mapped_entity_id) IN (" + PERSON_ELEMENTS + ")",
 				Integer.class, personId);
 		return anchors.isEmpty() ? null : anchors.getFirst();
 	}

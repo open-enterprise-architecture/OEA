@@ -3,10 +3,10 @@ id: REQ-077
 title: Assign roles, organizational units and persons to process elements
 type: functional
 priority: must
-status: proposed
-version: 0.1.0
+status: accepted
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-27
 author: requirements-engineer
 references:
   use_cases:
@@ -33,11 +33,13 @@ superseded_by: []
 
 The system MUST make it possible, directly in the process diagram, to:
 
-1. Assign lanes an **organizational unit** (`bpmn-lane-belongs-to-org-unit`) and any number of **roles** (`bpmn-lane-performs-role`)
-2. Assign pools an **organizational unit** (`bpmn-pool-represents-org-unit`)
-3. Assign UserTasks a **person** from the repository (`bpmn-task-assigned-to`)
+1. Assign lanes an **organizational unit** ("Belongs To") and any number of **roles** ("Performs Role")
+2. Assign pools an **organizational unit** ("Belongs To")
+3. Assign UserTasks a **person** from the repository ("Responsible"), and tasks a **required role** ("Performs Role")
 
-All assignments are stored as `ArchitectureEntity` connections in the shared ID space and are analyzable via catalog queries.
+All assignments are stored as `ArchitectureEntity` connections in the shared ID space and are analyzable via catalog queries. The connection types and the entity types "Organizational Unit", "Role" and "Person" come with the starter package `oea-starter-organization`; the instance setting "organization model" says which metatypes play these parts. Each connection type allows any element as its source, so that any object, a TOGAF object for example, can name its responsible persons ("Responsible" names persons only). Responsibilities are connections to entities, never to accounts.
+
+Realized by the change `us-075-lane-assignments` (owner decisions 2026-11-27), except AC9, which follows with the portal diagram view (SCR-054).
 
 ## Rationale
 
@@ -55,13 +57,15 @@ OrganizationalUnits, roles and persons must exist as entities in the repository 
 
 | Element | Assignment action | Storage |
 |---|---|---|
-| Lane | Right-click → "Assign organizational unit" | `bpmn-lane-belongs-to-org-unit` connection |
-| Lane | Right-click → "Assign role" (multiple possible) | `bpmn-lane-performs-role` connection(s) |
-| Pool | Right-click → "Set participant (OrgUnit)" | `bpmn-pool-represents-org-unit` connection |
-| UserTask | Detail panel → field "Responsible person" | `bpmn-task-assigned-to` connection |
-| UserTask / Task | Detail panel → field "Required role" | `bpmn-task-requires-role` connection |
+| Lane | Right-click → "Assign organizational unit" | "Belongs To" connection |
+| Lane | Right-click → "Assign role" (multiple possible) | "Performs Role" connection(s) |
+| Pool | Right-click → "Set participant" | "Belongs To" connection |
+| UserTask | Detail panel → field "Responsible person" | "Responsible" connection |
+| UserTask / Task | Detail panel → field "Required role" | "Performs Role" connection |
 
-**Autocomplete**: All assignment fields use the same `/api/v1/entities/search` endpoint (REQ-070), filtered by EntityType (`organizational-unit`, `role`, `person`).
+An assignment is a connection without an edge: it is saved with "Save" in the layout of the diagram, and removing it deletes the connection softly (it needs `entity:delete`). A lane has at most one organizational unit (BR-03, checked in the diagram save). A lane or pool whose entity is an organizational unit or a role assigns instead of nesting: a shape in it gets a "Belongs To" or "Performs Role" connection to its entity, removed when the shape leaves it.
+
+**Autocomplete**: All assignment fields use the search of the diagram (`searchDiagramReferenceTargets` with `part`), which lists the active entities of the part's metatype and its subtypes by name.
 
 **Visual indicators on the canvas**:
 
@@ -70,30 +74,30 @@ OrganizationalUnits, roles and persons must exist as entities in the repository 
 
 **Catalog analyzability**:
 
-- A catalog with `primaryEntityType: bpmn-user-task` can display the responsible person as a column via a join over `bpmn-task-assigned-to`
-- A catalog with `primaryEntityType: bpmn-lane` can display OrgUnit and roles as join columns
+- A catalog of user tasks can display the responsible person as a column via a join over "Responsible"
+- A catalog of lanes can display OrgUnit and roles as join columns
 
 ## Acceptance Criteria
 
 **AC1** (OrgUnit → lane):
 
 - When: Anna right-clicks a lane and selects "Assign organizational unit"; searches "Purchasing"; selects the OrgUnit
-- Then: `bpmn-lane-belongs-to-org-unit` connection stored; lane shows OrgUnit badge
+- Then: "Belongs To" connection stored; lane shows OrgUnit badge
 
 **AC2** (Multiple roles → lane):
 
 - When: Anna assigns the roles "Approver" and "Reviewer" to a lane
-- Then: Two `bpmn-lane-performs-role` connections stored; both roles visible as chips in the lane
+- Then: Two "Performs Role" connections stored; both roles visible as chips in the lane
 
 **AC3** (OrgUnit → pool):
 
 - When: Anna links the pool with the OrgUnit "Sales Division"
-- Then: `bpmn-pool-represents-org-unit` connection stored; pool header shows the OrgUnit name
+- Then: "Belongs To" connection stored; pool header shows the OrgUnit name
 
 **AC4** (Person → UserTask):
 
 - When: Anna searches for and assigns the person "Maria Müller" in the detail panel of a UserTask
-- Then: `bpmn-task-assigned-to` connection stored; task shape shows initials "MM" as avatar icon
+- Then: "Responsible" connection stored; task shape shows initials "MM" as avatar icon
 
 **AC5** (Remove assignment):
 
@@ -103,13 +107,13 @@ OrganizationalUnits, roles and persons must exist as entities in the repository 
 **AC6** (Catalog join OrgUnit):
 
 - Given: Several lanes have OrgUnit assignments
-- When: Catalog for `bpmn-lane` opened with join column `bpmn-lane-belongs-to-org-unit.name`
+- When: Catalog of lanes opened with join column "Belongs To → name"
 - Then: OrgUnit name visible as a column; filtering by OrgUnit possible
 
 **AC7** (Catalog join person):
 
 - Given: Several UserTasks have person assignments
-- When: Catalog for `bpmn-user-task` opened with join column `bpmn-task-assigned-to.name`
+- When: Catalog of user tasks opened with join column "Responsible → Person name"
 - Then: Person name as a column; tasks without assignment show an empty cell
 
 **AC8** (Quick-create OrgUnit):
@@ -135,9 +139,9 @@ OrganizationalUnits, roles and persons must exist as entities in the repository 
 ## Implementation
 
 - ADR(s): –
-- Implemented by: –
-- Tests: –
-- Verification status: not-verified
+- Implemented by: change `us-075-lane-assignments` (S17); AC9 follows with the portal diagram view (SCR-054)
+- Tests: `bpmn-assignments.feature`, `DiagramAssignmentTests`, `OrganizationStarterPackageTests`, `OrganizationModelTests`, `PersonLinkMappingTests`, `DiagramAssignments.spec.ts`, `assignments.spec.ts`, the stories `LaneAssignments`, `UserTaskPerson` and `RoleLanes` of SCR-021
+- Verification status: verified (AC1–AC8)
 
 ## Change History
 

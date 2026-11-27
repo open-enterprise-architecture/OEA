@@ -59,9 +59,12 @@ public class PropertyVisibility {
 
 	private final Clock clock;
 
+	private final PersonLinkMappings personLinks;
+
 	public PropertyVisibility(VisibilityStore store, MetatypeStore metatypes, PropertyMappingStore mappings,
 			MetamodelVersions versions, PermissionResolver permissions,
-			AuditWriter audit, Clock clock) {
+			AuditWriter audit, Clock clock, PersonLinkMappings personLinks) {
+		this.personLinks = personLinks;
 		this.store = store;
 		this.metatypes = metatypes;
 		this.mappings = mappings;
@@ -154,6 +157,10 @@ public class PropertyVisibility {
 				continue;
 			}
 			boolean restricted = ROLE_RESTRICTED.equals(visibility.mode());
+			if (!restricted && change.propertyDefId() != null && this.personLinks.isMappingProperty(change.propertyDefId())) {
+				// the property that links accounts to elements stays write-restricted (design D5)
+				invalid.add(prefix + "visibilityMode");
+			}
 			if (restricted ? visibility.readRoles().isEmpty() || !roles.containsAll(visibility.readRoles())
 					: !visibility.readRoles().isEmpty()) {
 				invalid.add(prefix + "readRoles");

@@ -290,6 +290,18 @@ public class ApiExceptionHandler {
 			.body(problem(HttpStatus.CONFLICT, "last-second-factor", "Last second factor", ex.getMessage()));
 	}
 
+	/** The own account would get a link through the mapping: the request is rolled back, the denial audited here. */
+	@ExceptionHandler(io.oea.app.metamodel.SelfLinkException.class)
+	ResponseEntity<ProblemDetail> selfLink(io.oea.app.metamodel.SelfLinkException ex) {
+		OeaPrincipal principal = currentPrincipal();
+		PermissionDenials recorder = this.denials.getIfAvailable();
+		if (principal != null && recorder != null) {
+			recorder.record(principal, "person-link-mapping", "person", Long.toString(ex.getPersonId()),
+					PermissionDenials.SELF_ADMINISTRATION);
+		}
+		return selfAdministration(new SelfAdministrationException());
+	}
+
 	@ExceptionHandler(SelfAdministrationException.class)
 	ResponseEntity<ProblemDetail> selfAdministration(SelfAdministrationException ex) {
 		ProblemDetail problem = problem(HttpStatus.FORBIDDEN, "forbidden", "Forbidden",

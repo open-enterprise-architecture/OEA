@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import NewParentDialog from '../components/diagram/NewParentDialog.vue'
 import DiagramPage from '../pages/DiagramPage.vue'
-import { bpmnEdge, bpmnShape, bpmnViewpoint } from '../test/bpmn'
+import { assignment, assignmentTargets, bpmnEdge, entityStatesOf, bpmnShape, bpmnViewpoint, orgShape, organizationMetatypes, organizationModel, organizationViewpoint, withAssignments } from '../test/bpmn'
 import { diagram, diagramApi, edge, ENTITIES, FINANCE_SUITE, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_ARCHITECT, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, viewpointConfigs, type DiagramApi } from '../test/diagrams'
 
 // SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
@@ -501,5 +501,105 @@ export const VerticalPool: Story = {
     await userEvent.click(await canvas.findByRole('group', { name: 'Lane: Sales' }))
     await expect(await canvas.findByRole('button', { name: 'Insert lane left' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Insert lane right' })).toBeInTheDocument()
+  },
+}
+
+// assignments of lanes, pools and tasks (us-075-lane-assignments): the badge and chips of a lane, the avatar of a user task,
+// the assignment search and the lanes of roles that assign instead of nest
+const ASSIGNED = [
+  bpmnShape('a-pool', 'Customer', 'pool', 0, 0, 760, 300),
+  withAssignments(bpmnShape('a-lane', 'Purchasing', 'lane', 30, 0, 730, 150, 'a-pool'), { orgUnits: [assignment('Purchasing Department', 701)], roles: [assignment('Approver', 711), assignment('Reviewer', 712)] }),
+  bpmnShape('a-clerk', 'Sales', 'lane', 30, 150, 730, 150, 'a-pool'),
+  withAssignments(bpmnShape('a-task', 'Approve order', 'userTask', 120, 40, 90, 60, 'a-lane'), { persons: [assignment('Maria Müller', 721)] }),
+  bpmnShape('a-plain', 'Check order', 'task', 300, 40, 90, 60, 'a-lane'),
+]
+
+const ASSIGNMENT_ARGS = {
+  organization: organizationModel(),
+  metatypes: organizationMetatypes(),
+  assignmentTargets: assignmentTargets(),
+  viewpoint: bpmnViewpoint(),
+}
+
+/** A lane shows the badge of its organizational unit and the chips of its roles, a user task the avatar of its person. */
+export const LaneAssignments: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: ASSIGNED, ...ASSIGNMENT_ARGS }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Purchasing Department')).toBeInTheDocument()
+    await expect(canvas.getByText('Approver')).toBeInTheDocument()
+    await expect(canvas.getByText('Reviewer')).toBeInTheDocument()
+    // a real right click opens the context menu of the lane without an entry for the saved unit (replacing it needs entity:delete)
+    const sales = await canvas.findByRole('group', { name: 'Lane: Sales' })
+    await userEvent.pointer({ keys: '[MouseRight]', target: sales })
+    await userEvent.click(await canvas.findByRole('menuitem', { name: 'Assign organizational unit' }))
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await userEvent.click(await dialog.findByRole('button', { name: /Sales Division/ }))
+    await waitFor(() => expect(canvas.getByText('Sales Division')).toBeInTheDocument())
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+  },
+}
+
+/** The details panel of a user task lists its responsible person; "Add" searches the persons. */
+export const UserTaskPerson: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, shapes: ASSIGNED, entityStates: entityStatesOf(ASSIGNED), ...ASSIGNMENT_ARGS }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTitle('Maria Müller')).toHaveTextContent('MM')
+    await userEvent.click(await canvas.findByRole('group', { name: 'User Task: Approve order' }))
+    await expect(await canvas.findByText('Responsible person')).toBeInTheDocument()
+    await userEvent.click(await canvas.findByTestId('details-assignment-add-person'))
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await userEvent.click(await dialog.findByRole('button', { name: /Kurt Weber/ }))
+    await expect(await canvas.findByText('More than one responsible person')).toBeInTheDocument()
+  },
+}
+
+/** A reader sees the badge, chips and avatar without a menu entry or "×". */
+export const LaneAssignmentsReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: ASSIGNED, ...ASSIGNMENT_ARGS }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Purchasing Department')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /^Remove / })).toBeNull()
+    await userEvent.pointer({ keys: '[MouseRight]', target: await canvas.findByRole('group', { name: 'Lane: Purchasing' }) })
+    await expect(canvas.queryByRole('menuitem', { name: 'Assign role' })).toBeNull()
+  },
+}
+
+// the viewpoint maps "Role" to a lane and "Organizational Unit" to a pool: a task in a role lane is assigned to the role
+const ROLE_LANES = [
+  bpmnShape('r-pool', 'Order handling', 'pool', 0, 0, 760, 320),
+  orgShape('r-approver', 'Approver', 'role', 30, 0, 730, 160, 'r-pool'),
+  orgShape('r-clerk', 'Clerk', 'role', 30, 160, 730, 160, 'r-pool'),
+  withAssignments(bpmnShape('r-task', 'Approve order', 'userTask', 120, 40, 90, 60, 'r-approver'), { roles: [assignment('Approver', 0)] }),
+]
+
+/** A task dragged from one role lane to the other is assigned to the new role instead of nested; the question "New parent?" does not come. */
+export const RoleLanes: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_ARCHITECT, shapes: ROLE_LANES, ...ASSIGNMENT_ARGS, viewpoint: organizationViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const task = await canvas.findByRole('group', { name: 'User Task: Approve order' })
+    const box = task.getBoundingClientRect()
+    const from = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 }
+    // a real pointer drag: press, move down by a lane, release
+    await userEvent.pointer([
+      { keys: '[MouseLeft>]', target: task, coords: from },
+      { target: task, coords: { clientX: from.clientX, clientY: from.clientY + 60 } },
+      { target: task, coords: { clientX: from.clientX, clientY: from.clientY + 140 } },
+      { keys: '[/MouseLeft]', target: task, coords: { clientX: from.clientX, clientY: from.clientY + 140 } },
+    ])
+    await waitFor(() => expect(canvas.getByText('Unsaved changes')).toBeInTheDocument())
+    await expect(within(document.body).queryByRole('button', { name: 'Yes' })).toBeNull()
+  },
+}
+
+export const RoleLanesReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, shapes: ROLE_LANES, ...ASSIGNMENT_ARGS, viewpoint: organizationViewpoint() }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('group', { name: 'Role: Approver' })).toBeInTheDocument()
+    await expect(canvas.queryByText('Unsaved changes')).toBeNull()
   },
 }

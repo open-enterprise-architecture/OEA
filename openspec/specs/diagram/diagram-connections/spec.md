@@ -73,7 +73,7 @@ Trace: US-074 AC6, AC7, UC-10 step 7, BR-01, owner decisions 2026-11-19
 
 #### Scenario: New connection without an edge
 
-- **WHEN** an API call saves a new connection that no edge references, or whose edges join shapes of different entities
+- **WHEN** an API call saves a new connection that neither an edge references nor names its own endpoints, or whose edges join shapes of different entities
 - **THEN** the response is 422 naming the new connection, and nothing changes
 
 #### Scenario: Scoping connection type
@@ -157,3 +157,44 @@ Trace: business object Diagram BR-DG-02, owner decisions 2026-11-19
 
 - **WHEN** an API call saves 4000 edges, 50 bend points on an edge, bend points at −100 000 and 100 000 and 500 new connections, then 4001 edges, 51 bend points, a bend point at 100 000.01 or −100 000.01, a coordinate with three decimals or 501 new connections
 - **THEN** the first save is accepted, and each of the others is rejected with 400, and nothing changes
+
+### Requirement: Assignment connections without an edge in the save
+
+A save SHALL create new assignment connections that no edge shows, from a shape of the request to an entity or a new entity. It SHALL carry up to 500 `removedConnections` with versions: assignment connections from an entity shown in the request or the stored layout, shown by no edge, soft-deleted as by `deleteEntity`. Removing SHALL need `entity:delete` (403 before every 422).
+
+Trace: US-075 AC4, AC7, US-076 AC2, AC5, REQ-077 AC5, AC8
+
+#### Scenario: Connection without an edge
+
+- **WHEN** a save creates a belongs-to connection from a lane shape to an organizational unit, naming `sourceShapeId` and `targetEntityId`
+- **THEN** the connection exists, and the view has no edge for it
+
+#### Scenario: Type outside the organization model
+
+- **WHEN** a save creates a "Flow" connection without an edge
+- **THEN** it is rejected with 422 naming the new connection, and nothing changes
+
+#### Scenario: New entity without a shape
+
+- **WHEN** a save creates the organizational unit "Logistics" named only by a new connection
+- **THEN** both exist, and the diagram has no shape for "Logistics"
+
+#### Scenario: New entity named by nothing
+
+- **WHEN** a save creates an entity that neither a shape nor a new connection names
+- **THEN** it is rejected with 422, and nothing changes
+
+#### Scenario: Removed connections limit
+
+- **WHEN** a save removes 500 assignment connections, then another removes 501
+- **THEN** the first is accepted, the second is rejected with 400, and nothing changes
+
+#### Scenario: Connection unrelated to the diagram
+
+- **WHEN** a save removes an assignment connection whose source is on no shape of the request or the stored layout, or a connection that is no assignment
+- **THEN** it is rejected with 422 naming `removedConnections[0]`, and nothing changes
+
+#### Scenario: Removed connection still shown
+
+- **WHEN** a save removes a connection that an edge of the same request shows
+- **THEN** it is rejected with 422 naming the removed connection, and nothing changes
