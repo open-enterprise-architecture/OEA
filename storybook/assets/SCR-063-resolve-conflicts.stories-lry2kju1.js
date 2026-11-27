@@ -1,0 +1,15 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{n as t,t as n}from"./Modal-Bw8FxCMA.js";import{a as r,r as i}from"./store-DmFoWo0E.js";import{n as a,t as o}from"./AppHeader-CbVJYZJ8.js";import{_ as s,f as c,i as l,m as u,p as d,s as f,u as p}from"./solutions-UKKmuhft.js";import{n as m,t as h}from"./SolutionPage-BHnBLS_G.js";import{n as g,t as _}from"./DeltaMergeDialog-BAyxJ9XL.js";var v,y,b,x,S,C,w,T,E,D;function O(){return(O=e((()=>{t(),a(),g(),m(),i(),u(),{expect:v,userEvent:y,within:b}=__STORYBOOK_MODULE_TEST__,x=[d(p.id),d(p.id,{field:`fd000000-0000-4000-8000-000000000001`,label:`Owner`,dataType:`string`,before:`IT`,current:`Finance`,after:`Sales`})],S={title:`Screens/SCR-063 Resolve conflicts`,component:_},C={render:()=>({components:{AppHeader:o,DeltaMergeDialog:_,UModal:n},setup:()=>(r.me=f,r.loaded=!0,{fetchFn:s({me:f,deltas:[...l,p],goLiveConflicts:x}).fetch,id:c[0].id,conflicts:x}),template:`
+      <AppHeader :fetch-fn="fetchFn" />
+      <UModal :open="true" title="Resolve conflicts">
+        <template #body>
+          <DeltaMergeDialog :solution-id="id" :conflicts="conflicts" :fetch-fn="fetchFn" />
+        </template>
+      </UModal>`}),play:async({canvasElement:e})=>{let t=b(e.ownerDocument.body);await v(await t.findByText(`Keep the current value: 15`)).toBeInTheDocument(),await v(t.getByRole(`button`,{name:`Apply`})).toBeDisabled()}},w={render:()=>({components:{AppHeader:o,SolutionPage:h},setup:()=>(r.me=f,r.loaded=!0,{fetchFn:s({me:f,deltas:[...l,p],goLiveConflicts:x}).fetch,id:c[0].id}),template:`
+      <AppHeader :fetch-fn="fetchFn" />
+      <SolutionPage :id="id" :fetch-fn="fetchFn" />`}),play:async({canvasElement:e})=>{let t=b(e),n=b(e.ownerDocument.body);await y.click(await t.findByRole(`button`,{name:`Go live`})),await v(await n.findByText(`Resolve conflicts`)).toBeInTheDocument(),await v(n.getByRole(`button`,{name:`Apply`})).toBeDisabled()}},T=d(p.id,{kind:`not-in-metamodel`,field:`fd000000-0000-4000-8000-000000000007`,label:`Cost Center`,dataType:`string`,before:null,current:null,after:`CC-100`}),E={render:()=>({components:{AppHeader:o,DeltaMergeDialog:_,UModal:n},setup:()=>(r.me=f,r.loaded=!0,{fetchFn:s({me:f,deltas:[...l,p],goLiveConflicts:[T]}).fetch,id:c[0].id,conflicts:[T]}),template:`
+      <AppHeader :fetch-fn="fetchFn" />
+      <UModal :open="true" title="Resolve conflicts">
+        <template #body>
+          <DeltaMergeDialog :solution-id="id" :conflicts="conflicts" :fetch-fn="fetchFn" />
+        </template>
+      </UModal>`}),play:async({canvasElement:e})=>{let t=b(e.ownerDocument.body);await v(await t.findByText(`Resolve later as an open issue`)).toBeInTheDocument(),await v(t.getByRole(`button`,{name:`Apply`})).toBeEnabled()}},D=[`Conflicts`,`FromTheGoLive`,`SnapshotValue`]})))()}O();export{C as Conflicts,w as FromTheGoLive,E as SnapshotValue,D as __namedExportsOrder,S as default};
