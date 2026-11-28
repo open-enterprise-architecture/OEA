@@ -213,4 +213,19 @@ public class DiagramShapeStore {
 		return found;
 	}
 
+	/** The entities among the given ones whose value of the boolean property is true (us-083-bpmn-data-objects D2). */
+	public Set<Integer> withTrueValue(Collection<Integer> entityIds, UUID propertyDefId) {
+		Set<Integer> found = new HashSet<>();
+		if (entityIds.isEmpty()) {
+			return found;
+		}
+		this.jdbc.query("""
+				SELECT entity_id FROM entity_property_values
+				WHERE property_def_id = ? AND value_bool IS TRUE AND entity_id = ANY (?)""",
+				(rs) -> {
+					found.add(rs.getInt(1));
+				}, propertyDefId, (Object) entityIds.toArray(Integer[]::new));
+		return found;
+	}
+
 }

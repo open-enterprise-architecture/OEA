@@ -25,8 +25,8 @@ Feature: BPMN starter package and process diagrams
 
   Scenario: BPMN imported next to TOGAF
     When the metamodel administrator imports the BPMN starter package
-    Then the BPMN import succeeds with 31 created metatypes
-    And 26 element metatypes and 5 connection types exist with scope "imported" and the origin "oea-starter-bpmn"
+    Then the BPMN import succeeds with 36 created metatypes
+    And 28 element metatypes and 8 connection types exist with scope "imported" and the origin "oea-starter-bpmn"
     And the viewpoint "Process Model (BPMN 2.0)" can be chosen for a new diagram
     And the 8 metatypes of the TOGAF starter package are unchanged
     And no metatype of the package is the composition

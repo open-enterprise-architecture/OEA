@@ -12,6 +12,7 @@ import type {
   DiagramViewWrite,
 } from '../api/diagramView'
 import type { Viewpoint } from '../api/metamodel'
+import { AFFECTED_ATTRIBUTES_ID, COLLECTION_ID, REALIZED_BY_ID } from '../components/diagram/dataObjects'
 import type { RecordedRequest } from './fetch'
 
 /** Test and story data and a fake backend for the diagram screens (US-074, SCR-067, SCR-021). */
@@ -209,7 +210,25 @@ export const PROP_PROTOCOL = 'e1000000-0000-4000-8000-000000000005'
 /** "Flow" has a mandatory "Protocol": a connection drawn on the canvas is incomplete until it has one. */
 export const FLOW_MAPPINGS = [mapping(PROP_PROTOCOL, 'Protocol', 'string', 'mandatory', 1)]
 
-const MAPPINGS: Record<string, ReturnType<typeof mapping>[]> = { [METATYPE_COMPONENT]: COMPONENT_MAPPINGS, [METATYPE_PROCESS]: PROCESS_MAPPINGS, [METATYPE_FLOW]: FLOW_MAPPINGS }
+export const PROP_TRANSFORMATION = '1b6e9540-fcfd-5cf4-afca-62dbc7785f25'
+export const PROP_CONDITION = '23cbc853-a1c7-550e-b263-d6f7949ed180'
+/** The properties of "Data Output Association" and "BPMN Data Object" of the BPMN package 1.1.0 (us-083-bpmn-data-objects): the types of `test/bpmn.ts`. */
+export const DATA_OUTPUT_MAPPINGS = [
+  mapping(PROP_TRANSFORMATION, 'Transformation type', 'enum', 'optional', 1, {
+    enumValues: ['create', 'enrich', 'overwrite', 'delete', 'read-only'].map((value, index) => ({ id: `9d000000-0000-4000-8000-0000000000b${index}`, value, sortOrder: index })),
+  }),
+  mapping(AFFECTED_ATTRIBUTES_ID, 'Affected attributes', 'text', 'optional', 2),
+  mapping(PROP_CONDITION, 'Condition', 'text', 'optional', 3),
+]
+export const DATA_OBJECT_MAPPINGS = [mapping(COLLECTION_ID, 'Collection', 'boolean', 'optional', 1)]
+
+const MAPPINGS: Record<string, ReturnType<typeof mapping>[]> = {
+  [METATYPE_COMPONENT]: COMPONENT_MAPPINGS,
+  [METATYPE_PROCESS]: PROCESS_MAPPINGS,
+  [METATYPE_FLOW]: FLOW_MAPPINGS,
+  'c2000000-0000-4000-8000-000000000026': DATA_OUTPUT_MAPPINGS,
+  'c2000000-0000-4000-8000-00000000000f': DATA_OBJECT_MAPPINGS,
+}
 
 /**
  * The connection types between two metatypes of the fake metamodel: "Flow" runs from a component to a
@@ -255,7 +274,7 @@ export function fakeEntities(): Record<number, FakeEntity> {
   }
 }
 
-const DEFINITIONS = Object.fromEntries([...COMPONENT_MAPPINGS, ...PROCESS_MAPPINGS, ...FLOW_MAPPINGS].map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition]))
+const DEFINITIONS = Object.fromEntries([...COMPONENT_MAPPINGS, ...PROCESS_MAPPINGS, ...FLOW_MAPPINGS, ...DATA_OUTPUT_MAPPINGS, ...DATA_OBJECT_MAPPINGS].map((entry) => [entry.propertyDefinition.id, entry.propertyDefinition]))
 
 function propertyValue(defId: string, text: string, redacted: boolean) {
   const definition = DEFINITIONS[defId]!
@@ -292,6 +311,7 @@ export function shape(overrides: Partial<DiagramShape> = {}): DiagramShape {
     width: 120,
     height: 40,
     collapsed: false,
+    collection: false,
     orientation: 'horizontal',
     missingMandatory: [],
     conflict: false,
@@ -343,7 +363,7 @@ export interface DiagramApiOptions {
   /** the metatypes `listMetatypes` answers; default none */
   metatypes?: unknown[]
   /** the entities the assignment search finds, by part (`org-unit`, `role`, `person`) */
-  assignmentTargets?: Partial<Record<'org-unit' | 'role' | 'person', DiagramEntity[]>>
+  assignmentTargets?: Partial<Record<'org-unit' | 'role' | 'person' | 'realizer', DiagramEntity[]>>
   diagrams?: Diagram[]
   deleted?: DeletedDiagram[]
   recorded?: RecordedRequest[]
@@ -624,6 +644,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             width: entry.width,
             height: entry.height,
             collapsed: entry.collapsed === true,
+            collection: stored?.values[COLLECTION_ID] === 'true',
             orientation: entry.orientation ?? 'horizontal',
             missingMandatory: missing,
             conflict: false,
@@ -657,12 +678,28 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
         })
         // the assignments (us-075-lane-assignments): removed connections leave the shapes, new ones without an edge join them
         const model = options.organization as Record<string, { metatypeId: string | null }> | undefined
-        const listOf = (metatypeId: string): 'orgUnits' | 'roles' | 'persons' | undefined =>
-          model?.belongsTo?.metatypeId === metatypeId ? 'orgUnits' : model?.performsRole?.metatypeId === metatypeId ? 'roles' : model?.responsible?.metatypeId === metatypeId ? 'persons' : undefined
+        const listOf = (metatypeId: string): 'orgUnits' | 'roles' | 'persons' | 'realizedBy' | undefined =>
+          model?.belongsTo?.metatypeId === metatypeId
+            ? 'orgUnits'
+            : model?.performsRole?.metatypeId === metatypeId
+              ? 'roles'
+              : model?.responsible?.metatypeId === metatypeId
+                ? 'persons'
+                : metatypeId === REALIZED_BY_ID
+                  ? 'realizedBy'
+                  : undefined
         const gone = new Set((request.removedConnections ?? []).map((removal) => removal.connectionId))
         state.shapes = state.shapes.map((entry) =>
           entry.assignments
-            ? { ...entry, assignments: { orgUnits: entry.assignments.orgUnits.filter((item) => !gone.has(item.connectionId)), roles: entry.assignments.roles.filter((item) => !gone.has(item.connectionId)), persons: entry.assignments.persons.filter((item) => !gone.has(item.connectionId)) } }
+            ? {
+                ...entry,
+                assignments: {
+                  orgUnits: entry.assignments.orgUnits.filter((item) => !gone.has(item.connectionId)),
+                  roles: entry.assignments.roles.filter((item) => !gone.has(item.connectionId)),
+                  persons: entry.assignments.persons.filter((item) => !gone.has(item.connectionId)),
+                  realizedBy: entry.assignments.realizedBy.filter((item) => !gone.has(item.connectionId)),
+                },
+              }
             : entry,
         )
         for (const connection of request.newConnections ?? []) {
@@ -673,7 +710,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             ? created.get(connection.targetNewEntityKey)
             : [...Object.values(options.assignmentTargets ?? {}).flat(), ...ENTITIES].find((entity) => entity && entity.id === connection.targetEntityId)
           entityCounter += 1
-          owner.assignments = owner.assignments ?? { orgUnits: [], roles: [], persons: [] }
+          owner.assignments = owner.assignments ?? { orgUnits: [], roles: [], persons: [], realizedBy: [] }
           owner.assignments[list] = [...owner.assignments[list], { connectionId: entityCounter, connectionVersion: 1, entityId: target?.id ?? connection.targetEntityId ?? 0, name: target?.name ?? 'Entity' }]
         }
         found.version += 1
@@ -764,7 +801,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     const targets = /^\/api\/v1\/views\/diagrams\/([^/]+)\/reference-targets$/.exec(path)
     if (targets && method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase()
-      const part = url.searchParams.get('part') as 'org-unit' | 'role' | 'person' | null
+      const part = url.searchParams.get('part') as 'org-unit' | 'role' | 'person' | 'realizer' | null
       if (part) {
         const found = (options.assignmentTargets?.[part] ?? []).filter((entity) => entity.name.toLowerCase().includes(q))
         return respond(200, { items: found, page: { page: 0, pageSize: 20, totalElements: found.length, totalPages: 1 } })

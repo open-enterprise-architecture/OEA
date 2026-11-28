@@ -26,7 +26,7 @@ export interface EdgeDraw {
   conflict?: boolean
   /** a hierarchy line (design D4 of us-074-diagram-nesting): dashed, without an arrowhead and without a name */
   hierarchy?: boolean
-  /** the line of a BPMN flow (design D3 of us-074-bpmn-process-diagrams): solid with a filled arrow, dashed with an open circle and arrow, dotted without an arrow */
+  /** the line of a BPMN flow (design D3 of us-074-bpmn-process-diagrams): solid with a filled arrow, dashed with an open circle and arrow, dotted without an arrow; a data association (us-083-bpmn-data-objects D2) is dashed with an open arrow and no circle */
   flow?: FlowStyle
   /** the warning of a flow that breaks a pool rule (design D6): the text and a warning style; the save is not blocked */
   warning?: string
@@ -99,6 +99,7 @@ function color(edge: Drawn): string {
 function dashes(edge: Drawn): string | undefined {
   if (edge.hierarchy) return '2 4'
   if (edge.flow === 'message') return '8 4'
+  if (edge.flow === 'data') return '5 3'
   if (edge.flow === 'association') return '2 3'
   return edge.unsaved || edge.conflict ? '6 4' : undefined
 }
@@ -156,7 +157,7 @@ onBeforeUnmount(() => stop?.())
         stroke-linejoin="round"
       />
       <circle v-if="edge.flow === 'message'" :cx="edge.start.x" :cy="edge.start.y" r="4" fill="var(--ui-bg)" :stroke="color(edge)" stroke-width="1.5" data-testid="edge-source-circle" />
-      <polyline v-if="edge.flow === 'message'" :points="edge.openArrow" fill="none" :stroke="color(edge)" stroke-width="1.5" stroke-linejoin="round" data-testid="edge-open-arrow" />
+      <polyline v-if="edge.flow === 'message' || edge.flow === 'data'" :points="edge.openArrow" fill="none" :stroke="color(edge)" stroke-width="1.5" stroke-linejoin="round" data-testid="edge-open-arrow" />
       <polygon v-else-if="!edge.hierarchy && edge.flow !== 'association'" :points="edge.arrow" :fill="color(edge)" />
       <path
         :d="edge.d"

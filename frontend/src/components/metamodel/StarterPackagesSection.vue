@@ -6,7 +6,8 @@ import { reloadMetamodel } from '../../metamodel/store'
 
 // The section "Starter packages" of SCR-030 (design D7 of us-074-bpmn-process-diagrams): the packages shipped
 // with OEA with their summary and "Import" for those not yet imported, also in an instance that has entity
-// types already (the BPMN package next to the TOGAF types). It is shown to holders of metamodel:write; the
+// types already (the BPMN package next to the TOGAF types), and "Update to <version>" for a package imported in
+// another version (design D7 of us-083-bpmn-data-objects). It is shown to holders of metamodel:write; the
 // lock mode does not block it, as for every package import. A 409 lists the conflicting names.
 const props = defineProps<{ fetchFn?: typeof fetch }>()
 const { t } = useI18n()
@@ -32,6 +33,11 @@ async function load() {
 }
 
 onMounted(load)
+
+/** An imported package whose last import has another version than the shipped one: the update is offered. */
+function outdated(starter: StarterPackage): boolean {
+  return starter.imported && !!starter.importedVersion && starter.importedVersion !== starter.version
+}
 
 function ask(starter: StarterPackage) {
   result.value = undefined
@@ -89,6 +95,7 @@ async function confirm() {
       <div class="flex flex-wrap items-center gap-2">
         <h3 class="font-semibold">{{ starter.name }} <span class="font-normal text-muted">{{ starter.version }}</span></h3>
         <UBadge v-if="starter.imported" color="success" variant="subtle" :label="t('metamodel.starter.imported')" data-testid="starter-imported-badge" />
+        <span v-if="starter.imported && starter.importedVersion" class="text-sm text-muted" data-testid="starter-imported-version">{{ t('metamodel.starter.importedVersion', { version: starter.importedVersion }) }}</span>
       </div>
       <p class="text-sm text-muted">{{ starter.description }}</p>
       <p class="text-sm" data-testid="starter-counts">{{ t('metamodel.starter.counts', { types: starter.metatypeCount, properties: starter.propertyDefinitionCount }) }}</p>
@@ -101,13 +108,21 @@ async function confirm() {
         :aria-label="`${t('metamodel.starter.import')}: ${starter.name}`"
         @click="ask(starter)"
       />
+      <UButton
+        v-else-if="outdated(starter)"
+        :data-testid="`starter-update-${starter.packageId}`"
+        class="self-start"
+        :label="t('metamodel.starter.update', { version: starter.version })"
+        :aria-label="`${t('metamodel.starter.update', { version: starter.version })}: ${starter.name}`"
+        @click="ask(starter)"
+      />
     </article>
 
-    <UModal v-model:open="confirmOpen" :title="t('metamodel.starter.confirmTitle', { name: confirming?.name ?? '' })" :description="t('metamodel.starter.confirmText', { types: confirming?.metatypeCount ?? 0, properties: confirming?.propertyDefinitionCount ?? 0 })">
+    <UModal v-model:open="confirmOpen" :title="confirming && outdated(confirming) ? t('metamodel.starter.updateTitle', { name: confirming.name, version: confirming.version }) : t('metamodel.starter.confirmTitle', { name: confirming?.name ?? '' })" :description="t('metamodel.starter.confirmText', { types: confirming?.metatypeCount ?? 0, properties: confirming?.propertyDefinitionCount ?? 0 })">
       <template #body>
         <div class="flex justify-end gap-2" data-testid="starter-confirm">
           <UButton color="neutral" variant="ghost" data-testid="starter-cancel" :label="t('common.cancel')" @click="confirmOpen = false" />
-          <UButton data-testid="starter-confirm-import" :loading="importing" :label="t('metamodel.starter.confirm')" @click="confirm" />
+          <UButton data-testid="starter-confirm-import" :loading="importing" :label="confirming && outdated(confirming) ? t('metamodel.starter.update', { version: confirming.version }) : t('metamodel.starter.confirm')" @click="confirm" />
         </div>
       </template>
     </UModal>

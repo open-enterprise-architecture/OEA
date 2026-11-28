@@ -81,6 +81,11 @@ public class MetatypeStore {
 		return this.jdbc.queryForList("SELECT id FROM metatypes", UUID.class);
 	}
 
+	/** The IDs of all element metatypes, the connection metatypes left out. */
+	public List<UUID> elementIds() {
+		return this.jdbc.queryForList("SELECT id FROM metatypes WHERE NOT is_connection", UUID.class);
+	}
+
 	/** The names of all metatypes by ID. */
 	public Map<UUID, String> names() {
 		Map<UUID, String> names = new LinkedHashMap<>();

@@ -37,7 +37,7 @@ public class StarterPackages {
 	}
 
 	/** Summary of a shipped package for the list. */
-	public record Summary(Shipped shipped, boolean imported) {
+	public record Summary(Shipped shipped, boolean imported, String importedVersion) {
 	}
 
 	public StarterPackages(PackageImportStore imports) {
@@ -54,7 +54,11 @@ public class StarterPackages {
 	@Transactional(readOnly = true)
 	public List<Summary> list() {
 		Set<String> imported = new HashSet<>(this.imports.importedPackageIds());
-		return shipped().stream().map((shipped) -> new Summary(shipped, imported.contains(shipped.packageId()))).toList();
+		Map<String, String> versions = this.imports.importedVersions();
+		return shipped().stream()
+			.map((shipped) -> new Summary(shipped, imported.contains(shipped.packageId()),
+					versions.get(shipped.packageId())))
+			.toList();
 	}
 
 	/** The shipped package with this identifier; {@link NoSuchElementException} (404) otherwise. */

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import NewParentDialog from '../components/diagram/NewParentDialog.vue'
 import DiagramPage from '../pages/DiagramPage.vue'
-import { assignment, assignmentTargets, bpmnEdge, entityStatesOf, bpmnShape, bpmnViewpoint, orgShape, organizationMetatypes, organizationModel, organizationViewpoint, withAssignments } from '../test/bpmn'
+import { allowedDataConnections, assignment, assignmentTargets, bpmnEdge, entityStatesOf, bpmnShape, bpmnViewpoint, orgShape, organizationMetatypes, organizationModel, organizationViewpoint, withAssignments } from '../test/bpmn'
 import { diagram, diagramApi, edge, ENTITIES, FINANCE_SUITE, METATYPE_COMPONENT, METATYPE_FLOW, METATYPE_PROCESS, ME_DIAGRAM_ARCHITECT, ME_DIAGRAM_READER, ME_DIAGRAM_WRITER, PROP_INVESTMENT, shape, viewpointConfigs, type DiagramApi } from '../test/diagrams'
 
 // SCR-021 Diagram editor (UC-10, US-074; design D6 of us-074-diagram-canvas and D3 of
@@ -601,5 +601,82 @@ export const RoleLanesReadOnly: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByRole('group', { name: 'Role: Approver' })).toBeInTheDocument()
     await expect(canvas.queryByText('Unsaved changes')).toBeNull()
+  },
+}
+
+// data objects and data stores (us-083-bpmn-data-objects): the symbols, a data association drawn with the pointer, its
+// transformation and the elements that realize a data store
+const DATA = [
+  bpmnShape('x-order', 'Order', 'dataObject', 60, 60, 36, 50),
+  { ...bpmnShape('x-orders', 'Orders', 'dataObject', 60, 180, 36, 50), collection: true },
+  bpmnShape('x-review', 'Review order', 'userTask', 320, 50, 90, 60),
+  withAssignments(bpmnShape('x-db', 'Order DB', 'dataStore', 620, 55, 50, 50), { realizedBy: [assignment('PostgreSQL', 801)] }),
+]
+
+const DATA_ARGS = {
+  ...ASSIGNMENT_ARGS,
+  shapes: DATA,
+  entityStates: entityStatesOf(DATA),
+  allowed: allowedDataConnections,
+  assignmentTargets: { ...assignmentTargets(), realizer: [{ id: 802, name: 'Redis', metatype: { id: 'c2000000-0000-4000-8000-000000000012', name: 'System Software', abbreviation: 'SS' }, childCount: 0, parentEntityId: null }] },
+}
+
+/** The pointer centre of a handle of a shape. */
+function handleOf(canvasElement: HTMLElement, shape: string, side: 'left' | 'right') {
+  const node = canvasElement.querySelector(`[data-testid="shape-${shape}"]`)!.closest('.vue-flow__node')!
+  const box = node.querySelector(`.vue-flow__handle[data-handleid="${side}"]`)!.getBoundingClientRect()
+  return { handle: node.querySelector(`.vue-flow__handle[data-handleid="${side}"]`)!, coords: { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 } }
+}
+
+/** A data object is a document, with three bars for a collection, a data store a cylinder with the badge of its realizing element. */
+export const DataObjects: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, ...DATA_ARGS }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('group', { name: 'BPMN Data Object: Order' })).toBeInTheDocument()
+    await expect(canvas.getByRole('group', { name: 'BPMN Data Store: Order DB' })).toBeInTheDocument()
+    await expect(canvasElement.querySelectorAll('[data-testid="collection-marker"]')).toHaveLength(1)
+    await expect(canvas.getByTestId('realizer-badge')).toHaveTextContent('PostgreSQL')
+    await expect(canvas.getByRole('group', { name: 'Data' })).toBeInTheDocument()
+    // a real pointer drag from the task to the data object draws the output association and opens its details
+    const from = handleOf(canvasElement, 'x-review', 'left')
+    const to = handleOf(canvasElement, 'x-order', 'right')
+    await userEvent.pointer([
+      { keys: '[MouseLeft>]', target: from.handle, coords: from.coords },
+      { target: to.handle, coords: { clientX: (from.coords.clientX + to.coords.clientX) / 2, clientY: (from.coords.clientY + to.coords.clientY) / 2 } },
+      { target: to.handle, coords: to.coords },
+      { keys: '[/MouseLeft]', target: to.handle, coords: to.coords },
+    ])
+    await expect(await canvas.findByRole('button', { name: 'Connection Review order → Order' })).toBeInTheDocument()
+    await expect(await canvas.findByText('Transformation type')).toBeInTheDocument()
+    const attributes = within(await canvas.findByTestId('tag-input'))
+    await userEvent.type(attributes.getByRole('textbox'), 'status{Enter}reviewedBy{Enter}')
+    await expect(await canvas.findByText('reviewedBy')).toBeInTheDocument()
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+  },
+}
+
+/** "Realized by…" on the context menu of a data store searches any element and shows it as a badge; a reader sees the badge only. */
+export const RealizedBy: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_WRITER, ...DATA_ARGS }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.pointer({ keys: '[MouseRight]', target: await canvas.findByRole('group', { name: 'BPMN Data Store: Order DB' }) })
+    await userEvent.click(await canvas.findByRole('menuitem', { name: 'Realized by…' }))
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(dialog.queryByRole('button', { name: /Create new/ })).toBeNull()
+    await userEvent.click(await dialog.findByRole('button', { name: /Redis/ }))
+    await waitFor(() => expect(canvas.getAllByTestId('realizer-badge')).toHaveLength(2))
+    await expect(canvas.getByText('Unsaved changes')).toBeInTheDocument()
+  },
+}
+
+export const RealizedByReadOnly: Story = {
+  args: { id: ID, fetchFn: diagramApi({ me: ME_DIAGRAM_READER, ...DATA_ARGS }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTestId('realizer-badge')).toHaveTextContent('PostgreSQL')
+    await expect(canvas.queryByRole('button', { name: /^Remove / })).toBeNull()
+    await expect(canvas.queryByRole('menuitem', { name: 'Realized by…' })).toBeNull()
   },
 }

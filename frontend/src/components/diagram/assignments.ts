@@ -2,17 +2,21 @@ import type { DiagramAssignments, DiagramNewConnection, DiagramNewEntity, Diagra
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { OrganizationModel } from '../../api/organization'
 import type { CanvasShape } from './canvasModel'
+import { REALIZED_BY_ID } from './dataObjects'
 
 // The assignments of lanes, pools and tasks (change us-075-lane-assignments; US-075, US-076, REQ-077): the organizational
 // unit, the roles and the responsible persons of a shape are connections without an edge. This module keeps the unsaved
 // changes of them, builds their part of the save request and decides which assignments the lane a shape lies in
 // stands for (design D8: a lane is an assignment).
 
-/** What an assignment points to: an organizational unit, a role or a person. */
-export type Part = 'orgUnit' | 'role' | 'person'
+/**
+ * What an assignment points to: an organizational unit, a role or a person; and, for a data store, the element that realizes it
+ * (`realizer`, change us-083-bpmn-data-objects D8): a "Realized By" connection without an edge, handled like an assignment.
+ */
+export type Part = 'orgUnit' | 'role' | 'person' | 'realizer'
 
 /** The API name of a part in the search (`part` of `searchDiagramReferenceTargets`). */
-export const SEARCH_PART: Record<Part, 'org-unit' | 'role' | 'person'> = { orgUnit: 'org-unit', role: 'role', person: 'person' }
+export const SEARCH_PART: Record<Part, 'org-unit' | 'role' | 'person' | 'realizer'> = { orgUnit: 'org-unit', role: 'role', person: 'person', realizer: 'realizer' }
 
 /** The notation keys of the shapes that carry assignments besides lanes and pools (design D3). */
 export const TASK_ELEMENTS = [
@@ -94,7 +98,9 @@ export function savedAssignments(shape: Pick<DiagramShape, 'assignments'>): Save
   const read = (items: DiagramAssignments['orgUnits'], part: Part): SavedAssignment[] =>
     items.map((item) => ({ part, connectionId: item.connectionId, connectionVersion: item.connectionVersion, entityId: item.entityId, name: item.name }))
   const assignments = shape.assignments
-  return assignments ? [...read(assignments.orgUnits, 'orgUnit'), ...read(assignments.roles, 'role'), ...read(assignments.persons, 'person')] : []
+  return assignments
+    ? [...read(assignments.orgUnits, 'orgUnit'), ...read(assignments.roles, 'role'), ...read(assignments.persons, 'person'), ...read(assignments.realizedBy ?? [], 'realizer')]
+    : []
 }
 
 /** The assignments the shape shows: the saved ones without the removed, then the pending ones; by part, then name. */
@@ -110,7 +116,7 @@ export function shownAssignments(saved: SavedAssignment[], edits: AssignmentEdit
 }
 
 function order(part: Part): number {
-  return part === 'orgUnit' ? 0 : part === 'role' ? 1 : 2
+  return part === 'orgUnit' ? 0 : part === 'role' ? 1 : part === 'person' ? 2 : 3
 }
 
 /** Whether an assignment to this target is shown already. */
@@ -220,6 +226,8 @@ export interface OrganizationIds {
   belongsTo?: string
   performsRole?: string
   responsible?: string
+  /** "Realized By" of the BPMN starter package, when the metamodel has it (us-083-bpmn-data-objects D8) */
+  realizedBy?: string
 }
 
 /** The IDs of the parts of the organization model that are set. */
@@ -235,9 +243,9 @@ export function organizationIds(model: OrganizationModel): OrganizationIds {
   }
 }
 
-/** The connection type of the part: belongs-to, performs-role or responsible; `undefined` while it is unset. */
+/** The connection type of the part: belongs-to, performs-role, responsible or "Realized By"; `undefined` while it is unset. */
 export function connectionOf(ids: OrganizationIds, part: Part): string | undefined {
-  return part === 'orgUnit' ? ids.belongsTo : part === 'role' ? ids.performsRole : ids.responsible
+  return part === 'orgUnit' ? ids.belongsTo : part === 'role' ? ids.performsRole : part === 'person' ? ids.responsible : ids.realizedBy
 }
 
 /** What the assignments add to the request of the save. */
@@ -438,7 +446,7 @@ export interface OrganizationContext {
 }
 
 export function organizationContext(model: OrganizationModel, metatypes: { id: string; name: string; baseMetatypeId?: string | null }[]): OrganizationContext {
-  const ids = organizationIds(model)
+  const ids = { ...organizationIds(model), ...(metatypes.some((type) => type.id === REALIZED_BY_ID) ? { realizedBy: REALIZED_BY_ID } : {}) }
   const bases = new Map(metatypes.map((type) => [type.id, type.baseMetatypeId ?? undefined]))
   const roots: [Part, string | undefined][] = [
     ['orgUnit', ids.orgUnit],

@@ -36,14 +36,14 @@ Trace: US-074 AC2, REQ-076, ADR-007, owner decision 2026-11-27
 
 ### Requirement: Grouped BPMN palette
 
-In a `bpmn2` diagram the palette SHALL group the allowed element types by their notation element into "Pools and lanes", "Activities", "Events", "Gateways", "Artifacts" and "Other" for types without a BPMN element, each type under its own name, a subtype under the group of its mapping.
+In a `bpmn2` diagram the palette SHALL group the allowed element types by their notation element into "Pools and lanes", "Activities", "Events", "Gateways", "Data", "Artifacts" and "Other" for types without a BPMN element, each type under its own name, a subtype under the group of its mapping.
 
-Trace: US-074 AC2, AC9, REQ-076 AC2, AC6
+Trace: US-074 AC2, AC9, REQ-076 AC2, AC6, US-083 AC1, REQ-081 AC1
 
 #### Scenario: Palette groups
 
 - **WHEN** Anna opens the canvas of "Order handling"
-- **THEN** the palette shows "Pool" and "Lane" under "Pools and lanes", the tasks, "Sub-Process" and "Call Activity" under "Activities", the 8 event types under "Events", the 4 gateways under "Gateways", and "Text Annotation" and "Group" under "Artifacts"
+- **THEN** the palette shows "Pool" and "Lane" under "Pools and lanes", the tasks, "Sub-Process" and "Call Activity" under "Activities", the 8 event types under "Events", the 4 gateways under "Gateways", "BPMN Data Object" and "BPMN Data Store" under "Data", and "Text Annotation" and "Group" under "Artifacts"
 
 #### Scenario: Company subtype
 
@@ -53,9 +53,9 @@ Trace: US-074 AC2, AC9, REQ-076 AC2, AC6
 
 ### Requirement: Pools, lanes and sub-processes as containers
 
-In a `bpmn2` diagram only shapes drawn as pool, lane or sub-process SHALL take nested shapes and offer "Show children"; a shape dropped onto another one SHALL not be nested in it. A new element dropped into a container SHALL become a child of its entity, and moving between containers SHALL follow "New parent?" as in every diagram, except for an assignment lane or pool (`diagram/bpmn-assignments`).
+In a `bpmn2` diagram only pools, lanes and sub-processes SHALL nest shapes and offer "Show children". A new element dropped into one SHALL become a child of its entity, and moves SHALL follow "New parent?", except in assignment lanes and for data shapes (`diagram/bpmn-assignments`, `diagram/bpmn-data-objects`).
 
-Trace: US-074 AC3, AC4, AC5, REQ-076 AC4, owner decisions 2026-11-20, 2026-11-26 and 2026-11-27
+Trace: US-074 AC3, AC4, AC5, REQ-076 AC4, owner decisions 2026-11-20, 2026-11-26, 2026-11-27 and 2026-11-28
 
 #### Scenario: Task dropped into a lane
 

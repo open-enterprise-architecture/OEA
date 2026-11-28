@@ -11,6 +11,7 @@ import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { components } from '../../api/generated/schema'
 import PropertyInput, { type ReferenceChoice } from '../PropertyInput.vue'
 import type { AssignmentField, ShownAssignment } from './assignments'
+import { AFFECTED_ATTRIBUTES_ID, MAX_TAG_LENGTH, MAX_TAGS, type TagRefusal } from './dataObjects'
 import type { EntityEdit, FieldChange } from './canvasModel'
 import type { DetailsSubject } from './edgeModel'
 
@@ -165,6 +166,9 @@ function searchFor(mapping: PropertyMapping): (term: string) => Promise<Referenc
   }
 }
 
+/** why the last tag entered was refused (design D5 of us-083-bpmn-data-objects); cleared by the next accepted change */
+const tagRefusal = ref<TagRefusal>()
+
 const metatypeName = computed(() => details.value?.metatype.name ?? '')
 </script>
 
@@ -279,6 +283,8 @@ const metatypeName = computed(() => details.value?.metatype.name ?? '')
           :mapping="mapping"
           :search-references="searchFor(mapping)"
           :selected-label="display(stored(mapping.propertyDefinition.id))"
+          :tags="mapping.propertyDefinition.id === AFFECTED_ATTRIBUTES_ID"
+          @tag-refused="(reason: TagRefusal | undefined) => (tagRefusal = reason)"
           :invalid="!!error(mapping.propertyDefinition.id)"
           @update:model-value="(value: string | undefined) => setValue(mapping.propertyDefinition.id, value)"
         />
@@ -286,6 +292,9 @@ const metatypeName = computed(() => details.value?.metatype.name ?? '')
         <p v-else :data-testid="`details-value-${mapping.propertyDefinition.name}`">
           {{ display(stored(mapping.propertyDefinition.id)) || t('diagrams.details.noValue') }}
           <span v-if="canEdit && mapping.necessity === 'mandatory' && missing(mapping)" class="text-xs text-muted"> ({{ t('diagrams.details.notChangeable') }})</span>
+        </p>
+        <p v-if="mapping.propertyDefinition.id === AFFECTED_ATTRIBUTES_ID && tagRefusal && writable(mapping)" class="mt-1 text-xs text-warning" role="status" data-testid="details-tag-refused">
+          {{ t(`diagrams.dataObjects.tagRefused.${tagRefusal}`, { max: MAX_TAGS, length: MAX_TAG_LENGTH }) }}
         </p>
       </UFormField>
     </template>

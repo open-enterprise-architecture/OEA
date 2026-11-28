@@ -22,6 +22,17 @@ public class PackageImportStore {
 		return this.jdbc.queryForList("SELECT DISTINCT package_id FROM metamodel_package_imports", String.class);
 	}
 
+	/** The version of the last import of each package that was imported (us-083-bpmn-data-objects D7). */
+	public java.util.Map<String, String> importedVersions() {
+		java.util.Map<String, String> versions = new java.util.HashMap<>();
+		this.jdbc.query("""
+				SELECT DISTINCT ON (package_id) package_id, package_version FROM metamodel_package_imports
+				ORDER BY package_id, imported_at DESC""", (rs) -> {
+			versions.put(rs.getString(1), rs.getString(2));
+		});
+		return versions;
+	}
+
 	public void record(String packageId, String packageVersion, String publisher, UUID batchId, Instant importedAt,
 			Long personId, UUID adminId, int metatypesCreated, int metatypesUpdated) {
 		this.jdbc.update("""

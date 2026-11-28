@@ -46,6 +46,8 @@ export interface CanvasShape {
   y: number
   width: number
   height: number
+  /** the data object is drawn with the collection marker: its value "Collection" is true (design D2 of us-083-bpmn-data-objects); the pending edit of the value is in the edits */
+  collection?: boolean
   /** the sub-process is shown collapsed in this diagram (design D3 of us-074-bpmn-pools-and-lanes); `width` and `height` stay the expanded size */
   collapsed?: boolean
   /** the lanes of the pool lie side by side (design D5 of us-074-bpmn-pools-and-lanes); absent for horizontal; only on the shape of a pool */
@@ -99,6 +101,8 @@ export interface ShapeAssignments {
   roles: ShownAssignment[]
   /** the persons of a user task: the avatar shows the first one; `several` warns */
   persons: ShownAssignment[]
+  /** the elements that realize a data store, shown as badges (design D8 of us-083-bpmn-data-objects) */
+  realizers: ShownAssignment[]
   /** "×" is offered: an editor with `entity:delete` for a saved assignment (a pending one needs `entity:write` only) */
   removable: (assignment: ShownAssignment) => boolean
   remove: (assignment: ShownAssignment) => void
@@ -135,6 +139,8 @@ export interface ShapeData {
   insertLane?: { vertical: boolean; insert: (side: 'before' | 'after') => void }
   /** the BPMN symbol of the notation element, in a diagram of the notation `bpmn2` (design D3 of us-074-bpmn-process-diagrams); none draws the box */
   symbol?: BpmnSymbol
+  /** the data object is drawn with the collection marker (three bars) */
+  collection?: boolean
   /** the description of the entity, shown by a text annotation */
   description?: string
   /** the badge, chips and avatar of the shape; none for a shape that carries no assignments */
@@ -206,6 +212,7 @@ export function fromView(shape: DiagramShape): CanvasShape {
     width: shape.width,
     height: shape.height,
     ...(shape.collapsed ? { collapsed: true } : {}),
+    ...(shape.collection ? { collection: true } : {}),
     ...(shape.orientation === 'vertical' ? { orientation: 'vertical' as const } : {}),
     missingMandatory: [...shape.missingMandatory],
     ...(shape.conflict ? { conflict: true } : {}),
@@ -566,6 +573,9 @@ export function rejectedShapes(
         if (sent && candidate.newConnection?.key === sent.key) markEdge(candidate, error.message)
       }
       if (sent) fields.set(`${sent.key}|${fieldOf(connection[2], sent.properties)}`, error.message)
+      // a connection without an edge (an assignment, "Realized By") is named by its source shape
+      const source = sent?.sourceShapeId ? byId.get(sent.sourceShapeId) : undefined
+      if (source) mark(source, error.message)
     } else if (shape) {
       const id = request.shapes[Number(shape[1])]?.id
       if (id && byId.has(id)) mark(byId.get(id)!, error.message)

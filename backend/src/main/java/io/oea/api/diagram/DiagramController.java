@@ -139,7 +139,7 @@ public class DiagramController implements DiagramsApi {
 
 	@Override
 	public ResponseEntity<DiagramView> getDiagramView(UUID id) {
-		return view(this.views.view(id));
+		return view(this.views.view(principal(), id));
 	}
 
 	@Override
@@ -327,7 +327,7 @@ public class DiagramController implements DiagramsApi {
 								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId(),
 										shape.childCount(), shape.parentEntityId()),
 								shape.parentShapeId(), shape.x(), shape.y(), shape.width(), shape.height(),
-								shape.collapsed(), DiagramShapeOrientation.fromValue(shape.orientation()), shape.missingMandatory(), shape.conflict())
+								shape.collapsed(), shape.collection(), DiagramShapeOrientation.fromValue(shape.orientation()), shape.missingMandatory(), shape.conflict())
 							.assignments(assignments(shape.assignments())))
 						.toList(),
 					view.edges()
@@ -351,7 +351,8 @@ public class DiagramController implements DiagramsApi {
 			return null;
 		}
 		return new io.oea.api.generated.model.DiagramAssignments(assignmentItems(assignments.orgUnits()),
-				assignmentItems(assignments.roles()), assignmentItems(assignments.persons()));
+				assignmentItems(assignments.roles()), assignmentItems(assignments.persons()),
+				assignmentItems(assignments.realizedBy()));
 	}
 
 	private static List<io.oea.api.generated.model.DiagramAssignment> assignmentItems(

@@ -32,6 +32,8 @@ describe('bpmnSymbols', () => {
     ['bpmn:Lane', 'lane', undefined],
     ['bpmn:TextAnnotation', 'annotation', undefined],
     ['bpmn:Group', 'group', undefined],
+    ['bpmn:DataObject', 'data-object', undefined],
+    ['bpmn:DataStore', 'data-store', undefined],
   ])('draws %s as %s with the marker %s', (key, kind, marker) => {
     const symbol = bpmnSymbol('bpmn2', key)
     expect(symbol?.kind).toBe(kind)
@@ -69,6 +71,8 @@ describe('bpmnSymbols', () => {
     ['bpmn:SequenceFlow', 'sequence'],
     ['bpmn:MessageFlow', 'message'],
     ['bpmn:Association', 'association'],
+    ['bpmn:DataInputAssociation', 'data'],
+    ['bpmn:DataOutputAssociation', 'data'],
   ])('draws %s with the line %s', (key, style) => {
     expect(flowStyle('bpmn2', key)).toBe(style)
   })
@@ -97,15 +101,15 @@ describe('bpmnSymbols', () => {
     ['bpmn:TextAnnotation', 'artifacts'],
     ['bpmn:Group', 'artifacts'],
     ['generic:Box', 'other'],
-    ['bpmn:DataObject', 'other'],
-    ['bpmn:DataStore', 'other'],
+    ['bpmn:DataObject', 'data'],
+    ['bpmn:DataStore', 'data'],
     [undefined, 'other'],
   ])('puts %s in the palette group %s', (key, group) => {
     expect(paletteGroup(key)).toBe(group)
   })
 
   it('orders the palette groups', () => {
-    expect(PALETTE_GROUPS).toEqual(['pools', 'activities', 'events', 'gateways', 'artifacts', 'other'])
+    expect(PALETTE_GROUPS).toEqual(['pools', 'activities', 'events', 'gateways', 'data', 'artifacts', 'other'])
   })
 
   it.each([

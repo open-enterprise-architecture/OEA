@@ -247,7 +247,7 @@ class OrganizationStarterPackageTests {
 		this.api.ok(this.api.post("/api/v1/metamodel/starter-packages/oea-starter-togaf-classic/import", null, this.admin));
 		this.api.ok(this.api.post("/api/v1/metamodel/starter-packages/oea-starter-bpmn/import", null, this.admin));
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE source_package_id IN "
-				+ "('oea-starter-togaf-classic', 'oea-starter-bpmn', ?)", Integer.class, ORGANIZATION)).isEqualTo(8 + 31 + 6);
+				+ "('oea-starter-togaf-classic', 'oea-starter-bpmn', ?)", Integer.class, ORGANIZATION)).isEqualTo(8 + 36 + 6);
 		// a re-import of the organization package after the others changes nothing
 		JsonNode outcome = this.api.ok(this.api.post(importPath(), null, this.admin));
 		assertThat(outcome.path("created").asInt()).isZero();

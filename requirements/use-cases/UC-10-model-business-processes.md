@@ -102,6 +102,8 @@ The business analyst persona can model business processes directly in the OEA to
 8. Anna optionally selects "Link to application": a task-to-application connection links the process step with the supporting system in the EA repository
 9. Anna saves the diagram; all entities and connections are persisted atomically
 
+Data (change `us-083-bpmn-data-objects`): between steps 6 and 7 Anna places **data objects** and **data stores** in the process – a viewpoint decides which entity type is drawn as one, so an existing TOGAF "Data Object" is placed with "Add existing" – and connects them to tasks: a drag from a data object to a task draws a data input association, from a task to a data object a data output association, whose details panel records what the task does with the data ("Transformation type", "Affected attributes", "Condition"). A data store names the element that realizes it with "Realized by…". Data objects do not nest in lanes and are not assigned by them. The lineage through processes follows with the lineage API and view.
+
 ## Alternative Flows
 
 **A1 — OrganizationalUnit does not exist**:

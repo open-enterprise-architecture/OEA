@@ -755,7 +755,10 @@
       "conflicts": "Das Paket kollidiert mit vorhandenen Namen: {elements}. Es wurde nichts importiert.",
       "failed": "Das Starterpaket konnte nicht importiert werden.",
       "loadFailed": "Die Starterpakete konnten nicht geladen werden.",
-      "none": "Es werden keine Starterpakete mitgeliefert."
+      "none": "Es werden keine Starterpakete mitgeliefert.",
+      "importedVersion": "Importierte Version {version}",
+      "update": "Auf {version} aktualisieren",
+      "updateTitle": "{name} auf {version} aktualisieren?"
     },
     "organization": {
       "title": "Organisationsmodell",
@@ -1715,6 +1718,7 @@
         "activities": "Aktivitäten",
         "events": "Ereignisse",
         "gateways": "Gateways",
+        "data": "Daten",
         "artifacts": "Artefakte",
         "other": "Sonstige"
       },
@@ -1757,6 +1761,16 @@
         "connections": "Ein Speichern legt höchstens 500 Verbindungen an.",
         "entities": "Ein Speichern legt höchstens 500 Objekte an.",
         "removals": "Ein Speichern entfernt höchstens 500 Zuordnungen."
+      }
+    },
+    "dataObjects": {
+      "realizedBy": "Realisiert durch",
+      "realizedByAction": "Realisiert durch…",
+      "notNested": "Datenobjekte und Datenspeicher werden nicht verschachtelt und nicht platziert: {names}.",
+      "tagRefused": {
+        "empty": "Ein Tag darf nicht leer sein.",
+        "length": "Ein Tag hat höchstens {length} Zeichen.",
+        "count": "Höchstens {max} Tags."
       }
     }
   },

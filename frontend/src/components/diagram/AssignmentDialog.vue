@@ -15,6 +15,8 @@ const props = defineProps<{
   title: string
   /** the metatype of the part and its subtypes, for "Create new" */
   types: { id: string; name: string }[]
+  /** "Create new" is offered (default); a data store's "Realized by" searches only (us-083-bpmn-data-objects D8) */
+  allowCreate?: boolean
   /** the entities that are assigned already, by ID, are marked */
   assigned?: number[]
   fetchFn?: typeof fetch
@@ -126,7 +128,7 @@ function create() {
           </li>
         </ul>
         <UButton v-if="page + 1 < totalPages" data-testid="assignment-more" color="neutral" variant="outline" :loading="loading" :label="t('diagrams.loadMore')" @click="run(page + 1)" />
-        <div class="flex flex-col gap-2 rounded-md border border-default p-2" data-testid="assignment-create">
+        <div v-if="allowCreate !== false" class="flex flex-col gap-2 rounded-md border border-default p-2" data-testid="assignment-create">
           <USelect v-if="types.length > 1" v-model="typeId" :items="types.map((type) => ({ label: type.name, value: type.id }))" :placeholder="types[0]?.name" class="w-full" :aria-label="t('diagrams.assignments.type')" data-testid="assignment-create-type" />
           <UButton
             color="neutral"

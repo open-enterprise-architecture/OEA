@@ -61,6 +61,7 @@ import {
   type ShownAssignment,
 } from './assignments'
 import { bpmnSymbol, flowStyle, PALETTE_GROUPS, paletteGroup, type PaletteGroup } from './bpmnSymbols'
+import { collectionOf, DATA_STORE, isDataKey, withoutParent } from './dataObjects'
 import {
   abbreviation,
   applyEdit,
@@ -288,22 +289,35 @@ function lanePart(shape: CanvasShape): 'orgUnit' | 'role' | undefined {
   return part === 'orgUnit' || part === 'role' ? part : undefined
 }
 const shapeIndex = computed(() => new Map(shapes.value.map((shape) => [shape.id, shape])))
-const lanesAbove = (shapeId: string, list?: CanvasShape[]) =>
-  organization.value ? assignmentLanesAbove(list ?? shapes.value, shapeId, lanePart, list ? undefined : shapeIndex.value) : []
-/** Whether the shape shows assignments: a lane, pool or task, or a shape in an assignment lane. */
+/** Whether the shape is drawn as data object or data store: it lies in a container for the layout only and gets no assignment from a lane (design D4 of us-083-bpmn-data-objects). */
+const isDataShape = (shape: CanvasShape): boolean => bpmn.value && isDataKey(notationElementOf(props.view, shape.metatypeId))
+const isStoreShape = (shape: CanvasShape): boolean => bpmn.value && notationElementOf(props.view, shape.metatypeId) === DATA_STORE
+function lanesAbove(shapeId: string, list?: CanvasShape[]) {
+  if (!organization.value) return []
+  const own = list ? list.find((shape) => shape.id === shapeId) : shapeIndex.value.get(shapeId)
+  if (own && isDataShape(own)) return []
+  return assignmentLanesAbove(list ?? shapes.value, shapeId, lanePart, list ? undefined : shapeIndex.value)
+}
+/** Whether the shape shows assignments: a lane, pool or task, a shape in an assignment lane, or a data store with its realizing elements. */
 function carriesAssignments(shape: CanvasShape): boolean {
+  if (isDataShape(shape)) return isStoreShape(shape)
   const element = notationElementOf(props.view, shape.metatypeId)
   return element === 'bpmn:Lane' || element === 'bpmn:Pool' || (element !== undefined && TASK_ELEMENTS.includes(element)) || lanesAbove(shape.id).length > 0
 }
 const shownOf = (shape: CanvasShape): ShownAssignment[] => markContained(shownAssignments(savedOf(shape.id), assignmentEdits.value, shape.id), lanesAbove(shape.id))
 /** "×" is offered to an editor: for a saved assignment only with `entity:delete`, never for one that the lane of the shape stands for. */
-const removable = (assignment: ShownAssignment): boolean => props.editable && assignment.contained !== true && (assignment.pending || props.canDelete === true)
+const removable = (assignment: ShownAssignment): boolean =>
+  props.editable && assignment.contained !== true && !shownByEdge(assignment) && (assignment.pending || props.canDelete === true)
+/** A "Realized By" that an edge of the diagram shows is removed with its edge, not with "×" (design D8 of us-083-bpmn-data-objects). */
+const shownByEdge = (assignment: ShownAssignment): boolean =>
+  assignment.part === 'realizer' && assignment.connectionId !== undefined && edges.value.some((edge) => edge.connectionId === assignment.connectionId)
 function shapeAssignments(shape: CanvasShape): ShapeAssignments {
   const shown = shownOf(shape)
   return {
     orgUnit: shown.find((entry) => entry.part === 'orgUnit'),
     roles: shown.filter((entry) => entry.part === 'role'),
     persons: shown.filter((entry) => entry.part === 'person'),
+    realizers: shown.filter((entry) => entry.part === 'realizer'),
     removable,
     remove: (assignment) => unassign(shape.id, assignment),
   }
@@ -504,6 +518,7 @@ const nodes = computed(() => {
         ? { insertLane: { vertical: role.vertical, insert: (side: 'before' | 'after') => insertLane(shape.id, side) } }
         : {}),
       symbol,
+      ...(symbol?.kind === 'data-object' ? { collection: collectionOf(shape, edits.value) } : {}),
       ...(carriesAssignments(shape) ? { assignments: shapeAssignments(shape) } : {}),
       description:
         shape.newEntity?.description ?? (shape.entityId !== undefined ? (edits.value[shape.entityId]?.description ?? descriptions.value[shape.entityId]) : undefined),
@@ -696,11 +711,14 @@ function dropInto(shape: CanvasShape, center: { x: number; y: number }) {
       entry.id === shape.id && entry.newEntity
         ? {
             ...entry,
-            newEntity: {
-              ...entry.newEntity,
-              parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
-              parentNewEntityKey: target && 'key' in target ? target.key : undefined,
-            },
+            // a data object or data store is created without a parent, also in a container (design D4 of us-083-bpmn-data-objects)
+            newEntity: isDataShape(entry)
+              ? withoutParent(entry.newEntity)
+              : {
+                  ...entry.newEntity,
+                  parentEntityId: target && 'entityId' in target ? target.entityId : undefined,
+                  parentNewEntityKey: target && 'key' in target ? target.key : undefined,
+                },
           }
         : entry,
     ),
@@ -750,8 +768,11 @@ async function showChildren(shapeId: string | undefined) {
     const shown = new Map<number, CanvasShape>()
     shapes.value.forEach((shape) => shape.entityId !== undefined && !shown.has(shape.entityId) && shown.set(shape.entityId, shape))
     const nestedHere = new Set(descendantsOf(shapes.value, current.id).map((shape) => shape.entityId))
-    const fresh = outcome.value.items.filter((item) => item.allowed && !shown.has(item.entity.id))
-    const refused = outcome.value.items.filter((item) => !item.allowed && !shown.has(item.entity.id))
+    // data objects and data stores do not nest: they are not placed and not connected, and the notice names them (design D4 of us-083-bpmn-data-objects)
+    const dataChildren = outcome.value.items.filter((item) => isDataKey(notationElementOf(props.view, item.entity.metatypeId)))
+    const dataIds = new Set(dataChildren.map((item) => item.entity.id))
+    const fresh = outcome.value.items.filter((item) => item.allowed && !shown.has(item.entity.id) && !dataIds.has(item.entity.id))
+    const refused = outcome.value.items.filter((item) => !item.allowed && !shown.has(item.entity.id) && !dataIds.has(item.entity.id))
     const room = Math.max(0, CANVAS_LIMITS.shapes - shapes.value.length)
     const placing = fresh.slice(0, room)
     if (levelOf(shapes.value, current.id) + 1 > CANVAS_LIMITS.nesting && placing.length > 0) {
@@ -764,10 +785,13 @@ async function showChildren(shapeId: string | undefined) {
     if (refused.length > 0) {
       messages.push(t('diagrams.nesting.notAllowed', { names: refused.map((item) => item.entity.name).join(', ') }))
     }
+    if (dataChildren.length > 0) {
+      messages.push(t('diagrams.dataObjects.notNested', { names: dataChildren.map((item) => item.entity.name).join(', ') }))
+    }
     // children shown elsewhere: the composition connection as an edge, else a hierarchy line
     for (const item of outcome.value.items) {
       const there = shown.get(item.entity.id)
-      if (!there || nestedHere.has(item.entity.id) || there.id === current.id) continue
+      if (!there || dataIds.has(item.entity.id) || nestedHere.has(item.entity.id) || there.id === current.id) continue
       const connection = item.compositionConnection
       if (connection?.allowed) {
         const exists = edges.value.some((edge) => edge.connectionId === connection.connection.id && edge.sourceShapeId === current.id && edge.targetShapeId === there.id)
@@ -883,7 +907,7 @@ async function connect(params: { source: string; target: string }) {
       notice.value = t('diagrams.connections.loadFailed')
       return
     }
-    const options = connectionOptions(props.view, result)
+    const options = connectionOptions(props.view, result, { source: notationElementOf(props.view, source.metatypeId), target: notationElementOf(props.view, target.metatypeId) })
     if (options.length === 0) {
       notice.value = t('diagrams.canvas.noConnectionAllowed')
     } else if (options.length === 1) {
@@ -929,7 +953,7 @@ async function openConnected() {
         results.set(target.id, result)
       }),
     )
-    connectedList.value = connectedOptions(props.view, results)
+    connectedList.value = connectedOptions(props.view, results, notationElementOf(props.view, source.metatypeId))
   } catch {
     connectedFailed.value = true
   } finally {
@@ -1034,6 +1058,10 @@ const assignEntries = computed<{ part: Part; label: string }[]>(() => {
   if (element === 'bpmn:Lane' && ids.role && ids.performsRole && own !== 'role') {
     entries.push({ part: 'role', label: t('diagrams.assignments.assignRole') })
   }
+  // "Realized by…" of a data store (design D8 of us-083-bpmn-data-objects): needs the package type "Realized By"
+  if (isStoreShape(shape) && ids.realizedBy) {
+    entries.push({ part: 'realizer', label: t('diagrams.dataObjects.realizedByAction') })
+  }
   return entries
 })
 
@@ -1055,7 +1083,7 @@ const assignmentFields = computed<AssignmentField[]>(() => {
   return fields
 })
 
-const assignTypes = computed(() => (assigning.value ? (organization.value?.types(assigning.value.part) ?? []) : []))
+const assignTypes = computed(() => (assigning.value && assigning.value.part !== 'realizer' ? (organization.value?.types(assigning.value.part) ?? []) : []))
 const assignedIds = computed(() => {
   const ask = assigning.value
   return ask ? shownAssignments(savedOf(ask.shapeId), assignmentEdits.value, ask.shapeId, ask.part).flatMap((entry) => (entry.entityId !== undefined ? [entry.entityId] : [])) : []
@@ -1065,7 +1093,16 @@ function openAssign(part: Part, shapeId = selectedId.value) {
   const shape = shapes.value.find((entry) => entry.id === shapeId)
   if (!props.editable || !shape || !organization.value) return
   const pool = notationElementOf(props.view, shape.metatypeId) === 'bpmn:Pool'
-  const title = part === 'orgUnit' ? (pool ? t('diagrams.assignments.setParticipant') : t('diagrams.assignments.assignOrgUnit')) : part === 'role' ? t('diagrams.assignments.assignRole') : t('diagrams.assignments.addPerson')
+  const title =
+    part === 'orgUnit'
+      ? pool
+        ? t('diagrams.assignments.setParticipant')
+        : t('diagrams.assignments.assignOrgUnit')
+      : part === 'role'
+        ? t('diagrams.assignments.assignRole')
+        : part === 'person'
+          ? t('diagrams.assignments.addPerson')
+          : t('diagrams.dataObjects.realizedByAction')
   assigning.value = { shapeId: shape.id, part, title }
   assignOpen.value = true
   menu.value = undefined
@@ -1350,6 +1387,10 @@ function insertLane(id: string, side: 'before' | 'after') {
 function askParent(id: string, container: CanvasShape | undefined) {
   const shape = shapes.value.find((entry) => entry.id === id)
   if (!shape || !props.view.askNewParent || (shape.entityId === undefined && !shape.newEntity)) {
+    return
+  }
+  // a data object or data store keeps its entity parent where it lies (design D4 of us-083-bpmn-data-objects): no question
+  if (isDataShape(shape)) {
     return
   }
   // a lane of an organizational unit or role is an assignment, not a parent (design D8): no question
@@ -1885,6 +1926,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       :part="assigning?.part ?? 'role'"
       :title="assigning?.title ?? ''"
       :types="assignTypes"
+      :allow-create="assigning?.part !== 'realizer'"
       :assigned="assignedIds"
       :fetch-fn="fetchFn"
       @pick="assignPicked"

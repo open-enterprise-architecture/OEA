@@ -38,6 +38,7 @@ const symbol = computed(() => props.data.symbol)
 // the assignments (us-075-lane-assignments D6): the badge of the organizational unit and the chips of the roles on a lane or pool, the avatar of the person on a user task
 const chips = computed(() => roleChips(props.data.assignments?.roles ?? []))
 const person = computed(() => props.data.assignments?.persons[0])
+const realizers = computed(() => props.data.assignments?.realizers ?? [])
 const carriesBand = computed(() => symbol.value?.kind === 'lane' || symbol.value?.kind === 'pool')
 function insertLabel(side: 'before' | 'after'): string {
   const vertical = props.data.insertLane?.vertical === true
@@ -106,6 +107,16 @@ const complaint = computed(
       <svg v-if="symbol.kind === 'event'" class="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-testid="symbol-outline">
         <ellipse cx="50" cy="50" rx="49" ry="49" fill="var(--ui-bg)" :stroke="stroke" :stroke-width="eventStroke(symbol.position)" vector-effect="non-scaling-stroke" />
         <ellipse v-if="eventRings(symbol.position) === 2" cx="50" cy="50" rx="41" ry="41" fill="none" :stroke="stroke" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+      </svg>
+      <svg v-else-if="symbol.kind === 'data-object'" class="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" :data-collection="data.collection ? 'true' : undefined" data-testid="symbol-outline">
+        <path d="M3 2H68L97 30V98H3Z" fill="var(--ui-bg)" :stroke="stroke" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <path d="M68 2V30H97" fill="none" :stroke="stroke" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <path v-if="data.collection" d="M35 72V92M50 72V92M65 72V92" fill="none" :stroke="stroke" stroke-width="2" vector-effect="non-scaling-stroke" data-testid="collection-marker" />
+      </svg>
+      <svg v-else-if="symbol.kind === 'data-store'" class="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-testid="symbol-outline">
+        <path d="M2 14V86A48 12 0 0 0 98 86V14" fill="var(--ui-bg)" :stroke="stroke" stroke-width="2" vector-effect="non-scaling-stroke" />
+        <ellipse cx="50" cy="14" rx="48" ry="12" fill="var(--ui-bg)" :stroke="stroke" stroke-width="2" vector-effect="non-scaling-stroke" />
+        <path d="M2 28A48 12 0 0 0 98 28" fill="none" :stroke="stroke" stroke-width="1.5" vector-effect="non-scaling-stroke" />
       </svg>
       <svg v-else-if="symbol.kind === 'gateway'" class="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-testid="symbol-outline">
         <polygon points="50,1 99,50 50,99 1,50" fill="var(--ui-bg)" :stroke="stroke" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
@@ -214,6 +225,29 @@ const complaint = computed(
           @blur="commit"
         />
         <span v-else-if="symbol.label !== 'band'" class="min-w-0 font-medium" :class="symbol.kind === 'annotation' ? 'line-clamp-4 whitespace-pre-line' : 'line-clamp-3 break-words'" data-testid="shape-name">{{ shown }}</span>
+        <div v-if="realizers.length > 0 && !data.editing" class="flex max-w-full flex-wrap justify-center gap-1" data-testid="shape-realizers">
+          <span
+            v-for="realizer in realizers"
+            :key="`${realizer.entityId ?? realizer.newEntityKey}`"
+            class="nodrag inline-flex max-w-full items-center gap-0.5 rounded-full border border-accented bg-elevated px-1.5 text-[10px] text-default"
+            :data-pending="realizer.pending ? 'true' : undefined"
+            data-testid="realizer-badge"
+            :title="t('diagrams.dataObjects.realizedBy')"
+          >
+            <UIcon name="i-lucide-server" class="size-3 shrink-0" />
+            <span class="truncate">{{ realizer.name }}</span>
+            <button
+              v-if="data.assignments?.removable(realizer)"
+              type="button"
+              class="rounded-full leading-none hover:text-highlighted"
+              :aria-label="t('diagrams.assignments.remove', { name: realizer.name })"
+              data-testid="realizer-remove"
+              @click.stop="data.assignments.remove(realizer)"
+            >
+              ×
+            </button>
+          </span>
+        </div>
         <div v-if="carriesBand && data.assignments && !data.editing && (data.assignments.orgUnit || chips.shown.length > 0)" class="flex max-w-full flex-wrap justify-end gap-1" data-testid="shape-assignments">
           <span v-if="data.assignments.orgUnit" class="nodrag inline-flex max-w-full items-center gap-0.5 rounded-full border border-accented bg-elevated px-1.5 text-[10px] text-default" :data-pending="data.assignments.orgUnit.pending ? 'true' : undefined" data-testid="assignment-badge" :title="t('diagrams.assignments.orgUnit')">
             <UIcon name="i-lucide-building-2" class="size-3 shrink-0" />
