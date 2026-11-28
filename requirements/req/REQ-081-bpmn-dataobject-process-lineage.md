@@ -4,7 +4,7 @@ title: BPMN DataObject integration and process data lineage
 type: functional
 priority: should
 status: accepted
-version: 0.2.0
+version: 0.3.0
 use_case: UC-10
 created: 2026-06-26
 last_updated: 2026-11-28
@@ -17,7 +17,7 @@ author: requirements-engineer
 
 BPMN processes can contain DataObjects and DataStores. Via input and output associations, tasks describe which data they read, create or enrich (`transformationType`). A data object and a data store are **symbols**: a viewpoint decides which entity type is drawn as one, for example the TOGAF "Data Object", so the same entity appears both in the process diagram and, later, in the lineage query (UC-08). The package `oea-starter-bpmn` 1.1.0 brings the default types "BPMN Data Object" and "BPMN Data Store".
 
-Realized by the change `us-083-bpmn-data-objects` (owner decisions 2026-11-28), except **AC6** (lineage, with the lineage API and view SCR-023), **AC8** (portal canvas, with SCR-054) and the `[[` mention of AC4 (REQ-070).
+Realized by the change `us-083-bpmn-data-objects` (owner decisions 2026-11-28), except **AC8** (portal canvas, with SCR-054) and the `[[` mention of AC4 (REQ-070).
 
 ## Acceptance Criteria
 
@@ -47,10 +47,10 @@ Realized by the change `us-083-bpmn-data-objects` (owner decisions 2026-11-28), 
 - A data store names the element that realizes it with a "Realized By" connection to any element of the EA repository, for example an application component or system software; the viewpoint need not allow its type
 - Link: context menu "Realized by…" of the data store → search in the EA repository; the target is shown as a badge, removed with "×" (`entity:delete`)
 
-**AC6** (Lineage query through process; **open**, with the lineage API and view SCR-023):
+**AC6** (Lineage query through process; realized by `us-065-lineage-model-and-query`, owner decision 2026-11-28):
 
-- `GET /api/v1/entities/{id}/lineage?direction=downstream` for a `data-object` also returns BPMN tasks that enrich this object via `bpmn-data-output-association`
-- Analogously upstream: tasks that read it as input
+- `POST /views/lineage/query` for a data object also returns the tasks of its data associations (when the data-input and data-output parts of the lineage model are set): `upstream` the writers by `bpmn-data-output-association` as producers with their transformation type, `downstream` the readers by `bpmn-data-input-association` as consumers, as with data flows
+- The page SCR-023 follows in `us-066-lineage-view`
 
 **AC7** (Catalog join on process data; realized, the associations are ordinary connections):
 
@@ -67,3 +67,4 @@ Realized by the change `us-083-bpmn-data-objects` (owner decisions 2026-11-28), 
 - Canvas display: dashed line with open arrow (BPMN notation); DataObject symbol: document with a folded corner, three bars for a collection; DataStore symbol: cylinder
 - Lineage API (REQ-062): must know `bpmn-data-input-association` and `bpmn-data-output-association` as traversable edges
 - BR-07 from process.md applies (arrow direction); BR-08 is retired (owner decision 2026-11-28)
+| 0.3.0 | 2026-11-28 | Change us-065-lineage-model-and-query | AC6 realigned (writers upstream as producers, readers downstream as consumers) and realized by the lineage query |

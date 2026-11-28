@@ -578,6 +578,17 @@ The organization model, which entity types play organizational unit, role and pe
 | Target | `organization-model`, ID `1` |
 | Details | `parts`: per changed part (`orgUnit`, `role`, `person`, `belongsTo`, `performsRole`, `responsible`) the old and the new metatype ID (`old`, `new`; empty when unset), the new `version`; by a package import also `cause` (`package-import`) and `packageId` |
 
+### `metamodel.lineage-model-updated`
+
+The lineage model, which entity type plays the data object and which connection types play data flow, carries-data, data input and data output, was changed, or a package import filled its unset parts ([US-064](../requirements/user-stories/US-064-carries-data-connection.md), [US-065](../requirements/user-stories/US-065-lineage-query.md), [REQ-062](../requirements/req/REQ-062-lineage-graph-api.md); change us-065-lineage-model-and-query D3). A write that changes nothing, a rejected write (wrong kind of metatype, a connection part whose endpoint lists exclude the part it has to reach, stale or missing version, missing permission, `import-only`) and a re-import that fills nothing are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator, or the principal of the package import |
+| Target | `lineage-model`, ID `1` |
+| Details | `parts`: per changed part (`dataObject`, `dataFlow`, `carriesData`, `dataInput`, `dataOutput`) the old and the new metatype ID (`old`, `new`; empty when unset), the new `version`; by a package import also `cause` (`package-import`) and `packageId` |
+
 ### `metamodel.category-created` / `metamodel.category-updated` / `metamodel.category-deleted`
 
 An organization property category was created, changed or deleted.
@@ -810,8 +821,8 @@ A catalog or portal query, or a read of a version's state or diff, or of the det
 |---|---|
 | Category / severity / outcome | `security` / `warning` / `success` |
 | Actor | the reader |
-| Target | `catalog`, ID of the catalog; `entity`, ID of the entity for the channel `history`; `diagram`, ID of the diagram for the channel `diagram` |
-| Details | `channel` (`catalog`, `portal`, `dashboard`, `history` or `diagram`), `page` (`0` for `history` and `diagram`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
+| Target | `catalog`, ID of the catalog; `entity`, ID of the entity for the channel `history`; `diagram`, ID of the diagram for the channel `diagram`; `entity`, ID of the start entity for the channel `lineage` |
+| Details | `channel` (`catalog`, `portal`, `dashboard`, `history`, `diagram` or `lineage`), `page` (`0` for `history` and `diagram`), `properties`: per property `propertyDefId`, `property` (name) and `entityIds` (the entities of rows, join results or connection endpoints whose value was returned through the override) |
 
 ### `visibility.person-metatype-changed`
 

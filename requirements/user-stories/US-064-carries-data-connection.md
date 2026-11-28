@@ -2,8 +2,8 @@
 
 **ID**: US-064
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S18
 
 ## Story
 
@@ -50,6 +50,10 @@ As a Data Architect, I want to create a `carries-data` connection between a data
 
 - `POST /api/v1/entities` with entityTypeId=`carries-data`, sourceEntityId, targetEntityId
 - Validation of `allowsConnectionAsSource` server-side against MetamodelConfiguration
+
+## Implementation Notes
+
+Realized by the change `us-065-lineage-model-and-query`: "Carries Data" from "Data Flow" to "Data Object" (AC1); the flag `allowsConnectionAsSource` is replaced by the connection constraint (AC2: `SOURCE_NOT_ALLOWED`, AC3: `TARGET_NOT_ALLOWED`) and the depth rule (AC4: 422 `CONNECTION_DEPTH_EXCEEDED`); AC5 holds for every connection. The indicator and the panel follow in `us-066-lineage-view`.
 
 ## Definition of Done
 

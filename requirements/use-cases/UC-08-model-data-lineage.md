@@ -5,9 +5,9 @@ status: draft
 priority: should
 target_release: v1.0
 complexity: large
-version: 0.1.0
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-28
 primary_actor: SH-02
 secondary_actors:
   - SH-03
@@ -314,6 +314,8 @@ Lukas (SH-02)
 
 ## Realizing Components
 
+- Change `us-065-lineage-model-and-query` (S18, 2026-11-28): TOGAF starter package 1.5.0 with "Data Flow", "Carries Data" and the data properties, the lineage model setting, the depth rule for connections of connections and `POST /views/lineage/query` (AC1 to AC5; AC6 by the catalog filters). The data flow carries its data objects through "Carries Data" (the n-connection of ADR-010), not through the property `carriedDataObjectIds`. The lineage page follows in `us-066-lineage-view`.
+
 - REQ: still to be derived (REQ-060 ff.)
 - US: still to be derived
 - Implementation: none yet
@@ -336,3 +338,4 @@ The decision to store `carriedDataObjectIds` as a PropertyValue string instead o
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | Requirements Engineer | Initial draft; data lineage as traversable graph; lineage API; GDPR side flow; cycle detection |
+| 0.2.0 | 2026-11-28 | Change us-065-lineage-model-and-query | Realizing components: lineage model and query |

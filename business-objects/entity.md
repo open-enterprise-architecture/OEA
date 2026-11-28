@@ -2,7 +2,7 @@
 identifier: architecture-entity
 name_de: Architektur-Entität
 name_en: Architecture Entity
-version: 0.7.0
+version: 0.8.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -158,7 +158,7 @@ Every create and every change that modifies at least one field creates a new ver
 | BR-01 | Every ArchitectureEntity MUST have an `entityTypeId` that points to an existing `EntityTypeDefinition` in the instance's MetamodelConfiguration | onCreate | – |
 | BR-02 | `id` is a sequential integer ≥ 1; it is assigned by the system on creation as the next free sequence number; elements and connections share the same number space; immutable after creation | onCreate | – |
 | BR-03 | `entityTypeId` is immutable after creation; a type change is not possible (create a new entity, delete the old one) | onUpdate | – |
-| BR-04 | If `EntityTypeDefinition.isConnection=true`: `sourceEntityId` AND `targetEntityId` MUST be set. `sourceEntityId` may point to a connection instance **only if** its meta-type carries `allowsConnectionAsSource=true` (ADR-010 n-connection); otherwise `sourceEntityId` must point to a non-connection instance. `targetEntityId` must always point to a non-connection instance. | onCreate, onUpdate | ADR-010 |
+| BR-04 | If `EntityTypeDefinition.isConnection=true`: `sourceEntityId` AND `targetEntityId` MUST be set. `sourceEntityId` may point to a connection instance **only if** its meta-type carries `allowsConnectionAsSource=true` (ADR-010 n-connection); otherwise `sourceEntityId` must point to a non-connection instance. `targetEntityId` must always point to a non-connection instance. **Implementation note (change us-065-lineage-model-and-query):** the flag is not implemented as a field; the connection constraint takes its place – a connection metatype whose allowed sources list a connection metatype (for example "Carries Data" from "Data Flow") is the n-connection, and any other source or target answers `SOURCE_NOT_ALLOWED` or `TARGET_NOT_ALLOWED`. The depth stays at one: a new connection whose source or target is a connection that itself starts or ends at a connection is rejected with `CONNECTION_DEPTH_EXCEEDED`, whatever the endpoint lists allow. | onCreate, onUpdate | ADR-010 |
 | BR-05 | If `EntityTypeDefinition.isConnection=false`: `sourceEntityId` and `targetEntityId` MUST be null | onCreate, onUpdate | – |
 | BR-06 | Property values are only stored for property definitions with an active mapping (latest `validFrom` not after today) for the `entityTypeId` meta-type; a value for a definition without active mapping is ignored with a warning (REQ-149) | onCreate, onUpdate | REQ-149 |
 | BR-07 | Properties whose mapping has `necessity=mandatory` MUST have a non-empty value; if the value is missing → 422 (`MANDATORY_MISSING`); `necessity=warning` → saved with a warning; `necessity=optional` → always valid (ADR-022, REQ-149) | onCreate, onUpdate | REQ-149 |
@@ -254,3 +254,4 @@ entity:
 | 0.5.0 | 2026-10-16 | Lukas Mathis | Aligned with ADR-022 and `docs/data-model.puml` (change us-141-entity-batch-upsert): typed property values instead of JSONB, keyed by `propertyDefId`; version header plus deltas instead of snapshots (BR-13); BR-06 and BR-07 follow REQ-149 (unmapped values ignored with warning, `necessity`); batch writes by `externalId` without version (BR-12); name not blank |
 | 0.6.0 | 2026-11-04 | Business Engineer | Connections (change us-036-connection-metatypes): endpoints in `entity_connections`, of any type the connection type allows including connections, fixed after creation; a connection without a name is named after its endpoints |
 | 0.7.0 | 2026-11-18 | Change us-135-component-hierarchy | `parentEntityId` as a versioned system field with depth limit; structuring aids (`isStructuralGrouper`) and the auto-created composition connection (`autoCreated`) as implemented |
+| 0.8.0 | 2026-11-28 | Change us-065-lineage-model-and-query | BR-04: implementation note – the connection constraint and the depth rule `CONNECTION_DEPTH_EXCEEDED` take the place of `allowsConnectionAsSource` |

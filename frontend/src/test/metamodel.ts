@@ -112,6 +112,8 @@ export interface MetamodelApiOptions {
   me?: unknown
   /** The parts of the organization model that are set at the start, by metatype ID (us-075-lane-assignments); default none. */
   organization?: Partial<Record<'orgUnit' | 'role' | 'person' | 'belongsTo' | 'performsRole' | 'responsible', string>>
+  /** The parts of the lineage model that are set at the start, by metatype ID (us-065-lineage-model-and-query); default none. */
+  lineage?: Partial<Record<'dataObject' | 'dataFlow' | 'carriesData' | 'dataInput' | 'dataOutput', string>>
   /** Entities without a value that a new mandatory mapping marks. */
   unmarkedEntities?: number
   /** Answers every request after the given path with an error, for failure states. */
@@ -387,6 +389,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   const organization: Record<string, string> = { ...(options.organization ?? {}) }
   let organizationVersion = 1
   const ORG_PARTS = ['orgUnit', 'role', 'person', 'belongsTo', 'performsRole', 'responsible'] as const
+  const lineage: Record<string, string> = { ...(options.lineage ?? {}) }
+  let lineageVersion = 1
+  const LINEAGE_PARTS = ['dataObject', 'dataFlow', 'carriesData', 'dataInput', 'dataOutput'] as const
   const requests: MetamodelRequest[] = []
   const today = new Date().toISOString().slice(0, 10)
 
@@ -660,6 +665,30 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       }
       organizationVersion += 1
       return json(view(), 200, organizationVersion)
+    }
+
+    // the lineage model of the instance (us-065-lineage-model-and-query): one setting with a version
+    if (kind === 'lineage-model') {
+      const nameOf = (metatypeId: string | null) => (metatypeId ? (state.metatypes.find((metatype) => metatype.id === metatypeId)?.name ?? null) : null)
+      const view = () => ({
+        ...Object.fromEntries(LINEAGE_PARTS.map((part) => [part, { metatypeId: lineage[part] ?? null, metatypeName: nameOf(lineage[part] ?? null) }])),
+        version: lineageVersion,
+      })
+      if (method === 'GET') return json(view(), 200, lineageVersion)
+      if (ifMatch !== `"${lineageVersion}"`) return problem(412, 'stale-version', { currentVersion: lineageVersion })
+      const invalid = LINEAGE_PARTS.filter((part) => {
+        const requested = body?.[part] as string | null | undefined
+        const found = requested ? state.metatypes.find((metatype) => metatype.id === requested) : undefined
+        return requested ? !found || Boolean(found.isConnection) !== (part !== 'dataObject') : false
+      })
+      if (invalid.length > 0) return problem(422, 'validation-failed', { invalidFields: invalid })
+      for (const part of LINEAGE_PARTS) {
+        const requested = body?.[part] as string | null | undefined
+        if (requested) lineage[part] = requested
+        else delete lineage[part]
+      }
+      lineageVersion += 1
+      return json(view(), 200, lineageVersion)
     }
 
     // the starter packages shipped with OEA, sorted by identifier as the API does (us-074-bpmn-process-diagrams)

@@ -384,7 +384,8 @@
       "changes": "Changes",
       "settings": "Settings",
       "viewpoints": "Viewpoints",
-      "organization": "Organization model"
+      "organization": "Organization model",
+      "lineage": "Lineage model"
     },
     "scope": {
       "title": "Origin",
@@ -777,6 +778,23 @@
         "belongsTo": "Belongs to (connection)",
         "performsRole": "Performs role (connection)",
         "responsible": "Responsible (connection)"
+      }
+    },
+    "lineage": {
+      "title": "Lineage model",
+      "hint": "Which entity type plays the data object and which connection types play data flow, carries-data, data input and data output. The lineage query needs the data object, the data flow and carries-data.",
+      "unset": "Not set",
+      "loadFailed": "The lineage model could not be loaded.",
+      "saved": "The lineage model is saved.",
+      "invalid": "Some parts do not fit: the data object needs an entity type, the others a connection type whose allowed ends reach the data flow and the data object.",
+      "partInvalid": "This part does not fit.",
+      "save": "Save",
+      "part": {
+        "dataObject": "Data object",
+        "dataFlow": "Data flow (connection)",
+        "carriesData": "Carries data (connection)",
+        "dataInput": "Data input (connection)",
+        "dataOutput": "Data output (connection)"
       }
     }
   },

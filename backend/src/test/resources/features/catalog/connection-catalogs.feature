@@ -12,7 +12,7 @@ Feature: Connection catalogs
   Background:
     Given an instance with the starter package and catalog users logged in through the IdP
     And the metamodel has the connection metatype "Information Flow" from "Application Component" to "Application Component"
-    And the metamodel has the connection metatype "Carries Data" from "Information Flow" to "Data Object"
+    And the metamodel has the connection metatype "Carries Info" from "Information Flow" to "Info Object"
 
   @AC1 @REQ-065 @AC1
   Scenario: Data flow catalog
@@ -38,7 +38,7 @@ Feature: Connection catalogs
     Given the information flows "Customer Sync" from "CRM System" to "ERP" and "Payroll Export" from "HR" to "ERP"
     And the information flow "Customer Sync" carries the data objects "Customer master data" and "Order"
     And the enterprise architect creates the catalog "Carried Data" for "Information Flow" with scope "instance"
-    When the enterprise architect adds the join "Data objects" via "Carries Data" outbound to "Data Object" to "Carried Data"
+    When the enterprise architect adds the join "Data objects" via "Carries Info" outbound to "Info Object" to "Carried Data"
     Then the viewer sees the flow "Customer Sync" in one row of "Carried Data" with the data objects "Customer master data" and "Order"
 
   @AC2

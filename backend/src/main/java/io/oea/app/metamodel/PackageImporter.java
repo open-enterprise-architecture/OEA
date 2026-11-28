@@ -82,14 +82,17 @@ public class PackageImporter {
 
 	private final OrganizationModels organizationModels;
 
+	private final LineageModels lineageModels;
+
 	public PackageImporter(MetamodelConfigurationStore configurationStore, MetatypeStore metatypeStore,
 			PropertyDefinitionStore definitionStore, PropertyMappingStore mappingStore,
 			ConnectionConstraintStore constraintStore, PackageImportStore importStore, CompositionStore composition,
 			ArchitectureLayerStore layerStore, AuditWriter audit, Clock clock, MetamodelEffects effects,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels, MetamodelVersions versions,
 			ViewpointStore viewpointStore, NotationCatalog catalog, Diagrams diagrams,
-			OrganizationModels organizationModels) {
+			OrganizationModels organizationModels, LineageModels lineageModels) {
 		this.organizationModels = organizationModels;
+		this.lineageModels = lineageModels;
 		this.diagrams = diagrams;
 		this.configurationStore = configurationStore;
 		this.metatypeStore = metatypeStore;
@@ -117,7 +120,7 @@ public class PackageImporter {
 	 */
 	public record Outcome(UUID batchId, int created, int updated, int labels, int viewpointsCreated,
 			int viewpointsUpdated, int viewpointsDeleted, int diagramsDeleted, int layersCreated, int layersUpdated, int layersDeleted,
-			int layerAssignmentsCleared, List<String> organizationModelFilled) {
+			int layerAssignmentsCleared, List<String> organizationModelFilled, List<String> lineageModelFilled) {
 	}
 
 	/** Existing content with an identifier or a name of the package. */
@@ -202,6 +205,10 @@ public class PackageImporter {
 			.stream()
 			.map(OrganizationModels.Part::field)
 			.toList();
+		List<String> lineageFilled = this.lineageModels.fillUnset(principal, definition.lineageModel(), definition.packageId())
+			.stream()
+			.map(LineageModels.Part::field)
+			.toList();
 		// organization mappings are kept or removed by the re-import setting (us-032-metatype-editing D8)
 		Map<UUID, String> policies = this.policies.effective();
 		for (PackageDefinition.Metatype metatype : definition.metatypes()) {
@@ -241,6 +248,7 @@ public class PackageImporter {
 		details.put("architectureLayersDeleted", layerImport.dropped().size());
 		details.put("layerAssignmentsCleared", cleared);
 		details.put("organizationModelFilled", filled);
+		details.put("lineageModelFilled", lineageFilled);
 		this.audit.append(new AuditEvent("metamodel.package-imported", AuditEvent.Category.CHANGE,
 				AuditEvent.Severity.INFO, AuditEvent.Outcome.SUCCESS, AuditEvent.Source.API, Sessions.actor(principal),
 				"metamodel-package", definition.packageId(), details));
@@ -255,7 +263,7 @@ public class PackageImporter {
 		}
 		return new Outcome(batchId, created, updated, labelCount, viewpoints.created(), viewpoints.updated(),
 				viewpoints.deleted().size(), viewpoints.diagramsDeleted(), layerImport.created(), layerImport.updated(),
-				layerImport.dropped().size(), cleared, filled);
+				layerImport.dropped().size(), cleared, filled, lineageFilled);
 	}
 
 	/** What the import did to the layers of the package; {@code dropped} holds the IDs the package no longer has. */

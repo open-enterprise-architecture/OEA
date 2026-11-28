@@ -3,10 +3,10 @@ id: REQ-061
 title: n-Connection carries-data — link DataFlow with DataObject
 type: functional
 priority: should
-status: proposed
-version: 0.1.0
+status: accepted
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-28
 author: requirements-engineer
 references:
   use_cases:
@@ -126,6 +126,8 @@ New: `sourceEntityId` may point to an entity with `isConnection=true`, provided 
 
 ## Implementation Notes
 
+- Realized by the change `us-065-lineage-model-and-query`: "Carries Data" (from "Data Flow" to "Data Object") of the TOGAF starter package 1.5.0. The flag `allowsConnectionAsSource` is not implemented as a field: the connection constraint takes its place (a source that is not a listed metatype answers 422 `SOURCE_NOT_ALLOWED`, a connection as target 422 `TARGET_NOT_ALLOWED`), and the rule of the connection write rejects a connection at a connection that itself connects a connection with 422 `CONNECTION_DEPTH_EXCEEDED` (depth one). Source and target are fixed after creation as for every connection.
+
 - `POST /api/v1/entities` with entityTypeId=`carries-data`; source/target validation server-side
 - DB: same `architecture_entities` table as all other entities; source_entity_id may point to rows with isConnection=true (FK remains on architecture_entities, no separate table)
 - Depth check: when creating an n-connection, check whether `sourceEntity.entityType.allowsConnectionAsSource=true` AND `sourceEntity.entityType` itself does not grant a further n-connection source permission
@@ -142,3 +144,4 @@ New: `sourceEntityId` may point to an entity with `isConnection=true`, provided 
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft; n-connection option B per ADR-010 |
+| 0.2.0 | 2026-11-28 | Change us-065-lineage-model-and-query | Implementation note: constraint and depth rule instead of the flag |

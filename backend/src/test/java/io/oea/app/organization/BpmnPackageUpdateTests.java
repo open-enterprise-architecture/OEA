@@ -39,7 +39,7 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Specs metamodel/starter-packages (BPMN starter package 1.1.0, re-import of 1.0.0, update) at API level
+ * Specs metamodel/starter-packages (BPMN starter package 1.2.0, re-import of 1.0.0, update) at API level
  * (us-083-bpmn-data-objects D1, D7): the version 1.0.0 is rebuilt from the shipped package, imported, used by a
  * diagram and updated; the instance has a database of its own and the tests rely on their order.
  */
@@ -117,7 +117,7 @@ class BpmnPackageUpdateTests {
 	@Order(1)
 	void theShippedPackageHas28ElementTypes8ConnectionTypesAnd6PropertiesAndIsNotImported() {
 		JsonNode entry = shipped();
-		assertThat(entry.path("version").asString()).isEqualTo("1.1.0");
+		assertThat(entry.path("version").asString()).isEqualTo("1.2.0");
 		assertThat(entry.path("metatypeCount").asInt()).isEqualTo(36);
 		assertThat(entry.path("propertyDefinitionCount").asInt()).isEqualTo(6);
 		assertThat(entry.path("imported").asBoolean()).isFalse();
@@ -196,7 +196,7 @@ class BpmnPackageUpdateTests {
 		assertThat(this.jdbc.queryForObject("SELECT coalesce(sum(version), 0) FROM entities", Integer.class))
 			.isEqualTo(entityVersions);
 		JsonNode entry = shipped();
-		assertThat(entry.path("importedVersion").asString()).isEqualTo("1.1.0");
+		assertThat(entry.path("importedVersion").asString()).isEqualTo("1.2.0");
 		assertThat(entry.path("imported").asBoolean()).isTrue();
 	}
 
@@ -206,7 +206,7 @@ class BpmnPackageUpdateTests {
 		assertThat(this.api.ok(this.api.post("/api/v1/metamodel/starter-packages/" + BPMN + "/import", null, this.admin))
 			.path("created")
 			.asInt()).isZero();
-		assertThat(shipped().path("importedVersion").asString()).isEqualTo("1.1.0");
+		assertThat(shipped().path("importedVersion").asString()).isEqualTo("1.2.0");
 	}
 
 	@Test
@@ -282,6 +282,7 @@ class BpmnPackageUpdateTests {
 			pkg.set("metatypes", metatypes);
 			pkg.set("propertyDefinitions", definitions);
 			pkg.put("packageVersion", "1.0.0");
+			pkg.remove("lineageModel");
 			ObjectNode vp = (ObjectNode) pkg.path("viewpoints").get(0);
 			for (String field : List.of("metatypeIds", "connectionTypeIds")) {
 				ArrayNode ids = JsonMapper.shared().createArrayNode();

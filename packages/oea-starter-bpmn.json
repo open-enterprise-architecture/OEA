@@ -2,7 +2,7 @@
   "formatVersion": "1.0",
   "exportedAt": "2026-11-28T00:00:00Z",
   "packageId": "oea-starter-bpmn",
-  "packageVersion": "1.1.0",
+  "packageVersion": "1.2.0",
   "publisher": "OEA",
   "name": "BPMN 2.0 process modeling",
   "description": "BPMN 2.0 process types: process, pools and lanes, tasks and their variants, sub-process, call activity, start, end and intermediate events, gateways, data objects and data stores, text annotation and group, with the connections sequence flow, message flow, association, data input and output associations, realized by, calls and references process, and the viewpoint \"Process Model (BPMN 2.0)\". Containment is the entity hierarchy.",
@@ -1443,5 +1443,9 @@
       "enum-value.8cd8dd02-4c85-588e-841f-1fd0b24fb77d.label": "Delete",
       "enum-value.e99a0e3c-424c-545c-b2c3-bb950d11b4a6.label": "Read only"
     }
+  },
+  "lineageModel": {
+    "dataInput": "d437707f-cef3-55e2-af17-73d0dc633c8b",
+    "dataOutput": "479ff884-8b71-54ea-9649-71daca096016"
   }
 }

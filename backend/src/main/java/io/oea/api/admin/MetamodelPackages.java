@@ -3,6 +3,7 @@ package io.oea.api.admin;
 import io.oea.api.generated.model.ImportMetamodelPackageRequest;
 import io.oea.api.generated.model.ImportResult;
 import io.oea.api.generated.model.ImportResultConflictListInner;
+import io.oea.api.generated.model.MetamodelPackageLineageModel;
 import io.oea.api.generated.model.MetamodelPackageOrganizationModel;
 import io.oea.api.generated.model.MetatypeDetail;
 import io.oea.api.generated.model.MetatypePropertyMapping;
@@ -11,6 +12,7 @@ import io.oea.api.generated.model.PackageViewpoint;
 import io.oea.api.generated.model.PropertyCategory;
 import io.oea.api.generated.model.PropertyDefinitionDetail;
 import io.oea.api.generated.model.PropertyEnumValue;
+import io.oea.app.metamodel.LineageModels;
 import io.oea.app.metamodel.PackageDefinition;
 import io.oea.app.metamodel.PackageImporter;
 import io.oea.app.metamodel.OrganizationModels;
@@ -41,7 +43,15 @@ final class MetamodelPackages {
 				labels(request.getI18nBundles()),
 				list(request.getViewpoints()).stream().map(MetamodelPackages::viewpoint).toList(),
 				list(request.getArchitectureLayers()).stream().map(MetamodelPackages::layer).toList(),
-				organizationModel(request.getOrganizationModel()));
+				organizationModel(request.getOrganizationModel()), lineageModel(request.getLineageModel()));
+	}
+
+	private static LineageModels.Parts lineageModel(MetamodelPackageLineageModel model) {
+		if (model == null) {
+			return new LineageModels.Parts(null, null, null, null, null);
+		}
+		return new LineageModels.Parts(model.getDataObject(), model.getDataFlow(), model.getCarriesData(),
+				model.getDataInput(), model.getDataOutput());
 	}
 
 	private static OrganizationModels.Parts organizationModel(MetamodelPackageOrganizationModel model) {
@@ -99,6 +109,9 @@ final class MetamodelPackages {
 			.layerAssignmentsCleared(outcome.layerAssignmentsCleared())
 			.organizationModelFilled(outcome.organizationModelFilled().stream()
 				.map(ImportResult.OrganizationModelFilledEnum::fromValue)
+				.toList())
+			.lineageModelFilled(outcome.lineageModelFilled().stream()
+				.map(ImportResult.LineageModelFilledEnum::fromValue)
 				.toList())
 			.conflictList(List.of());
 	}

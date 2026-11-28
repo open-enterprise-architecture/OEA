@@ -59,6 +59,32 @@ export const OrganizationModel: Story = {
   },
 }
 
+/** The lineage model: which entity type plays the data object and which connections play flow, carries-data and the data associations (us-065-lineage-model-and-query). */
+export const LineageModel: Story = {
+  ...page('lineage'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('heading', { name: 'Lineage model' })).toBeInTheDocument()
+    await expect(await canvas.findByTestId('lineage-part-dataObject')).toBeInTheDocument()
+    await expect(await canvas.findByRole('button', { name: 'Save' })).toBeDisabled()
+    await userEvent.click(canvas.getByTestId('lineage-select-dataObject'))
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('option', { name: 'Network Zone' }))
+    await waitFor(() => expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled())
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(await canvas.findByText('The lineage model is saved.')).toBeInTheDocument()
+  },
+}
+
+/** A reader sees the lineage parts and cannot change them. */
+export const LineageModelReader: Story = {
+  ...page('lineage', undefined, ME_READER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTestId('lineage-value-dataObject')).toHaveTextContent('Not set')
+    await expect(canvas.queryByRole('button', { name: 'Save' })).toBeNull()
+  },
+}
+
 /** A reader sees the parts and cannot change them. */
 export const OrganizationModelReader: Story = {
   ...page('organization', undefined, ME_READER),

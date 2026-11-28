@@ -61,10 +61,10 @@ public class ConnectionCatalogSteps {
 		for (String object : List.of(first, second)) {
 			entities.addObject()
 				.put("name", object)
-				.put("metatypeId", metatypeId("Data Object"))
+				.put("metatypeId", metatypeId("Info Object"))
 				.put("externalId", ref(object));
 			connections.addObject()
-				.put("connectionMetatypeId", metatypeId("Carries Data"))
+				.put("connectionMetatypeId", metatypeId("Carries Info"))
 				.put("sourceExternalId", ref(flow))
 				.put("targetExternalId", ref(object));
 		}

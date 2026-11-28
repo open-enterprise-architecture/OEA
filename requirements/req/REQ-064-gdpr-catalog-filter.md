@@ -4,9 +4,9 @@ title: GDPR catalog filter on data flows (personalDataCategories)
 type: functional
 priority: should
 status: proposed
-version: 0.2.0
+version: 0.3.0
 created: 2026-06-26
-last_updated: 2026-11-05
+last_updated: 2026-11-28
 author: requirements-engineer
 references:
   use_cases:
@@ -102,6 +102,8 @@ id,name,entityTypeId,protocol,personalDataCategories,source,target
 
 ## Implementation Notes
 
+- AC1 and AC2 are realized by the existing catalog filter operators (`isNotNull` on "Personal data categories", `eq` on "Protocol"); the change `us-065-lineage-model-and-query` tests them for data flows (TOGAF package 1.5.0). **AC3 and AC4 (CSV export) leave S18** (owner decision 2026-11-28) and become a general catalog export in a story of their own; the empty result of AC4 is tested.
+
 - Catalog filter operator `isNotNull` on a visible column (change us-051-catalog-filters, commit 2e320f3 (#190)): `filter=personal_data_categories:isNotNull`; on a join column of the carried data objects, e.g. `filter={joinId}.classification:eq:PII`, the catalog keeps the data flows that carry such a data object and lists only those data objects (US-080 AC6)
 - CSV export: backend-side; no client-side generation
 
@@ -118,3 +120,4 @@ id,name,entityTypeId,protocol,personalDataCategories,source,target
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
 | 0.2.0 | 2026-11-05 | Change us-051-catalog-filters | Implementation note: the filter parameters of the catalog query |
+| 0.3.0 | 2026-11-28 | Change us-065-lineage-model-and-query | AC1, AC2 realized by the catalog filter; the CSV export moves to a later general catalog export |
