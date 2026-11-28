@@ -40,8 +40,12 @@ public class PropertyMappings {
 
 	private final SolutionImpact impact;
 
+	private final io.oea.core.access.PersonLinkTrigger personLinks;
+
 	public PropertyMappings(PropertyMappingStore store, PropertyDefinitionStore definitions, MetamodelEffects effects, MetamodelAudit audit,
-			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact) {
+			MetamodelVersions versions, MetamodelConfigurations configurations, SolutionImpact impact,
+			io.oea.core.access.PersonLinkTrigger personLinks) {
+		this.personLinks = personLinks;
 		this.impact = impact;
 		this.store = store;
 		this.definitions = definitions;
@@ -106,6 +110,7 @@ public class PropertyMappings {
 						value.date(), value.enumValue()) : null,
 				principal.personId(), inEffect ? this.effects.now() : null);
 		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
+		this.personLinks.changed();
 		// a future entry takes effect on its date (MappingEffectiveDates)
 		int marked = inEffect ? this.effects.apply(before, principal).marked(input.propertyDefId()) : 0;
 		Map<String, Object> details = new LinkedHashMap<>();
@@ -144,6 +149,7 @@ public class PropertyMappings {
 		UUID property = mapping.propertyDefId();
 		MetamodelEffects.Snapshot before = this.effects.snapshot();
 		this.store.delete(mappingId);
+		this.personLinks.changed();
 		this.versions.increment(MetamodelVersions.Element.METATYPE, metatypeId);
 		Map<String, Object> details = new LinkedHashMap<>();
 		// only a change of the instance metamodel asks the solutions; an extension is their own (US-154)

@@ -383,7 +383,8 @@
       "starter": "Starterpakete",
       "changes": "Änderungen",
       "settings": "Einstellungen",
-      "viewpoints": "Viewpoints"
+      "viewpoints": "Viewpoints",
+      "organization": "Organisationsmodell"
     },
     "scope": {
       "title": "Herkunft",
@@ -755,6 +756,25 @@
       "failed": "Das Starterpaket konnte nicht importiert werden.",
       "loadFailed": "Die Starterpakete konnten nicht geladen werden.",
       "none": "Es werden keine Starterpakete mitgeliefert."
+    },
+    "organization": {
+      "title": "Organisationsmodell",
+      "hint": "Welche Objekttypen Organisationseinheit, Rolle und Person sind und welche Verbindungstypen sie zuordnen. Die Zeichenfläche bietet Zuordnungen für die gesetzten Teile an.",
+      "unset": "Nicht gesetzt",
+      "loadFailed": "Das Organisationsmodell konnte nicht geladen werden.",
+      "saved": "Das Organisationsmodell ist gespeichert.",
+      "invalid": "Einige Teile passen nicht: Ein Objektteil braucht einen Objekttyp, ein Verbindungsteil einen Verbindungstyp, der sein Objektteil erreicht.",
+      "partInvalid": "Dieser Teil passt nicht.",
+      "personDiffers": "Die Person hier weicht vom Personentyp der Eigenschaftssichtbarkeit (SCR-032) ab. Beide werden getrennt gesetzt; Konto-Verknüpfungen nutzen den der Eigenschaftssichtbarkeit.",
+      "save": "Speichern",
+      "part": {
+        "orgUnit": "Organisationseinheit",
+        "role": "Rolle",
+        "person": "Person",
+        "belongsTo": "Gehört zu (Verbindung)",
+        "performsRole": "Übernimmt Rolle (Verbindung)",
+        "responsible": "Verantwortlich (Verbindung)"
+      }
     }
   },
   "navigation": {
@@ -932,6 +952,23 @@
       "saveFailed": "Die Einstellungen der Änderungshistorie konnten nicht gespeichert werden.",
       "loadFailed": "Die Einstellungen der Änderungshistorie konnten nicht geladen werden.",
       "invalid": "Dieser Eintrag wurde abgelehnt."
+    },
+    "mapping": {
+      "title": "Konto-Zuordnung",
+      "hint": "Ein Konto wird mit dem Personenelement verknüpft, dessen Eigenschaftswert dem gewählten Attribut des Kontos entspricht. Die Eigenschaft muss auf Rollen beschränkt sein; eine von Hand gesetzte Verknüpfung hat Vorrang.",
+      "none": "Keine Zuordnung",
+      "property": "Eigenschaft des Personentyps",
+      "attributeLabel": "Konto-Attribut",
+      "attribute": {
+        "email": "E-Mail-Adresse",
+        "idp-subject": "IdP-Subject"
+      },
+      "save": "Speichern",
+      "saved": "Die Konto-Zuordnung ist gespeichert.",
+      "invalidProperty": "Die Eigenschaft muss eine Texteigenschaft des Personentyps sein, die auf Rollen beschränkt ist.",
+      "forbidden": "Diese Änderung würde Ihr eigenes Konto verknüpfen; das ist nicht erlaubt.",
+      "saveFailed": "Die Konto-Zuordnung konnte nicht gespeichert werden.",
+      "loadFailed": "Die Konto-Zuordnung konnte nicht geladen werden."
     }
   },
   "roles": {
@@ -1694,6 +1731,33 @@
       "insertBelow": "Lane unterhalb einfügen",
       "insertLeft": "Lane links einfügen",
       "insertRight": "Lane rechts einfügen"
+    },
+    "assignments": {
+      "hint": "Nach Name suchen oder mit dem eingegebenen Namen einen neuen Eintrag anlegen.",
+      "searchFailed": "Die Suche ist fehlgeschlagen.",
+      "assigned": "Zugeordnet",
+      "type": "Typ des neuen Eintrags",
+      "create": "Neu anlegen",
+      "createNamed": "\"{name}\" neu anlegen",
+      "orgUnit": "Organisationseinheit",
+      "role": "Rolle",
+      "remove": "{name} entfernen",
+      "responsible": "Verantwortlich: {name}",
+      "assignOrgUnit": "Organisationseinheit zuordnen",
+      "setParticipant": "Teilnehmer festlegen",
+      "assignRole": "Rolle zuordnen",
+      "addPerson": "Verantwortliche Person hinzufügen",
+      "requiredRole": "Benötigte Rolle",
+      "responsiblePerson": "Verantwortliche Person",
+      "add": "Hinzufügen",
+      "severalPersons": "Mehr als eine verantwortliche Person",
+      "removalNeedsDelete": "Das Entfernen dieser Form entfernt die Zuordnung ihrer Bahn; dafür ist das Recht zum Löschen nötig.",
+      "moveNeedsDelete": "Das Herausziehen der Form aus ihrer Bahn entfernt die Zuordnung dieser Bahn; dafür ist das Recht zum Löschen nötig. Das Verschieben wurde rückgängig gemacht.",
+      "limit": {
+        "connections": "Ein Speichern legt höchstens 500 Verbindungen an.",
+        "entities": "Ein Speichern legt höchstens 500 Objekte an.",
+        "removals": "Ein Speichern entfernt höchstens 500 Zuordnungen."
+      }
     }
   },
   "dashboards": {

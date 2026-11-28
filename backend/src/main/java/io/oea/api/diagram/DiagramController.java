@@ -144,7 +144,8 @@ public class DiagramController implements DiagramsApi {
 
 	@Override
 	@ConditionsEnforcedByHandler(value = "PropertyVisibility.requireScopeAssignment: a new connection of a scoping type "
-			+ "needs visibility-scope:assign; the whole save is rejected before the version check and every 422",
+			+ "needs visibility-scope:assign, and DiagramViews.requireRemoval: removed connections need entity:delete; "
+			+ "the whole save is rejected before the version check and every 422",
 			probeRole = "integration-writer", probePath = "/api/v1/views/diagrams/00000000-0000-4000-8000-0000000d1a01",
 			probeBody = """
 					{"shapes": [], "newConnections": [{"key": "00000000-0000-4000-8000-0000000c0e01",
@@ -187,7 +188,14 @@ public class DiagramController implements DiagramsApi {
 					.stream()
 					.map((connection) -> new DiagramViews.NewConnectionInput(connection.getKey(),
 							connection.getMetatypeId(), connection.getName(), connection.getDescription(),
-							properties(connection.getProperties())))
+							properties(connection.getProperties()), connection.getSourceShapeId(),
+							connection.getTargetEntityId(), connection.getTargetNewEntityKey()))
+					.toList();
+		List<DiagramViews.RemovedConnectionInput> removed = (request.getRemovedConnections() == null) ? List.of()
+				: request.getRemovedConnections()
+					.stream()
+					.map((connection) -> new DiagramViews.RemovedConnectionInput(connection.getConnectionId(),
+							connection.getExpectedVersion()))
 					.toList();
 		List<DiagramViews.LineInput> lines = (request.getHierarchyLines() == null) ? List.of()
 				: request.getHierarchyLines()
@@ -205,8 +213,9 @@ public class DiagramController implements DiagramsApi {
 		this.views.checkNumbers(shapes, edges);
 		this.visibility.requireScopeAssignment(principal(),
 				newConnections.stream().map(DiagramViews.NewConnectionInput::metatypeId).toList());
+		this.views.requireRemoval(principal(), removed);
 		return view(this.views.save(principal(), id, expectedVersion(ifMatch), shapes, newEntities, updates, edges,
-				newConnections, lines, parentChanges, new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
+				newConnections, lines, parentChanges, removed, new AuditEvent.Agent(EntityBatchController.informational(xAgentId),
 						EntityBatchController.informational(xAgentRun))));
 	}
 
@@ -268,13 +277,13 @@ public class DiagramController implements DiagramsApi {
 					.stream()
 					.map((field) -> new DiagramEntityField(field.propertyDefId(), field.readable(), field.writable()))
 					.toList(),
-				details.missingMandatory()));
+				details.missingMandatory()).assignments(assignments(details.assignments())));
 	}
 
 	@Override
-	public ResponseEntity<DiagramEntityPage> searchDiagramReferenceTargets(UUID id, UUID propertyDefId, String q,
-			Integer page, Integer pageSize) {
-		return entityPage(this.views.referenceTargets(id, propertyDefId, q, page(page), size(pageSize)));
+	public ResponseEntity<DiagramEntityPage> searchDiagramReferenceTargets(UUID id, UUID propertyDefId, String part,
+			String q, Integer page, Integer pageSize) {
+		return entityPage(this.views.referenceTargets(id, propertyDefId, part, q, page(page), size(pageSize)));
 	}
 
 	private static List<io.oea.app.entity.EntityInput.PropertyInput> properties(
@@ -318,7 +327,8 @@ public class DiagramController implements DiagramsApi {
 								new DiagramShapeEntity(shape.entityId(), shape.entityName(), shape.metatypeId(),
 										shape.childCount(), shape.parentEntityId()),
 								shape.parentShapeId(), shape.x(), shape.y(), shape.width(), shape.height(),
-								shape.collapsed(), DiagramShapeOrientation.fromValue(shape.orientation()), shape.missingMandatory(), shape.conflict()))
+								shape.collapsed(), DiagramShapeOrientation.fromValue(shape.orientation()), shape.missingMandatory(), shape.conflict())
+							.assignments(assignments(shape.assignments())))
 						.toList(),
 					view.edges()
 						.stream()
@@ -334,6 +344,22 @@ public class DiagramController implements DiagramsApi {
 						.map((line) -> new DiagramHierarchyLine(line.id(), line.parentShapeId(), line.childShapeId()))
 						.toList(),
 					view.askNewParent(), view.conflictCount()));
+	}
+
+	private static io.oea.api.generated.model.DiagramAssignments assignments(DiagramViews.Assignments assignments) {
+		if (assignments == null) {
+			return null;
+		}
+		return new io.oea.api.generated.model.DiagramAssignments(assignmentItems(assignments.orgUnits()),
+				assignmentItems(assignments.roles()), assignmentItems(assignments.persons()));
+	}
+
+	private static List<io.oea.api.generated.model.DiagramAssignment> assignmentItems(
+			List<DiagramViews.Assignment> items) {
+		return items.stream()
+			.map((item) -> new io.oea.api.generated.model.DiagramAssignment(item.connectionId(),
+					item.connectionVersion(), item.entityId(), item.name()))
+			.toList();
 	}
 
 	private static PageMeta meta(Diagrams.Page result) {

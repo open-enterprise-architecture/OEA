@@ -1,5 +1,6 @@
 package io.oea.core.entity;
 
+import io.oea.core.access.PersonLinkTrigger;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -23,8 +25,16 @@ public class PropertyValueStore {
 
 	private final JdbcTemplate jdbc;
 
+	private final PersonLinkTrigger links;
+
 	public PropertyValueStore(JdbcTemplate jdbc) {
+		this(jdbc, PersonLinkTrigger.NONE);
+	}
+
+	@Autowired
+	public PropertyValueStore(JdbcTemplate jdbc, PersonLinkTrigger links) {
 		this.jdbc = jdbc;
+		this.links = links;
 	}
 
 	/**
@@ -75,6 +85,7 @@ public class PropertyValueStore {
 		}
 		String[] metatypes = uuidArray(metatypeIds);
 		Timestamp at = Timestamp.from(now);
+		this.links.valueChanged(propertyDefId);
 		this.jdbc.update("""
 				DELETE FROM entity_mandatory_marks m USING entities e
 				WHERE m.entity_id = e.id AND m.property_def_id = ? AND e.metatype_id = ANY (?::uuid[]) AND ?::text IS NULL""",

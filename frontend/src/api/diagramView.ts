@@ -26,6 +26,9 @@ export type DiagramHierarchyLineWrite = components['schemas']['DiagramHierarchyL
 export type DiagramParentChange = components['schemas']['DiagramParentChange']
 export type DiagramEntityChild = components['schemas']['DiagramEntityChild']
 export type DiagramEntityChildList = components['schemas']['DiagramEntityChildList']
+export type DiagramAssignments = components['schemas']['DiagramAssignments']
+export type DiagramAssignment = components['schemas']['DiagramAssignment']
+export type DiagramRemovedConnection = components['schemas']['DiagramRemovedConnection']
 
 /** The limits of the contract (design D1 and D2 of us-074-diagram-canvas, us-074-diagram-nesting), in pt. */
 export const CANVAS_LIMITS = {
@@ -45,6 +48,8 @@ export const CANVAS_LIMITS = {
   /** the hierarchy lines of one diagram and the parent changes of one save (design D2 of us-074-diagram-nesting) */
   hierarchyLines: 4000,
   parentChanges: 500,
+  /** the assignment connections one save removes (us-075-lane-assignments) */
+  removedConnections: 500,
   /** the levels of nested shapes (a shape on the canvas is on level 1) and the children `listDiagramEntityChildren` returns */
   nesting: 10,
   children: 500,
@@ -145,6 +150,25 @@ export async function searchDiagramReferenceTargets(
   fetchFn: typeof fetch = fetch,
 ): Promise<Outcome<DiagramEntityPage>> {
   const search = new URLSearchParams({ propertyDefId, pageSize: String(CANVAS_LIMITS.searchPageSize) })
+  if (term.trim().length > 0) search.set('q', term.trim())
+  const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/reference-targets?${search.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DiagramEntityPage }
+  }
+  return { ok: false, rejection: await readRejection(response) }
+}
+
+/**
+ * GET /views/diagrams/{id}/reference-targets with `part`: the active entities of the organizational unit, role or person
+ * of the organization model (and its subtypes) by name, for the assignment search (us-075-lane-assignments D6).
+ */
+export async function searchAssignmentTargets(
+  id: string,
+  part: 'org-unit' | 'role' | 'person',
+  term: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<Outcome<DiagramEntityPage>> {
+  const search = new URLSearchParams({ part, pageSize: String(CANVAS_LIMITS.searchPageSize) })
   if (term.trim().length > 0) search.set('q', term.trim())
   const response = await fetchFn(`${VIEWS}/${encodeURIComponent(id)}/reference-targets?${search.toString()}`, { credentials: 'same-origin', headers: JSON_HEADERS })
   if (response.ok) {

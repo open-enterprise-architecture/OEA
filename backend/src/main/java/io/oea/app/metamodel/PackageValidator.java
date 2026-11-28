@@ -182,6 +182,22 @@ public final class PackageValidator {
 		sameKindOfBase(definition);
 		labels(definition);
 		viewpoints(definition);
+		organizationModel(definition);
+	}
+
+	/** Each part of the organization model names a metatype of the package of the right kind. */
+	private static void organizationModel(PackageDefinition definition) {
+		for (OrganizationModels.Part part : OrganizationModels.Part.values()) {
+			UUID id = part.of(definition.organizationModel());
+			if (id == null) {
+				continue;
+			}
+			boolean found = definition.metatypes()
+				.stream()
+				.anyMatch((metatype) -> metatype.id().equals(id) && metatype.connection() == part.connection());
+			require(found, "/organizationModel/" + part.field(), "The part " + part.field() + " must name a "
+					+ (part.connection() ? "connection" : "element") + " metatype of the package.");
+		}
 	}
 
 	private static final Pattern VISUAL_HINT = Pattern.compile("^#[0-9a-fA-F]{6}$");

@@ -5,6 +5,7 @@ import io.oea.app.security.Sessions;
 import io.oea.app.shared.InvalidAccessRequestException;
 import io.oea.audit.AuditEvent;
 import io.oea.audit.AuditWriter;
+import io.oea.core.access.PersonLinkTrigger;
 import io.oea.core.metamodel.MetatypeStore;
 import io.oea.core.metamodel.VisibilityStore;
 import java.util.LinkedHashMap;
@@ -30,7 +31,10 @@ public class PersonMetatypes {
 
 	private final AuditWriter audit;
 
-	public PersonMetatypes(VisibilityStore store, MetatypeStore metatypes, AuditWriter audit) {
+	private final PersonLinkTrigger links;
+
+	public PersonMetatypes(VisibilityStore store, MetatypeStore metatypes, AuditWriter audit, PersonLinkTrigger links) {
+		this.links = links;
 		this.store = store;
 		this.metatypes = metatypes;
 		this.audit = audit;
@@ -65,6 +69,7 @@ public class PersonMetatypes {
 			return old;
 		}
 		this.store.setPersonMetatype(metatypeId);
+		this.links.changed();
 		View changed = get();
 		Map<String, Object> details = new LinkedHashMap<>();
 		details.put("oldMetatypeId", (old.metatypeId() != null) ? old.metatypeId().toString() : "");

@@ -2,7 +2,7 @@
 title: Identity-Provider und Personen
 covers:
   screens: []
-  stories: [US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-127, US-148]
+  stories: [US-075, US-076, US-004, US-007, US-023, US-026, US-027, US-028, US-030, US-031, US-127, US-148]
 ---
 
 # Identity-Provider und Personen
@@ -71,7 +71,7 @@ curl "${auth[@]}" -X PUT -d '{"entityId": null}' "$OEA/admin/persons/$PERSON/ent
 - Das Element muss existieren und vom Entitätstyp von Personen oder einem seiner Untertypen sein; sonst, und solange kein Entitätstyp von Personen gesetzt ist, lautet die Antwort `422` mit `entityId` in `invalidFields`.
 - Ein Element lässt sich nur mit einem Konto verknüpfen; eine zweite Verknüpfung antwortet mit `409`.
 - Deine eigene Person wird mit `403` abgelehnt und als `authz.denied` protokolliert, ein Dienstkonto mit `422`.
-- `GET /admin/persons/{personId}` zeigt die Verknüpfung in `entityId`.
+- `GET /admin/persons/{personId}` zeigt die Verknüpfung in `entityId`, eine Verknüpfung über die [Konto-Zuordnung](./property-visibility#account-mapping) in `mappedEntityId` mit `linkSource` (`manual` oder `mapping`) und, solange ein Wert mehrere Elemente oder Konten trifft, `mappingConflict` (die Personenverwaltung ist die API; eine Seite dafür gibt es noch nicht).
 - Jede Änderung wird im Audit-Trail festgehalten (`person.account-linked`), mit dem alten und dem neuen Element.
 
 ## Initialpasswort setzen {#set-an-initial-password}

@@ -2,7 +2,7 @@
 title: Diagrams
 covers:
   screens: [SCR-021, SCR-067]
-  stories: [US-074]
+  stories: [US-074, US-075, US-076]
 ---
 
 # Diagrams
@@ -89,6 +89,21 @@ A diagram of the viewpoint *Process Model (BPMN 2.0)* models a business process 
 - **Insert and reorder lanes:** a selected lane shows two small icons at its edges, *Insert lane above* and *Insert lane below* (for a vertical pool *Insert lane left* and *Insert lane right*). Choosing one adds a new lane of the same type next to it, as a child of the same pool or lane, and you enter its name. You can also drop a lane from the palette or drag an existing lane: dropped on the upper or lower half of another lane (left or right half in a vertical pool) it becomes its neighbour, dropped on the label band of a pool or lane it is nested there. Reordering lanes of the same pool does not ask *New parent?*; moving a lane into another pool does. A task that you drop on the label band of a pool with lanes belongs to the pool itself and keeps its place; the last lane grows to hold it.
 - **Vertical pools:** open the context menu of a pool and choose *Vertical* (or *Horizontal* to switch back). In a vertical pool the label band lies at the top and the lanes lie side by side from the left, as wide as you make them with their **right edge**. Switching keeps the order of the lanes, the size of each lane across the flow and the place of the content within its lane. The setting is stored per diagram and applies to the pool and its lanes.
 - **Collapse sub-processes:** a sub-process shows a small *−* button at the bottom. Choose it, or *Collapse* in the context menu, to draw the sub-process as a small box of 90 × 60 pt with a *+* marker; the shapes inside it, and the flows and lines that touch them, are hidden but stay in the diagram and in the repository. *+* or *Expand* shows everything again. The state is stored per diagram and saved with the layout, so the same sub-process can be collapsed in one diagram and open in another. Collapsing changes only the drawing: the sub-process keeps its full size for its lane and pool. Selecting a hidden shape, for example from the list of conflicts, expands the sub-process around it. Readers see the collapsed state but have no button.
+
+## Assign lanes, pools and tasks {#assignments}
+
+In a diagram of the viewpoint *Process Model (BPMN 2.0)* you show who performs and who is responsible: a lane or pool belongs to an **organizational unit** and performs **roles**, a task needs a **role**, and a user task has a **responsible person**. The types come with the starter package *Organization model* (see [Metamodel packages](../administration/metamodel-packages#organization-package)); the parts are chosen under [Organization model](../administration/metamodel-editing#organization-model). Without a part – for example without a person – the canvas offers nothing for it.
+
+- **Lane:** open the context menu and choose *Assign organizational unit* or *Assign role*. A search lists the active entities of that type by name; choose one. The lane shows the unit as a badge and its roles as chips under its name (three chips, then *+N*). A lane has **one** organizational unit at most; assigning another one replaces the first. Several roles are fine.
+- **Pool:** choose *Set participant* in the context menu; the pool header shows the unit.
+- **Task:** the details panel has the field *Required role*, and for a user task also *Responsible person*; choose *Add*. The task shows the first responsible person as an avatar with the initials; the full name is its tooltip. A second person is accepted with the warning *More than one responsible person*.
+- **Create new:** if the search has no hit, *Create new* creates an organizational unit, role or person with the name you typed, with the next *Save*; it has no shape in the diagram. For a type with subtypes you choose the type first.
+- **Remove:** *×* on a badge, a chip or a person removes the assignment with the next *Save*. Removing a **saved** assignment deletes its connection softly and needs `entity:delete`; without it the entry and *×* are not offered. A change that you did not save yet you can always take back.
+- **Save:** an assignment is a connection without an edge. It counts as an unsaved change, is saved with the layout in one step and audited like every connection (`entity.created`, and `entity.deleted` when removed). A save creates at most 500 connections and removes at most 500.
+
+**Lanes of organizational units and roles assign instead of nesting:** if the viewpoint draws an organizational unit or a role as a lane or pool (any type can be drawn as a lane or pool), a shape in it is **assigned** to it instead of getting it as its parent: a task in the role lane *Approver* performs the role *Approver*, a task in the role lane *Approver* of the pool *Purchasing Department* has both connections. A new element gets as parent the nearest container that is no such lane, and you are not asked *New parent?* for the lane itself. Moving the shape to another lane removes the old connection and adds the new one; moving it out of every lane, or removing it from the diagram, removes the connection and needs `entity:delete`. An assignment that a lane stands for has no *×*. Shapes that already lie in a lane when you change the viewpoint or the organization model get their connection when you move them. A lane of another type, for example *Lane*, stays the parent as before.
+
+Assignments are ordinary connections: a [catalog](./catalogs) of lanes can join *Belongs To* and filter by the unit, and a catalog of user tasks can join *Responsible* to show the person; a task without an assignment shows an empty cell.
 
 ## Details of an entity
 

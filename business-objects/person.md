@@ -2,7 +2,7 @@
 identifier: person
 name_de: Person (Konto)
 name_en: Person (Account)
-version: 0.9.0
+version: 0.10.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -58,6 +58,7 @@ In the EA repository, a person is typically **referenced, not mastered**: master
 | externalReference | composite | optional | | fields `system`, `id`; removed on anonymization | Reference to the HR master system (§8.7); not used for login |
 | identities | composite (list) | optional | | human only; see Identity Binding | Bindings to identity providers |
 | entityId | reference | optional | | target: an element of the configured person metatype or a subtype; unique; human only | Account link to EA content (ADR-032 DM-7) |
+| mappedEntityId | reference | optional | | target: an active element of the person metatype or a subtype; unique; only without a manual `entityId`; derived, never written by an administrator | The account link through the account mapping (change `us-075-lane-assignments`): the element whose value of the mapping property equals the account attribute (`email` or `idp-subject`); the effective link is `entityId`, else `mappedEntityId` |
 | entityLinkedAt / entityLinkedBy | datetime / principal | conditional | | set with `entityId`; principal ≠ this account | Who set the account link and when; planned, until then recorded only in the audit trail (`person.account-linked`) |
 | detailLevel | enum | required | reference-only | `[full, reference-only, anonymized]`; service accounts always `reference-only` | Controls how much personal data is held |
 | uiLanguage | string | optional | – | BCP 47 `[de, en, fr, it]`; no value means the language of the browser; set by the person (`PUT /me/preferences`); ignored for service accounts | UI language (US-140) |
@@ -125,6 +126,7 @@ invited → active ⇄ inactive
 | BR-03 | Session creation requires a matching identity binding (`issuer`, `subject`) or a local credential, and status `invited` or `active`; e-mail is never used to match a login | onLogin | REQ-004, REQ-166 |
 | BR-04 | Leaving status `active` revokes all sessions and refresh tokens within 60 s; `offboarded` additionally revokes all local role assignments | onUpdate | REQ-164, UC-23 A2 |
 | BR-05 | The account link `entityId` is set only by a principal with `person:manage`, never for its own account (or the account linked to its system admin account), and is audited | onUpdate | ADR-032 SoD-1, DM-7 |
+| BR-10 | An account in status `invited` or `active` without a manual link is linked to the one active person element, not linked manually to another account, whose value of the mapping property equals the account attribute (`email` ignoring case, or a subject of one of its identity bindings), if no other taking-part account has that value; several matches give no link and a conflict. The link is recomputed with every change of its inputs, never touches person elements or their connections, and never gives the acting account a new link (SoD-1: 403 and `authz.denied`) | onCreate, onUpdate, onDelete, onRestore, onLogin excluded | REQ-127, ADR-032 SoD-1, owner decisions 2026-11-27 |
 | BR-06 | Service accounts have no identity binding, no local credentials, no sessions, no account link and are never targets of IdP group mappings | onCreate, onUpdate | ADR-032 SoD-4, REQ-176 |
 | BR-07 | Reactivation of an `offboarded` person is rejected unless the setting `allowReactivationOfOffboarded` is enabled; a reactivated person starts in `invited` without role assignments and without local credentials | onUpdate | owner decision Q19, REQ-004 |
 | BR-08 | Anonymization sets `detailLevel = anonymized`, replaces `name` by the pseudonym `anonymized-<id>` and removes `email`, `employeeId` and `externalReference`; audit records are not changed and keep referencing the person key. `email` may be empty only for anonymized persons | onAnonymize | REQ-189, ADR-033 §3, GDPR Art. 17(3)(b) |
@@ -203,3 +205,4 @@ Open questions:
 | 0.7.0 | 2026-11-05 | Business Engineer | Names resolved also for metamodel administrators reading the metamodel changes (change `us-034-metamodel-changes`) |
 | 0.8.0 | 2026-11-11 | Business Engineer | `entityId` references an element of the configured person metatype instead of a fixed metatype `person`; `entityLinkedAt/By` planned (change `us-127-connection-scoped-visibility`) |
 | 0.9.0 | 2026-11-14 | Business Engineer | `description` for service accounts; unique names of service accounts; deactivation of a service account is final (change `us-142-service-accounts`) |
+| 0.10.0 | 2026-11-27 | Change us-075-lane-assignments | `mappedEntityId`: the account link through the configurable account mapping (a string property of the person metatype and the account attribute `email` or `idp-subject`); a manual link takes precedence; BR-10 (owner decisions 2026-11-27) |

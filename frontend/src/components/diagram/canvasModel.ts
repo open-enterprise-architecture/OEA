@@ -11,6 +11,7 @@ import type {
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { Viewpoint } from '../../api/metamodel'
 import { BAND_WIDTH, isBpmnContainer, type BpmnSymbol } from './bpmnSymbols'
+import { assignmentRequest, assignmentsEdited, NO_ASSIGNMENT_EDITS, type AssignmentEdits, type OrganizationIds, type ShownAssignment } from './assignments'
 import { edgeFingerprint, type CanvasEdge } from './edgeModel'
 
 // The state of the canvas editor without the canvas library (design D6 of us-074-diagram-canvas):
@@ -90,6 +91,19 @@ export interface ParentChange {
 /** The unsaved parent changes of saved entities, by entity ID. */
 export type ParentChanges = Record<number, ParentChange>
 
+/** The assignments a shape shows (us-075-lane-assignments D3, D6): the badge, the chips and the avatar. */
+export interface ShapeAssignments {
+  /** the organizational unit of a lane or pool, shown as a badge */
+  orgUnit?: ShownAssignment
+  /** the roles of a lane or pool, shown as chips: at most three, then "+N" */
+  roles: ShownAssignment[]
+  /** the persons of a user task: the avatar shows the first one; `several` warns */
+  persons: ShownAssignment[]
+  /** "×" is offered: an editor with `entity:delete` for a saved assignment (a pending one needs `entity:write` only) */
+  removable: (assignment: ShownAssignment) => boolean
+  remove: (assignment: ShownAssignment) => void
+}
+
 /** What the canvas hands to the node of a shape. */
 export interface ShapeData {
   name: string
@@ -123,6 +137,8 @@ export interface ShapeData {
   symbol?: BpmnSymbol
   /** the description of the entity, shown by a text annotation */
   description?: string
+  /** the badge, chips and avatar of the shape; none for a shape that carries no assignments */
+  assignments?: ShapeAssignments
   rename: (name: string) => void
   resized: (params: { x: number; y: number; width: number; height: number }) => void
 }
@@ -345,6 +361,8 @@ export function writeRequest(
   edges: CanvasEdge[] = [],
   lines: CanvasLine[] = [],
   parents: ParentChanges = {},
+  assignments: AssignmentEdits = NO_ASSIGNMENT_EDITS,
+  organization: OrganizationIds = {},
 ): DiagramViewWrite {
   const named = shapes.filter((shape) => shape.entityId !== undefined || (shape.newEntity && shape.name.trim().length > 0))
   const placed = new Set(named.map((shape) => shape.id))
@@ -369,6 +387,7 @@ export function writeRequest(
   const shown = new Set(named.map((shape) => shape.entityId).filter((id): id is number => id !== undefined))
   drawn.forEach((edge) => edge.connectionId !== undefined && shown.add(edge.connectionId))
   const created = new Map(drawn.filter((edge) => edge.newConnection).map((edge) => [edge.newConnection!.key, edge.newConnection!]))
+  const assigned = assignmentRequest(assignments, placed, organization)
   const updates: DiagramEntityUpdate[] = Object.entries(edits)
     .filter(([id, edit]) => isEdited(edit) && shown.has(Number(id)))
     .map(([id, edit]) => ({
@@ -406,7 +425,8 @@ export function writeRequest(
           ...(entity.parentEntityId !== undefined ? { parentEntityId: entity.parentEntityId } : {}),
           ...(entity.parentNewEntityKey !== undefined && newKeys.has(entity.parentNewEntityKey) ? { parentNewEntityKey: entity.parentNewEntityKey } : {}),
         }
-      }),
+      })
+      .concat(assigned.newEntities),
     ...(updates.length > 0 ? { entityUpdates: updates } : {}),
     ...(drawnLines.length > 0 ? { hierarchyLines: drawnLines.map((line) => ({ id: line.id, parentShapeId: line.parentShapeId, childShapeId: line.childShapeId })) } : {}),
     ...(changes.length > 0 ? { parentChanges: changes } : {}),
@@ -417,15 +437,18 @@ export function writeRequest(
       targetShapeId: edge.targetShapeId,
       points: edge.points.map((point) => ({ x: limitPosition(point.x), y: limitPosition(point.y) })),
     })),
-    newConnections: [...created.values()].map((connection) => {
-      const values = Object.entries(connection.properties ?? {}).filter(([, value]) => value !== '')
-      return {
-        key: connection.key,
-        metatypeId: connection.metatypeId,
-        ...((connection.description ?? '') !== '' ? { description: connection.description } : {}),
-        ...(values.length > 0 ? { properties: values.map(([propertyDefId, value]) => ({ propertyDefId, value })) } : {}),
-      }
-    }),
+    newConnections: [...created.values()]
+      .map((connection) => {
+        const values = Object.entries(connection.properties ?? {}).filter(([, value]) => value !== '')
+        return {
+          key: connection.key,
+          metatypeId: connection.metatypeId,
+          ...((connection.description ?? '') !== '' ? { description: connection.description } : {}),
+          ...(values.length > 0 ? { properties: values.map(([propertyDefId, value]) => ({ propertyDefId, value })) } : {}),
+        }
+      })
+      .concat(assigned.newConnections),
+    ...(assigned.removedConnections.length > 0 ? { removedConnections: assigned.removedConnections } : {}),
   }
 }
 
@@ -447,6 +470,7 @@ export function hasUnsavedChanges(
   lines: CanvasLine[] = [],
   savedLines: CanvasLine[] = [],
   parents: ParentChanges = {},
+  assignments: AssignmentEdits = NO_ASSIGNMENT_EDITS,
 ): boolean {
   const current = shapes.filter((shape) => !shape.editing || shape.name.trim().length > 0)
   const placed = new Set(current.map((shape) => shape.id))
@@ -460,6 +484,7 @@ export function hasUnsavedChanges(
     drawnLines.length !== savedLines.length ||
     drawnLines.some((line) => !savedLines.some((entry) => entry.id === line.id && entry.parentShapeId === line.parentShapeId && entry.childShapeId === line.childShapeId)) ||
     Object.keys(parents).length > 0 ||
+    assignmentsEdited(assignments) ||
     editedCount(edits) > 0
   )
 }

@@ -332,7 +332,9 @@ An administrator linked a person account to the element that represents the pers
 | Category / severity / outcome | `security` / `warning` / `success` |
 | Actor | the person with `person:manage` |
 | Target | `person`, ID of the person |
-| Details | `oldEntityId`, `newEntityId` (empty without a link) |
+| Details | `oldEntityId`, `newEntityId` (empty without a link), `source`: `manual` for the link of an administrator, `mapping` for the link derived from the account mapping (change us-075-lane-assignments D5) |
+
+A link through the account mapping is written in the transaction of the change that causes it (a value of the mapping property, the deletion or restore of an element, an identity binding, the status of an account, the mapping or the person metatype); its actor is the person of that request, and `system` when no request is involved. Such a change is refused when it would link the own account of the actor (SoD-1): `authz.denied` with the reason `self-administration`, and nothing changes.
 
 ### `person.password-reset`
 
@@ -564,6 +566,17 @@ An organization architecture layer was created, renamed or moved, or deleted ([U
 | Actor | the metamodel administrator |
 | Target | `architecture-layer`, ID of the layer |
 | Details | `name`; created also `sortOrder`; updated also `changedFields` (`name`, `sortOrder`) |
+
+### `metamodel.organization-model-updated`
+
+The organization model, which entity types play organizational unit, role and person and which connection types play belongs-to, performs-role and responsible, was changed, or a package import filled its unset parts ([US-075](../requirements/user-stories/US-075-assign-lane-orgunit-and-role.md), [US-076](../requirements/user-stories/US-076-assign-task-to-person.md), [REQ-077](../requirements/req/REQ-077-role-orgunit-person-process-assignment.md); change us-075-lane-assignments D2). A write that changes nothing, a rejected write (wrong kind of metatype, a connection part that does not reach its element part, stale or missing version, missing permission, `import-only`) and a re-import that fills nothing are not audited.
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `change` / `info` / `success` |
+| Actor | the metamodel administrator, or the principal of the package import |
+| Target | `organization-model`, ID `1` |
+| Details | `parts`: per changed part (`orgUnit`, `role`, `person`, `belongsTo`, `performsRole`, `responsible`) the old and the new metatype ID (`old`, `new`; empty when unset), the new `version`; by a package import also `cause` (`package-import`) and `packageId` |
 
 ### `metamodel.category-created` / `metamodel.category-updated` / `metamodel.category-deleted`
 
@@ -811,6 +824,17 @@ Security administration set, changed or unset the person metatype, the entity ty
 | Target | `settings`, `person-metatype` |
 | Details | `oldMetatypeId`, `newMetatypeId` (empty without one), `newMetatypeName` |
 
+### `visibility.person-link-mapping-changed`
+
+Security administration set, changed or cleared the account mapping, the string property of the person metatype and the account attribute (`email` or `idp-subject`) through which an account is linked to a person element ([REQ-127](../requirements/req/REQ-127-property-visibility-enforcement-connection-scoped.md), ADR-032 SoD-1; change us-075-lane-assignments D5). A write that changes nothing writes no event. The mapping also ends, with the same event, when its property is deleted or retired (`cause`: `property-deleted` or `property-retired`) or no longer fits (`cause`: `mapping-invalid`, e.g. after the property was removed from the person metatype).
+
+| Field | Value |
+|---|---|
+| Category / severity / outcome | `security` / `warning` / `success` |
+| Actor | the person with `visibility:configure` |
+| Target | `settings`, `person-link-mapping` |
+| Details | `oldPropertyDefId`, `newPropertyDefId`, `oldAccountAttribute`, `newAccountAttribute` (empty without a mapping), `cause` where the mapping ended by itself |
+
 ### `tree-node.created`, `tree-node.renamed`, `tree-node.deleted`
 
 A folder of the navigation tree was created, renamed or deleted ([US-054](../requirements/user-stories/US-054-catalog-navigation-tree.md), [REQ-094](../requirements/req/REQ-094-navigation-tree-folder-crud.md)). Deleting a folder removes its subfolders and entries, never a catalog.
@@ -888,7 +912,7 @@ The layout of a diagram was saved: all its shapes in drawing order and its edges
 | Category / severity / outcome | `change` / `info` / `success` |
 | Actor | the person or service account with `entity:write` |
 | Target | `diagram`, ID of the diagram |
-| Details | `name` of the diagram, the new `version`, and the numbers `added`, `changed` (entity, position, size or drawing order differ) and `removed` shapes, `entitiesCreated`, the numbers `edgesAdded`, `edgesChanged` (connection, shape or bend points differ) and `edgesRemoved` edges, `connectionsCreated`, and `parentsChanged`, the number of entities whose parent the save changed (change us-074-diagram-nesting; a new entity with a parent counts, a change to the current parent does not). Shapes of a deleted entity and edges of a deleted connection are hidden and not counted; the nesting of shapes and the hierarchy lines are part of the layout and not counted separately |
+| Details | `name` of the diagram, the new `version`, and the numbers `added`, `changed` (entity, position, size or drawing order differ) and `removed` shapes, `entitiesCreated`, the numbers `edgesAdded`, `edgesChanged` (connection, shape or bend points differ) and `edgesRemoved` edges, `connectionsCreated`, and `parentsChanged`, the number of entities whose parent the save changed (change us-074-diagram-nesting; a new entity with a parent counts, a change to the current parent does not), and `connectionsRemoved`, the number of assignment connections the save deleted softly (change us-075-lane-assignments; each is audited as `entity.deleted`, and an assignment created without an edge is counted in `connectionsCreated` and audited as `entity.created`). Shapes of a deleted entity and edges of a deleted connection are hidden and not counted; the nesting of shapes and the hierarchy lines are part of the layout and not counted separately |
 
 Each parent the save changes (`parentChanges`, and the parent of a new entity) is audited as [`entity.parent-changed`](#entityparent-changed) with the agent of the save, in the same transaction; a new entity with a parent has `entity.created` and `entity.parent-changed`.
 

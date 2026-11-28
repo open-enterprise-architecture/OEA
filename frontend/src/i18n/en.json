@@ -383,7 +383,8 @@
       "starter": "Starter packages",
       "changes": "Changes",
       "settings": "Settings",
-      "viewpoints": "Viewpoints"
+      "viewpoints": "Viewpoints",
+      "organization": "Organization model"
     },
     "scope": {
       "title": "Origin",
@@ -755,6 +756,25 @@
       "failed": "The starter package could not be imported.",
       "loadFailed": "The starter packages could not be loaded.",
       "none": "No starter packages are shipped."
+    },
+    "organization": {
+      "title": "Organization model",
+      "hint": "Which entity types play organizational unit, role and person, and which connection types assign them. The canvas offers assignments for the parts that are set.",
+      "unset": "Not set",
+      "loadFailed": "The organization model could not be loaded.",
+      "saved": "The organization model is saved.",
+      "invalid": "Some parts do not fit: an element part needs an entity type, a connection part a connection type that reaches its element part.",
+      "partInvalid": "This part does not fit.",
+      "personDiffers": "The person here differs from the person metatype of property visibility (SCR-032). Both are set separately; account links use the one of property visibility.",
+      "save": "Save",
+      "part": {
+        "orgUnit": "Organizational unit",
+        "role": "Role",
+        "person": "Person",
+        "belongsTo": "Belongs to (connection)",
+        "performsRole": "Performs role (connection)",
+        "responsible": "Responsible (connection)"
+      }
     }
   },
   "navigation": {
@@ -932,6 +952,23 @@
       "saveFailed": "The change history settings could not be saved.",
       "loadFailed": "The change history settings could not be loaded.",
       "invalid": "This entry was rejected."
+    },
+    "mapping": {
+      "title": "Account mapping",
+      "hint": "An account is linked to the person element whose property value equals the chosen attribute of the account. The property must be restricted to roles; a link set by hand takes precedence.",
+      "none": "No mapping",
+      "property": "Property of the person metatype",
+      "attributeLabel": "Account attribute",
+      "attribute": {
+        "email": "E-mail address",
+        "idp-subject": "IdP subject"
+      },
+      "save": "Save",
+      "saved": "The account mapping is saved.",
+      "invalidProperty": "The property must be a text property of the person metatype that is restricted to roles.",
+      "forbidden": "This change would link your own account, which is not allowed.",
+      "saveFailed": "The account mapping could not be saved.",
+      "loadFailed": "The account mapping could not be loaded."
     }
   },
   "roles": {
@@ -1694,6 +1731,33 @@
       "insertBelow": "Insert lane below",
       "insertLeft": "Insert lane left",
       "insertRight": "Insert lane right"
+    },
+    "assignments": {
+      "hint": "Search by name, or create a new entry with the typed name.",
+      "searchFailed": "The search failed.",
+      "assigned": "Assigned",
+      "type": "Type of the new entry",
+      "create": "Create new",
+      "createNamed": "Create new \"{name}\"",
+      "orgUnit": "Organizational unit",
+      "role": "Role",
+      "remove": "Remove {name}",
+      "responsible": "Responsible: {name}",
+      "assignOrgUnit": "Assign organizational unit",
+      "setParticipant": "Set participant",
+      "assignRole": "Assign role",
+      "addPerson": "Add responsible person",
+      "requiredRole": "Required role",
+      "responsiblePerson": "Responsible person",
+      "add": "Add",
+      "severalPersons": "More than one responsible person",
+      "removalNeedsDelete": "Removing this shape removes the assignment of its lane, which needs the permission to delete.",
+      "moveNeedsDelete": "Moving the shape out of its lane removes the assignment of that lane, which needs the permission to delete. The move was undone.",
+      "limit": {
+        "connections": "A save creates at most 500 connections.",
+        "entities": "A save creates at most 500 entities.",
+        "removals": "A save removes at most 500 assignments."
+      }
     }
   },
   "dashboards": {

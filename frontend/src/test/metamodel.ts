@@ -110,6 +110,8 @@ interface Stored {
 
 export interface MetamodelApiOptions {
   me?: unknown
+  /** The parts of the organization model that are set at the start, by metatype ID (us-075-lane-assignments); default none. */
+  organization?: Partial<Record<'orgUnit' | 'role' | 'person' | 'belongsTo' | 'performsRole' | 'responsible', string>>
   /** Entities without a value that a new mandatory mapping marks. */
   unmarkedEntities?: number
   /** Answers every request after the given path with an error, for failure states. */
@@ -373,6 +375,9 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   if (options.diagramCount !== undefined) {
     state.viewpoints[0]!.diagramCount = options.diagramCount
   }
+  const organization: Record<string, string> = { ...(options.organization ?? {}) }
+  let organizationVersion = 1
+  const ORG_PARTS = ['orgUnit', 'role', 'person', 'belongsTo', 'performsRole', 'responsible'] as const
   const requests: MetamodelRequest[] = []
   const today = new Date().toISOString().slice(0, 10)
 
@@ -623,6 +628,30 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
       return problem(500, 'internal')
     }
     const [, kind, id, sub, subId] = parts
+
+    // the organization model of the instance (us-075-lane-assignments): one setting with a version
+    if (kind === 'organization-model') {
+      const nameOf = (metatypeId: string | null) => (metatypeId ? (state.metatypes.find((metatype) => metatype.id === metatypeId)?.name ?? null) : null)
+      const view = () => ({
+        ...Object.fromEntries(ORG_PARTS.map((part) => [part, { metatypeId: organization[part] ?? null, metatypeName: nameOf(organization[part] ?? null) }])),
+        version: organizationVersion,
+      })
+      if (method === 'GET') return json(view(), 200, organizationVersion)
+      if (ifMatch !== `"${organizationVersion}"`) return problem(412, 'stale-version', { currentVersion: organizationVersion })
+      const invalid = ORG_PARTS.filter((part) => {
+        const requested = body?.[part] as string | null | undefined
+        const found = requested ? state.metatypes.find((metatype) => metatype.id === requested) : undefined
+        return requested ? !found || Boolean(found.isConnection) !== (part === 'belongsTo' || part === 'performsRole' || part === 'responsible') : false
+      })
+      if (invalid.length > 0) return problem(422, 'validation-failed', { invalidFields: invalid })
+      for (const part of ORG_PARTS) {
+        const requested = body?.[part] as string | null | undefined
+        if (requested) organization[part] = requested
+        else delete organization[part]
+      }
+      organizationVersion += 1
+      return json(view(), 200, organizationVersion)
+    }
 
     // the starter packages shipped with OEA, sorted by identifier as the API does (us-074-bpmn-process-diagrams)
     if (kind === 'starter-packages') {

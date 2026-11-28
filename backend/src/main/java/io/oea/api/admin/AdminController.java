@@ -74,6 +74,8 @@ public class AdminController implements AdminApi {
 
 	private final PersonMetatypes personMetatypes;
 
+	private final io.oea.app.metamodel.PersonLinkMappings linkMappings;
+
 	private final VisibilityOverride override;
 
 	private final io.oea.app.metamodel.HistoryVisibility historyVisibility;
@@ -93,7 +95,8 @@ public class AdminController implements AdminApi {
 			StarterPackages starterPackages, LocalAdminAccount localAdmin, PasswordPolicies policies,
 			SecondFactorPolicies secondFactorPolicies, PropertyVisibility visibility, PersonMetatypes personMetatypes,
 			VisibilityOverride override, io.oea.app.metamodel.HistoryVisibility historyVisibility,
-			ServiceAccounts serviceAccounts) {
+			ServiceAccounts serviceAccounts, io.oea.app.metamodel.PersonLinkMappings linkMappings) {
+		this.linkMappings = linkMappings;
 		this.historyVisibility = historyVisibility;
 		this.serviceAccounts = serviceAccounts;
 		this.personMetatypes = personMetatypes;
@@ -150,6 +153,28 @@ public class AdminController implements AdminApi {
 				.metatypeId(entry.metatypeId())
 				.mode(HistoryVisibilityEntry.ModeEnum.fromValue(entry.mode())))
 			.toList());
+	}
+
+	@Override
+	public ResponseEntity<io.oea.api.generated.model.PersonLinkMapping> getPersonLinkMapping() {
+		return ResponseEntity.ok(linkMapping(this.linkMappings.get()));
+	}
+
+	@Override
+	public ResponseEntity<io.oea.api.generated.model.PersonLinkMapping> updatePersonLinkMapping(
+			io.oea.api.generated.model.PersonLinkMapping request) {
+		return ResponseEntity.ok(linkMapping(this.linkMappings.set(principal(), request.getPropertyDefId(),
+				(request.getAccountAttribute() != null) ? request.getAccountAttribute().getValue() : null)));
+	}
+
+	private static io.oea.api.generated.model.PersonLinkMapping linkMapping(
+			io.oea.app.metamodel.PersonLinkMappings.View view) {
+		return new io.oea.api.generated.model.PersonLinkMapping(view.propertyDefId(),
+				(view.accountAttribute() != null)
+						? io.oea.api.generated.model.PersonLinkMapping.AccountAttributeEnum
+							.fromValue(view.accountAttribute())
+						: null)
+			.propertyName(view.propertyName());
 	}
 
 	private static PersonMetatype personMetatype(PersonMetatypes.View view) {

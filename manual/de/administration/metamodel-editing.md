@@ -2,7 +2,7 @@
 title: Metamodell bearbeiten
 covers:
   screens: [SCR-030, SCR-031]
-  stories: [US-032, US-057, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
+  stories: [US-075, US-076, US-032, US-057, US-034, US-035, US-036, US-037, US-135, US-090, US-091, US-092, US-093, US-137, US-140, US-154, US-156]
 ---
 
 # Metamodell bearbeiten
@@ -181,6 +181,15 @@ Benutzerinnen und Benutzer sehen die Namen von Entitätstypen, Kategorien und Ei
 - Du kannst jedes Element übersetzen, auch die eines Pakets. Deine Übersetzung gewinnt über die des Pakets; ohne beide sehen die Benutzer den Namen in deiner Unternehmenssprache. Ein geleertes Feld entfernt deine Übersetzung.
 - Texte haben höchstens 200 Zeichen.
 - Dein Portal zeigt die neuen Namen sofort; andere offene Portale übernehmen sie innerhalb von fünf Minuten, ohne neu zu laden.
+
+## Organisationsmodell {#organization-model}
+
+Der Abschnitt *Organisationsmodell* sagt, welche Entitätstypen in [Zuordnungen](../usage/diagrams#assignments) welche Rolle spielen: die Objektteile *Organisationseinheit*, *Rolle* und *Person* und die Verbindungsteile *gehört zu*, *übernimmt Rolle* und *verantwortlich*. Alle, die das Metamodell lesen, sehen sie; wer `metamodel:write` hat, wählt je Teil einen Typ (oder *Nicht gesetzt*) und wählt *Speichern*, das alle sechs Teile mit der gelesenen Version schreibt. Ein gesperrtes Metamodell bietet keine Änderung an.
+
+- Ein Teil der ersten Art braucht einen Entitätstyp, ein Teil der zweiten Art einen Verbindungstyp; sonst nennt die Seite den Teil (`422`). Ein Verbindungsteil, dessen erlaubte Ziele seinen Objektteil und dessen Basistypen ausschließen, wird ebenfalls abgelehnt, außer seine Zielliste ist leer (sie erreicht dann jeden Typ). Die Prüfung gilt, sobald beide Teile gesetzt sind.
+- Der Import des [Organisations-Pakets](./metamodel-packages#organization-package) füllt die Teile, die nicht gesetzt sind. Ohne Organisationseinheit, Rolle oder Person wird dafür keine Zuordnung angeboten, und ein fehlender Verbindungsteil blockiert die Zuordnungen dieses Teils.
+- Die **Person** hier ist getrennt vom [Entitätstyp von Personen](./property-visibility#person-metatype) der Eigenschaftssichtbarkeit, der zur Sicherheitsverwaltung gehört; sind beide gesetzt und unterschiedlich, zeigt der Abschnitt einen Hinweis. Konto-Verknüpfungen nutzen den der Eigenschaftssichtbarkeit.
+- Wird der Entitätstyp eines Teils gelöscht, ist der Teil nicht mehr gesetzt. Jede Änderung wird als `metamodel.organization-model-updated` mit den geänderten Teilen protokolliert; `GET` und `PUT /metamodel/organization-model` lesen und setzen die Einstellung (`If-Match` mit der Version; `412` und `428` wie bei anderen Einstellungen, `403` mit `urn:oea:problem:metamodel-locked` in einem gesperrten Metamodell).
 
 ## Das Metamodell sperren {#lock-mode}
 

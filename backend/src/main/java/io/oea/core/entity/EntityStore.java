@@ -4,6 +4,7 @@ import io.oea.core.metamodel.BuiltInMetatypes;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import io.oea.core.access.PersonLinkTrigger;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -28,8 +30,16 @@ public class EntityStore {
 
 	private final JdbcTemplate jdbc;
 
+	private final PersonLinkTrigger links;
+
 	public EntityStore(JdbcTemplate jdbc) {
+		this(jdbc, PersonLinkTrigger.NONE);
+	}
+
+	@Autowired
+	public EntityStore(JdbcTemplate jdbc, PersonLinkTrigger links) {
 		this.jdbc = jdbc;
+		this.links = links;
 	}
 
 	/** The stored system fields of an entity; {@code parentEntityId} is {@code null} at the root level. */
@@ -155,6 +165,7 @@ public class EntityStore {
 	 * this one along ({@code null} for none), so that its restore restores this one too (V49).
 	 */
 	public void softDelete(int id, long personId, Instant now, String reason, Integer originId) {
+		this.links.changed();
 		this.jdbc.update("""
 				UPDATE entities SET deleted_at = ?, deleted_by = ?, deletion_reason = ?, deleted_with_entity_id = ?
 				WHERE id = ? AND deleted_at IS NULL""", Timestamp.from(now), personId, reason, originId, id);
@@ -350,6 +361,7 @@ public class EntityStore {
 				    SELECT id, 1, ?, ? FROM created)
 				SELECT id FROM created""", Integer.class, fields.metatypeId(), fields.name(), fields.description(),
 				fields.logical(), fields.externalId(), Timestamp.from(now), personId, personId, Timestamp.from(now));
+		values.keySet().forEach(this.links::valueChanged);
 		insertValues(id, values);
 		return id;
 	}
@@ -390,6 +402,7 @@ public class EntityStore {
 		}
 		for (Map.Entry<UUID, TypedValue> change : newValues.entrySet()) {
 			UUID definition = change.getKey();
+			this.links.valueChanged(definition);
 			TypedValue before = previousValues.get(definition);
 			this.jdbc.update("""
 					INSERT INTO entity_property_value_history (entity_id, property_def_id, entity_version, value_text,

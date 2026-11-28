@@ -1881,6 +1881,39 @@ components:
           description: Names of the mandatory properties without a value, ordered by name
           items: { type: string }
         conflict: { type: boolean, description: "True when the viewpoint of the diagram does not allow the metatype of the entity" }
+        assignments:
+          oneOf:
+            - $ref: '#/components/schemas/DiagramAssignments'
+            - type: 'null'
+          description: The assignments of a shape that carries them; null for every other shape
+
+    DiagramAssignments:
+      type: object
+      description: |
+        The assignments of a shape (change us-075-lane-assignments): the organizational units
+        (belongs-to), the roles (performs-role) and the persons (responsible) its entity is
+        connected to by the connection types of the organization model (`getOrganizationModel`).
+        Present only for a shape that is drawn as `bpmn:Lane`, `bpmn:Pool`, `bpmn:Task` or a task
+        variant (the notation keys `bpmn:UserTask`, `bpmn:ServiceTask`, `bpmn:SendTask`,
+        `bpmn:ReceiveTask`, `bpmn:BusinessRuleTask`, `bpmn:ScriptTask`) or that lies in an
+        assignment lane or pool; null on the shape for every other shape. Deleted connections and deleted
+        targets are left out; a part that is unset in the organization model gives an empty
+        list. The names are entity names.
+      required: [orgUnits, roles, persons]
+      properties:
+        orgUnits: { type: array, items: { $ref: '#/components/schemas/DiagramAssignment' } }
+        roles:    { type: array, items: { $ref: '#/components/schemas/DiagramAssignment' } }
+        persons:  { type: array, items: { $ref: '#/components/schemas/DiagramAssignment' } }
+
+    DiagramAssignment:
+      type: object
+      description: One assignment, a connection to an organizational unit, a role or a person
+      required: [connectionId, connectionVersion, entityId, name]
+      properties:
+        connectionId:      { type: integer, minimum: 1, description: "The connection; to be sent as `connectionId` of a removed connection" }
+        connectionVersion: { type: integer, minimum: 1, description: "The version of the connection the view read; to be sent as `expectedVersion` when the assignment is removed" }
+        entityId:          { type: integer, minimum: 1, description: "The organizational unit, role or person" }
+        name:              { type: string, description: "The name of that entity" }
 
     DiagramShapeOrientation:
       type: string
@@ -2036,10 +2069,19 @@ components:
         A connection created on the canvas. Its source and target are the entities of the shapes of
         its first edge. A mandatory property without a value does not block it; it is created
         incomplete (owner decision 2026-11-20 applied to connections).
+
+        An assignment (change us-075-lane-assignments) is a new connection that no edge shows: it
+        names its source by `sourceShapeId` and its target by exactly one of `targetEntityId` and
+        `targetNewEntityKey`, and its metatype is the belongs-to, performs-role or responsible
+        type of the organization model or a subtype (422 `METATYPE_NOT_ALLOWED` otherwise). A new
+        connection that an edge shows carries none of the three fields (422 otherwise).
       required: [key, metatypeId]
       properties:
         key:         { type: string, format: uuid, description: "Chosen by the client; the edges refer to it with `newConnectionKey`" }
-        metatypeId:  { type: string, format: uuid, description: "A connection metatype that the diagram's viewpoint allows" }
+        metatypeId:  { type: string, format: uuid, description: "A connection metatype that the diagram's viewpoint allows; for an assignment the type of the organization model or a subtype" }
+        sourceShapeId: { type: string, format: uuid, description: "Assignments only: a shape of the request whose entity is the source" }
+        targetEntityId: { type: integer, minimum: 1, description: "Assignments only: an existing active entity as target; not together with `targetNewEntityKey`" }
+        targetNewEntityKey: { type: string, format: uuid, description: "Assignments only: the `key` of an item of `newEntities` as target; not together with `targetEntityId`" }
         name:        { type: string, maxLength: 255, description: "Blank or missing means \"Source → Target\"" }
         description: { type: string, maxLength: 2000 }
         properties:
@@ -2088,11 +2130,14 @@ components:
       description: |
         An entity created on the canvas: name and metatype, optionally a description and property
         values (US-074 step 6). A mandatory property without a value does not block the entity; it
-        is created incomplete (owner decision 2026-11-20).
+        is created incomplete (owner decision 2026-11-20). An entity that no shape shows (change
+        us-075-lane-assignments) must be the target of a new connection of the same request and of
+        the organizational unit, role or person type of the organization model or a subtype
+        (quick create of an assignment target; 422 otherwise).
       required: [key, metatypeId, name]
       properties:
         key:        { type: string, format: uuid, description: "Chosen by the client; the shapes refer to it with `newEntityKey`" }
-        metatypeId: { type: string, format: uuid, description: "An element metatype that the diagram's viewpoint allows" }
+        metatypeId: { type: string, format: uuid, description: "An element metatype that the diagram's viewpoint allows; for an entity without a shape the organizational unit, role or person type of the organization model or a subtype" }
         name:       { type: string, maxLength: 255, description: "The entity name, as in an entity write: not blank, at most 255 characters (a blank name answers 422)" }
         description: { type: string, maxLength: 2000, description: "The entity description, at most 2000 characters" }
         properties:
@@ -2164,6 +2209,26 @@ components:
           maxItems: 500
           description: The changes of the parent of shown entities, written in the same transaction with the rules, the automatic composition connection and the audit of `setEntityParent`
           items: { $ref: '#/components/schemas/DiagramParentChange' }
+        removedConnections:
+          type: array
+          maxItems: 500
+          description: The assignment connections to delete softly with this save (change us-075-lane-assignments); needs `entity:delete`
+          items: { $ref: '#/components/schemas/DiagramRemovedConnection' }
+
+    DiagramRemovedConnection:
+      type: object
+      description: |
+        An assignment connection to delete softly with the save, with the connection version the
+        client read (409 `entity-version-conflict` when stale, 409 `entity-blocked` for an open
+        issue). It must be a connection that is not deleted (`CONNECTION_NOT_FOUND`), of the
+        belongs-to, performs-role or responsible type of the organization model or a subtype
+        (`NOT_AN_ASSIGNMENT`), from an entity that a shape of the request or of the stored layout
+        shows (`SOURCE_NOT_ON_DIAGRAM`) and that no edge of the request shows
+        (`REMOVED_CONNECTION_SHOWN`); each once.
+      required: [connectionId, expectedVersion]
+      properties:
+        connectionId:    { type: integer, minimum: 1 }
+        expectedVersion: { type: integer, minimum: 1, description: "The connection version the client read" }
 
     DiagramHierarchyLineWrite:
       type: object
@@ -2292,6 +2357,11 @@ components:
           type: array
           description: Names of the mandatory properties without a value, ordered by name, as in `DiagramShape`
           items: { type: string }
+        assignments:
+          oneOf:
+            - $ref: '#/components/schemas/DiagramAssignments'
+            - type: 'null'
+          description: The assignments of a shape that carries them; null for every other shape
 
     DiagramEntity:
       type: object
@@ -2354,6 +2424,41 @@ components:
       required: [askNewParent]
       properties:
         askNewParent: { type: boolean }
+
+    OrganizationModelPart:
+      type: object
+      required: [metatypeId]
+      description: One part of the organization model; null while the part is unset
+      properties:
+        metatypeId:   { type: [string, 'null'], format: uuid }
+        metatypeName: { type: [string, 'null'], readOnly: true }
+
+    OrganizationModel:
+      type: object
+      description: |
+        The organization model of the instance (change us-075-lane-assignments): which element
+        metatypes play organizational unit, role and person, and which connection metatypes
+        play belongs-to, performs-role and responsible. Each part may be unset.
+      required: [orgUnit, role, person, belongsTo, performsRole, responsible, version]
+      properties:
+        orgUnit:      { $ref: '#/components/schemas/OrganizationModelPart' }
+        role:         { $ref: '#/components/schemas/OrganizationModelPart' }
+        person:       { $ref: '#/components/schemas/OrganizationModelPart' }
+        belongsTo:    { $ref: '#/components/schemas/OrganizationModelPart' }
+        performsRole: { $ref: '#/components/schemas/OrganizationModelPart' }
+        responsible:  { $ref: '#/components/schemas/OrganizationModelPart' }
+        version:      { type: integer, minimum: 1, readOnly: true }
+
+    OrganizationModelWrite:
+      type: object
+      description: The whole setting; a part that is null or missing is unset
+      properties:
+        orgUnit:      { type: [string, 'null'], format: uuid, description: "An element metatype" }
+        role:         { type: [string, 'null'], format: uuid, description: "An element metatype" }
+        person:       { type: [string, 'null'], format: uuid, description: "An element metatype" }
+        belongsTo:    { type: [string, 'null'], format: uuid, description: "A connection metatype whose allowed targets reach the organizational unit or are empty" }
+        performsRole: { type: [string, 'null'], format: uuid, description: "A connection metatype whose allowed targets reach the role or are empty" }
+        responsible:  { type: [string, 'null'], format: uuid, description: "A connection metatype whose allowed targets reach the person or are empty" }
 
     DiagramEntityPage:
       type: object
@@ -3328,6 +3433,23 @@ components:
             Viewpoints the import installs as system-defined, read-only viewpoints of the package
             (US-092, REQ-059); at most 10000
           items: { $ref: '#/components/schemas/PackageViewpoint' }
+        organizationModel:
+          type: object
+          description: |
+            The parts of the organization model (`getOrganizationModel`) that the package fills
+            (change us-075-lane-assignments): per part the ID of a metatype of the package, an
+            element metatype for `orgUnit`, `role` and `person`, a connection metatype for the
+            others (422 naming `/organizationModel/<part>` otherwise). The import fills only the
+            parts that are unset, audits them as `metamodel.organization-model-updated` with
+            `cause` `package-import` and lists them as `organizationModelFilled`.
+          additionalProperties: false
+          properties:
+            orgUnit:      { type: string, format: uuid }
+            role:         { type: string, format: uuid }
+            person:       { type: string, format: uuid }
+            belongsTo:    { type: string, format: uuid }
+            performsRole: { type: string, format: uuid }
+            responsible:  { type: string, format: uuid }
         shapeAssignments:
           type: array
           description: Not supported yet; a package with shape assignments is rejected with `unsupported-package-content`
@@ -5058,6 +5180,18 @@ components:
         metatypeId:   { type: [string, 'null'], format: uuid }
         metatypeName: { type: [string, 'null'], readOnly: true }
 
+    PersonLinkMapping:
+      type: object
+      required: [propertyDefId, accountAttribute]
+      description: |
+        The account mapping (change us-075-lane-assignments): the string property of the person
+        metatype whose value, compared with the account attribute, links an account to an
+        element. Both are null while no mapping is set.
+      properties:
+        propertyDefId:    { type: [string, 'null'], format: uuid }
+        propertyName:     { type: [string, 'null'], readOnly: true, maxLength: 100 }
+        accountAttribute: { type: [string, 'null'], enum: [email, idp-subject, null], description: "The account attribute that is compared: the e-mail address or a subject of an identity binding" }
+
     PersonEntityLinkResult:
       type: object
       required: [personId, entityId]
@@ -5409,6 +5543,28 @@ components:
             The element of the EA model linked to the account (`setPersonEntityLink`, REQ-127);
             connection-scoped visibility starts from it while it is active and of the person
             metatype
+        mappedEntityId:
+          type: [integer, 'null']
+          description: |
+            The element linked through the account mapping (`getPersonLinkMapping`, change
+            us-075-lane-assignments); null without a link through the mapping. Only a person
+            without a manual link has one; the effective link is `entityId` if set, else this.
+        linkSource:
+          type: [string, 'null']
+          enum: [manual, mapping, null]
+          description: "Where the effective link comes from; null without a link"
+        mappingConflict:
+          oneOf:
+            - $ref: '#/components/schemas/PersonMappingConflict'
+            - type: 'null'
+          description: Set while the mapping value of the account matches several elements or several accounts, so that no link through the mapping exists
+
+    PersonMappingConflict:
+      type: object
+      required: [entityIds, accountCount]
+      properties:
+        entityIds:    { type: array, items: { type: integer }, description: "The active elements that carry the value" }
+        accountCount: { type: integer, minimum: 1, description: "The number of accounts that have the value as attribute" }
 
     PersonWrite:
       type: object
@@ -5858,6 +6014,10 @@ components:
         layersCreated:
           type: [integer, 'null']
           description: Architecture layers a metamodel package import created; null for other imports
+        organizationModelFilled:
+          type: [array, 'null']
+          description: The parts of the organization model that a metamodel package import filled (`orgUnit`, `role`, `person`, `belongsTo`, `performsRole`, `responsible`); null for other imports
+          items: { type: string, enum: [orgUnit, role, person, belongsTo, performsRole, responsible] }
         layersUpdated:
           type: [integer, 'null']
           description: Architecture layers of the package a metamodel package import updated; null for other imports
@@ -8777,8 +8937,23 @@ paths:
         the edges (with the structural 422 of nesting, lines and parent changes) and before the 403 of the property
         visibility and every other answer listed above. Hidden shapes and edges of deleted entities
         are not checked.
+
+        Assignments (change us-075-lane-assignments): a new connection that no edge shows
+        (`sourceShapeId`, `targetEntityId` or `targetNewEntityKey`) is accepted for the
+        belongs-to, performs-role and responsible types of the organization model; a new entity
+        that no shape shows is accepted as the target of such a connection (422
+        `NEW_ENTITY_UNUSED` otherwise); `removedConnections` (at most 500, 400 above) deletes
+        assignment connections softly in the same transaction with the checks and the audit of
+        `deleteEntity` (`entity.deleted`, 409 `entity-version-conflict`, 409 `entity-blocked`).
+        A non-empty `removedConnections` needs `entity:delete` (403 for the whole save, with the
+        403 of a scoping connection type and before 412 or 428 and every 422). The 422 issue
+        codes of assignments are `ORG_UNIT_LIMIT` (a lane or pool shape that a new belongs-to
+        connection leaves with more than one organizational unit, naming `shapes[i]`; checked
+        in the diagram save only), `NOT_AN_ASSIGNMENT`, `SOURCE_NOT_ON_DIAGRAM`,
+        `REMOVED_CONNECTION_SHOWN` and `CONNECTION_NOT_FOUND` (naming `removedConnections[i]`).
+        The removals are written after the entities and parents, before the new connections.
       tags: [Diagrams]
-      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a new connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
+      x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a new connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}, {"when": "removedConnections is not empty", "permissions": ["entity:delete"]}]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - $ref: '#/components/parameters/IfMatchRequiredHeader'
@@ -8978,15 +9153,23 @@ paths:
         literally. A `pageSize` outside 1-200, a `page` below 0 and a `q` over 255 characters
         answer 400; an unknown property definition or one that is not of data type `reference` 422
         naming `propertyDefId`; an unknown or deleted diagram 404. Read only, not audited.
+
+        Instead of `propertyDefId`, `part` (change us-075-lane-assignments) searches the active
+        entities of the metatype that the organization model names for the part and of its
+        subtypes (the assignment search): exactly one of `propertyDefId` and `part`, else 422
+        naming `part`; a part that is unset in the organization model is 422 naming `part`.
       tags: [Diagrams]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
       parameters:
         - $ref: '#/components/parameters/UuidIdParam'
         - name: propertyDefId
           in: query
-          required: true
-          description: The reference property whose targets are searched
+          description: The reference property whose targets are searched; exactly one of `propertyDefId` and `part`
           schema: { type: string, format: uuid }
+        - name: part
+          in: query
+          description: The part of the organization model whose entities are searched; exactly one of `propertyDefId` and `part`
+          schema: { type: string, enum: [org-unit, role, person] }
         - name: q
           in: query
           description: Part of the entity name, compared ignoring case; blank means no filter
@@ -9004,7 +9187,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
-          description: The `propertyDefId` is unknown or not a reference property (`invalidFields`)
+          description: The `propertyDefId` is unknown or not a reference property, or `part` is unset in the organization model, or not exactly one of both is given (`invalidFields`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/DiagramValidationProblem' }
@@ -10310,6 +10493,66 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /metamodel/organization-model:
+    get:
+      operationId: getOrganizationModel
+      summary: Organization model of the instance (SCR-030)
+      description: |
+        Which metatypes play the parts organizational unit, role, person, belongs-to,
+        performs-role and responsible (change us-075-lane-assignments), with the version as
+        `ETag`. A part is null while it is unset. Read only, not audited.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      responses:
+        '200':
+          description: The organization model
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrganizationModel' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateOrganizationModel
+      summary: Change the organization model (SCR-030)
+      description: |
+        Sets the six parts. Needs `If-Match` with the version read (428 without, 412 when stale).
+        A part names an existing metatype of its kind: the first three element metatypes, the
+        last three connection metatypes (422 `validation-failed` with `invalidFields` naming the
+        part otherwise). A connection part whose allowed targets exclude its element part and
+        the base types of it is 422 naming the connection part, unless its target list is empty;
+        it is checked whenever both parts are set. A change raises the version and audits
+        `metamodel.organization-model-updated` with the changed parts; a write that changes
+        nothing keeps the version and audits nothing. In `import-only` the answer is 403
+        `metamodel-locked`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrganizationModelWrite' }
+      responses:
+        '200':
+          description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrganizationModel' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /metamodel/architecture-layers:
     get:
       operationId: listArchitectureLayers
@@ -11112,6 +11355,58 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PersonMetatype' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/property-visibility/person-link-mapping:
+    get:
+      operationId: getPersonLinkMapping
+      summary: Account mapping of the person link (SCR-032)
+      description: |
+        The string property of the person metatype and the account attribute (`email` or
+        `idp-subject`) through which an account is linked to a person element (change
+        us-075-lane-assignments, REQ-127). Both are null while no mapping is set. Read only, not
+        audited.
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["visibility:configure", "person:manage"]}
+      responses:
+        '200':
+          description: The mapping
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonLinkMapping' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updatePersonLinkMapping
+      summary: Set or clear the account mapping (SCR-032)
+      description: |
+        Sets or, with a null `propertyDefId`, clears the mapping. The property must be of data
+        type `string`, mapped to the person metatype of connection-scoped visibility or a
+        subtype, and have the visibility mode `role-restricted` (422 naming `propertyDefId`
+        otherwise); `accountAttribute` is required with a property. While the property is the
+        mapping property, `updatePropertyVisibility` rejects a mode other than
+        `role-restricted` with 422 naming `mode`. Every change recomputes the links through the
+        mapping and is audited as `visibility.person-link-mapping-changed`; a request that
+        would give the acting person's own account a new link is 403 (SoD-1).
+      tags: [Admin]
+      x-oea-authorization: {"access": "permission", "permissions": ["visibility:configure"]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonLinkMapping' }
+      responses:
+        '200':
+          description: The mapping
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonLinkMapping' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }

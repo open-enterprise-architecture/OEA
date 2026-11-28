@@ -16,8 +16,11 @@ import {
   type DiagramEntityDetails,
   type DiagramView,
 } from '../../api/diagramView'
+import { fetchMetatypes } from '../../api/metamodel'
+import { fetchOrganizationModel } from '../../api/organization'
 import { rateLimitMessage, type BlockedEntity } from '../../api/problem'
 import AddExistingDialog from './AddExistingDialog.vue'
+import AssignmentDialog from './AssignmentDialog.vue'
 import ConnectedElementDialog from './ConnectedElementDialog.vue'
 import ConnectionEdges, { type EdgeDraw } from './ConnectionEdges.vue'
 import ConnectionOfferDialog, { type OfferedConnection } from './ConnectionOfferDialog.vue'
@@ -29,6 +32,34 @@ import EntityDetailsPanel from './EntityDetailsPanel.vue'
 import NewParentDialog from './NewParentDialog.vue'
 import RemoveContainerDialog from './RemoveContainerDialog.vue'
 import ViewpointChangeDialog from './ViewpointChangeDialog.vue'
+import {
+  addAssignment,
+  addCreated,
+  assignmentBlock,
+  assignmentLanesAbove,
+  containmentChange,
+  forgetShape,
+  hasPendingAssignments,
+  markContained,
+  NO_ASSIGNMENT_EDITS,
+  organizationContext,
+  parentContainer,
+  pruneAssignments,
+  removalBlocked,
+  removalNeeded,
+  removeAssignment,
+  replaceOrgUnit,
+  savedAssignments,
+  severalPersons,
+  shownAssignments,
+  TASK_ELEMENTS,
+  type AssignmentEdits,
+  type AssignmentField,
+  type OrganizationContext,
+  type Part,
+  type SavedAssignment,
+  type ShownAssignment,
+} from './assignments'
 import { bpmnSymbol, flowStyle, PALETTE_GROUPS, paletteGroup, type PaletteGroup } from './bpmnSymbols'
 import {
   abbreviation,
@@ -87,6 +118,7 @@ import {
   type FieldChange,
   type ParentChanges,
   type ParentTarget,
+  type ShapeAssignments,
   type ShapeData,
 } from './canvasModel'
 import {
@@ -162,6 +194,12 @@ const removeOpen = ref(false)
 const changeOpen = ref(false)
 const flagged = ref(new Set<string>())
 const blockedByConflicts = ref(false)
+// assignments of lanes, pools and tasks (us-075-lane-assignments): the organization model of the instance, the unsaved
+// changes, and the open search
+const organization = ref<OrganizationContext>()
+const assignmentEdits = ref<AssignmentEdits>(NO_ASSIGNMENT_EDITS)
+const assigning = ref<{ shapeId: string; part: Part; title: string }>()
+const assignOpen = ref(false)
 const selectedId = ref<string>()
 const selectedEdgeId = ref<string>()
 const surface = ref<HTMLElement>()
@@ -198,7 +236,7 @@ const selectedShape = computed(() => shapes.value.find((shape) => shape.id === s
 const selectedEdge = computed(() => edges.value.find((edge) => edge.id === selectedEdgeId.value))
 const selectedSymbol = computed(() => (selectedShape.value ? bpmnSymbol(notation.value, notationElementOf(props.view, selectedShape.value.metatypeId))?.kind : undefined))
 const subject = computed(() => selectedShape.value ?? (selectedEdge.value ? edgeSubject(selectedEdge.value, shapes.value) : undefined))
-const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value, edits.value, edges.value, savedEdges.value, lines.value, savedLines.value, parents.value))
+const dirty = computed(() => hasUnsavedChanges(shapes.value, saved.value, edits.value, edges.value, savedEdges.value, lines.value, savedLines.value, parents.value, assignmentEdits.value))
 watch([selectedId, selectedEdgeId], ([shape, edge]) => {
   panelOpen.value = shape !== undefined || edge !== undefined
 })
@@ -210,6 +248,7 @@ watch(
 )
 
 function adopt(view: DiagramView) {
+  savedByShape.value = assignmentsOf(view)
   shapes.value = laidOut(view)
   saved.value = laidOut(view)
   edges.value = view.edges.map(fromViewEdge)
@@ -217,6 +256,7 @@ function adopt(view: DiagramView) {
   lines.value = view.hierarchyLines.map(fromViewLine)
   savedLines.value = view.hierarchyLines.map(fromViewLine)
   parents.value = {}
+  assignmentEdits.value = NO_ASSIGNMENT_EDITS
   descriptions.value = {}
   selectedId.value = shapes.value.some((shape) => shape.id === selectedId.value) ? selectedId.value : undefined
   selectedEdgeId.value = edges.value.some((edge) => edge.id === selectedEdgeId.value) ? selectedEdgeId.value : undefined
@@ -231,6 +271,49 @@ function adopt(view: DiagramView) {
   blockedEntities.value = []
   // an open panel reads its entity again: it has a new version after a save
   reloadToken.value += 1
+}
+
+// the assignments of the shapes (us-075-lane-assignments D3, D6, D8)
+/** The saved assignments by shape, as the last view read or saved them. */
+const assignmentsOf = (view: DiagramView) => new Map(view.shapes.map((shape) => [shape.id, savedAssignments(shape)]))
+const savedByShape = ref(assignmentsOf(props.view))
+const noSaved: SavedAssignment[] = []
+const savedOf = (shapeId: string): SavedAssignment[] => savedByShape.value.get(shapeId) ?? noSaved
+/** The part a lane or pool of the diagram stands for: its entity is an organizational unit or a role (design D8); none for another shape. */
+function lanePart(shape: CanvasShape): 'orgUnit' | 'role' | undefined {
+  if (!organization.value) return undefined
+  const element = notationElementOf(props.view, shape.metatypeId)
+  if (element !== 'bpmn:Lane' && element !== 'bpmn:Pool') return undefined
+  const part = organization.value.partOf(shape.metatypeId)
+  return part === 'orgUnit' || part === 'role' ? part : undefined
+}
+const shapeIndex = computed(() => new Map(shapes.value.map((shape) => [shape.id, shape])))
+const lanesAbove = (shapeId: string, list?: CanvasShape[]) =>
+  organization.value ? assignmentLanesAbove(list ?? shapes.value, shapeId, lanePart, list ? undefined : shapeIndex.value) : []
+/** Whether the shape shows assignments: a lane, pool or task, or a shape in an assignment lane. */
+function carriesAssignments(shape: CanvasShape): boolean {
+  const element = notationElementOf(props.view, shape.metatypeId)
+  return element === 'bpmn:Lane' || element === 'bpmn:Pool' || (element !== undefined && TASK_ELEMENTS.includes(element)) || lanesAbove(shape.id).length > 0
+}
+const shownOf = (shape: CanvasShape): ShownAssignment[] => markContained(shownAssignments(savedOf(shape.id), assignmentEdits.value, shape.id), lanesAbove(shape.id))
+/** "×" is offered to an editor: for a saved assignment only with `entity:delete`, never for one that the lane of the shape stands for. */
+const removable = (assignment: ShownAssignment): boolean => props.editable && assignment.contained !== true && (assignment.pending || props.canDelete === true)
+function shapeAssignments(shape: CanvasShape): ShapeAssignments {
+  const shown = shownOf(shape)
+  return {
+    orgUnit: shown.find((entry) => entry.part === 'orgUnit'),
+    roles: shown.filter((entry) => entry.part === 'role'),
+    persons: shown.filter((entry) => entry.part === 'person'),
+    removable,
+    remove: (assignment) => unassign(shape.id, assignment),
+  }
+}
+/** What the request already holds: the new connections of edges and the new entities of shapes. */
+function heldCounts(): { connections: number; entities: number } {
+  return {
+    connections: new Set(edges.value.flatMap((edge) => (edge.newConnection ? [edge.newConnection.key] : []))).size,
+    entities: shapes.value.filter((shape) => shape.newEntity).length,
+  }
 }
 
 const metatypeNames = computed(() => new Map(props.view.viewpoint.allowedMetatypes.map((type) => [type.id, type.name])))
@@ -341,6 +424,15 @@ function fitAround(list: CanvasShape[], id: string): CanvasShape[] {
  */
 function dropShape(id: string) {
   const gone = new Set([id, ...descendantsOf(shapes.value, id).map((shape) => shape.id)])
+  // the assignments that the lanes around a shape stand for go with it: the connection is removed (design D8)
+  let next = assignmentEdits.value
+  for (const goneId of gone) {
+    const left = lanesAbove(goneId).filter((lane) => !gone.has(lane.shapeId))
+    const outcome = containmentChange(next, savedOf(goneId), goneId, left, [], true)
+    if (!('blocked' in outcome)) next = outcome.edits
+    next = forgetShape(next, goneId)
+  }
+  assignmentEdits.value = next
   commit(shapes.value.filter((shape) => !gone.has(shape.id)))
   edges.value = [...gone].reduce((rest, shapeId) => withoutShapeEdges(rest, shapeId), edges.value)
   lines.value = withoutShapeLines(lines.value, gone)
@@ -355,6 +447,7 @@ function pruneEdits() {
   if (Object.keys(kept).length !== Object.keys(edits.value).length) {
     edits.value = kept
   }
+  assignmentEdits.value = pruneAssignments(assignmentEdits.value, new Set(shapes.value.map((shape) => shape.id)))
   const keptParents = Object.fromEntries(Object.entries(parents.value).filter(([id]) => shown.has(Number(id))))
   if (Object.keys(keptParents).length !== Object.keys(parents.value).length) {
     parents.value = keptParents
@@ -396,7 +489,7 @@ const nodes = computed(() => {
       editable: props.editable,
       connectable: props.editable,
       editing: shape.editing === true,
-      unsaved: isUnsaved(shape, saved.value, edits.value, parents.value),
+      unsaved: isUnsaved(shape, saved.value, edits.value, parents.value) || hasPendingAssignments(assignmentEdits.value, shape.id),
       missingMandatory: shape.missingMandatory,
       error: shape.error,
       conflict: isConflict(shape),
@@ -411,6 +504,7 @@ const nodes = computed(() => {
         ? { insertLane: { vertical: role.vertical, insert: (side: 'before' | 'after') => insertLane(shape.id, side) } }
         : {}),
       symbol,
+      ...(carriesAssignments(shape) ? { assignments: shapeAssignments(shape) } : {}),
       description:
         shape.newEntity?.description ?? (shape.entityId !== undefined ? (edits.value[shape.entityId]?.description ?? descriptions.value[shape.entityId]) : undefined),
       rename: (name) => rename(shape.id, name),
@@ -594,9 +688,11 @@ function dropInto(shape: CanvasShape, center: { x: number; y: number }) {
   if (!container || nestBlock(list, shape.id, container.id)) {
     return
   }
-  const target = parentOfShape(container)
+  const nested = placed ?? nestShape(list, shape.id, container.id)
+  // the parent is the nearest container that is no lane of an organizational unit or role (design D8)
+  const target = parentOfShape(lanePart(container) ? parentContainer(nested, shape.id, lanePart) : container)
   commit(
-    (placed ?? nestShape(list, shape.id, container.id)).map((entry) =>
+    nested.map((entry) =>
       entry.id === shape.id && entry.newEntity
         ? {
             ...entry,
@@ -609,6 +705,7 @@ function dropInto(shape: CanvasShape, center: { x: number; y: number }) {
         : entry,
     ),
   )
+  reconcileAssignments([shape.id], new Map([[shape.id, []]]))
 }
 
 function addExisting(entity: DiagramEntity) {
@@ -919,6 +1016,131 @@ function removeSelected() {
   notice.value = undefined
 }
 
+// Assignments (us-075-lane-assignments D6): the search, "Create new", "×" and the fields of the details panel
+
+/** The entries of the context menu of the selected lane or pool: "Assign organizational unit" or "Set participant", and "Assign role". */
+const assignEntries = computed<{ part: Part; label: string }[]>(() => {
+  const shape = selectedShape.value
+  const ids = organization.value?.ids
+  if (!props.editable || !shape || !ids || menu.value?.edge) return []
+  const element = notationElementOf(props.view, shape.metatypeId)
+  const own = lanePart(shape)
+  const entries: { part: Part; label: string }[] = []
+  // replacing a saved organizational unit removes its connection, which needs entity:delete (design D6)
+  const replaces = shownAssignments(savedOf(shape.id), assignmentEdits.value, shape.id, 'orgUnit').some((entry) => !entry.pending)
+  if ((element === 'bpmn:Lane' || element === 'bpmn:Pool') && ids.orgUnit && ids.belongsTo && own !== 'orgUnit' && (!replaces || props.canDelete)) {
+    entries.push({ part: 'orgUnit', label: element === 'bpmn:Pool' ? t('diagrams.assignments.setParticipant') : t('diagrams.assignments.assignOrgUnit') })
+  }
+  if (element === 'bpmn:Lane' && ids.role && ids.performsRole && own !== 'role') {
+    entries.push({ part: 'role', label: t('diagrams.assignments.assignRole') })
+  }
+  return entries
+})
+
+/** The fields of the details panel for the selected task: "Required role", and "Responsible person" on a user task; a part that is unset gives no field. */
+const assignmentFields = computed<AssignmentField[]>(() => {
+  const shape = selectedShape.value
+  const ids = organization.value?.ids
+  if (!shape || !ids || shape.editing) return []
+  const element = notationElementOf(props.view, shape.metatypeId)
+  if (!element || !TASK_ELEMENTS.includes(element)) return []
+  const shown = shownOf(shape)
+  const fields: AssignmentField[] = []
+  if (ids.role && ids.performsRole) {
+    fields.push({ part: 'role', label: t('diagrams.assignments.requiredRole'), items: shown.filter((entry) => entry.part === 'role'), mayAdd: props.editable, removable, several: false })
+  }
+  if (element === 'bpmn:UserTask' && ids.person && ids.responsible) {
+    fields.push({ part: 'person', label: t('diagrams.assignments.responsiblePerson'), items: shown.filter((entry) => entry.part === 'person'), mayAdd: props.editable, removable, several: severalPersons(shown) })
+  }
+  return fields
+})
+
+const assignTypes = computed(() => (assigning.value ? (organization.value?.types(assigning.value.part) ?? []) : []))
+const assignedIds = computed(() => {
+  const ask = assigning.value
+  return ask ? shownAssignments(savedOf(ask.shapeId), assignmentEdits.value, ask.shapeId, ask.part).flatMap((entry) => (entry.entityId !== undefined ? [entry.entityId] : [])) : []
+})
+
+function openAssign(part: Part, shapeId = selectedId.value) {
+  const shape = shapes.value.find((entry) => entry.id === shapeId)
+  if (!props.editable || !shape || !organization.value) return
+  const pool = notationElementOf(props.view, shape.metatypeId) === 'bpmn:Pool'
+  const title = part === 'orgUnit' ? (pool ? t('diagrams.assignments.setParticipant') : t('diagrams.assignments.assignOrgUnit')) : part === 'role' ? t('diagrams.assignments.assignRole') : t('diagrams.assignments.addPerson')
+  assigning.value = { shapeId: shape.id, part, title }
+  assignOpen.value = true
+  menu.value = undefined
+}
+
+function assignmentNotice(block: 'connections' | 'entities' | 'removals'): void {
+  notice.value = t(`diagrams.assignments.limit.${block}`)
+}
+
+function assignPicked(target: { entityId: number; name: string }) {
+  const ask = assigning.value
+  if (!ask) return
+  const saved = savedOf(ask.shapeId)
+  const replacing = ask.part === 'orgUnit'
+  const block = assignmentBlock(assignmentEdits.value, heldCounts(), false)
+  if (block) return assignmentNotice(block)
+  const next = replacing ? replaceOrgUnit(assignmentEdits.value, saved, ask.shapeId, target) : addAssignment(assignmentEdits.value, saved, ask.shapeId, ask.part, target)
+  if (next.removed.length > CANVAS_LIMITS.removedConnections) return assignmentNotice('removals')
+  notice.value = undefined
+  assignmentEdits.value = next
+}
+
+function assignCreated(created: { metatypeId: string; name: string }) {
+  const ask = assigning.value
+  if (!ask) return
+  const saved = savedOf(ask.shapeId)
+  const block = assignmentBlock(assignmentEdits.value, heldCounts(), true)
+  if (block) return assignmentNotice(block)
+  let next = assignmentEdits.value
+  if (ask.part === 'orgUnit') {
+    for (const shown of shownAssignments(saved, next, ask.shapeId, 'orgUnit')) next = removeAssignment(next, ask.shapeId, shown)
+  }
+  next = addCreated(next, saved, ask.shapeId, { part: ask.part, metatypeId: created.metatypeId, name: created.name })
+  if (next.removed.length > CANVAS_LIMITS.removedConnections) return assignmentNotice('removals')
+  notice.value = undefined
+  assignmentEdits.value = next
+}
+
+function unassign(shapeId: string, assignment: ShownAssignment) {
+  if (!props.editable) return
+  if (!assignment.pending && removalBlocked(assignmentEdits.value)) return assignmentNotice('removals')
+  assignmentEdits.value = removeAssignment(assignmentEdits.value, shapeId, assignment)
+}
+
+/**
+ * A shape entered or left lanes and pools of organizational units and roles (design D8): it is assigned to the lanes it
+ * entered and the assignments to the lanes it left are removed with the move. Returns false when the move needs
+ * `entity:delete` for a saved assignment and the caller lacks it.
+ */
+function reconcileAssignments(ids: string[], before: Map<string, ReturnType<typeof lanesAbove>>): boolean {
+  let next = assignmentEdits.value
+  for (const id of ids) {
+    const outcome = containmentChange(next, savedOf(id), id, before.get(id) ?? [], lanesAbove(id), props.canDelete === true)
+    if ('blocked' in outcome) return false
+    next = outcome.edits
+  }
+  if (next !== assignmentEdits.value) {
+    if (next.removed.length > CANVAS_LIMITS.removedConnections || next.added.length + heldCounts().connections > CANVAS_LIMITS.newConnections) {
+      assignmentNotice(next.removed.length > CANVAS_LIMITS.removedConnections ? 'removals' : 'connections')
+      return false
+    }
+    assignmentEdits.value = next
+  }
+  return true
+}
+
+/** Whether removing the shapes from the diagram needs `entity:delete` for a saved assignment that a lane stands for, and the caller lacks it. */
+function removalRefused(gone: Set<string>): boolean {
+  if (props.canDelete === true) return false
+  return [...gone].some((id) => {
+    const left = lanesAbove(id).filter((lane) => !gone.has(lane.shapeId))
+    return removalNeeded(savedOf(id), assignmentEdits.value, id, left)
+  })
+}
+
 /** Only the edge or line goes: the connection stays in the repository, the hierarchy stays as it is. */
 function removeEdge(id: string) {
   edges.value = edges.value.filter((edge) => edge.id !== id)
@@ -928,6 +1150,10 @@ function removeEdge(id: string) {
 
 /** Removes a shape; the shapes nested in a container leave the diagram with it, so that is asked first. Returns whether it was removed. */
 function removeShape(id: string): boolean {
+  if (removalRefused(new Set([id, ...descendantsOf(shapes.value, id).map((shape) => shape.id)]))) {
+    notice.value = t('diagrams.assignments.removalNeedsDelete')
+    return false
+  }
   const nestedCount = descendantsOf(shapes.value, id).length
   if (nestedCount > 0) {
     removeAsk.value = { ids: [id], name: shapes.value.find((shape) => shape.id === id)?.name ?? '', count: nestedCount }
@@ -1010,6 +1236,20 @@ function round(value: number): number {
  * us-074-bpmn-pools-and-lanes). `list` is the shapes with the move applied; the result is set once, stacked.
  */
 function settle(list: CanvasShape[], id: string) {
+  const original = shapes.value
+  const subtree = [id, ...descendantsOf(list, id).map((entry) => entry.id)]
+  const before = new Map(subtree.map((shapeId) => [shapeId, lanesAbove(shapeId, list)]))
+  settleShape(list, id)
+  if (!reconcileAssignments(subtree, before)) {
+    // moving out of a lane removes its assignment, which the caller may not: the move is undone
+    parentOpen.value = false
+    parentAsk.value = undefined
+    shapes.value = original
+    if (!notice.value) notice.value = t('diagrams.assignments.moveNeedsDelete')
+  }
+}
+
+function settleShape(list: CanvasShape[], id: string) {
   const shape = list.find((entry) => entry.id === id)
   if (!shape || shape.editing) {
     commit(list)
@@ -1089,7 +1329,7 @@ function insertLane(id: string, side: 'before' | 'after') {
   }
   const size = defaultSize(props.view, lane.metatypeId)
   const fresh = placeNew(props.view, lane.metatypeId, { x: lane.x, y: lane.y })
-  const target = parentOfShape(container)
+  const target = parentOfShape(lanePart(container) ? parentContainer(shapes.value, container.id, lanePart) : container)
   const position = lanesIn(shapes.value, mappings.value, container.id).findIndex((entry) => entry.id === id)
   const sized: CanvasShape = {
     ...fresh,
@@ -1102,6 +1342,7 @@ function insertLane(id: string, side: 'before' | 'after') {
     },
   }
   commit(placeLane([...shapes.value, sized], sized.id, container.id, position + (side === 'after' ? 1 : 0), mappings.value))
+  reconcileAssignments([sized.id], new Map([[sized.id, []]]))
   selectShape(sized.id)
 }
 
@@ -1109,6 +1350,10 @@ function insertLane(id: string, side: 'before' | 'after') {
 function askParent(id: string, container: CanvasShape | undefined) {
   const shape = shapes.value.find((entry) => entry.id === id)
   if (!shape || !props.view.askNewParent || (shape.entityId === undefined && !shape.newEntity)) {
+    return
+  }
+  // a lane of an organizational unit or role is an assignment, not a parent (design D8): no question
+  if (container && lanePart(container)) {
     return
   }
   const target = parentOfShape(container)
@@ -1298,6 +1543,11 @@ function loaded(details: DiagramEntityDetails | undefined) {
 
 /** "Reload entity" after a version conflict: the changes of this entity are discarded, the others stay. */
 function reloadEntity(entityId: number) {
+  if (assignmentEdits.value.removed.some((removal) => removal.connectionId === entityId)) {
+    // an assignment changed meanwhile: the view is read again, which has its new version
+    emit('reload')
+    return
+  }
   const { [entityId]: _discarded, ...rest } = edits.value
   edits.value = rest
   const { [entityId]: _parent, ...otherParents } = parents.value
@@ -1317,7 +1567,7 @@ function reloadEntity(entityId: number) {
 }
 
 async function save() {
-  const request = writeRequest(shapes.value, edits.value, edges.value, lines.value, parents.value)
+  const request = writeRequest(shapes.value, edits.value, edges.value, lines.value, parents.value, assignmentEdits.value, organization.value?.ids ?? {})
   saving.value = true
   failure.value = undefined
   rejected.value = false
@@ -1347,7 +1597,10 @@ async function save() {
     } else if (rejection.status === 409 && rejection.problemType === 'entity-version-conflict') {
       staleEntities.value = (rejection.conflicts ?? []).map((entry) => ({
         entityId: entry.entityId,
-        name: shapes.value.find((shape) => shape.entityId === entry.entityId)?.name ?? String(entry.entityId),
+        name:
+          shapes.value.find((shape) => shape.entityId === entry.entityId)?.name ??
+          assignmentEdits.value.removed.find((removal) => removal.connectionId === entry.entityId)?.name ??
+          String(entry.entityId),
         currentVersion: entry.currentVersion,
       }))
     } else if (rejection.status === 409 && rejection.problemType === 'entity-blocked') {
@@ -1404,6 +1657,16 @@ function zoom(action: () => Promise<unknown>) {
 }
 
 onMounted(() => document.addEventListener('click', closeMenu))
+onMounted(async () => {
+  // the organization model of the instance: without it (or in a diagram of another notation) no assignment is offered
+  if (!bpmn.value) return
+  try {
+    const [model, metatypes] = await Promise.all([fetchOrganizationModel(props.fetchFn), fetchMetatypes(props.fetchFn)])
+    organization.value = organizationContext(model, metatypes)
+  } catch {
+    organization.value = undefined
+  }
+})
 onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
 </script>
 
@@ -1569,7 +1832,10 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
         :edit="subject.entityId !== undefined ? edits[subject.entityId] : undefined"
         :errors="fieldErrors"
         :reload-token="reloadToken"
+        :assignment-fields="assignmentFields"
         :fetch-fn="fetchFn"
+        @assign="(part) => openAssign(part)"
+        @unassign="(assignment) => selectedId && unassign(selectedId, assignment)"
         @change="changed"
         @close="panelOpen = false"
         @loaded="loaded"
@@ -1589,6 +1855,17 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
       <button v-if="editable && !menu.edge && selectedShape?.entityId !== undefined && (selectedShape.childCount ?? 0) > 0 && mayContain(selectedShape)" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-children" @click="showChildren(selectedId)">
         {{ t('diagrams.nesting.showChildren') }}
       </button>
+      <button
+        v-for="entry in assignEntries"
+        :key="entry.part"
+        type="button"
+        role="menuitem"
+        class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated"
+        :data-testid="`canvas-menu-assign-${entry.part}`"
+        @click="openAssign(entry.part)"
+      >
+        {{ entry.label }}
+      </button>
       <button v-if="editable && !menu.edge && selectedShape && selectedSymbol === 'sub-process'" type="button" role="menuitem" class="w-full rounded-sm px-2 py-1.5 text-start text-sm hover:bg-elevated" data-testid="canvas-menu-collapse" @click="selectedId && toggleCollapsed(selectedId)">
         {{ selectedShape.collapsed ? t('diagrams.bpmn.expand') : t('diagrams.bpmn.collapse') }}
       </button>
@@ -1601,6 +1878,18 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
     </div>
 
     <DeleteFromRepositoryDialog v-if="canDelete" v-model:open="deleteOpen" :entity-id="deleting" :fetch-fn="fetchFn" @deleted="repositoryDeleted" />
+    <AssignmentDialog
+      v-if="editable"
+      v-model:open="assignOpen"
+      :diagram-id="view.diagram.id"
+      :part="assigning?.part ?? 'role'"
+      :title="assigning?.title ?? ''"
+      :types="assignTypes"
+      :assigned="assignedIds"
+      :fetch-fn="fetchFn"
+      @pick="assignPicked"
+      @create="assignCreated"
+    />
     <AddExistingDialog v-if="editable" v-model:open="adding" :diagram-id="view.diagram.id" :fetch-fn="fetchFn" @pick="addExisting" />
     <ConnectionTypeDialog v-if="editable" v-model:open="typeOpen" :options="typeChoice?.options ?? []" @pick="(option) => typeChoice && drawConnection(typeChoice.source, typeChoice.target, option)" />
     <ConnectedElementDialog v-if="editable" v-model:open="connectedOpen" :options="connectedList" :loading="connectedLoading" :failed="connectedFailed" @add="addConnected" />

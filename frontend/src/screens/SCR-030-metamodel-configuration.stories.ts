@@ -42,6 +42,33 @@ export const ImportedEntityType: Story = page('metatypes', IDS.component)
 /** A connection metatype with its allowed sources and targets (US-036). */
 export const ConnectionType: Story = page('metatypes', IDS.dataFlow)
 
+/** The organization model: which entity types play organizational unit, role and person, and which connections assign them (us-075-lane-assignments). */
+export const OrganizationModel: Story = {
+  ...page('organization'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByRole('heading', { name: 'Organization model' })).toBeInTheDocument()
+    await expect(await canvas.findByTestId('organization-part-orgUnit')).toBeInTheDocument()
+    // the save is offered once a part changes
+    await expect(await canvas.findByRole('button', { name: 'Save' })).toBeDisabled()
+    await userEvent.click(canvas.getByTestId('organization-select-orgUnit'))
+    await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('option', { name: 'Network Zone' }))
+    await waitFor(() => expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled())
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(await canvas.findByText('The organization model is saved.')).toBeInTheDocument()
+  },
+}
+
+/** A reader sees the parts and cannot change them. */
+export const OrganizationModelReader: Story = {
+  ...page('organization', undefined, ME_READER),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByTestId('organization-value-orgUnit')).toHaveTextContent('Not set')
+    await expect(canvas.queryByRole('button', { name: 'Save' })).toBeNull()
+  },
+}
+
 export const Properties: Story = page('properties')
 
 /** A role-restricted property: the badge "Restricted", changed only on SCR-032 (us-124-property-visibility). */

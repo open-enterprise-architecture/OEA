@@ -338,6 +338,12 @@ function problem(status: number, type: string, extra: Record<string, unknown> = 
 
 export interface DiagramApiOptions {
   me: unknown
+  /** the organization model of the instance (`getOrganizationModel`); none answers 404, so that a diagram offers no assignment (us-075-lane-assignments) */
+  organization?: unknown
+  /** the metatypes `listMetatypes` answers; default none */
+  metatypes?: unknown[]
+  /** the entities the assignment search finds, by part (`org-unit`, `role`, `person`) */
+  assignmentTargets?: Partial<Record<'org-unit' | 'role' | 'person', DiagramEntity[]>>
   diagrams?: Diagram[]
   deleted?: DeletedDiagram[]
   recorded?: RecordedRequest[]
@@ -481,6 +487,12 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
       }
       return respond(200, { ...found, conflictCount: viewOf(found).conflictCount }, { ETag: `"${found.version}"` })
     }
+    if (path === '/api/v1/metamodel/organization-model' && method === 'GET') {
+      return options.organization ? respond(200, options.organization, { ETag: '"1"' }) : problem(404, 'not-found')
+    }
+    if (path === '/api/v1/metamodel/metatypes' && method === 'GET') {
+      return respond(200, options.metatypes ?? [])
+    }
     const view = /^\/api\/v1\/views\/diagrams\/([^/]+)$/.exec(path)
     if (view) {
       const found = state.diagrams.find((entry) => entry.id === view[1])
@@ -588,6 +600,7 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
           target.version += 1
         }
         state.lines = (request.hierarchyLines ?? []).map((line) => ({ ...line }))
+        const previousShapes = state.shapes
         state.shapes = request.shapes.map((entry) => {
           const own = entry.newEntityKey ? created.get(entry.newEntityKey) : undefined
           const known = state.entities[entry.entityId ?? -1] ?? ENTITIES.map((entity) => ({ id: entity.id, name: entity.name, metatypeId: entity.metatype.id })).find((entity) => entity.id === entry.entityId)
@@ -614,12 +627,14 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             orientation: entry.orientation ?? 'horizontal',
             missingMandatory: missing,
             conflict: false,
+            assignments: previousShapes.find((candidate) => candidate.id === entry.id)?.assignments ?? null,
           }
         })
         // the connections created with the save: named after their ends unless named, incomplete without a mandatory value
         const createdConnections = new Map<string, { id: number; metatypeId: string; values: Record<string, string> }>()
         const entityOfShape = (shapeId: string) => state.shapes.find((entry) => entry.id === shapeId)?.entity
         for (const connection of request.newConnections ?? []) {
+          if (connection.sourceShapeId) continue
           const first = (request.edges ?? []).find((entry) => entry.newConnectionKey === connection.key)
           entityCounter += 1
           const values = Object.fromEntries((connection.properties ?? []).map((property) => [property.propertyDefId, property.value]))
@@ -640,6 +655,27 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
             conflict: false,
           }
         })
+        // the assignments (us-075-lane-assignments): removed connections leave the shapes, new ones without an edge join them
+        const model = options.organization as Record<string, { metatypeId: string | null }> | undefined
+        const listOf = (metatypeId: string): 'orgUnits' | 'roles' | 'persons' | undefined =>
+          model?.belongsTo?.metatypeId === metatypeId ? 'orgUnits' : model?.performsRole?.metatypeId === metatypeId ? 'roles' : model?.responsible?.metatypeId === metatypeId ? 'persons' : undefined
+        const gone = new Set((request.removedConnections ?? []).map((removal) => removal.connectionId))
+        state.shapes = state.shapes.map((entry) =>
+          entry.assignments
+            ? { ...entry, assignments: { orgUnits: entry.assignments.orgUnits.filter((item) => !gone.has(item.connectionId)), roles: entry.assignments.roles.filter((item) => !gone.has(item.connectionId)), persons: entry.assignments.persons.filter((item) => !gone.has(item.connectionId)) } }
+            : entry,
+        )
+        for (const connection of request.newConnections ?? []) {
+          const list = connection.sourceShapeId ? listOf(connection.metatypeId) : undefined
+          const owner = state.shapes.find((entry) => entry.id === connection.sourceShapeId)
+          if (!list || !owner) continue
+          const target = connection.targetNewEntityKey
+            ? created.get(connection.targetNewEntityKey)
+            : [...Object.values(options.assignmentTargets ?? {}).flat(), ...ENTITIES].find((entity) => entity && entity.id === connection.targetEntityId)
+          entityCounter += 1
+          owner.assignments = owner.assignments ?? { orgUnits: [], roles: [], persons: [] }
+          owner.assignments[list] = [...owner.assignments[list], { connectionId: entityCounter, connectionVersion: 1, entityId: target?.id ?? connection.targetEntityId ?? 0, name: target?.name ?? 'Entity' }]
+        }
         found.version += 1
         return respond(200, viewOf(found), { ETag: `"${found.version}"` })
       }
@@ -728,12 +764,18 @@ export function diagramApi(options: DiagramApiOptions): DiagramApi {
     const targets = /^\/api\/v1\/views\/diagrams\/([^/]+)\/reference-targets$/.exec(path)
     if (targets && method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase()
+      const part = url.searchParams.get('part') as 'org-unit' | 'role' | 'person' | null
+      if (part) {
+        const found = (options.assignmentTargets?.[part] ?? []).filter((entity) => entity.name.toLowerCase().includes(q))
+        return respond(200, { items: found, page: { page: 0, pageSize: 20, totalElements: found.length, totalPages: 1 } })
+      }
       const items = ENTITIES.filter((entity) => entity.metatype.id === METATYPE_COMPONENT && entity.name.toLowerCase().includes(q))
       return respond(200, { items, page: { page: 0, pageSize: 20, totalElements: items.length, totalPages: 1 } })
     }
     const metatype = /^\/api\/v1\/metamodel\/metatypes\/([^/]+)$/.exec(path)
     if (metatype && method === 'GET') {
-      const type = [...viewpointConfig().allowedMetatypes, ...viewpointConfig().allowedRelations].find((candidate) => candidate.id === metatype[1])
+      const known = [...(state.viewpoint ?? viewpointConfig()).allowedMetatypes, ...(state.viewpoint ?? viewpointConfig()).allowedRelations, ...viewpointConfig().allowedMetatypes, ...viewpointConfig().allowedRelations]
+      const type = known.find((candidate) => candidate.id === metatype[1])
       return type ? respond(200, { ...type, propertyMappings: MAPPINGS[type.id] ?? [] }) : problem(404, 'not-found')
     }
     const search = /^\/api\/v1\/views\/diagrams\/([^/]+)\/entities$/.exec(path)

@@ -12,6 +12,7 @@ import {
   type PropertyVisibilityEntry,
 } from '../api/visibility'
 import HistoryVisibilitySection from '../components/visibility/HistoryVisibilitySection.vue'
+import PersonLinkMappingSection from '../components/visibility/PersonLinkMappingSection.vue'
 import PropertyVisibilityDialog from '../components/visibility/PropertyVisibilityDialog.vue'
 import { label, labelKeys } from '../i18n/labels'
 import { refreshSession, session } from '../session/store'
@@ -195,6 +196,7 @@ function saved(changed: PropertyVisibilityEntry[]) {
         icon="i-lucide-triangle-alert"
         :description="t('visibility.personMetatypeMissing')"
       />
+      <PersonLinkMappingSection :fetch-fn="fetchFn" />
       <UInput v-model="filter" data-testid="visibility-filter" icon="i-lucide-search" :placeholder="t('visibility.filter')" class="w-72" />
       <div class="overflow-x-auto rounded-lg border border-default">
         <table class="w-full text-left text-sm" data-testid="visibility-table">

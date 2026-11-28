@@ -53,9 +53,9 @@ Trace: US-074 AC2, AC9, REQ-076 AC2, AC6
 
 ### Requirement: Pools, lanes and sub-processes as containers
 
-In a `bpmn2` diagram only shapes drawn as pool, lane or sub-process SHALL take nested shapes and offer "Show children"; a shape dropped onto another one SHALL not be nested in it. A new element dropped into a container SHALL become a child of its entity, and moving between containers SHALL follow "New parent?" as in every diagram.
+In a `bpmn2` diagram only shapes drawn as pool, lane or sub-process SHALL take nested shapes and offer "Show children"; a shape dropped onto another one SHALL not be nested in it. A new element dropped into a container SHALL become a child of its entity, and moving between containers SHALL follow "New parent?" as in every diagram, except for an assignment lane or pool (`diagram/bpmn-assignments`).
 
-Trace: US-074 AC3, AC4, AC5, REQ-076 AC4, owner decisions 2026-11-20 and 2026-11-26
+Trace: US-074 AC3, AC4, AC5, REQ-076 AC4, owner decisions 2026-11-20, 2026-11-26 and 2026-11-27
 
 #### Scenario: Task dropped into a lane
 

@@ -95,6 +95,11 @@ package "Auth" #FFF8E1 {
     .. target: an active element of visibility_settings.person_metatype_id or a subtype; ..
     .. counts only while that holds, so a changed person metatype keeps the link stored ..
     .. set only with person:manage, never for the own account (SoD-1); audited person.account-linked ..
+    + mapped_entity_id    : INTEGER       {UQ} {FK→entities.id}
+    .. V53 (change us-075-lane-assignments D5): the element linked through the account mapping (person_link_mapping), ..
+    .. written only by the recomputation in the transaction of the change that moves the link; NULL while the account ..
+    .. has a manual link (entity_id), no taking-part human account, or no unique match; unique index WHERE NOT NULL ..
+    .. the effective link is coalesce(entity_id, mapped_entity_id); audited person.account-linked (source: mapping) ..
     + entity_linked_at    : TIMESTAMPTZ
     + entity_linked_by_person_id : BIGINT {FK→persons.id}
     + entity_linked_by_admin_id  : UUID   {FK→system_admin_accounts.id}
@@ -1840,6 +1845,36 @@ package "Settings" #F1F8E9 {
     .. audited visibility.person-metatype-changed; a metatype referenced here cannot be deleted ..
   }
 
+  ' The organization model (V53, change us-075-lane-assignments D2): which metatypes play the parts of assignments; one row.
+  class organization_model <<Table>> #DCEDC8 {
+    + id                        : SMALLINT   {PK}
+    .. CHECK (id = 1): exactly one row, inserted by the migration; the runtime role may only update it ..
+    --
+    + org_unit_metatype_id      : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + role_metatype_id          : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + person_metatype_id        : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    .. the element parts (organizational unit, role, person), NULL = unset; separate from visibility_settings.person_metatype_id (SoD-2) ..
+    + belongs_to_metatype_id    : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + performs_role_metatype_id : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + responsible_metatype_id   : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    .. the connection parts (an empty source list allows every metatype as source); ..
+    .. a package import fills only the unset parts; audited metamodel.organization-model-updated ..
+    + version                   : INTEGER    {NN} DEFAULT 1
+    + updated_at                : TIMESTAMPTZ
+    + updated_by                : BIGINT     {FK→persons.id}
+  }
+
+  ' The account mapping (V53, change us-075-lane-assignments D5): the property whose value links accounts to person elements; one row.
+  class person_link_mapping <<Table>> #DCEDC8 {
+    + id                : SMALLINT   {PK}
+    .. CHECK (id = 1): exactly one row, inserted by the migration; the runtime role may only update it ..
+    --
+    + property_def_id   : UUID       {FK→property_definitions.id ON DELETE SET NULL}
+    .. a string property mapped to the person metatype of visibility_settings, role-restricted; NULL = no mapping ..
+    + account_attribute : TEXT
+    .. CHECK IN ('email', 'idp-subject'); NULL while property_def_id is NULL; audited visibility.person-link-mapping-changed ..
+  }
+
   note right of system_settings
     Writable only with settings:manage; every change
     audited ('settings.changed'). Audit retention is
@@ -2368,6 +2403,9 @@ persons "1" --o{ "0..*" comments                          : author_id
 persons "1" --o{ "0..*" entity_version_headers              : changed_by
 persons "1" --o{ "0..*" entity_system_field_history         : changed_by
 persons "0..1" --o| "0..1" entities                         : entity_id (account link, DM-7)
+persons "0..1" --o| "0..1" entities                         : mapped_entity_id (link through the account mapping, V53)
+organization_model "0..*" }o--o| "0..1" metatypes              : the six parts (V53, ON DELETE SET NULL)
+person_link_mapping "0..*" }o--o| "0..1" property_definitions   : property_def_id (V53)
 authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role (DM-9)
 authorization_roles "1" --o{ "0..*" history_visibility_settings : history visibility (US-098)
 metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-098)
@@ -2583,6 +2621,14 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   kpi, and the chart type, legend and data labels of a chart; IDs of the
 '   metamodel are soft references, checked at write and on each read.
 '   Reason: US-056, US-057, REQ-053; owner decisions 2026-11-18.
+' 2026-11-27 (us-075-lane-assignments):
+'   V53: organization_model (one row: the metatypes that play organizational unit, role,
+'   person, belongs-to, performs-role and responsible; each part nullable, ON DELETE SET
+'   NULL), person_link_mapping (one row: the string property of the person metatype and the
+'   account attribute email or idp-subject) and persons.mapped_entity_id (the element linked
+'   through the mapping; unique where not null). An assignment of a lane, pool or task is an
+'   ordinary connection of the belongs-to, performs-role or responsible type, without an edge;
+'   no table for it. Reason: US-075, US-076, REQ-077, REQ-127; owner decisions 2026-11-27.
 ' ─────────────────────────────────────────────────────
 
 @enduml

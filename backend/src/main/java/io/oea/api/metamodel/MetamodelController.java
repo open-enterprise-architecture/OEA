@@ -45,6 +45,7 @@ import io.oea.app.metamodel.MetamodelConfigurations;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.MetatypeCatalog;
 import io.oea.app.metamodel.MetatypeEditing;
+import io.oea.app.metamodel.OrganizationModels;
 import io.oea.app.metamodel.PropertyDefinitions;
 import io.oea.app.metamodel.PropertyMappings;
 import io.oea.app.metamodel.ParallelChangeSettings;
@@ -99,10 +100,13 @@ public class MetamodelController implements MetamodelApi {
 
 	private final ArchitectureLayers layers;
 
+	private final OrganizationModels organizationModels;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
 			AllowedConnections allowedConnections, MetamodelConfigurations configurations, MetamodelChanges changes,
-			ParallelChangeSettings parallelChanges, ArchitectureLayers layers) {
+			ParallelChangeSettings parallelChanges, ArchitectureLayers layers, OrganizationModels organizationModels) {
+		this.organizationModels = organizationModels;
 		this.layers = layers;
 		this.parallelChanges = parallelChanges;
 		this.configurations = configurations;
@@ -164,6 +168,37 @@ public class MetamodelController implements MetamodelApi {
 	public ResponseEntity<Void> deleteMetamodelConfiguration(UUID id, String ifMatch) {
 		this.configurations.delete(principal(), id, expectedVersion(ifMatch));
 		return ResponseEntity.noContent().build();
+	}
+
+	@Override
+	public ResponseEntity<io.oea.api.generated.model.OrganizationModel> getOrganizationModel() {
+		return organizationModel(this.organizationModels.get());
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid organization model", detail = "Some fields are invalid.")
+	public ResponseEntity<io.oea.api.generated.model.OrganizationModel> updateOrganizationModel(String ifMatch,
+			io.oea.api.generated.model.OrganizationModelWrite write) {
+		return organizationModel(this.organizationModels.update(principal(),
+				new OrganizationModels.Parts(write.getOrgUnit(), write.getRole(), write.getPerson(),
+						write.getBelongsTo(), write.getPerformsRole(), write.getResponsible()),
+				expectedVersion(ifMatch)));
+	}
+
+	private static ResponseEntity<io.oea.api.generated.model.OrganizationModel> organizationModel(
+			OrganizationModels.View view) {
+		OrganizationModels.Parts parts = view.parts();
+		OrganizationModels.Names names = view.names();
+		io.oea.api.generated.model.OrganizationModel body = new io.oea.api.generated.model.OrganizationModel(
+				part(parts.orgUnit(), names.orgUnit()), part(parts.role(), names.role()),
+				part(parts.person(), names.person()), part(parts.belongsTo(), names.belongsTo()),
+				part(parts.performsRole(), names.performsRole()), part(parts.responsible(), names.responsible()),
+				view.version());
+		return ResponseEntity.ok().eTag(etag(view.version())).body(body);
+	}
+
+	private static io.oea.api.generated.model.OrganizationModelPart part(UUID id, String name) {
+		return new io.oea.api.generated.model.OrganizationModelPart(id).metatypeName(name);
 	}
 
 	@Override

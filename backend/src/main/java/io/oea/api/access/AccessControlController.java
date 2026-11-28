@@ -252,7 +252,13 @@ public class AccessControlController implements AccessControlApi {
 		return new Person(Math.toIntExact(person.id()), Person.PersonTypeEnum.fromValue(person.personType()),
 				person.name(), Person.StatusEnum.fromValue(person.status()), time(person.createdAt()))
 			.email(person.email())
-			.entityId(person.entityId());
+			.entityId(person.entityId())
+			.mappedEntityId(person.mappedEntityId())
+			.linkSource((person.linkSource() != null) ? Person.LinkSourceEnum.fromValue(person.linkSource()) : null)
+			.mappingConflict((person.mappingConflict() != null)
+					? new io.oea.api.generated.model.PersonMappingConflict(person.mappingConflict().entityIds(),
+							person.mappingConflict().accountCount())
+					: null);
 	}
 
 	private static PersonIdentity identity(Persons.IdentityView identity) {

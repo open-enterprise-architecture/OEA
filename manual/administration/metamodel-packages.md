@@ -2,7 +2,7 @@
 title: Metamodel packages
 covers:
   screens: []
-  stories: [US-033, US-057]
+  stories: [US-033, US-057, US-075, US-076]
 ---
 
 # Metamodel packages
@@ -39,9 +39,19 @@ The package `oea-starter-bpmn` (*BPMN 2.0 process modeling*) brings the types of
 - the connection types *Sequence Flow*, *Message Flow*, *Association* (from a text annotation), *Calls* (from a call activity to a process) and *References Process* (from a pool to a process), each limited to BPMN elements as source and target, and the properties *Association direction* (`none`, `one`, `both`) and *Group category* (up to 255 characters);
 - German labels for all of them, and the system-defined viewpoint *Process Model (BPMN 2.0)* with the notation BPMN 2.0, all these types, BPMN symbols and default sizes. The viewpoint keeps its English name in every language.
 
-**What the package leaves out:** data objects and data stores, organizational units and the assignment of lanes to them follow with later versions. **Containment is the hierarchy of the entities:** a lane is a child of its pool, a task a child of its lane; the package defines no composition connection, so with this package alone no connection is created for the hierarchy. If the TOGAF package is imported, its connection *Composition* is created as for other entities. The types are imported types like any other: read-only, but you can add properties and subtypes. Import the package from the start page or from the section *Starter packages*; the package and the TOGAF package can be imported in any order.
+**What the package leaves out:** data objects and data stores follow with a later version; organizational units, roles and the [assignment of lanes](../usage/diagrams#assignments) come with the [organization package](#organization-package). **Containment is the hierarchy of the entities:** a lane is a child of its pool, a task a child of its lane; the package defines no composition connection, so with this package alone no connection is created for the hierarchy. If the TOGAF package is imported, its connection *Composition* is created as for other entities. The types are imported types like any other: read-only, but you can add properties and subtypes. Import the package from the start page or from the section *Starter packages*; the package and the TOGAF package can be imported in any order.
 
 Through the API, the list of the packages is sorted by `packageId`, so look a package up by its identifier, not by its position.
+
+## The organization starter package {#organization-package}
+
+The package `oea-starter-organization` (*Organization model*) names who performs and who is responsible, in a BPMN diagram and for any architecture object:
+
+- the entity types *Organizational Unit*, *Role* and *Person* (the property *Account ID* of the person has up to 255 characters; it is the property [that links an account to the person](./property-visibility#account-mapping)), and the connection types *Belongs To* (to an organizational unit), *Performs Role* (to a role) and *Responsible* (to a person), each from **any** entity type – a lane, an *Application Component* or any other – so that the package needs neither the BPMN nor the TOGAF package. *Responsible* names persons only, no roles or organizational units. The hierarchy of organizational units is the hierarchy of the entities;
+- German labels, no viewpoint;
+- the section `organizationModel`, which fills the [organization model](./metamodel-editing#organization-model) of the instance: the import sets the six parts that are not set yet and never overwrites a part that is. The import result lists them in `organizationModelFilled`, and one audit event `metamodel.organization-model-updated` with `cause: package-import` records them.
+
+The package can be imported alone or next to the other packages. A package of your own may fill the parts in the same way with `organizationModel`: per part the ID of an entity type of the package (*orgUnit*, *role*, *person*) or of a connection type (*belongsTo*, *performsRole*, *responsible*); another type or one of the wrong kind answers `422` naming `/organizationModel/<part>`.
 
 ## Import your own package
 

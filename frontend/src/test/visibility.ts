@@ -14,6 +14,7 @@ export const VISIBILITY_IDS = {
   cost: 'fd100000-0000-4000-8000-000000000001',
   classification: 'fd100000-0000-4000-8000-000000000002',
   status: 'fd100000-0000-4000-8000-000000000003',
+  accountId: 'fd100000-0000-4000-8000-000000000004',
   application: 'a1000000-0000-4000-8000-000000000001',
   assignment: 'a1000000-0000-4000-8000-000000000002',
   actor: 'a1000000-0000-4000-8000-000000000003',
@@ -101,6 +102,7 @@ export interface VisibilityApi {
   overridePuts: string[][]
   rolePosts: Record<string, unknown>[]
   historyPuts: HistoryVisibilityEntry[][]
+  mappingPuts: { propertyDefId: string | null; accountAttribute: string | null }[]
 }
 
 function problem(status: number, invalidFields: string[] = []) {
@@ -119,6 +121,10 @@ export function visibilityApi(
     historyVisibility?: HistoryVisibilityEntry[]
     /** answer the next history visibility change with 422 naming these fields */
     rejectHistory?: string[]
+    /** the account mapping at the start (us-075-lane-assignments): the property by ID and the account attribute */
+    mapping?: { propertyDefId: string; accountAttribute: 'email' | 'idp-subject' }
+    /** the answer of a change of the account mapping with 422 naming `propertyDefId` */
+    rejectMapping?: boolean
   } = {},
 ): VisibilityApi {
   let historyVisibility = [...(options.historyVisibility ?? [])]
@@ -128,6 +134,8 @@ export function visibilityApi(
   const overridePuts: string[][] = []
   const rolePosts: Record<string, unknown>[] = []
   const withOverride = () => roles.map((role) => ({ ...role, overridesPropertyVisibility: overrideRoles.includes(role.id) }))
+  let mapping: { propertyDefId: string | null; accountAttribute: string | null } = options.mapping ?? { propertyDefId: null, accountAttribute: null }
+  const mappingPuts: { propertyDefId: string | null; accountAttribute: string | null }[] = []
   const state = entries()
   if (options.connectionScoped) {
     state[1] = { ...state[1]!, visibilityMode: 'connection-scoped', scopingConnectionType: VISIBILITY_IDS.assignment }
@@ -182,6 +190,25 @@ export function visibilityApi(
       overrideRoles = [...next].sort()
       return json({ roles: overrideRoles })
     }
+    if (url.pathname === '/api/v1/metamodel/property-definitions') {
+      return json([
+        { id: VISIBILITY_IDS.cost, name: 'Investment Cost', dataType: 'integer' },
+        { id: VISIBILITY_IDS.accountId, name: 'Account ID', dataType: 'string' },
+        { id: VISIBILITY_IDS.classification, name: 'Classification', dataType: 'string' },
+      ])
+    }
+    if (url.pathname === '/api/v1/admin/property-visibility/person-link-mapping' && method === 'GET') {
+      return json({ ...mapping, propertyName: mapping.propertyDefId === VISIBILITY_IDS.accountId ? 'Account ID' : null })
+    }
+    if (url.pathname === '/api/v1/admin/property-visibility/person-link-mapping' && method === 'PUT') {
+      const body = JSON.parse(String(init?.body)) as { propertyDefId: string | null; accountAttribute: string | null }
+      mappingPuts.push(body)
+      if (options.rejectMapping && body.propertyDefId) {
+        return json(problem(422, ['propertyDefId']), 422)
+      }
+      mapping = body
+      return json({ ...mapping, propertyName: mapping.propertyDefId === VISIBILITY_IDS.accountId ? 'Account ID' : null })
+    }
     if (url.pathname === '/api/v1/metamodel/metatypes') {
       return json([
         { id: VISIBILITY_IDS.application, name: 'Application Component', isConnection: false },
@@ -234,5 +261,5 @@ export function visibilityApi(
     }
     throw new TypeError(`no route for ${method} ${url.pathname}`)
   }
-  return { fetch: fetchFn, puts, state, personMetatypePuts, overridePuts, rolePosts, historyPuts }
+  return { fetch: fetchFn, puts, state, personMetatypePuts, overridePuts, rolePosts, historyPuts, mappingPuts }
 }

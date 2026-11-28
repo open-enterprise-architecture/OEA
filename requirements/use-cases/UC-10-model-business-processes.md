@@ -84,7 +84,7 @@ The business analyst persona can model business processes directly in the OEA to
 
 - Process diagram is persistently stored in the repository
 - All process elements (pool, lane, task, event, gateway) are created as ArchitectureEntities with correct EntityTypeIds
-- Assignment connections (lane → OrgUnit, lane → role, task → person) are anchored in the repository
+- Assignment connections ("Belongs To" from a lane or pool to an organizational unit, "Performs Role" to a role, "Responsible" from a task to a person) are anchored in the repository
 - Process model is viewable read-only in the web portal (SH-03/04)
 
 ## Basic Flow
@@ -93,10 +93,11 @@ The business analyst persona can model business processes directly in the OEA to
 2. The canvas palette shows BPMN-specific elements: pool, lane, task variants, events, gateways — according to the metamodel configuration
 3. Anna drags a **pool** onto the canvas; the pool wizard opens: enter name, assign participant OrgUnit (`bpmn-pool-represents-org-unit`)
 4. Anna inserts one or more **lanes** into the pool; for each lane she can:
-   - Assign an **organizational unit** (`bpmn-lane-belongs-to-org-unit`)
-   - Assign one or more **roles** (`bpmn-lane-performs-role`)
+   - Assign an **organizational unit** ("Belongs To"; a lane has one at most)
+   - Assign one or more **roles** ("Performs Role")
+   - (change `us-075-lane-assignments`: the entries "Assign organizational unit" and "Assign role" of the context menu, the badge and the chips on the lane; a pool has "Set participant"; a lane or pool of an organizational unit or role assigns the shapes in it instead of nesting them)
 5. Anna places **tasks** (UserTask, ServiceTask, BusinessRuleTask etc.) within the lanes; a task dropped into a lane is nested in the lane and becomes a child of the lane's entity (the entity hierarchy replaces the connection `bpmn-contained-in`; change `us-074-bpmn-process-diagrams`)
-6. For UserTasks, Anna opens the detail panel and assigns a **person** from the repository (`bpmn-task-assigned-to`). The detail panel of every shape shows the name, description and property values of its entity; Anna changes them there and saves them with the diagram (change `us-074-diagram-entity-details`; the assignment of persons follows with `us-075-lane-assignments`)
+6. For UserTasks, Anna opens the detail panel and assigns a **person** from the repository ("Responsible") and, for every task, a required role ("Performs Role"), each with "Add" in the detail panel; the user task shows the person as an avatar. The detail panel of every shape shows the name, description and property values of its entity; Anna changes them there and saves them with the diagram (change `us-074-diagram-entity-details`; the assignment of persons, roles and organizational units comes with `us-075-lane-assignments`)
 7. Anna connects elements with **SequenceFlow** connections (generic connections between shapes, with bend points, are drawn by handle drag from change `us-074-diagram-connections`; existing connections are shown only on request, and "Add connected element" places a new element at the default length of the connection type; change `us-074-diagram-nesting` nests shapes in containers, so that the pools and lanes of BPMN can follow); gateways (exclusive, parallel, inclusive) are inserted via the palette; the BPMN symbols, the grouped palette and the flow lines come with change `us-074-bpmn-process-diagrams`, which marks a sequence flow across pools or a message flow within one pool with a warning without blocking the save; change `us-074-bpmn-pools-and-lanes` stacks the lanes of a pool automatically (also side by side in a vertical pool), offers icons to insert a lane next to a lane and collapses sub-processes per diagram
 8. Anna optionally selects "Link to application": a task-to-application connection links the process step with the supporting system in the EA repository
 9. Anna saves the diagram; all entities and connections are persisted atomically
