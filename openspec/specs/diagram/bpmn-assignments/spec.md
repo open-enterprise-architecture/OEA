@@ -1,6 +1,7 @@
 # diagram/bpmn-assignments Specification
 
 ## Purpose
+
 Defines how lanes, pools and tasks of a BPMN diagram are assigned to organizational units, roles and persons on the canvas, how the assignments are saved as connections and how the canvas shows them.
 
 ## Requirements

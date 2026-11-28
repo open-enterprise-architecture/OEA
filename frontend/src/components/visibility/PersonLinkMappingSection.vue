@@ -16,7 +16,7 @@ const { t } = useI18n()
 const mapping = ref<PersonLinkMapping>()
 const properties = ref<{ id: string; name: string }[]>([])
 const property = ref<string>(NONE)
-const attribute = ref<string>(ACCOUNT_ATTRIBUTES[0])
+const attribute = ref<(typeof ACCOUNT_ATTRIBUTES)[number]>(ACCOUNT_ATTRIBUTES[0])
 const failure = ref<string>()
 const notice = ref<string>()
 const saving = ref(false)
@@ -46,7 +46,7 @@ async function save() {
   notice.value = undefined
   saving.value = true
   try {
-    const result = await updatePersonLinkMapping(property.value === NONE ? null : property.value, property.value === NONE ? null : (attribute.value as PersonLinkMapping['accountAttribute']), props.fetchFn)
+    const result = await updatePersonLinkMapping(property.value === NONE ? null : property.value, property.value === NONE ? null : attribute.value, props.fetchFn)
     if (result.ok) {
       mapping.value = result.value
       notice.value = t('visibility.mapping.saved')

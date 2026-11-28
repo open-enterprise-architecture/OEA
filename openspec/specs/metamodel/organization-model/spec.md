@@ -1,6 +1,7 @@
 # metamodel/organization-model Specification
 
 ## Purpose
+
 Defines the instance setting that says which metatypes and connection types play the parts organizational unit, role and person, and how a package fills it, so that diagrams and objects can name who performs and who is responsible.
 
 ## Requirements
