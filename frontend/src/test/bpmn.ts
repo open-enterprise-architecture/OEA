@@ -2,9 +2,10 @@
  * Test and story data for BPMN diagrams (us-074-bpmn-process-diagrams): the types of the starter package
  * `oea-starter-bpmn` as a viewpoint of the notation `bpmn2` with its mappings and the shapes of a process.
  */
-import type { DiagramAssignments, DiagramEdge, DiagramShape, DiagramView } from '../api/diagramView'
+import type { AllowedConnectionResult, DiagramAssignments, DiagramEdge, DiagramShape, DiagramView } from '../api/diagramView'
 import type { OrganizationModel } from '../api/organization'
 import type { Viewpoint } from '../api/metamodel'
+import { REALIZED_BY_ID } from '../components/diagram/dataObjects'
 import { diagramView, edge, shape, viewpointConfig } from './diagrams'
 
 export const BPMN_TYPES = {
@@ -22,10 +23,20 @@ export const BPMN_TYPES = {
   approvalTask: 'c2000000-0000-4000-8000-00000000000c',
   messageStart: 'c2000000-0000-4000-8000-00000000000d',
   catchEvent: 'c2000000-0000-4000-8000-00000000000e',
+  dataObject: 'c2000000-0000-4000-8000-00000000000f',
+  dataStore: 'c2000000-0000-4000-8000-000000000010',
+  /** the TOGAF "Data Object", drawn as a data object by a viewpoint of the notation `bpmn2` (us-083-bpmn-data-objects) */
+  togafData: 'c2000000-0000-4000-8000-000000000011',
+  /** "System Software" of the TOGAF package, a target of "Realized By" */
+  systemSoftware: 'c2000000-0000-4000-8000-000000000012',
   sequenceFlow: 'c2000000-0000-4000-8000-000000000021',
   messageFlow: 'c2000000-0000-4000-8000-000000000022',
   association: 'c2000000-0000-4000-8000-000000000023',
   calls: 'c2000000-0000-4000-8000-000000000024',
+  dataInput: 'c2000000-0000-4000-8000-000000000025',
+  dataOutput: 'c2000000-0000-4000-8000-000000000026',
+  /** the stable ID of "Realized By" of the BPMN starter package */
+  realizedBy: REALIZED_BY_ID,
 } as const
 
 type Mapping = Viewpoint['effectiveMappings'][number]
@@ -44,6 +55,10 @@ const ELEMENTS: [keyof typeof BPMN_TYPES, string, string, string | null, number,
   ['gateway', 'Exclusive Gateway', 'XG', 'bpmn:ExclusiveGateway', 38, 38],
   ['textAnnotation', 'Text Annotation', 'TA', 'bpmn:TextAnnotation', 90, 45],
   ['group', 'Group', 'GR', 'bpmn:Group', 180, 120],
+  ['dataObject', 'BPMN Data Object', 'BDO', 'bpmn:DataObject', 36, 50],
+  ['dataStore', 'BPMN Data Store', 'BDS', 'bpmn:DataStore', 50, 50],
+  ['togafData', 'Data Object', 'DO', 'bpmn:DataObject', 36, 50],
+  ['systemSoftware', 'System Software', 'SS', null, 90, 30],
   ['process', 'Process', 'PR', null, 90, 30],
 ]
 
@@ -52,6 +67,9 @@ const RELATIONS: [keyof typeof BPMN_TYPES, string, string, string | null, number
   ['messageFlow', 'Message Flow', 'MF', 'bpmn:MessageFlow', 90],
   ['association', 'Association', 'ASC', 'bpmn:Association', 45],
   ['calls', 'Calls', 'CL', null, 90],
+  ['dataInput', 'Data Input Association', 'DIA', 'bpmn:DataInputAssociation', 45],
+  ['dataOutput', 'Data Output Association', 'DOA', 'bpmn:DataOutputAssociation', 45],
+  ['realizedBy', 'Realized By', 'RB', 'bpmn:Association', 90],
 ]
 
 /** The viewpoint "Process Model (BPMN 2.0)" of the starter package, with the types of {@link BPMN_TYPES}. */
@@ -152,6 +170,7 @@ export function organizationMetatypes() {
     type(ORG_TYPES.belongsTo, 'Belongs To', true),
     type(ORG_TYPES.performsRole, 'Performs Role', true),
     type(ORG_TYPES.responsible, 'Responsible', true),
+    type(REALIZED_BY_ID, 'Realized By', true),
   ]
 }
 
@@ -174,7 +193,7 @@ export function organizationViewpoint(roleAsLane = true): ReturnType<typeof bpmn
 
 /** A shape of the view with its saved assignments (design D3 of us-075-lane-assignments). */
 export function withAssignments(shapeOfView: DiagramShape, assignments: Partial<DiagramAssignments>): DiagramShape {
-  return { ...shapeOfView, assignments: { orgUnits: [], roles: [], persons: [], ...assignments } }
+  return { ...shapeOfView, assignments: { orgUnits: [], roles: [], persons: [], realizedBy: [], ...assignments } }
 }
 
 let connectionCounter = 900
@@ -212,4 +231,23 @@ export function entityStatesOf(shapes: DiagramShape[]) {
   return Object.fromEntries(
     shapes.map((entry) => [entry.entity.id, { id: entry.entity.id, name: entry.entity.name, description: '', metatypeId: entry.entity.metatypeId, version: 1, values: {} }]),
   )
+}
+
+/**
+ * The metamodel's answer for a pair of BPMN types (us-083-bpmn-data-objects D1): the input association to a task, the output
+ * association from a task, "Realized By" between any two elements, and the sequence flow between two tasks.
+ */
+export function allowedDataConnections(source: string, target: string): AllowedConnectionResult {
+  const tasks: string[] = [BPMN_TYPES.task, BPMN_TYPES.userTask, BPMN_TYPES.approvalTask]
+  const type = (id: string, name: string, abbreviation: string) => ({ id, name, abbreviation })
+  const input = type(BPMN_TYPES.dataInput, 'Data Input Association', 'DIA')
+  const output = type(BPMN_TYPES.dataOutput, 'Data Output Association', 'DOA')
+  const options: AllowedConnectionResult['options'] = []
+  if (tasks.includes(target)) options.push({ connectionMetatype: input, direction: 'source-to-target' })
+  else if (tasks.includes(source)) options.push({ connectionMetatype: input, direction: 'target-to-source' })
+  if (tasks.includes(source)) options.push({ connectionMetatype: output, direction: 'source-to-target' })
+  else if (tasks.includes(target)) options.push({ connectionMetatype: output, direction: 'target-to-source' })
+  options.push({ connectionMetatype: type(BPMN_TYPES.realizedBy, 'Realized By', 'RB'), direction: 'source-to-target' })
+  if (tasks.includes(source) && tasks.includes(target)) options.push({ connectionMetatype: type(BPMN_TYPES.sequenceFlow, 'Sequence Flow', 'SF'), direction: 'source-to-target' })
+  return { allowed: true, options }
 }

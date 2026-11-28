@@ -690,6 +690,18 @@
   "kind": "relationship"
  },
  {
+  "key": "bpmn:DataInputAssociation",
+  "notation": "bpmn2",
+  "label": "Data Input Association",
+  "kind": "relationship"
+ },
+ {
+  "key": "bpmn:DataOutputAssociation",
+  "notation": "bpmn2",
+  "label": "Data Output Association",
+  "kind": "relationship"
+ },
+ {
   "key": "generic:Box",
   "notation": "generic",
   "label": "Box",

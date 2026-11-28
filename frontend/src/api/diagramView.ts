@@ -160,11 +160,12 @@ export async function searchDiagramReferenceTargets(
 
 /**
  * GET /views/diagrams/{id}/reference-targets with `part`: the active entities of the organizational unit, role or person
- * of the organization model (and its subtypes) by name, for the assignment search (us-075-lane-assignments D6).
+ * of the organization model (and its subtypes) by name, for the assignment search (us-075-lane-assignments D6); `realizer`
+ * searches the active elements of every type for "Realized by" of a data store (us-083-bpmn-data-objects D8).
  */
 export async function searchAssignmentTargets(
   id: string,
-  part: 'org-unit' | 'role' | 'person',
+  part: 'org-unit' | 'role' | 'person' | 'realizer',
   term: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<Outcome<DiagramEntityPage>> {

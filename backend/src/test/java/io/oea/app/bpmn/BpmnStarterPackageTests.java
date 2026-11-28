@@ -112,11 +112,12 @@ class BpmnStarterPackageTests {
 	void theListShowsThePackageAsNotImported() {
 		JsonNode entry = shipped(ok(call(HttpMethod.GET, "/api/v1/metamodel/starter-packages", null, this.admin, null)));
 		assertThat(entry.path("name").asString()).isEqualTo("BPMN 2.0 process modeling");
-		assertThat(entry.path("metatypeCount").asInt()).isEqualTo(31);
-		assertThat(entry.path("propertyDefinitionCount").asInt()).isEqualTo(2);
+		assertThat(entry.path("metatypeCount").asInt()).isEqualTo(36);
+		assertThat(entry.path("propertyDefinitionCount").asInt()).isEqualTo(6);
 		assertThat(entry.path("metatypeNames").valueStream().map(JsonNode::asString)).contains("Pool", "User Task",
 				"Sequence Flow", "Message Start Event");
 		assertThat(entry.path("imported").asBoolean()).isFalse();
+		assertThat(entry.path("importedVersion").isNull()).isTrue();
 	}
 
 	@Test
@@ -125,18 +126,19 @@ class BpmnStarterPackageTests {
 		MvcTestResult result = call(HttpMethod.POST, "/api/v1/metamodel/starter-packages/" + BPMN + "/import", null,
 				this.admin, null);
 		JsonNode outcome = ok(result);
-		assertThat(outcome.path("created").asInt()).isEqualTo(31);
+		assertThat(outcome.path("created").asInt()).isEqualTo(36);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = ? AND scope = 'imported' AND NOT is_connection"))
-			.isEqualTo(26);
-		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = ? AND is_connection")).isEqualTo(5);
+			.isEqualTo(28);
+		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = ? AND is_connection")).isEqualTo(8);
 		assertThat(count("SELECT count(*) FROM metatypes WHERE source_package_id = ? AND is_composition")).isZero();
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM metatypes WHERE is_composition", Integer.class)).isZero();
 		assertThat(count("SELECT count(*) FROM viewpoints WHERE source_package_id = ? AND notation = 'bpmn2'")).isOne();
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM property_definitions WHERE name IN "
-				+ "('Association direction', 'Group category')", Integer.class)).isEqualTo(2);
-		assertThat(shipped(ok(call(HttpMethod.GET, "/api/v1/metamodel/starter-packages", null, this.admin, null)))
-			.path("imported")
-			.asBoolean()).isTrue();
+				+ "('Association direction', 'Group category', 'Collection', 'Transformation type', 'Affected attributes', "
+				+ "'Condition')", Integer.class)).isEqualTo(6);
+		JsonNode imported = shipped(ok(call(HttpMethod.GET, "/api/v1/metamodel/starter-packages", null, this.admin, null)));
+		assertThat(imported.path("imported").asBoolean()).isTrue();
+		assertThat(imported.path("importedVersion").asString()).isEqualTo("1.1.0");
 	}
 
 	@Test
@@ -193,6 +195,7 @@ class BpmnStarterPackageTests {
 			"Exclusive Gateway, bpmn:ExclusiveGateway, 38, 38", "Parallel Gateway, bpmn:ParallelGateway, 38, 38",
 			"Inclusive Gateway, bpmn:InclusiveGateway, 38, 38", "Event-Based Gateway, bpmn:EventBasedGateway, 38, 38",
 			"Text Annotation, bpmn:TextAnnotation, 90, 45", "Group, bpmn:Group, 180, 120",
+			"BPMN Data Object, bpmn:DataObject, 36, 50", "BPMN Data Store, bpmn:DataStore, 50, 50",
 			"Process, , 90, 30" })
 	@Order(6)
 	void elementTypesAreMappedAndSized(String name, String element, int width, int height) {
@@ -213,7 +216,9 @@ class BpmnStarterPackageTests {
 	/** connection type, notation element, length */
 	@ParameterizedTest
 	@CsvSource({ "Sequence Flow, bpmn:SequenceFlow, 45", "Message Flow, bpmn:MessageFlow, 90",
-			"Association, bpmn:Association, 45", "Calls, , ", "References Process, , " })
+			"Association, bpmn:Association, 45", "Data Input Association, bpmn:DataInputAssociation, 45",
+			"Data Output Association, bpmn:DataOutputAssociation, 45", "Realized By, bpmn:Association, 90",
+			"Calls, , ", "References Process, , " })
 	@Order(6)
 	void connectionTypesAreMappedAndSized(String name, String element, Integer length) {
 		JsonNode viewpoint = viewpoint();
@@ -241,8 +246,8 @@ class BpmnStarterPackageTests {
 	void theViewpointAllowsEveryTypeOfThePackage() {
 		JsonNode viewpoint = viewpoint();
 		assertThat(viewpoint.path("notation").asString()).isEqualTo("bpmn2");
-		assertThat(viewpoint.path("allowedMetatypes")).hasSize(26);
-		assertThat(viewpoint.path("allowedRelations")).hasSize(5);
+		assertThat(viewpoint.path("allowedMetatypes")).hasSize(28);
+		assertThat(viewpoint.path("allowedRelations")).hasSize(8);
 		assertThat(viewpoint.path("sourcePackage").path("packageId").asString()).isEqualTo(BPMN);
 	}
 

@@ -124,6 +124,8 @@ export interface MetamodelApiOptions {
   rejectMappings?: boolean
   /** Every viewpoint write with a size is rejected with 422 naming `sizes` (s17-viewpoint-default-sizes). */
   rejectSizes?: boolean
+  /** The BPMN starter package was imported in this older version, so that "Update" is offered (us-083-bpmn-data-objects D7). */
+  bpmnImportedVersion?: string
   /** The import of a starter package is rejected with 409 and these conflicting elements (us-074-bpmn-process-diagrams). */
   starterConflicts?: string[]
   /** The instance has no system-defined viewpoints (no package with viewpoints installed). */
@@ -173,13 +175,14 @@ function seed(): Stored {
       {
         packageId: 'oea-starter-bpmn',
         name: 'BPMN 2.0 process modeling',
-        version: '1.0.0',
+        version: '1.1.0',
         publisher: 'OEA',
         description: 'BPMN 2.0 process types and the viewpoint "Process Model (BPMN 2.0)".',
-        metatypeCount: 31,
-        propertyDefinitionCount: 2,
+        metatypeCount: 36,
+        propertyDefinitionCount: 6,
         metatypeNames: ['Pool', 'Lane', 'User Task', 'Sequence Flow'],
         imported: false,
+        importedVersion: null,
       },
       {
         packageId: 'oea-starter-togaf-classic',
@@ -191,6 +194,7 @@ function seed(): Stored {
         propertyDefinitionCount: 1,
         metatypeNames: ['Application Component', 'Data Object', 'Technology Component'],
         imported: true,
+        importedVersion: '1.4.0',
       },
     ],
     viewpoints: [
@@ -368,6 +372,11 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
   }
   if (options.locked) {
     state.configuration.editMode = 'import-only'
+  }
+  if (options.bpmnImportedVersion) {
+    const bpmn = state.starterPackages.find((candidate) => candidate.packageId === 'oea-starter-bpmn')!
+    bpmn.imported = true
+    bpmn.importedVersion = options.bpmnImportedVersion
   }
   if (options.noSystemViewpoints) {
     state.viewpoints = state.viewpoints.filter((viewpoint) => viewpoint.viewpointType !== 'system-defined')
@@ -668,6 +677,7 @@ export function metamodelApi(options: MetamodelApiOptions = {}): MetamodelApi {
         })
       }
       starter.imported = true
+      starter.importedVersion = starter.version
       return json({ status: 'completed', created: starter.metatypeCount + starter.propertyDefinitionCount, updated: 0, conflicts: 0, conflictList: [] })
     }
 

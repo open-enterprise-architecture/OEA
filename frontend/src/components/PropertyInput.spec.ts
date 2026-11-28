@@ -72,4 +72,62 @@ describe('PropertyInput', () => {
     await flushPromises()
     expect(wrapper.findComponent({ name: 'SelectMenu' }).props('items')).toEqual([])
   })
+
+  // the tags of "Affected attributes" (design D5 of us-083-bpmn-data-objects)
+  describe('tag mode of a text', () => {
+    const tagsOf = (count: number) => Array.from({ length: count }, (_, index) => `tag${index}`).join('\n')
+    const mountTags = (modelValue: string | undefined) => mountInput('text', { tags: true, modelValue })
+    async function enter(wrapper: ReturnType<typeof mountTags>, text: string) {
+      const input = wrapper.get('input')
+      await input.setValue(text)
+      await input.trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+    }
+
+    it('shows the stored lines as tags and no text area', () => {
+      const wrapper = mountTags('status\nreviewedBy')
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.findAll('[data-slot="item"]').map((tag) => tag.text())).toEqual(['status', 'reviewedBy'])
+    })
+
+    it('stores a new tag as one more line', async () => {
+      const wrapper = mountTags('status')
+      await enter(wrapper, 'reviewedBy')
+      expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['status\nreviewedBy'])
+      expect(wrapper.emitted('tagRefused')?.at(-1)).toEqual([undefined])
+    })
+
+    it('takes the 50th tag and refuses the 51st', async () => {
+      const full = mountTags(tagsOf(49))
+      await enter(full, 'last')
+      expect((full.emitted('update:modelValue')?.at(-1)?.[0] as string).split('\n')).toHaveLength(50)
+      const over = mountTags(tagsOf(50))
+      await enter(over, 'one more')
+      const stored = over.emitted('update:modelValue')?.at(-1)?.[0] as string | undefined
+      expect(stored === undefined || stored.split('\n').length === 50).toBe(true)
+      expect(over.emitted('tagRefused')?.some((event) => event[0] === 'count')).toBe(true)
+    })
+
+    it('takes a tag of 100 characters and refuses one of 101', async () => {
+      const ok = mountTags('')
+      await enter(ok, 'a'.repeat(100))
+      expect(ok.emitted('update:modelValue')?.at(-1)).toEqual(['a'.repeat(100)])
+      const long = mountTags('')
+      await enter(long, 'a'.repeat(101))
+      const stored = long.emitted('update:modelValue')?.at(-1)?.[0] as string | undefined
+      expect(stored === undefined || stored === '').toBe(true)
+    })
+
+    it('refuses an empty tag and one of blanks, and drops a duplicate', async () => {
+      const wrapper = mountTags('status')
+      await enter(wrapper, '   ')
+      await enter(wrapper, ' status ')
+      const stored = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as string | undefined
+      expect(stored === undefined || stored === 'status').toBe(true)
+    })
+
+    it('stays a text area for other properties and screens', () => {
+      expect(mountInput('text', { modelValue: 'a\nb' }).find('textarea').exists()).toBe(true)
+    })
+  })
 })

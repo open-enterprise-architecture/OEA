@@ -1,6 +1,7 @@
 import type { AllowedConnectionResult, DiagramEdge, DiagramView } from '../../api/diagramView'
 import { CANVAS_LIMITS } from '../../api/diagramView'
 import type { CanvasLine, CanvasShape, FieldChange } from './canvasModel'
+import { dataRuleAllows, type ConnectionEnds } from './dataObjects'
 
 // The edges of the canvas editor (design D5 of us-074-diagram-connections), without the canvas library:
 // connections drawn between shapes with bend points, the connection types between two metatypes, the
@@ -91,12 +92,14 @@ export interface ConnectionOption {
 /**
  * The connection types for a line drawn from a shape of metatype A to one of metatype B: the
  * metamodel's answer for A and B, narrowed to the connection types the viewpoint allows. A type that
- * runs only from B to A is reversed (the edge runs from the shape of B).
+ * runs only from B to A is reversed (the edge runs from the shape of B). `ends` are the notation keys of the two shapes:
+ * the data associations are offered only in their direction (design D5 of us-083-bpmn-data-objects).
  */
-export function connectionOptions(view: DiagramView, result: AllowedConnectionResult): ConnectionOption[] {
+export function connectionOptions(view: DiagramView, result: AllowedConnectionResult, ends?: ConnectionEnds): ConnectionOption[] {
   const allowed = new Map(view.viewpoint.allowedRelations.map((type) => [type.id, type.name]))
   return result.options
     .filter((option) => allowed.has(option.connectionMetatype.id))
+    .filter((option) => !ends || dataRuleAllows(view, option.connectionMetatype.id, option.direction === 'target-to-source', ends))
     .map((option) => ({
       metatypeId: option.connectionMetatype.id,
       name: allowed.get(option.connectionMetatype.id)!,
@@ -115,12 +118,17 @@ export interface ConnectedOption {
  * allows from it, each with the viewpoint's element metatypes it allows as target. `results` holds
  * the allowed connections from the source metatype to each element metatype of the viewpoint.
  */
-export function connectedOptions(view: DiagramView, results: Map<string, AllowedConnectionResult>): ConnectedOption[] {
+export function connectedOptions(view: DiagramView, results: Map<string, AllowedConnectionResult>, sourceKey?: string): ConnectedOption[] {
   const relations = new Map(view.viewpoint.allowedRelations.map((type) => [type.id, type.name]))
+  const keys = new Map(view.viewpoint.effectiveMappings.map((entry) => [entry.metatypeId, entry.notationElement]))
   const options: ConnectedOption[] = []
   for (const target of view.viewpoint.allowedMetatypes) {
     for (const option of results.get(target.id)?.options ?? []) {
-      if (option.direction !== 'target-to-source' && relations.has(option.connectionMetatype.id)) {
+      if (
+        option.direction !== 'target-to-source' &&
+        relations.has(option.connectionMetatype.id) &&
+        dataRuleAllows(view, option.connectionMetatype.id, false, { source: sourceKey, target: keys.get(target.id) })
+      ) {
         options.push({ connection: { id: option.connectionMetatype.id, name: relations.get(option.connectionMetatype.id)! }, target: { id: target.id, name: target.name } })
       }
     }

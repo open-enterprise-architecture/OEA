@@ -1,10 +1,10 @@
 ---
 id: process
 title: Process Modeling (BPMN 2.0)
-version: 0.4.0
+version: 0.5.0
 status: draft
 created: 2026-06-26
-last_updated: 2026-11-27
+last_updated: 2026-11-28
 references:
   concept:
     - concept/20-entities/09-process-architecture.md
@@ -111,8 +111,8 @@ All process elements are ArchitectureEntities. The following types are built-in;
 | `bpmn-parallel-gateway` | ParallelGateway | `bpmn:ParallelGateway` | AND branching |
 | `bpmn-inclusive-gateway` | InclusiveGateway | `bpmn:InclusiveGateway` | OR branching |
 | `bpmn-event-gateway` | EventBasedGateway | `bpmn:EventBasedGateway` | Event-based branching |
-| `bpmn-data-object` | DataObject | `bpmn:DataObject` | Data object in the process; extends `data-object` from entity.md; `isCollection: boolean` property |
-| `bpmn-data-store` | DataStore | `bpmn:DataStoreReference` | Persistent data store (e.g. database, archive); sits outside of pools |
+| `bpmn-data-object` | DataObject | `bpmn:DataObject` | Realized by the package type "BPMN Data Object" (`oea-starter-bpmn` 1.1.0), with the optional boolean property "Collection" (`isCollection`). A data object is a **symbol**: a viewpoint draws any element type as `bpmn:DataObject`, for example the TOGAF "Data Object" (owner decision 2026-11-28) |
+| `bpmn-data-store` | DataStore | `bpmn:DataStore` | Realized by the package type "BPMN Data Store"; a symbol like the data object, any element type can be drawn as one |
 | `bpmn-text-annotation` | TextAnnotation | `bpmn:TextAnnotation` | Annotation text = entity `description` |
 | `bpmn-group` | Group | `bpmn:Group` | Visual grouping; property `category` (string) for `categoryRef` |
 
@@ -128,8 +128,9 @@ All process elements are ArchitectureEntities. The following types are built-in;
 | `bpmn-pool-references-process` | Participant.processRef | `processRef` | `bpmn-pool` | `bpmn-process` |
 | `bpmn-calls` | CallActivity.calledElement | `calledElement` | `bpmn-call-activity` | `bpmn-process` |
 | `bpmn-association` | Association | `bpmn:Association` | `bpmn-text-annotation` or any BPMN element | any BPMN element or `bpmn-text-annotation`; property `associationDirection` (none \| one \| both) |
-| `bpmn-data-input-association` | DataInputAssociation | `bpmn:DataInputAssociation` | `data-object` / `bpmn-data-object` / `bpmn-data-store` | `bpmn-task` (+ all task subtypes) |
-| `bpmn-data-output-association` | DataOutputAssociation | `bpmn:DataOutputAssociation` | `bpmn-task` (+ all task subtypes) | `data-object` / `bpmn-data-object` / `bpmn-data-store` |
+| `bpmn-data-input-association` | DataInputAssociation | `bpmn:DataInputAssociation` | any element (open end; a shape drawn as data object or data store in the diagram save, BR-07) | `bpmn-task` (+ all task subtypes) |
+| `bpmn-data-output-association` | DataOutputAssociation | `bpmn:DataOutputAssociation` | `bpmn-task` (+ all task subtypes) | any element (open end; a shape drawn as data object or data store in the diagram save, BR-07) |
+| `bpmn-realized-by` | – ("Realized By") | `bpmn:Association` | any element; in a `bpmn2` diagram save a shape drawn as data store | any element (a data store is realized by an application component or system software, for example) |
 
 ---
 
@@ -155,7 +156,7 @@ The instance setting "organization model" says which metatypes play these six pa
 
 BPMN processes work with data: a task reads a `data-object` (order, customer record), processes it, and writes the result to another (or the same) `data-object`. This **process data lineage** can be modeled in OEA and linked to the technical data lineage (UC-08).
 
-**`bpmn-data-object`** is a subtype of `data-object` (from entity.md). It therefore shares the ID space and is both visible in the BPMN diagram and queryable in the technical lineage API. Alternatively, a `data-object` already present in the EA repository can be referenced directly in a BPMN process — without duplication.
+**`bpmn-data-object`** is a symbol of the diagram and the default type "BPMN Data Object" of the package: the viewpoint decides which entity type is drawn as a data object or data store (owner decision 2026-11-28), so a `data-object` (TOGAF "Data Object") already present in the EA repository can be drawn as one and referenced in a BPMN process — without duplication ("Add existing"). The association types have open data ends, so that such a type takes part without a dependency between the packages. A data shape lies in a pool, lane or sub-process for the layout only: it keeps its entity parent, a new one is created without a parent, and a lane of an organizational unit or role assigns nothing to it.
 
 ### 4.2 Enrichment Semantics
 
@@ -164,8 +165,8 @@ The `bpmn-data-output-association` connection carries properties that describe *
 | Property | Type | Mandatory | Values |
 |---|---|---|---|
 | `transformationType` | enum | no | `create` · `enrich` · `overwrite` · `delete` · `read-only` |
-| `affectedAttributes` | string[] | no | List of attribute names that the task sets or changes |
-| `condition` | string | no | Condition under which the association is active (e.g. "only on approval") |
+| `affectedAttributes` | text, one attribute per line (editor: at most 50 tags of 1–100 characters; at most 5049 characters) | no | List of attribute names that the task sets or changes |
+| `condition` | text (at most 2000 characters) | no | Condition under which the association is active (e.g. "only on approval") |
 
 Example: A `bpmn-user-task` "Review Order" has:
 
@@ -204,7 +205,7 @@ RETURN flow.name, d.name, t.name, p.name
 
 `bpmn-data-store` represents a persistent data store (database, archive, file system) that a task accesses for reading or writing. In contrast to the `data-object` (transient data object in the process flow), the DataStore is **not an element within a pool** but stands on its own in the process diagram.
 
-`bpmn-data-store` can be linked via a `realizes` connection to a technical `data-component` (from entity.md) — this establishes the link to the technical infrastructure.
+A data store names the element that realizes it with the connection "Realized By" (`bpmn-realized-by`), from any element to any element, for example to an application component or a piece of system software; the viewpoint need not allow the target type. The editor sets it from the context menu of the data store with a repository search and shows it as a badge; it is a connection without an edge — this establishes the link to the technical infrastructure.
 
 ---
 
@@ -231,8 +232,8 @@ The `parentId` relationship is modeled in the repository by the parent of the en
 | BR-04 | A lane can have multiple "Performs Role" connections (a lane can bundle multiple roles) | – | Data |
 | BR-05 | A user task SHOULD have at most one "Responsible" connection | onConnectionCreate | UI warning |
 | BR-06 | Process elements within a pool MUST be children of a lane or the pool (entity hierarchy) | onSave | API |
-| BR-07 | `bpmn-data-input-association` always runs from DataObject/DataStore **to** task (arrow direction: data source → task); `bpmn-data-output-association` always runs from task **to** DataObject/DataStore | onConnectionCreate | API |
-| BR-08 | A `bpmn-data-object` with `transformationType: create` must not simultaneously have a `bpmn-data-input-association` on the same object (newly created = not present before) | onSave | API warning |
+| BR-07 | `bpmn-data-input-association` always runs from DataObject/DataStore **to** task (arrow direction: data source → task); `bpmn-data-output-association` always runs from task **to** DataObject/DataStore; "Realized By" of a `bpmn2` diagram starts at a data store. **Realized** (change `us-083-bpmn-data-objects`): a diagram save checks the data end of each new connection by the notation key of its mapping and answers 422 `DATA_ASSOCIATION_DIRECTION`; existing connections and batch writes are not checked (owner decision 2026-11-28) | onSave | API |
+| ~~BR-08~~ | ~~A `bpmn-data-object` with `transformationType: create` must not simultaneously have a `bpmn-data-input-association` on the same object~~ **Retired** (owner decision 2026-11-28): a task may read and create or change the same data object, no warning | – | – |
 
 ---
 
@@ -281,6 +282,7 @@ EntityTypeDefinition:
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.5.0 | 2026-11-28 | Change us-083-bpmn-data-objects | Data objects and data stores realized as symbols with the package types "BPMN Data Object" and "BPMN Data Store" (`oea-starter-bpmn` 1.1.0); data associations with open data ends and the transformation properties; "Realized By" of a data store; data shapes do not nest and get no lane assignment; BR-07 realized in the diagram save, BR-08 retired (owner decisions 2026-11-28); lineage (§4.3) and the portal canvas follow later |
 | 0.4.0 | 2026-11-27 | Change us-075-lane-assignments | Assignment connections realized by the package `oea-starter-organization`: "Belongs To", "Performs Role" and "Responsible", each from any element; the organization model setting; assignment lanes (a lane or pool of an OrgUnit or role assigns instead of nesting); BR-03 checked in the diagram save, BR-05 as a warning in the editor (owner decisions 2026-11-27) |
 | 0.3.0 | 2026-10-13 | Lukas Mathis | Full BPMN 2.0.2 Descriptive conformance (REQ-076 v0.2.0): call activity, message/timer start events, message/terminate end events, text annotation, group, association, nested lanes, pool processRef |
 | 0.2.0 | 2026-06-26 | business-engineer | DataObject/DataStore integration: bpmn-data-object (extends data-object), bpmn-data-store; DataAssociation connections; process data lineage (§4); BR-07/08; Vue Flow |

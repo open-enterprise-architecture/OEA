@@ -273,13 +273,14 @@ describe('DiagramCanvas BPMN', () => {
     it('groups the types by their notation element in the order of the groups and keeps the order within them', async () => {
       const { wrapper } = await mountCanvas(bpmnView(process()))
       const groups = wrapper.findAll('[data-testid^="palette-group-"]').map((group) => group.attributes('data-testid')!.replace('palette-group-', ''))
-      expect(groups).toEqual(['pools', 'activities', 'events', 'gateways', 'artifacts', 'other'])
+      expect(groups).toEqual(['pools', 'activities', 'events', 'gateways', 'data', 'artifacts', 'other'])
       expect(groupTypes(wrapper, 'pools')).toEqual(['Lane', 'Pool'])
       expect(groupTypes(wrapper, 'activities')).toEqual(['Approval Task', 'Sub-Process', 'Task', 'User Task'])
       expect(groupTypes(wrapper, 'events')).toEqual(['End Event', 'Intermediate Catch Event', 'Message Start Event', 'Start Event'])
       expect(groupTypes(wrapper, 'gateways')).toEqual(['Exclusive Gateway'])
+      expect(groupTypes(wrapper, 'data')).toEqual(['BPMN Data Object', 'BPMN Data Store', 'Data Object'])
       expect(groupTypes(wrapper, 'artifacts')).toEqual(['Group', 'Text Annotation'])
-      expect(groupTypes(wrapper, 'other')).toEqual(['Process'])
+      expect(groupTypes(wrapper, 'other')).toEqual(['Process', 'System Software'])
     })
 
     it('labels the groups', async () => {
@@ -308,7 +309,7 @@ describe('DiagramCanvas BPMN', () => {
     it.each(['archimate3', 'generic', 'uml'] as const)('stays flat in a diagram of the notation %s', async (notation) => {
       const { wrapper } = await mountCanvas(bpmnView(process(), [], notation))
       expect(wrapper.find('[data-testid^="palette-group-"]').exists()).toBe(false)
-      expect(wrapper.findAll('[data-testid="canvas-palette"] button')).toHaveLength(14)
+      expect(wrapper.findAll('[data-testid="canvas-palette"] button')).toHaveLength(18)
     })
   })
 

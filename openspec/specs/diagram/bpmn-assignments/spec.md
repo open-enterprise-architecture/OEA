@@ -79,9 +79,9 @@ Trace: US-075 AC1–AC4, AC6, US-076 AC1, AC2, AC4, REQ-077 AC1–AC4
 
 ### Requirement: Assignment lanes and pools
 
-A viewpoint MAY map any element metatype to `bpmn:Lane` or `bpmn:Pool`. A lane or pool whose entity is of the org-unit or role part or a subtype SHALL be an assignment lane: a shape in it SHALL get a belongs-to or performs-role connection to its entity instead of it as parent, removed when the shape leaves it (`entity:delete`). It SHALL offer no assign entry for its own part.
+A viewpoint MAY map any element metatype to `bpmn:Lane` or `bpmn:Pool`. A lane or pool whose entity is of the org-unit or role part or a subtype SHALL be an assignment lane: a shape in it, except a data shape, SHALL get a belongs-to or performs-role connection to its entity instead of it as parent, removed when the shape leaves it (`entity:delete`). It SHALL offer no assign entry for its own part.
 
-Trace: US-075, REQ-077 AC1, AC2, owner decision 2026-11-27
+Trace: US-075, REQ-077 AC1, AC2, US-083, owner decisions 2026-11-27 and 2026-11-28
 
 #### Scenario: Task dropped into a role lane
 
@@ -114,6 +114,11 @@ Trace: US-075, REQ-077 AC1, AC2, owner decision 2026-11-27
 
 - **WHEN** Anna opens the context menu of the role lane "Approver"
 - **THEN** "Assign role" is not offered, and "Assign organizational unit" is
+
+#### Scenario: Data object in a role lane
+
+- **WHEN** Anna drops the data object "Order" into the role lane "Approver" and saves
+- **THEN** no assignment connection is created, and the parent of "Order" is unchanged
 
 ### Requirement: Limits of assignments
 

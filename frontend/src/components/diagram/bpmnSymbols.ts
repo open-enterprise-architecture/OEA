@@ -3,7 +3,18 @@
 // palette and which shapes are containers. Pure data; the shape and the edge components draw it.
 
 /** The kind of a symbol: how the outline is drawn. */
-export type SymbolKind = 'task' | 'sub-process' | 'call-activity' | 'event' | 'gateway' | 'pool' | 'lane' | 'annotation' | 'group'
+export type SymbolKind =
+  | 'task'
+  | 'sub-process'
+  | 'call-activity'
+  | 'event'
+  | 'gateway'
+  | 'pool'
+  | 'lane'
+  | 'annotation'
+  | 'group'
+  | 'data-object'
+  | 'data-store'
 
 /** Where the name of a symbol is written. */
 export type LabelPlace = 'inside' | 'top' | 'below' | 'band'
@@ -65,6 +76,8 @@ const SYMBOLS: Record<string, BpmnSymbol> = {
   'bpmn:Lane': { kind: 'lane', label: 'band' },
   'bpmn:TextAnnotation': { kind: 'annotation', label: 'inside' },
   'bpmn:Group': { kind: 'group', label: 'top' },
+  'bpmn:DataObject': { kind: 'data-object', label: 'below' },
+  'bpmn:DataStore': { kind: 'data-store', label: 'below' },
 }
 
 /** The symbol of a notation element of `bpmn2`; `undefined` for an unmapped type, a generic element or an unknown key. */
@@ -76,12 +89,14 @@ export function bpmnSymbol(notation: string | undefined, key: string | undefined
 export const BAND_WIDTH = 30
 
 /** The line style of a flow. */
-export type FlowStyle = 'sequence' | 'message' | 'association'
+export type FlowStyle = 'sequence' | 'message' | 'association' | 'data'
 
 const FLOWS: Record<string, FlowStyle> = {
   'bpmn:SequenceFlow': 'sequence',
   'bpmn:MessageFlow': 'message',
   'bpmn:Association': 'association',
+  'bpmn:DataInputAssociation': 'data',
+  'bpmn:DataOutputAssociation': 'data',
 }
 
 /** The line style of a connection type by its notation element; `undefined` keeps the default line. */
@@ -97,7 +112,7 @@ export function isBpmnContainer(key: string | undefined): boolean {
 }
 
 /** The groups of the palette in their order. */
-export const PALETTE_GROUPS = ['pools', 'activities', 'events', 'gateways', 'artifacts', 'other'] as const
+export const PALETTE_GROUPS = ['pools', 'activities', 'events', 'gateways', 'data', 'artifacts', 'other'] as const
 export type PaletteGroup = (typeof PALETTE_GROUPS)[number]
 
 /** The palette group of an element by its notation element; types without a BPMN element are "other". */
@@ -115,6 +130,9 @@ export function paletteGroup(key: string | undefined): PaletteGroup {
       return 'events'
     case 'gateway':
       return 'gateways'
+    case 'data-object':
+    case 'data-store':
+      return 'data'
     default:
       return 'artifacts'
   }

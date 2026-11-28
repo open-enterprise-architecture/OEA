@@ -755,7 +755,10 @@
       "conflicts": "The package conflicts with existing names: {elements}. Nothing was imported.",
       "failed": "The starter package could not be imported.",
       "loadFailed": "The starter packages could not be loaded.",
-      "none": "No starter packages are shipped."
+      "none": "No starter packages are shipped.",
+      "importedVersion": "Imported version {version}",
+      "update": "Update to {version}",
+      "updateTitle": "Update {name} to {version}?"
     },
     "organization": {
       "title": "Organization model",
@@ -1715,6 +1718,7 @@
         "activities": "Activities",
         "events": "Events",
         "gateways": "Gateways",
+        "data": "Data",
         "artifacts": "Artifacts",
         "other": "Other"
       },
@@ -1757,6 +1761,16 @@
         "connections": "A save creates at most 500 connections.",
         "entities": "A save creates at most 500 entities.",
         "removals": "A save removes at most 500 assignments."
+      }
+    },
+    "dataObjects": {
+      "realizedBy": "Realized by",
+      "realizedByAction": "Realized by…",
+      "notNested": "Data objects and data stores are not nested and not placed: {names}.",
+      "tagRefused": {
+        "empty": "A tag must not be empty.",
+        "length": "A tag has at most {length} characters.",
+        "count": "At most {max} tags."
       }
     }
   },

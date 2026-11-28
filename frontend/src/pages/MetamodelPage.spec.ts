@@ -166,7 +166,7 @@ describe('MetamodelPage', () => {
     ;(document.body.querySelector('[data-testid="starter-confirm-import"]') as HTMLElement).click()
     await flushPromises()
     expect(api.requests.some((request) => request.method === 'POST' && request.path.endsWith('/oea-starter-bpmn/import'))).toBe(true)
-    expect(wrapper.get('[data-testid="starter-result"]').text()).toContain('33 elements created')
+    expect(wrapper.get('[data-testid="starter-result"]').text()).toContain('42 elements created')
   })
 
   it('offers no section "Starter packages" to a reader', async () => {

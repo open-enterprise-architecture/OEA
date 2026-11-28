@@ -92,7 +92,26 @@ export const StarterPackages: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await expect(await body.findByText('Import BPMN 2.0 process modeling?')).toBeInTheDocument()
     await userEvent.click(body.getByRole('button', { name: 'Import' }))
-    await waitFor(() => expect(canvas.getByText(/imported: 33 elements created/)).toBeInTheDocument())
+    await waitFor(() => expect(canvas.getByText(/imported: 42 elements created/)).toBeInTheDocument())
+  },
+}
+
+/** A package that is imported in an older version offers "Update to 1.1.0" (us-083-bpmn-data-objects). */
+export const StarterPackageUpdate: Story = {
+  render: () => ({
+    components: { MetamodelPage },
+    setup: () => ({ fetchFn: metamodelApi({ bpmnImportedVersion: '1.0.0' }).fetch }),
+    template: '<MetamodelPage section="starter" :fetch-fn="fetchFn" />',
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Imported version 1.0.0')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Update to 1.1.0: BPMN 2.0 process modeling' }))
+    const body = within(canvasElement.ownerDocument.body)
+    await expect(await body.findByText('Update BPMN 2.0 process modeling to 1.1.0?')).toBeInTheDocument()
+    await userEvent.click(body.getByRole('button', { name: 'Update to 1.1.0' }))
+    await waitFor(() => expect(canvas.getByText('Imported version 1.1.0')).toBeInTheDocument())
+    await expect(canvas.queryByRole('button', { name: /^Update to/ })).toBeNull()
   },
 }
 

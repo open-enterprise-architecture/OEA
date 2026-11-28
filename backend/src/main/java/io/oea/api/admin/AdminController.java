@@ -285,7 +285,7 @@ public class AdminController implements AdminApi {
 				StarterPackages.Shipped shipped = summary.shipped();
 				return new StarterPackage(shipped.packageId(), shipped.name(), shipped.version(), shipped.publisher(),
 						shipped.description(), shipped.metatypeNames().size(), shipped.propertyDefinitionCount(),
-						shipped.metatypeNames(), summary.imported());
+						shipped.metatypeNames(), summary.imported()).importedVersion(summary.importedVersion());
 			})
 			.toList());
 	}

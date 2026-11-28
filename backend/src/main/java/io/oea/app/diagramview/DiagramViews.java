@@ -97,6 +97,24 @@ public class DiagramViews {
 	/** The most connections of a save that remove assignments. */
 	public static final int MAX_REMOVED_CONNECTIONS = 500;
 
+	private static final String DATA_OBJECT = "bpmn:DataObject";
+
+	private static final String DATA_STORE = "bpmn:DataStore";
+
+	private static final String DATA_INPUT = "bpmn:DataInputAssociation";
+
+	private static final String DATA_OUTPUT = "bpmn:DataOutputAssociation";
+
+	/** The stable ID of "Realized By" of the BPMN starter package (us-083-bpmn-data-objects D1). */
+	static final UUID REALIZED_BY = UUID.fromString("a69884e9-0180-58e7-a3d3-3af8e3eddb7d");
+
+	/** The stable ID of the property "Collection" of the BPMN starter package. */
+	static final UUID COLLECTION = UUID.fromString("6e7ce41f-90d4-5add-a06a-0df0161a4916");
+
+	private static final String REALIZER = "realizer";
+
+	private static final String DATA_PARENT_MESSAGE = "A shape drawn as data object or data store lies in its container for the layout only and has no parent.";
+
 	private static final String HORIZONTAL = "horizontal";
 
 	private static final String VERTICAL = "vertical";
@@ -186,9 +204,9 @@ public class DiagramViews {
 	 * contains the shape completely; {@code childCount} and {@code parentEntityId} are those of the entity.
 	 */
 	public record Shape(UUID id, int entityId, String entityName, UUID metatypeId, BigDecimal x, BigDecimal y,
-			BigDecimal width, BigDecimal height, UUID parentShapeId, boolean collapsed, String orientation,
-			int childCount, Integer parentEntityId, List<String> missingMandatory, boolean conflict,
-			Assignments assignments) {
+			BigDecimal width, BigDecimal height, UUID parentShapeId, boolean collapsed, boolean collection,
+			String orientation, int childCount, Integer parentEntityId, List<String> missingMandatory,
+			boolean conflict, Assignments assignments) {
 	}
 
 	/** An assignment: the connection with its version and the organizational unit, role or person. */
@@ -199,7 +217,8 @@ public class DiagramViews {
 	 * The assignments of a shape (design D3 of us-075-lane-assignments): organizational units by
 	 * belongs-to, roles by performs-role and persons by responsible.
 	 */
-	public record Assignments(List<Assignment> orgUnits, List<Assignment> roles, List<Assignment> persons) {
+	public record Assignments(List<Assignment> orgUnits, List<Assignment> roles, List<Assignment> persons,
+			List<Assignment> realizedBy) {
 	}
 
 	/** A hierarchy line from a container shape to the shape of a child placed elsewhere. */
@@ -359,8 +378,8 @@ public class DiagramViews {
 	 * @throws NoSuchElementException for an unknown or deleted diagram (404)
 	 */
 	@Transactional(readOnly = true)
-	public View view(UUID id) {
-		return buildView(this.diagrams.get(id));
+	public View view(OeaPrincipal principal, UUID id) {
+		return buildView(principal, this.diagrams.get(id));
 	}
 
 	/**
@@ -545,7 +564,10 @@ public class DiagramViews {
 					List.of(new Issue("part", "PART_OR_PROPERTY", "Exactly one of propertyDefId and part is needed.")));
 		}
 		List<UUID> types;
-		if (part != null) {
+		if (REALIZER.equals(part)) {
+			types = this.metatypes.elementIds();
+		}
+		else if (part != null) {
 			types = partTypes(part);
 		}
 		else {
@@ -631,15 +653,16 @@ public class DiagramViews {
 		List<StoredEdge> storedEdges = this.edges.stored(id);
 		List<String> conflicts = new ArrayList<>();
 		AssignmentRules rules = new AssignmentRules(this.organizationModels.get().parts(), this.metatypes.bases());
+		DataRules data = dataRules(viewpoint, shapeInputs, newEntities);
 		List<Issue> errors = validate(id, shapeInputs, newEntities, newConnections, allowed, rules,
 				typesMappedTo(viewpoint, SUB_PROCESS), typesMappedTo(viewpoint, POOL), stored, conflicts);
 		errors.addAll(validateNesting(shapeInputs));
 		errors.addAll(validateEdges(id, shapeInputs, edgeInputs, newConnections, newEntities, allowedConnections,
-				rules, storedEdges, conflicts));
+				rules, data, storedEdges, conflicts));
 		errors.addAll(validateRemovals(removed, shapeInputs, stored, edgeInputs, rules));
 		errors.addAll(validateUpdates(updates, shapeInputs, edgeInputs));
 		errors.addAll(validateLines(id, shapeInputs, lineInputs));
-		errors.addAll(validateParentChanges(parentChanges, shapeInputs, newEntities));
+		errors.addAll(validateParentChanges(parentChanges, shapeInputs, newEntities, data));
 		if (!errors.isEmpty()) {
 			throw invalid(errors);
 		}
@@ -683,7 +706,7 @@ public class DiagramViews {
 		int version = this.diagrams.layoutSaved(principal, id);
 		audit(principal, id, diagram.name(), version, count(stored, writes), countEdges(storedEdges, edgeWrites),
 				created.size(), createdConnections.size(), parentsChanged, removed.size());
-		return buildView(this.diagrams.get(id));
+		return buildView(principal, this.diagrams.get(id));
 	}
 
 	/**
@@ -708,11 +731,73 @@ public class DiagramViews {
 					|| isOf(metatype, this.parts.responsible(), this.bases);
 		}
 
+		boolean isRealizedBy(UUID metatype) {
+			return isOf(metatype, REALIZED_BY, this.bases);
+		}
+
 		boolean isPartElement(UUID metatype) {
 			return isOf(metatype, this.parts.orgUnit(), this.bases) || isOf(metatype, this.parts.role(), this.bases)
 					|| isOf(metatype, this.parts.person(), this.bases);
 		}
 
+	}
+
+	/**
+	 * The notation of the diagram's viewpoint as the rules of data objects need it (design D3, D4 of
+	 * us-083-bpmn-data-objects): the metatypes drawn as data object and data store, those mapped to the
+	 * two data associations, and the metatype of each shape of the request by shape ID.
+	 */
+	private record DataRules(Set<UUID> objects, Set<UUID> stores, Set<UUID> inputs, Set<UUID> outputs,
+			boolean bpmn, Map<UUID, UUID> shapeTypes, Set<Integer> dataEntities, Set<UUID> dataKeys) {
+
+		boolean isData(UUID shapeId) {
+			UUID type = this.shapeTypes.get(shapeId);
+			return type != null && (this.objects.contains(type) || this.stores.contains(type));
+		}
+
+		boolean isStore(UUID shapeId) {
+			UUID type = this.shapeTypes.get(shapeId);
+			return type != null && this.stores.contains(type);
+		}
+
+	}
+
+	private DataRules dataRules(Viewpoints.Viewpoint viewpoint, List<ShapeInput> shapeInputs,
+			List<NewEntityInput> newEntities) {
+		Map<UUID, UUID> newTypes = new HashMap<>();
+		newEntities.forEach((entity) -> newTypes.put(entity.key(), entity.metatypeId()));
+		Map<Integer, EntityRef> existing = this.shapes
+			.entities(shapeInputs.stream().map(ShapeInput::entityId).filter(Objects::nonNull).distinct().toList());
+		Set<UUID> objects = typesMappedTo(viewpoint, DATA_OBJECT);
+		Set<UUID> stores = typesMappedTo(viewpoint, DATA_STORE);
+		Map<UUID, UUID> shapeTypes = new HashMap<>();
+		Set<Integer> dataEntities = new HashSet<>();
+		Set<UUID> dataKeys = new HashSet<>();
+		for (ShapeInput shape : shapeInputs) {
+			UUID type = null;
+			if (shape.entityId() != null) {
+				EntityRef ref = existing.get(shape.entityId());
+				type = (ref != null) ? ref.metatypeId() : null;
+			}
+			else if (shape.newEntityKey() != null) {
+				type = newTypes.get(shape.newEntityKey());
+			}
+			if (type == null) {
+				continue;
+			}
+			shapeTypes.put(shape.id(), type);
+			if (objects.contains(type) || stores.contains(type)) {
+				if (shape.entityId() != null) {
+					dataEntities.add(shape.entityId());
+				}
+				else {
+					dataKeys.add(shape.newEntityKey());
+				}
+			}
+		}
+		return new DataRules(objects, stores, typesMappedTo(viewpoint, DATA_INPUT),
+				typesMappedTo(viewpoint, DATA_OUTPUT), "bpmn2".equals(viewpoint.notation()), shapeTypes, dataEntities,
+				dataKeys);
 	}
 
 	/**
@@ -870,7 +955,7 @@ public class DiagramViews {
 
 	private List<Issue> validateEdges(UUID diagramId, List<ShapeInput> shapeInputs, List<EdgeInput> edgeInputs,
 			List<NewConnectionInput> newConnections, List<NewEntityInput> newEntities, Set<UUID> allowedConnections,
-			AssignmentRules rules, List<StoredEdge> storedEdges, List<String> conflicts) {
+			AssignmentRules rules, DataRules data, List<StoredEdge> storedEdges, List<String> conflicts) {
 		List<Issue> errors = new ArrayList<>();
 		Map<UUID, Shown> shapes = new HashMap<>();
 		shapeInputs.forEach((shape) -> shapes.put(shape.id(), new Shown(shape.entityId(), shape.newEntityKey())));
@@ -889,7 +974,7 @@ public class DiagramViews {
 			}
 			String path = "newConnections[" + i + "]";
 			if (connection.hasEndpoints() && !referencedByEdge.contains(connection.key())) {
-				assignmentIssues(errors, path, connection, rules, shapes, newEntityKeys);
+				assignmentIssues(errors, path, connection, rules, data, shapes, newEntityKeys);
 			}
 			else if (connection.hasEndpoints()) {
 				errors.add(new Issue(path, "ENDPOINTS_WITH_EDGE",
@@ -908,6 +993,7 @@ public class DiagramViews {
 		Set<UUID> ids = new HashSet<>();
 		// the endpoints of the first edge of each new connection
 		Map<UUID, Shown[]> firstEnds = new HashMap<>();
+		Map<UUID, UUID[]> firstShapes = new HashMap<>();
 		for (int i = 0; i < edgeInputs.size(); i++) {
 			EdgeInput edge = edgeInputs.get(i);
 			String path = "edges[" + i + "]";
@@ -937,6 +1023,7 @@ public class DiagramViews {
 							"The key names no connection of newConnections."));
 				}
 				else if (source != null && target != null) {
+					firstShapes.putIfAbsent(edge.newConnectionKey(), new UUID[] { edge.sourceShapeId(), edge.targetShapeId() });
 					Shown[] first = firstEnds.putIfAbsent(edge.newConnectionKey(), new Shown[] { source, target });
 					if (first != null && (!first[0].equals(source) || !first[1].equals(target))) {
 						errors.add(new Issue(path, "NEW_CONNECTION_ENDPOINTS_DIFFER",
@@ -977,6 +1064,13 @@ public class DiagramViews {
 				}
 			}
 		}
+		for (int i = 0; i < newConnections.size(); i++) {
+			UUID[] ends = firstShapes.get(newConnections.get(i).key());
+			if (ends != null && !newConnections.get(i).hasEndpoints()) {
+				directionIssue(errors, "newConnections[" + i + "]", newConnections.get(i).metatypeId(), ends[0], ends[1],
+						rules, data);
+			}
+		}
 		Set<UUID> referenced = new HashSet<>();
 		edgeInputs.stream().filter((edge) -> edge.newConnectionKey() != null).forEach((edge) -> referenced.add(edge.newConnectionKey()));
 		for (int i = 0; i < newConnections.size(); i++) {
@@ -989,21 +1083,46 @@ public class DiagramViews {
 	}
 
 	/**
+	 * The direction of a new data association (design D3 of us-083-bpmn-data-objects): the data end must be
+	 * drawn as data object or data store, the source of a "Realized By" of a diagram of the notation
+	 * {@code bpmn2} as data store; the task end is guarded by the endpoint constraint of the type.
+	 */
+	private static void directionIssue(List<Issue> errors, String path, UUID type, UUID sourceShape, UUID targetShape,
+			AssignmentRules rules, DataRules data) {
+		boolean wrong = (data.inputs().contains(type) && !data.isData(sourceShape))
+				|| (data.outputs().contains(type) && !data.isData(targetShape))
+				|| (data.bpmn() && rules.isRealizedBy(type) && !data.isStore(sourceShape));
+		if (wrong) {
+			errors.add(new Issue(path, "DATA_ASSOCIATION_DIRECTION",
+					"A data input association starts at a data object or data store, a data output association ends at one "
+							+ "and a \"Realized By\" starts at a data store."));
+		}
+	}
+
+	/**
 	 * A new connection without an edge is an assignment (design D4 of us-075-lane-assignments): its
 	 * metatype is the belongs-to, performs-role or responsible type of the organization model or a
 	 * subtype, its source a shape of the request and its target exactly one of an entity and a new entity.
 	 */
 	private static void assignmentIssues(List<Issue> errors, String path, NewConnectionInput connection,
-			AssignmentRules rules, Map<UUID, Shown> shapes, Set<UUID> newEntityKeys) {
-		if (!rules.isAssignmentConnection(connection.metatypeId())) {
+			AssignmentRules rules, DataRules data, Map<UUID, Shown> shapes, Set<UUID> newEntityKeys) {
+		boolean realized = rules.isRealizedBy(connection.metatypeId());
+		if (!rules.isAssignmentConnection(connection.metatypeId()) && !realized) {
 			errors.add(new Issue(path + ".metatypeId", "METATYPE_NOT_ALLOWED",
-					"A connection without an edge is an assignment of the organization model."));
+					"A connection without an edge is an assignment of the organization model or a \"Realized By\"."));
 		}
 		if (connection.sourceShapeId() == null || !shapes.containsKey(connection.sourceShapeId())) {
 			errors.add(new Issue(path + ".sourceShapeId", "SHAPE_NOT_IN_LAYOUT",
 					"The source shape is missing or not a shape of the saved layout."));
 		}
-		if ((connection.targetEntityId() == null) == (connection.targetNewEntityKey() == null)) {
+		else if (realized && !data.isStore(connection.sourceShapeId())) {
+			errors.add(new Issue(path, "DATA_ASSOCIATION_DIRECTION", "A \"Realized By\" starts at a data store."));
+		}
+		if (realized && connection.targetNewEntityKey() != null) {
+			errors.add(new Issue(path, "ASSIGNMENT_TARGET_INVALID",
+					"A \"Realized By\" names an existing element as target, not a new entity."));
+		}
+		else if ((connection.targetEntityId() == null) == (connection.targetNewEntityKey() == null)) {
 			errors.add(new Issue(path, "ASSIGNMENT_TARGET_INVALID",
 					"A connection without an edge names exactly one of targetEntityId and targetNewEntityKey."));
 		}
@@ -1042,9 +1161,9 @@ public class DiagramViews {
 			else if (ref == null || ref.deleted() || !ref.connection()) {
 				errors.add(new Issue(path, "CONNECTION_NOT_FOUND", "The connection does not exist or is deleted."));
 			}
-			else if (!rules.isAssignmentConnection(ref.metatypeId())) {
+			else if (!rules.isAssignmentConnection(ref.metatypeId()) && !rules.isRealizedBy(ref.metatypeId())) {
 				errors.add(new Issue(path, "NOT_AN_ASSIGNMENT",
-						"Only the connections of belongs-to, performs-role and responsible are removed this way."));
+						"Only the connections of belongs-to, performs-role, responsible and \"Realized By\" are removed this way."));
 			}
 			else if (!onDiagram.contains(sources.get(id))) {
 				errors.add(new Issue(path, "SOURCE_NOT_ON_DIAGRAM",
@@ -1228,7 +1347,7 @@ public class DiagramViews {
 	 * {@code newEntities}.
 	 */
 	private static List<Issue> validateParentChanges(List<ParentChangeInput> changes, List<ShapeInput> shapeInputs,
-			List<NewEntityInput> newEntities) {
+			List<NewEntityInput> newEntities, DataRules data) {
 		List<Issue> errors = new ArrayList<>();
 		Set<Integer> shown = new HashSet<>();
 		shapeInputs.stream().filter((shape) -> shape.entityId() != null).forEach((shape) -> shown.add(shape.entityId()));
@@ -1238,6 +1357,9 @@ public class DiagramViews {
 		for (int i = 0; i < changes.size(); i++) {
 			ParentChangeInput change = changes.get(i);
 			String path = "parentChanges[" + i + "]";
+			if (data.dataEntities().contains(change.entityId())) {
+				errors.add(new Issue(path, "DATA_OBJECT_PARENT", DATA_PARENT_MESSAGE));
+			}
 			if (!shown.contains(change.entityId())) {
 				errors.add(new Issue(path + ".entityId", "ENTITY_NOT_SHOWN", "No shape of the request shows the entity."));
 			}
@@ -1257,6 +1379,10 @@ public class DiagramViews {
 		for (int i = 0; i < newEntities.size(); i++) {
 			NewEntityInput entity = newEntities.get(i);
 			String path = "newEntities[" + i + "]";
+			if (data.dataKeys().contains(entity.key())
+					&& (entity.parentEntityId() != null || entity.parentNewEntityKey() != null)) {
+				errors.add(new Issue(path, "DATA_OBJECT_PARENT", DATA_PARENT_MESSAGE));
+			}
 			if (entity.parentEntityId() != null && entity.parentNewEntityKey() != null) {
 				errors.add(new Issue(path, "PARENT_AMBIGUOUS",
 						"A new entity names at most one of parentEntityId and parentNewEntityKey."));
@@ -1582,10 +1708,25 @@ public class DiagramViews {
 		containers.addAll(typesMappedTo(viewpoint, POOL));
 		Set<UUID> carriers = new HashSet<>(containers);
 		TASKS.forEach((key) -> carriers.addAll(typesMappedTo(viewpoint, key)));
+		Set<UUID> dataObjects = typesMappedTo(viewpoint, DATA_OBJECT);
+		Set<UUID> dataStores = typesMappedTo(viewpoint, DATA_STORE);
 		Map<UUID, Boolean> inAssignmentLane = new HashMap<>();
 		Set<UUID> eligible = new HashSet<>();
 		Set<Integer> entityIds = new HashSet<>();
+		Set<UUID> stores = new HashSet<>();
+		Set<Integer> storeEntityIds = new HashSet<>();
 		for (ShownShape shape : shown) {
+			if (dataStores.contains(shape.metatypeId())) {
+				// a data shape lies in a lane for the layout only and has no assignment (design D4 of us-083-bpmn-data-objects)
+				inAssignmentLane.put(shape.id(), false);
+				stores.add(shape.id());
+				storeEntityIds.add(shape.entityId());
+				continue;
+			}
+			if (dataObjects.contains(shape.metatypeId())) {
+				inAssignmentLane.put(shape.id(), false);
+				continue;
+			}
 			boolean inside = shape.parentShapeId() != null && inAssignmentLane.containsKey(shape.parentShapeId())
 					&& inAssignmentLane.get(shape.parentShapeId());
 			boolean assignmentLane = containers.contains(shape.metatypeId())
@@ -1602,10 +1743,16 @@ public class DiagramViews {
 				parts.performsRole(), parts.role());
 		Map<Integer, List<DiagramAssignmentStore.Assignment>> persons = this.assignmentStore.assignments(entityIds,
 				parts.responsible(), parts.person());
+		Map<Integer, List<DiagramAssignmentStore.Assignment>> realizers = this.assignmentStore
+			.realizations(storeEntityIds, REALIZED_BY);
 		for (ShownShape shape : shown) {
 			if (eligible.contains(shape.id())) {
 				result.put(shape.id(), new Assignments(assignmentList(orgUnits, shape.entityId()),
-						assignmentList(roles, shape.entityId()), assignmentList(persons, shape.entityId())));
+						assignmentList(roles, shape.entityId()), assignmentList(persons, shape.entityId()), List.of()));
+			}
+			else if (stores.contains(shape.id())) {
+				result.put(shape.id(), new Assignments(List.of(), List.of(), List.of(),
+						assignmentList(realizers, shape.entityId())));
 			}
 		}
 		return result;
@@ -1620,6 +1767,39 @@ public class DiagramViews {
 			.toList();
 	}
 
+	/**
+	 * The entities of the shapes drawn as data object whose value "Collection" is true and readable by the
+	 * caller (design D2 of us-083-bpmn-data-objects); a read through an override is audited as in the details.
+	 */
+	private Set<Integer> collections(OeaPrincipal principal, UUID diagramId, Viewpoints.Viewpoint viewpoint,
+			List<ShownShape> shown) {
+		Set<UUID> objects = typesMappedTo(viewpoint, DATA_OBJECT);
+		List<Integer> candidates = shown.stream()
+			.filter((shape) -> objects.contains(shape.metatypeId()))
+			.map(ShownShape::entityId)
+			.distinct()
+			.toList();
+		Set<Integer> collections = new HashSet<>();
+		if (candidates.isEmpty()) {
+			return collections;
+		}
+		PropertyAccess.Snapshot snapshot = this.access.of(principal);
+		List<Integer> overridden = new ArrayList<>();
+		for (int entityId : this.shapes.withTrueValue(candidates, COLLECTION)) {
+			if (snapshot.readableFor(COLLECTION, entityId)) {
+				collections.add(entityId);
+				if (snapshot.throughOverrideFor(COLLECTION, entityId)) {
+					overridden.add(entityId);
+				}
+			}
+		}
+		if (!overridden.isEmpty()) {
+			this.overrideAudit.append(principal, "diagram", 0, "diagram", diagramId.toString(),
+					Map.of(COLLECTION, "Collection"), Map.of(COLLECTION, overridden));
+		}
+		return collections;
+	}
+
 	/** The allowed metatypes that the viewpoint renders as the notation element (the effective mapping). */
 	private static Set<UUID> typesMappedTo(Viewpoints.Viewpoint viewpoint, String element) {
 		Set<UUID> types = new HashSet<>();
@@ -1630,7 +1810,7 @@ public class DiagramViews {
 		return types;
 	}
 
-	private View buildView(Diagrams.Diagram diagram) {
+	private View buildView(OeaPrincipal principal, Diagrams.Diagram diagram) {
 		Viewpoints.Viewpoint viewpoint = this.viewpoints.get(diagram.viewpoint().id());
 		List<ShownShape> shown = this.shapes.shown(diagram.id());
 		List<ShownEdge> shownEdges = this.edges.shown(diagram.id());
@@ -1646,6 +1826,7 @@ public class DiagramViews {
 		Set<UUID> subProcesses = typesMappedTo(viewpoint, SUB_PROCESS);
 		Set<UUID> pools = typesMappedTo(viewpoint, POOL);
 		Map<UUID, Assignments> assignments = assignmentsOf(viewpoint, shown);
+		Set<Integer> collections = collections(principal, diagram.id(), viewpoint, shown);
 		int conflicts = 0;
 		Map<UUID, ShownShape> before = new HashMap<>();
 		List<Shape> view = new ArrayList<>();
@@ -1657,7 +1838,8 @@ public class DiagramViews {
 			UUID parent = (container != null && contains(container.x(), container.y(), container.width(),
 					container.height(), shape.x(), shape.y(), shape.width(), shape.height())) ? container.id() : null;
 			view.add(new Shape(shape.id(), shape.entityId(), shape.entityName(), shape.metatypeId(), shape.x(),
-					shape.y(), shape.width(), shape.height(), parent, collapsed, orientation, shape.childCount(),
+					shape.y(), shape.width(), shape.height(), parent, collapsed,
+					collections.contains(shape.entityId()), orientation, shape.childCount(),
 					shape.parentEntityId(), missing.getOrDefault(shape.entityId(), List.of()),
 					!allowed.contains(shape.metatypeId()), assignments.get(shape.id())));
 			before.put(shape.id(), shape);

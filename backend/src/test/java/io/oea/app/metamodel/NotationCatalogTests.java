@@ -49,7 +49,7 @@ class NotationCatalogTests {
 			.collect(Collectors.groupingBy(NotationCatalog.Element::notation, Collectors.counting()));
 		assertThat(counts).containsEntry("archimate3", (long) ARCHIMATE_ELEMENTS.size() + ARCHIMATE_RELATIONSHIPS.size())
 			.containsEntry("uml", 12L)
-			.containsEntry("bpmn2", 32L)
+			.containsEntry("bpmn2", 34L)
 			.containsEntry("generic", 2L);
 		assertThat(ARCHIMATE_ELEMENTS).hasSize(60);
 	}
@@ -74,6 +74,11 @@ class NotationCatalogTests {
 				"TimerStartEvent", "MessageEndEvent", "TerminateEndEvent", "ExclusiveGateway", "ParallelGateway",
 				"InclusiveGateway", "EventBasedGateway", "TextAnnotation", "Group")) {
 			assertThat(this.catalog.element("bpmn:" + name).orElseThrow().relationship()).as(name).isFalse();
+			assertThat(this.catalog.fits("bpmn2", "bpmn:" + name)).as(name).isTrue();
+			assertThat(this.catalog.fits("archimate3", "bpmn:" + name)).as(name).isFalse();
+		}
+		for (String name : List.of("DataInputAssociation", "DataOutputAssociation")) {
+			assertThat(this.catalog.element("bpmn:" + name).orElseThrow().relationship()).as(name).isTrue();
 			assertThat(this.catalog.fits("bpmn2", "bpmn:" + name)).as(name).isTrue();
 			assertThat(this.catalog.fits("archimate3", "bpmn:" + name)).as(name).isFalse();
 		}

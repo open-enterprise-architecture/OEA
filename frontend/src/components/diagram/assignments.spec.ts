@@ -44,9 +44,10 @@ describe('shown assignments', () => {
         orgUnits: [{ connectionId: 1, connectionVersion: 2, entityId: 10, name: 'Purchasing Department' }],
         roles: [{ connectionId: 2, connectionVersion: 1, entityId: 11, name: 'Approver' }],
         persons: [],
+        realizedBy: [{ connectionId: 3, connectionVersion: 1, entityId: 12, name: 'PostgreSQL' }],
       },
     })
-    expect(read).toEqual([saved('orgUnit', 1, 10, 'Purchasing Department', 2), saved('role', 2, 11, 'Approver')])
+    expect(read).toEqual([saved('orgUnit', 1, 10, 'Purchasing Department', 2), saved('role', 2, 11, 'Approver'), saved('realizer', 3, 12, 'PostgreSQL')])
     expect(savedAssignments({ assignments: null })).toEqual([])
   })
 

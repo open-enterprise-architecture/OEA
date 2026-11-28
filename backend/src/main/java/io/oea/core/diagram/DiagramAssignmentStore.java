@@ -56,6 +56,31 @@ public class DiagramAssignmentStore {
 		return found;
 	}
 
+	/**
+	 * The realizations of the source entities (us-083-bpmn-data-objects D8): connections of the
+	 * metatype or a subtype that are not deleted, whose target is not deleted, by target name ignoring
+	 * case, then target and connection ID.
+	 */
+	public Map<Integer, List<Assignment>> realizations(Collection<Integer> sourceIds, UUID connectionType) {
+		Map<Integer, List<Assignment>> found = new LinkedHashMap<>();
+		if (sourceIds.isEmpty() || connectionType == null) {
+			return found;
+		}
+		this.jdbc.query("""
+				WITH RECURSIVE ctypes (id) AS (
+				    SELECT ?::uuid UNION SELECT m.id FROM metatypes m JOIN ctypes c ON m.base_metatype_id = c.id)
+				SELECT ec.source_entity_id, c.id, c.version, t.id, t.name
+				FROM entity_connections ec
+				JOIN entities c ON c.id = ec.entity_id AND c.deleted_at IS NULL AND c.metatype_id IN (SELECT id FROM ctypes)
+				JOIN entities t ON t.id = ec.target_entity_id AND t.deleted_at IS NULL
+				WHERE ec.source_entity_id = ANY (?)
+				ORDER BY lower(t.name), t.id, c.id""", (rs) -> {
+			found.computeIfAbsent(rs.getInt(1), (id) -> new java.util.ArrayList<>())
+				.add(new Assignment(rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getString(5)));
+		}, connectionType, (Object) sourceIds.toArray(Integer[]::new));
+		return found;
+	}
+
 	/** The number of connections of the metatype or a subtype from the entity that are not deleted. */
 	public int countFrom(int sourceId, UUID connectionType) {
 		Integer count = this.jdbc.queryForObject("""

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { CANVAS_LIMITS } from '../../api/diagramView'
+import { CANVAS_LIMITS, type AllowedConnectionResult } from '../../api/diagramView'
+import { BPMN_TYPES, bpmnView } from '../../test/bpmn'
 import {
   allowedConnections,
   diagramView,
@@ -275,5 +276,90 @@ describe('edgeModel', () => {
       expect(marks.edges.get(created.id)).toBe('endpoint not allowed')
       expect(marks.fields.get('k1|')).toBe('endpoint not allowed')
     })
+  })
+})
+
+// spec diagram/bpmn-data-objects "Data associations and their direction" (us-083-bpmn-data-objects D5): the types a drag offers
+describe('connection types of a line drawn between data shapes and tasks', () => {
+  const view = bpmnView([])
+  const type = (id: string) => view.viewpoint.allowedRelations.find((entry) => entry.id === id)!
+  const KEY = {
+    object: 'bpmn:DataObject',
+    store: 'bpmn:DataStore',
+    task: 'bpmn:Task',
+    gateway: 'bpmn:ExclusiveGateway',
+    software: 'generic:Box',
+  }
+  const tasks: string[] = [BPMN_TYPES.task, BPMN_TYPES.userTask]
+
+  /** The metamodel's answer for the pair, as the constraints of the package give it: data ends are open, the task ends are guarded. */
+  function answer(source: string, target: string): AllowedConnectionResult {
+    const options: AllowedConnectionResult['options'] = []
+    const add = (id: string, direction: 'source-to-target' | 'target-to-source') => options.push({ connectionMetatype: type(id), direction })
+    // "Data Input Association": any element to a task
+    if (tasks.includes(target)) add(BPMN_TYPES.dataInput, 'source-to-target')
+    else if (tasks.includes(source)) add(BPMN_TYPES.dataInput, 'target-to-source')
+    // "Data Output Association": a task to any element
+    if (tasks.includes(source)) add(BPMN_TYPES.dataOutput, 'source-to-target')
+    else if (tasks.includes(target)) add(BPMN_TYPES.dataOutput, 'target-to-source')
+    // "Realized By": any element to any element
+    add(BPMN_TYPES.realizedBy, 'source-to-target')
+    if (tasks.includes(source) && tasks.includes(target)) add(BPMN_TYPES.sequenceFlow, 'source-to-target')
+    return { allowed: true, options }
+  }
+
+  const offered = (source: string, target: string, ends: { source?: string; target?: string }) =>
+    connectionOptions(view, answer(source, target), ends).map((option) => `${option.name}${option.reversed ? ' (reversed)' : ''}`)
+
+  it('offers the input association only, from a data object to a task', () => {
+    expect(offered(BPMN_TYPES.dataObject, BPMN_TYPES.task, { source: KEY.object, target: KEY.task })).toEqual(['Data Input Association'])
+  })
+
+  it('offers the output association only, from a task to a data object, and not the input association reversed', () => {
+    expect(offered(BPMN_TYPES.userTask, BPMN_TYPES.dataObject, { source: 'bpmn:UserTask', target: KEY.object })).toEqual(['Data Output Association'])
+  })
+
+  it.each([BPMN_TYPES.dataObject, BPMN_TYPES.dataStore])('offers the output association to the data shape %s', (target) => {
+    expect(offered(BPMN_TYPES.task, target, { source: KEY.task, target: target === BPMN_TYPES.dataObject ? KEY.object : KEY.store })).toEqual(['Data Output Association'])
+  })
+
+  it('offers no data association and no "Realized By" from a gateway to a task', () => {
+    expect(offered(BPMN_TYPES.gateway, BPMN_TYPES.task, { source: KEY.gateway, target: KEY.task })).toEqual([])
+  })
+
+  it('offers "Realized By" from a data store to another element, and the input association to a task', () => {
+    expect(offered(BPMN_TYPES.dataStore, BPMN_TYPES.systemSoftware, { source: KEY.store, target: KEY.software })).toEqual(['Realized By'])
+    expect(offered(BPMN_TYPES.dataStore, BPMN_TYPES.task, { source: KEY.store, target: KEY.task })).toEqual(['Data Input Association', 'Realized By'])
+  })
+
+  it('offers no "Realized By" from a data object, and none from a task to a data store', () => {
+    expect(offered(BPMN_TYPES.dataObject, BPMN_TYPES.systemSoftware, { source: KEY.object, target: KEY.software })).toEqual([])
+    expect(offered(BPMN_TYPES.task, BPMN_TYPES.dataStore, { source: KEY.task, target: KEY.store })).toEqual(['Data Output Association'])
+  })
+
+  it('offers a type without a rule as before, also reversed', () => {
+    expect(offered(BPMN_TYPES.task, BPMN_TYPES.userTask, { source: KEY.task, target: 'bpmn:UserTask' })).toEqual(['Sequence Flow'])
+    const reversed = connectionOptions(view, { allowed: true, options: [{ connectionMetatype: type(BPMN_TYPES.sequenceFlow), direction: 'target-to-source' }] }, { source: KEY.task, target: KEY.task })
+    expect(reversed).toEqual([{ metatypeId: BPMN_TYPES.sequenceFlow, name: 'Sequence Flow', reversed: true }])
+  })
+
+  it('offers every type of the metamodel when no ends are given', () => {
+    expect(connectionOptions(view, answer(BPMN_TYPES.gateway, BPMN_TYPES.task)).map((option) => option.name)).toEqual(['Data Input Association', 'Data Output Association', 'Realized By'])
+  })
+
+  it('leaves the data rules out of a diagram of another notation', () => {
+    const other = bpmnView([], [], 'archimate3')
+    expect(connectionOptions(other, answer(BPMN_TYPES.gateway, BPMN_TYPES.task), { source: KEY.gateway, target: KEY.task }).map((option) => option.name)).toEqual(['Data Input Association', 'Data Output Association', 'Realized By'])
+  })
+
+  it('leaves out of "Add connected element" the data associations that the source shape cannot start', () => {
+    const results = new Map([
+      [BPMN_TYPES.task, answer(BPMN_TYPES.dataStore, BPMN_TYPES.task)],
+      [BPMN_TYPES.systemSoftware, answer(BPMN_TYPES.dataStore, BPMN_TYPES.systemSoftware)],
+    ])
+    const names = (sourceKey: string) => connectedOptions(view, results, sourceKey).map((option) => `${option.connection.name} -> ${option.target.name}`)
+    expect(names(KEY.store)).toEqual(['Data Input Association -> Task', 'Realized By -> System Software', 'Realized By -> Task'])
+    expect(names(KEY.object)).toEqual(['Data Input Association -> Task'])
+    expect(names(KEY.task)).toEqual([])
   })
 })

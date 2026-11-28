@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { PropertyMapping } from '../api/metamodel'
+import { joinTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags, splitTags, type TagRefusal } from './diagram/dataObjects'
 
 /** A candidate of a reference: the name shown and the ID of the entity as text. */
 export interface ReferenceChoice {
@@ -21,10 +22,21 @@ const props = defineProps<{
   selectedLabel?: string
   disabled?: boolean
   invalid?: boolean
+  /** a text of one entry per line is edited as tags: at most 50, each of 1 to 100 characters (us-083-bpmn-data-objects D5) */
+  tags?: boolean
 }>()
 const model = defineModel<string>()
+const emit = defineEmits<{ tagRefused: [reason: TagRefusal | undefined] }>()
 
 const found = ref<ReferenceChoice[]>([])
+
+// tag mode: the stored text holds one tag per line; what is refused is reported to the screen, which tells it
+const tagList = computed(() => splitTags(model.value))
+function setTags(list: string[] | undefined) {
+  const outcome = normalizeTags(list ?? [])
+  emit('tagRefused', outcome.refused)
+  model.value = joinTags(outcome.tags)
+}
 
 // the current value stays selectable when a search does not list it
 const references = computed(() => {
@@ -53,7 +65,19 @@ onMounted(() => {
 </script>
 
 <template>
-  <UTextarea v-if="props.mapping.propertyDefinition.dataType === 'text'" v-model="model" class="w-full" :rows="2" autoresize :disabled="disabled" :highlight="invalid" />
+  <div v-if="props.tags && props.mapping.propertyDefinition.dataType === 'text'" data-testid="tag-input">
+    <UInputTags
+      :model-value="tagList"
+      class="w-full"
+      :max="MAX_TAGS"
+      :max-length="MAX_TAG_LENGTH"
+      :disabled="disabled"
+      :highlight="invalid"
+      @update:model-value="setTags"
+      @invalid="emit('tagRefused', 'count')"
+    />
+  </div>
+  <UTextarea v-else-if="props.mapping.propertyDefinition.dataType === 'text'" v-model="model" class="w-full" :rows="2" autoresize :disabled="disabled" :highlight="invalid" />
   <UInput
     v-else-if="props.mapping.propertyDefinition.dataType === 'integer'"
     :model-value="model"
