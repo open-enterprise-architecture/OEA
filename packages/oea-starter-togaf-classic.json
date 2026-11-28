@@ -1,17 +1,23 @@
 {
   "formatVersion": "1.0",
-  "exportedAt": "2026-11-18T00:00:00Z",
+  "exportedAt": "2026-11-28T00:00:00Z",
   "packageId": "oea-starter-togaf-classic",
-  "packageVersion": "1.4.0",
+  "packageVersion": "1.5.0",
   "publisher": "OEA",
   "name": "TOGAF classic starter configuration",
-  "description": "Starter metamodel after the classic TOGAF/ArchiMate reading (platform as technology, ADR-005): application components, services and data objects, technology components, services, system software and network nodes, each with a lifecycle status and an architecture layer, and the connection \"Composition\", which the hierarchy of components creates automatically.",
+  "description": "Starter metamodel after the classic TOGAF/ArchiMate reading (platform as technology, ADR-005): application components, services and data objects, technology components, services, system software and network nodes, each with a lifecycle status and an architecture layer, and the connection \"Composition\", which the hierarchy of components creates automatically, and, since 1.5.0, the data lineage types: the connection \"Data Flow\" between application and technology elements and \"Carries Data\" from a data flow to a data object, with their data properties.",
   "propertyCategories": [
     {
       "id": "54b2a532-1f0e-5c3b-9c19-148cb39e3d0a",
       "name": "General",
       "description": "Properties that every element has",
       "sortOrder": 0
+    },
+    {
+      "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+      "name": "Data",
+      "description": "Properties of data objects and data flows",
+      "sortOrder": 1
     }
   ],
   "propertyDefinitions": [
@@ -46,6 +52,155 @@
           "sortOrder": 3
         }
       ]
+    },
+    {
+      "id": "c7357f4b-20bd-503b-9ca0-5e06935cea68",
+      "name": "Data classification",
+      "dataType": "enum",
+      "category": {
+        "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+        "name": "Data",
+        "sortOrder": 1
+      },
+      "enumValues": [
+        {
+          "id": "4f4bf0cc-b670-557c-bfb9-925623d04f0f",
+          "value": "public",
+          "sortOrder": 0
+        },
+        {
+          "id": "80f0b999-9c5e-595f-9419-f8f8246ca1cf",
+          "value": "internal",
+          "sortOrder": 1
+        },
+        {
+          "id": "ad404ca8-33a7-5457-acff-7dfcce93f414",
+          "value": "confidential",
+          "sortOrder": 2
+        },
+        {
+          "id": "46849aa1-119d-586c-b674-7d3eee1928c4",
+          "value": "restricted",
+          "sortOrder": 3
+        }
+      ]
+    },
+    {
+      "id": "2160b1c6-9d20-5e37-91a9-f8ef980d160a",
+      "name": "Personal data categories",
+      "dataType": "text",
+      "category": {
+        "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+        "name": "Data",
+        "sortOrder": 1
+      },
+      "maxLength": 500
+    },
+    {
+      "id": "adef91af-2876-5983-9ac4-d31dfbab7f2a",
+      "name": "Data owner",
+      "dataType": "string",
+      "category": {
+        "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+        "name": "Data",
+        "sortOrder": 1
+      },
+      "maxLength": 255
+    },
+    {
+      "id": "82643067-47ef-572c-abf6-4b159a6ebe64",
+      "name": "Protocol",
+      "dataType": "enum",
+      "category": {
+        "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+        "name": "Data",
+        "sortOrder": 1
+      },
+      "enumValues": [
+        {
+          "id": "f1596564-e649-530d-862a-b592f783e66f",
+          "value": "REST",
+          "sortOrder": 0
+        },
+        {
+          "id": "bbcc93ab-a475-5bf3-a42b-14fc763806b3",
+          "value": "SOAP",
+          "sortOrder": 1
+        },
+        {
+          "id": "e7325422-9735-520a-915f-b2e32f997548",
+          "value": "JDBC",
+          "sortOrder": 2
+        },
+        {
+          "id": "4991579c-acfa-5a55-9e58-3443f1ce1d5b",
+          "value": "FTP",
+          "sortOrder": 3
+        },
+        {
+          "id": "4d48b343-4b62-561e-b8fa-bbdd5c37a319",
+          "value": "Kafka",
+          "sortOrder": 4
+        },
+        {
+          "id": "d198c980-4afd-5979-acbd-1151585a0efa",
+          "value": "SFTP",
+          "sortOrder": 5
+        },
+        {
+          "id": "1162ead3-ce61-5b27-8394-f5fe859d9ea6",
+          "value": "other",
+          "sortOrder": 6
+        }
+      ]
+    },
+    {
+      "id": "a2c485b3-37d8-57f3-92e9-fb177475c68e",
+      "name": "Frequency",
+      "dataType": "enum",
+      "category": {
+        "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+        "name": "Data",
+        "sortOrder": 1
+      },
+      "enumValues": [
+        {
+          "id": "f873e5f3-9c83-5a6b-9c5e-76041e4126ab",
+          "value": "realtime",
+          "sortOrder": 0
+        },
+        {
+          "id": "42b10eb7-1067-580e-9e27-d6fbec9af1bf",
+          "value": "hourly",
+          "sortOrder": 1
+        },
+        {
+          "id": "5c6f141e-9248-5d57-82af-72cec973070f",
+          "value": "daily",
+          "sortOrder": 2
+        },
+        {
+          "id": "bc495806-ef47-54f7-9596-3113330c6c5c",
+          "value": "weekly",
+          "sortOrder": 3
+        },
+        {
+          "id": "5e77692e-3f94-599c-a809-8f9de573eb38",
+          "value": "on-demand",
+          "sortOrder": 4
+        }
+      ]
+    },
+    {
+      "id": "726f444f-dfce-5c32-ab77-ce4671e5fba4",
+      "name": "Transformation description",
+      "dataType": "text",
+      "category": {
+        "id": "514b69fd-6582-5b7d-9bd0-1bc8b62b0278",
+        "name": "Data",
+        "sortOrder": 1
+      },
+      "maxLength": 1000
     }
   ],
   "architectureLayers": [
@@ -131,6 +286,39 @@
           "necessity": "optional",
           "validFrom": "2026-01-01",
           "sortOrder": 0
+        },
+        {
+          "id": "56247295-867a-55b2-83e5-b56f22f64338",
+          "propertyDefinition": {
+            "id": "c7357f4b-20bd-503b-9ca0-5e06935cea68",
+            "name": "Data classification",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 1
+        },
+        {
+          "id": "1137dd78-a010-5241-8e9e-8b969326328a",
+          "propertyDefinition": {
+            "id": "2160b1c6-9d20-5e37-91a9-f8ef980d160a",
+            "name": "Personal data categories",
+            "dataType": "text"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 2
+        },
+        {
+          "id": "3b0be354-9265-5c80-bc89-fd7204273d46",
+          "propertyDefinition": {
+            "id": "adef91af-2876-5983-9ac4-d31dfbab7f2a",
+            "name": "Data owner",
+            "dataType": "string"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 3
         }
       ]
     },
@@ -226,20 +414,167 @@
       "isComposition": true,
       "sortOrder": 80,
       "propertyMappings": []
+    },
+    {
+      "id": "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae",
+      "name": "Data Flow",
+      "abbreviation": "DF",
+      "isConnection": true,
+      "sortOrder": 90,
+      "propertyMappings": [
+        {
+          "id": "03deec2d-e8fd-5553-8b7f-86e2cf990393",
+          "propertyDefinition": {
+            "id": "82643067-47ef-572c-abf6-4b159a6ebe64",
+            "name": "Protocol",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 0
+        },
+        {
+          "id": "cdc75bce-0451-5618-84b1-f1a7a1ad2c67",
+          "propertyDefinition": {
+            "id": "a2c485b3-37d8-57f3-92e9-fb177475c68e",
+            "name": "Frequency",
+            "dataType": "enum"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 1
+        },
+        {
+          "id": "cee962fa-b3fb-5bd8-abda-42c58fbec34c",
+          "propertyDefinition": {
+            "id": "2160b1c6-9d20-5e37-91a9-f8ef980d160a",
+            "name": "Personal data categories",
+            "dataType": "text"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 2
+        },
+        {
+          "id": "f6654bb2-64db-52d2-b0f3-34df06dcb237",
+          "propertyDefinition": {
+            "id": "726f444f-dfce-5c32-ab77-ce4671e5fba4",
+            "name": "Transformation description",
+            "dataType": "text"
+          },
+          "necessity": "optional",
+          "validFrom": "2026-01-01",
+          "sortOrder": 3
+        }
+      ],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
+            "name": "Application Component",
+            "abbreviation": "AC"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "97fa836b-4017-55c9-a218-741b21320780",
+            "name": "Application Service",
+            "abbreviation": "AS"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "91bfa93c-abe3-541d-80c7-7492688df9d8",
+            "name": "Technology Component",
+            "abbreviation": "TC"
+          }
+        },
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "9c9f11b2-9d1d-51ee-80b5-93972619537d",
+            "name": "System Software",
+            "abbreviation": "SS"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
+            "name": "Application Component",
+            "abbreviation": "AC"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "97fa836b-4017-55c9-a218-741b21320780",
+            "name": "Application Service",
+            "abbreviation": "AS"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "91bfa93c-abe3-541d-80c7-7492688df9d8",
+            "name": "Technology Component",
+            "abbreviation": "TC"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "9c9f11b2-9d1d-51ee-80b5-93972619537d",
+            "name": "System Software",
+            "abbreviation": "SS"
+          }
+        }
+      ]
+    },
+    {
+      "id": "d0e2f586-5bcf-515d-b51b-fb924ae6610d",
+      "name": "Carries Data",
+      "abbreviation": "CD",
+      "isConnection": true,
+      "sortOrder": 100,
+      "propertyMappings": [],
+      "connectionConstraints": [
+        {
+          "direction": "source",
+          "allowedMetatype": {
+            "id": "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae",
+            "name": "Data Flow",
+            "abbreviation": "DF"
+          }
+        },
+        {
+          "direction": "target",
+          "allowedMetatype": {
+            "id": "92b26412-8c2c-563f-b359-d2160b49b0ab",
+            "name": "Data Object",
+            "abbreviation": "DO"
+          }
+        }
+      ]
     }
   ],
   "viewpoints": [
     {
       "id": "b1770ff3-4c92-5764-8123-1ab6eabe8c55",
       "name": "Application Landscape",
-      "description": "Application components, application services and data objects of the landscape.",
+      "description": "Application components, application services and data objects of the landscape and their data flows.",
       "notation": "archimate3",
       "metatypeIds": [
         "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
         "97fa836b-4017-55c9-a218-741b21320780",
         "92b26412-8c2c-563f-b359-d2160b49b0ab"
       ],
-      "connectionTypeIds": [],
+      "connectionTypeIds": [
+        "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae"
+      ],
       "mappings": [
         {
           "metatypeId": "bcf1b833-1942-51c6-9e0b-95fd6a30677a",
@@ -252,13 +587,17 @@
         {
           "metatypeId": "92b26412-8c2c-563f-b359-d2160b49b0ab",
           "notationElement": "archimate:DataObject"
+        },
+        {
+          "metatypeId": "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae",
+          "notationElement": "archimate:Flow"
         }
       ]
     },
     {
       "id": "d600d18e-8d60-53d7-9d23-f8b2e8eaf6e1",
       "name": "Technology Landscape",
-      "description": "Technology components, technology services, system software and network nodes of the landscape.",
+      "description": "Technology components, technology services, system software and network nodes of the landscape and their data flows.",
       "notation": "archimate3",
       "metatypeIds": [
         "91bfa93c-abe3-541d-80c7-7492688df9d8",
@@ -266,7 +605,9 @@
         "9c9f11b2-9d1d-51ee-80b5-93972619537d",
         "79b00502-7688-59ce-a70f-7608f6426a59"
       ],
-      "connectionTypeIds": [],
+      "connectionTypeIds": [
+        "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae"
+      ],
       "mappings": [
         {
           "metatypeId": "91bfa93c-abe3-541d-80c7-7492688df9d8",
@@ -283,6 +624,10 @@
         {
           "metatypeId": "79b00502-7688-59ce-a70f-7608f6426a59",
           "notationElement": "archimate:Device"
+        },
+        {
+          "metatypeId": "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae",
+          "notationElement": "archimate:Flow"
         }
       ]
     }
@@ -306,7 +651,32 @@
       "architecture-layer.fb9fcdd1-6f0d-5d45-9036-6b1fd65283af.name": "Geschäft",
       "architecture-layer.73ccf533-46d2-57ae-97fe-d39713bcf730.name": "Daten",
       "architecture-layer.292458ca-1d06-5543-a0d1-1c6c9c8e42ed.name": "Anwendung",
-      "architecture-layer.4ba0ac8d-4b91-51d8-8a23-2616e1fbd305.name": "Technologie"
+      "architecture-layer.4ba0ac8d-4b91-51d8-8a23-2616e1fbd305.name": "Technologie",
+      "metatype.9d64a38e-24fe-5c8b-864a-6c6950b3e7ae.name": "Datenfluss",
+      "metatype.d0e2f586-5bcf-515d-b51b-fb924ae6610d.name": "Transportiert Daten",
+      "property-category.514b69fd-6582-5b7d-9bd0-1bc8b62b0278.name": "Daten",
+      "property-def.c7357f4b-20bd-503b-9ca0-5e06935cea68.label": "Datenklassifizierung",
+      "property-def.2160b1c6-9d20-5e37-91a9-f8ef980d160a.label": "Kategorien personenbezogener Daten",
+      "property-def.adef91af-2876-5983-9ac4-d31dfbab7f2a.label": "Datenverantwortliche Person",
+      "property-def.82643067-47ef-572c-abf6-4b159a6ebe64.label": "Protokoll",
+      "property-def.a2c485b3-37d8-57f3-92e9-fb177475c68e.label": "Häufigkeit",
+      "property-def.726f444f-dfce-5c32-ab77-ce4671e5fba4.label": "Beschreibung der Transformation",
+      "enum-value.4f4bf0cc-b670-557c-bfb9-925623d04f0f.label": "Öffentlich",
+      "enum-value.80f0b999-9c5e-595f-9419-f8f8246ca1cf.label": "Intern",
+      "enum-value.ad404ca8-33a7-5457-acff-7dfcce93f414.label": "Vertraulich",
+      "enum-value.46849aa1-119d-586c-b674-7d3eee1928c4.label": "Streng vertraulich",
+      "enum-value.f1596564-e649-530d-862a-b592f783e66f.label": "REST",
+      "enum-value.bbcc93ab-a475-5bf3-a42b-14fc763806b3.label": "SOAP",
+      "enum-value.e7325422-9735-520a-915f-b2e32f997548.label": "JDBC",
+      "enum-value.4991579c-acfa-5a55-9e58-3443f1ce1d5b.label": "FTP",
+      "enum-value.4d48b343-4b62-561e-b8fa-bbdd5c37a319.label": "Kafka",
+      "enum-value.d198c980-4afd-5979-acbd-1151585a0efa.label": "SFTP",
+      "enum-value.1162ead3-ce61-5b27-8394-f5fe859d9ea6.label": "Andere",
+      "enum-value.f873e5f3-9c83-5a6b-9c5e-76041e4126ab.label": "Echtzeit",
+      "enum-value.42b10eb7-1067-580e-9e27-d6fbec9af1bf.label": "Stündlich",
+      "enum-value.5c6f141e-9248-5d57-82af-72cec973070f.label": "Täglich",
+      "enum-value.bc495806-ef47-54f7-9596-3113330c6c5c.label": "Wöchentlich",
+      "enum-value.5e77692e-3f94-599c-a809-8f9de573eb38.label": "Bei Bedarf"
     },
     "en": {
       "enum-value.a3474cb3-3251-5979-82c0-1684659d9d39.label": "Planned",
@@ -316,7 +686,29 @@
       "architecture-layer.fb9fcdd1-6f0d-5d45-9036-6b1fd65283af.name": "Business",
       "architecture-layer.73ccf533-46d2-57ae-97fe-d39713bcf730.name": "Data",
       "architecture-layer.292458ca-1d06-5543-a0d1-1c6c9c8e42ed.name": "Application",
-      "architecture-layer.4ba0ac8d-4b91-51d8-8a23-2616e1fbd305.name": "Technology"
+      "architecture-layer.4ba0ac8d-4b91-51d8-8a23-2616e1fbd305.name": "Technology",
+      "enum-value.4f4bf0cc-b670-557c-bfb9-925623d04f0f.label": "Public",
+      "enum-value.80f0b999-9c5e-595f-9419-f8f8246ca1cf.label": "Internal",
+      "enum-value.ad404ca8-33a7-5457-acff-7dfcce93f414.label": "Confidential",
+      "enum-value.46849aa1-119d-586c-b674-7d3eee1928c4.label": "Restricted",
+      "enum-value.f1596564-e649-530d-862a-b592f783e66f.label": "REST",
+      "enum-value.bbcc93ab-a475-5bf3-a42b-14fc763806b3.label": "SOAP",
+      "enum-value.e7325422-9735-520a-915f-b2e32f997548.label": "JDBC",
+      "enum-value.4991579c-acfa-5a55-9e58-3443f1ce1d5b.label": "FTP",
+      "enum-value.4d48b343-4b62-561e-b8fa-bbdd5c37a319.label": "Kafka",
+      "enum-value.d198c980-4afd-5979-acbd-1151585a0efa.label": "SFTP",
+      "enum-value.1162ead3-ce61-5b27-8394-f5fe859d9ea6.label": "Other",
+      "enum-value.f873e5f3-9c83-5a6b-9c5e-76041e4126ab.label": "Realtime",
+      "enum-value.42b10eb7-1067-580e-9e27-d6fbec9af1bf.label": "Hourly",
+      "enum-value.5c6f141e-9248-5d57-82af-72cec973070f.label": "Daily",
+      "enum-value.bc495806-ef47-54f7-9596-3113330c6c5c.label": "Weekly",
+      "enum-value.5e77692e-3f94-599c-a809-8f9de573eb38.label": "On demand",
+      "property-category.514b69fd-6582-5b7d-9bd0-1bc8b62b0278.name": "Data"
     }
+  },
+  "lineageModel": {
+    "dataObject": "92b26412-8c2c-563f-b359-d2160b49b0ab",
+    "dataFlow": "9d64a38e-24fe-5c8b-864a-6c6950b3e7ae",
+    "carriesData": "d0e2f586-5bcf-515d-b51b-fb924ae6610d"
   }
 }

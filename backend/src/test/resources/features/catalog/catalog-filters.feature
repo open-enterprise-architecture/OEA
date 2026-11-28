@@ -39,7 +39,7 @@ Feature: Catalog filters
   @US-080 @AC5
   Scenario: Flows from the CRM
     Given the metamodel has the connection metatype "Information Flow" from "Application Component" to "Application Component"
-    And the metamodel has the connection metatype "Carries Data" from "Information Flow" to "Data Object"
+    And the metamodel has the connection metatype "Carries Info" from "Information Flow" to "Info Object"
     And the information flows "Lead Orders" from "CRM System" to "ERP" and "Lead Invoices" from "ERP" to "Accounting"
     And the enterprise architect creates the catalog "Filtered Flows" for "Information Flow" with scope "instance"
     When the viewer filters the catalog "Filtered Flows" by "source.name:contains:CRM"
@@ -48,13 +48,13 @@ Feature: Catalog filters
   @US-051 @AC2 @US-080 @AC6 @REQ-064
   Scenario: Data flows carrying personal data
     Given the metamodel has the connection metatype "Information Flow" from "Application Component" to "Application Component"
-    And the metamodel has the connection metatype "Carries Data" from "Information Flow" to "Data Object"
+    And the metamodel has the connection metatype "Carries Info" from "Information Flow" to "Info Object"
     And data objects carry a classification
     And the information flows "Client Sync" from "CRM System" to "ERP" and "Stock Levels" from "ERP" to "Warehouse"
     And the information flow "Client Sync" carries "Client master data" classified "PII" and "Client Order" classified "Internal"
     And the information flow "Stock Levels" carries "Stock Item" classified "Internal"
     And the enterprise architect creates the catalog "GDPR Flows" for "Information Flow" with scope "instance"
-    And the enterprise architect adds the join "Data objects" with name and classification via "Carries Data" outbound to "Data Object" to "GDPR Flows"
+    And the enterprise architect adds the join "Data objects" with name and classification via "Carries Info" outbound to "Info Object" to "GDPR Flows"
     When the viewer filters the catalog "GDPR Flows" by "Data objects" classification "PII"
     Then the filtered catalog shows only "Client Sync" with the data object "Client master data"
 

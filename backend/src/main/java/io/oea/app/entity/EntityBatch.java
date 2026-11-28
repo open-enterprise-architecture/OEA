@@ -753,6 +753,15 @@ public class EntityBatch {
 				errors.add(new Issue(endpointField("target", input.targetId()), "TARGET_NOT_ALLOWED",
 						"The connection type does not allow this target."));
 			}
+			// a connection at a connection that itself connects connections would be depth two (ADR-010, US-064 AC4)
+			if (existing == null && source != null && source.id() != null && this.store.connectsConnection(source.id())) {
+				errors.add(new Issue(endpointField("source", input.sourceId()), "CONNECTION_DEPTH_EXCEEDED",
+						"The source is a connection at a connection; connections of connections go one level deep."));
+			}
+			if (existing == null && target != null && target.id() != null && this.store.connectsConnection(target.id())) {
+				errors.add(new Issue(endpointField("target", input.targetId()), "CONNECTION_DEPTH_EXCEEDED",
+						"The target is a connection at a connection; connections of connections go one level deep."));
+			}
 		}
 		if (existing != null && source != null && target != null) {
 			int[] endpoints = this.store.connectionEndpoints(existing.id()).orElse(null);

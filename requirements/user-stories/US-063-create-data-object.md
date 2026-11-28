@@ -2,8 +2,8 @@
 
 **ID**: US-063
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S18
 
 ## Story
 
@@ -42,6 +42,10 @@ As a Data Architect, I want to create a data object (e.g. "Customer Master") as 
 
 - `POST /api/v1/entities` with entityTypeId=`data-object`
 - Integer ID is assigned server-side as the next free sequence number (DB sequence)
+
+## Implementation Notes
+
+Realized by the change `us-065-lineage-model-and-query` (S18, change 1 of 2): the TOGAF starter package 1.5.0 brings "Data Object" with the optional properties "Data classification", "Personal data categories" and "Data owner" (REQ-060). The story stays in progress until the lineage page follows in `us-066-lineage-view`.
 
 ## Definition of Done
 

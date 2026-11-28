@@ -107,14 +107,15 @@ class PackageViewpointImportTests {
 				SELECT name || ':' || notation || ':' || viewpoint_type || ':' || source_package_id || ':'
 				       || source_package_version FROM viewpoints WHERE source_package_id = ? ORDER BY name""",
 				String.class, STARTER)).containsExactly(
-						"Application Landscape:archimate3:system-defined:" + STARTER + ":1.4.0",
-						"Technology Landscape:archimate3:system-defined:" + STARTER + ":1.4.0");
+						"Application Landscape:archimate3:system-defined:" + STARTER + ":1.5.0",
+						"Technology Landscape:archimate3:system-defined:" + STARTER + ":1.5.0");
 		assertThat(this.jdbc.queryForList("""
 				SELECT m.name || '=' || vm.notation_element FROM viewpoint_mappings vm
 				JOIN viewpoints v ON v.id = vm.viewpoint_id JOIN metatypes m ON m.id = vm.metatype_id
 				WHERE v.name = 'Application Landscape' ORDER BY m.name""", String.class))
 			.containsExactly("Application Component=archimate:ApplicationComponent",
-					"Application Service=archimate:ApplicationService", "Data Object=archimate:DataObject");
+					"Application Service=archimate:ApplicationService", "Data Flow=archimate:Flow",
+					"Data Object=archimate:DataObject");
 		assertThat(this.jdbc.queryForObject("""
 				SELECT count(*) FROM viewpoint_metatypes l JOIN viewpoints v ON v.id = l.viewpoint_id
 				WHERE v.name = 'Technology Landscape'""", Integer.class)).isEqualTo(4);

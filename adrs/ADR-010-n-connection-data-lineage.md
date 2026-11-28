@@ -147,6 +147,10 @@ A connection that is linked to further entities via n-connections (i.e. is itsel
 - [entity.md](../business-objects/entity.md) – BR-04 is directly affected by this decision
 - [metamodel-configuration.md](../business-objects/metamodel-configuration.md) – possibly `allowsConnectionAsSource` on EntityTypeDefinition
 
+## Implementation Note (2026-11-28, change us-065-lineage-model-and-query)
+
+The n-connection is implemented with the existing connection constraint instead of the flag `allowsConnectionAsSource`: a connection metatype that lists a connection metatype as allowed source is an n-connection (TOGAF starter package 1.5.0: "Carries Data" from "Data Flow" to "Data Object"); every other metatype answers `SOURCE_NOT_ALLOWED` for a connection as source. Because an empty endpoint list allows every metatype, the depth of one level is kept by a rule of the connection write: a new connection whose source or target is a connection that itself starts or ends at a connection is rejected with 422 `CONNECTION_DEPTH_EXCEEDED`. The lineage model setting says which metatypes play data flow and carries-data. The decision itself is unchanged.
+
 ## Notes
 
 Abacus (Avolution) weakness: Connections there are pure edges (relationships), not first-class objects. It is not possible to define a connection as source or target of another connection. Typical consequence: annotating data flows with security controls, compliance requirements, or data classifications must be realized via workarounds (custom attributes on the edge as free text) – semantically poor, not queryable.

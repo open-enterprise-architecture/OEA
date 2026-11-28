@@ -782,6 +782,22 @@ public class ApiExceptionHandler {
 		};
 	}
 
+	/** A lineage query that cannot be answered (design D4 of us-065-lineage-model-and-query). */
+	@ExceptionHandler(io.oea.app.lineage.LineageException.class)
+	ResponseEntity<ProblemDetail> lineage(io.oea.app.lineage.LineageException ex) {
+		if (ex.getReason() == io.oea.app.lineage.LineageException.Reason.NOT_FOUND) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+				.body(problem(HttpStatus.NOT_FOUND, "not-found", "Not found", ex.getMessage()));
+		}
+		boolean request = ex.getReason() == io.oea.app.lineage.LineageException.Reason.INVALID_REQUEST;
+		HttpStatus status = request ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
+		ProblemDetail problem = problem(status, "validation-failed", request ? "Invalid request" : "Invalid lineage query",
+				ex.getMessage());
+		problem.setProperty("invalidFields", ex.getInvalidFields());
+		problem.setProperty("errors", ex.getIssues().stream().map(BatchValidationErrors::validationError).toList());
+		return ResponseEntity.status(status).body(problem);
+	}
+
 	/** Shapes or new entities of a diagram layout that violate a rule, or a value outside the contract (design D2, D4 of us-074-diagram-canvas). */
 	@ExceptionHandler(DiagramViewException.class)
 	ResponseEntity<ProblemDetail> diagramView(DiagramViewException ex) {

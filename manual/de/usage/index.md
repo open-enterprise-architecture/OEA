@@ -15,6 +15,7 @@ covers:
 - [Lösungen](./solutions): eine Lösung für ein Veränderungsvorhaben anlegen und ihre Architekturvision beschreiben
 - [Dashboards](./dashboards): Text und Katalogtabellen in einem Raster anordnen, für dich selbst oder für alle
 - [Diagramme](./diagrams): Diagramme anlegen, finden, umbenennen, löschen, wiederherstellen und Elemente auf ihrer Zeichenfläche platzieren
+- [Datenherkunft](./data-lineage): Datenflüsse und die Daten, die sie transportieren, modellieren und abfragen, woher Daten kommen und wohin sie gehen
 - [Gelöschte Entitäten](./deleted-entities): gelöschte Entitäten finden und mit dem wiederherstellen, was ihre Löschung mitgenommen hat
 - [Entitäten im Batch schreiben](./entities-batch): Entitäten aus einem Quellsystem über die API anlegen und aktualisieren
 

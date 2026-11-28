@@ -114,7 +114,7 @@ class ConnectionWriteTests {
 					VALUES (?, 'source', ?), (?, 'source', ?), (?, 'target', ?), (?, 'target', ?), (?, 'source', ?)""",
 					flow, component, flow, flow, flow, component, flow, flow, link, component);
 			UUID protocol = this.jdbc.queryForObject("""
-					INSERT INTO property_definitions (name, sql_column_name, data_type) VALUES ('Protocol', 'protocol', 'enum')
+					INSERT INTO property_definitions (name, sql_column_name, data_type) VALUES ('Link protocol', 'link_protocol', 'enum')
 					RETURNING id""", UUID.class);
 			this.jdbc.update("INSERT INTO property_enum_values (property_def_id, value, sort_order) VALUES (?, 'http', 0), (?, 'sftp', 1)",
 					protocol, protocol);
@@ -127,7 +127,7 @@ class ConnectionWriteTests {
 		this.status = this.jdbc.queryForObject("SELECT id FROM property_definitions WHERE name = 'Status'", UUID.class);
 		this.dataFlow = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'DataFlow'", UUID.class);
 		this.appLink = this.jdbc.queryForObject("SELECT id FROM metatypes WHERE name = 'AppLink'", UUID.class);
-		this.protocol = this.jdbc.queryForObject("SELECT id FROM property_definitions WHERE name = 'Protocol'",
+		this.protocol = this.jdbc.queryForObject("SELECT id FROM property_definitions WHERE name = 'Link protocol'",
 				UUID.class);
 	}
 

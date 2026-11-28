@@ -2,8 +2,8 @@
 
 **ID**: US-068
 **Story Points**: 3
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S18
 
 ## Story
 
@@ -44,6 +44,10 @@ As a Data Architect, I want to filter out in the catalog all data flows that tra
 
 - Filter operator `isNotEmpty` on PropertyValue (SQL: `value IS NOT NULL AND value != ''`)
 - CSV export: generated backend-side, no client-side CSV
+
+## Implementation Notes
+
+AC1 and AC2 (and the empty result of AC4) are realized by the existing catalog filters and tested in the change `us-065-lineage-model-and-query`. **AC3 and AC4 (CSV export) leave S18** (owner decision 2026-11-28) and become a general catalog export, a story of its own; no story file exists yet.
 
 ## Definition of Done
 

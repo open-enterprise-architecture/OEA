@@ -191,6 +191,14 @@ The section *Organization model* says which entity types play which part in [ass
 - The **person** here is separate from the [entity type of persons](./property-visibility#person-metatype) of property visibility, which belongs to security administration; when both are set and differ, the section shows a hint. Account links use the one of property visibility.
 - If the entity type of a part is deleted, the part is not set any more. Every change is audited as `metamodel.organization-model-updated` with the changed parts; `GET` and `PUT /metamodel/organization-model` read and set the setting (`If-Match` with the version; `412` and `428` as for other settings, `403` with `urn:oea:problem:metamodel-locked` in a locked metamodel).
 
+## Lineage model {#lineage-model}
+
+The section *Lineage model*, next to the organization model, says which types play which part in [data lineage](../usage/data-lineage): the entity type of the *data object* and the connection types of the *data flow*, *carries data*, *data input* and *data output*. Everyone who reads the metamodel sees them; holders of `metamodel:write` choose a type per part (or *Not set*) and choose *Save*, which writes all five parts with the version read. A locked metamodel offers no change.
+
+- The data object needs an entity type, the other parts a connection type; otherwise the page names the part (`422`). *Carries data* must allow the data flow as source and the data object as target, *data input* the data object as source and *data output* the data object as target, each unless its list is empty (it then reaches every type); base types count. The check applies whenever both parts are set.
+- The import of the TOGAF package 1.5.0 fills data object, data flow and carries data, the import of the BPMN package 1.2.0 data input and data output, in each case only parts that are not set. A part you set to an own type stays. The lineage query needs data object, data flow and carries data (otherwise `422 LINEAGE_MODEL_INCOMPLETE`); without data input or data output it returns no readers or no writers.
+- If the entity type of a part is deleted, the part is not set any more. Every change is audited as `metamodel.lineage-model-updated` with the changed parts; `GET` and `PUT /metamodel/lineage-model` read and set the setting (`If-Match` with the version; `412` and `428` as for other settings, `403` with `urn:oea:problem:metamodel-locked` in a locked metamodel).
+
 ## Locking the metamodel {#lock-mode}
 
 If your organization maintains its metamodel in a versioned repository and imports it as a package, lock the metamodel, so that nobody changes it by hand:

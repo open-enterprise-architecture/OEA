@@ -183,6 +183,7 @@ public final class PackageValidator {
 		labels(definition);
 		viewpoints(definition);
 		organizationModel(definition);
+		lineageModel(definition);
 	}
 
 	/** Each part of the organization model names a metatype of the package of the right kind. */
@@ -196,6 +197,21 @@ public final class PackageValidator {
 				.stream()
 				.anyMatch((metatype) -> metatype.id().equals(id) && metatype.connection() == part.connection());
 			require(found, "/organizationModel/" + part.field(), "The part " + part.field() + " must name a "
+					+ (part.connection() ? "connection" : "element") + " metatype of the package.");
+		}
+	}
+
+	/** Each part of the lineage model names a metatype of the package of the right kind. */
+	private static void lineageModel(PackageDefinition definition) {
+		for (LineageModels.Part part : LineageModels.Part.values()) {
+			UUID id = part.of(definition.lineageModel());
+			if (id == null) {
+				continue;
+			}
+			boolean found = definition.metatypes()
+				.stream()
+				.anyMatch((metatype) -> metatype.id().equals(id) && metatype.connection() == part.connection());
+			require(found, "/lineageModel/" + part.field(), "The part " + part.field() + " must name a "
 					+ (part.connection() ? "connection" : "element") + " metatype of the package.");
 		}
 	}

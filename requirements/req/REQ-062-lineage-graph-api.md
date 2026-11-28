@@ -3,10 +3,10 @@ id: REQ-062
 title: Lineage graph API (traversable paths, upstream/downstream/impact)
 type: functional
 priority: should
-status: proposed
-version: 0.1.0
+status: accepted
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-28
 author: requirements-engineer
 references:
   use_cases:
@@ -130,6 +130,8 @@ The traversal follows this pattern:
 
 ## Implementation Notes
 
+- Realized by the change `us-065-lineage-model-and-query`: `POST /views/lineage/query` (`queryLineage`) replaces the planned `GET /api/v1/lineage`. Request: `startEntityId`, `direction` (`upstream`, `downstream`, `both`, `impact`), `maxDepth` 1 to 100 (default 50), `metatypeIds` (at most 50, instead of `entityTypeFilter`), `dataObjectId`. The walk is breadth-first in the service layer with one statement per hop and a visited set; at most 5000 nodes and 10000 edges (`truncated`). The response lists `nodes` with `roles` and `depth`, `edges` with `carriedBy`, `paths`, `cycleDetected`. Tasks of data input and data output associations join as readers (downstream) and writers (upstream). The page SCR-023 follows in `us-066-lineage-view`.
+
 - BFS algorithm (breadth-first search); visited set for cycle detection
 - The carries-data connection is the key: the traversal follows `carries-data.source → dataFlow → dataFlow.target`
 - No ORM joins over n levels; graph traversal in the service layer (not in SQL)
@@ -147,3 +149,4 @@ The traversal follows this pattern:
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-28 | Change us-065-lineage-model-and-query | Implementation note: `queryLineage` |

@@ -1864,6 +1864,24 @@ package "Settings" #F1F8E9 {
     + updated_by                : BIGINT     {FK→persons.id}
   }
 
+  ' The lineage model (V54, change us-065-lineage-model-and-query D3): which metatypes play the parts of the data lineage; one row.
+  class lineage_model <<Table>> #DCEDC8 {
+    + id                       : SMALLINT   {PK}
+    .. CHECK (id = 1): exactly one row, inserted by the migration; the runtime role may only update it ..
+    --
+    + data_object_metatype_id  : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    .. an element metatype; NULL = unset ..
+    + data_flow_metatype_id    : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + carries_data_metatype_id : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + data_input_metatype_id   : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    + data_output_metatype_id  : UUID       {FK→metatypes.id ON DELETE SET NULL}
+    .. the connection parts; carries-data starts at the data flow (the n-connection of ADR-010); ..
+    .. a package import fills only the unset parts; audited metamodel.lineage-model-updated ..
+    + version                  : INTEGER    {NN} DEFAULT 1
+    + updated_at               : TIMESTAMPTZ
+    + updated_by               : BIGINT     {FK→persons.id}
+  }
+
   ' The account mapping (V53, change us-075-lane-assignments D5): the property whose value links accounts to person elements; one row.
   class person_link_mapping <<Table>> #DCEDC8 {
     + id                : SMALLINT   {PK}
@@ -2406,6 +2424,7 @@ persons "0..1" --o| "0..1" entities                         : entity_id (account
 persons "0..1" --o| "0..1" entities                         : mapped_entity_id (link through the account mapping, V53)
 organization_model "0..*" }o--o| "0..1" metatypes              : the six parts (V53, ON DELETE SET NULL)
 person_link_mapping "0..*" }o--o| "0..1" property_definitions   : property_def_id (V53)
+lineage_model "0..*" }o--o| "0..1" metatypes                 : the five parts (V54, ON DELETE SET NULL)
 authorization_roles "1" --o{ "0..*" property_visibility_roles : read/write role (DM-9)
 authorization_roles "1" --o{ "0..*" history_visibility_settings : history visibility (US-098)
 metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-098)
@@ -2629,6 +2648,13 @@ metatypes "1" --o{ "0..*" history_visibility_settings : history visibility (US-0
 '   through the mapping; unique where not null). An assignment of a lane, pool or task is an
 '   ordinary connection of the belongs-to, performs-role or responsible type, without an edge;
 '   no table for it. Reason: US-075, US-076, REQ-077, REQ-127; owner decisions 2026-11-27.
+' 2026-11-28 (us-065-lineage-model-and-query):
+'   V54: lineage_model (one row: the metatypes that play data object, data flow, carries-data,
+'   data input and data output; each part nullable, ON DELETE SET NULL). A data flow carries
+'   a data object through a "Carries Data" connection that starts at the data flow: an
+'   ordinary entity_connections row whose source is a connection (ADR-010); the write rejects
+'   a connection at a connection that itself connects a connection (CONNECTION_DEPTH_EXCEEDED).
+'   Reason: US-064, US-065, REQ-061, REQ-062; owner decisions 2026-11-28.
 ' ─────────────────────────────────────────────────────
 
 @enduml

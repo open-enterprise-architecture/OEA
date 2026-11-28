@@ -11,23 +11,23 @@ Feature: Catalog joins
   Background:
     Given an instance with the starter package and catalog users logged in through the IdP
     And the repository contains no applications
-    And the metamodel has the connection metatype "Data Flow" from "Application Component" to "Interface"
+    And the metamodel has the connection metatype "Interface Flow" from "Application Component" to "Interface"
 
   @AC1 @REQ-045 @AC1
   Scenario: Interfaces of an application
     Given the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
-    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Interface Flow"
     And the enterprise architect has created the catalog "Interface Inventory" with scope "instance"
-    When the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Interface Inventory"
+    When the enterprise architect adds the join "Interfaces" via "Interface Flow" outbound to "Interface" to "Interface Inventory"
     Then the catalog "Interface Inventory" contains the join "Interfaces" with a new ID
     And the viewer sees "CRM System" in one row of "Interface Inventory" with the interfaces "REST API" and "SFTP Export"
 
   @AC5
   Scenario: Default mode of the join
     Given the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
-    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Interface Flow"
     And the enterprise architect has created the catalog "Rows Inventory" with scope "instance"
-    When the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" in mode "rows" to "Rows Inventory"
+    When the enterprise architect adds the join "Interfaces" via "Interface Flow" outbound to "Interface" in mode "rows" to "Rows Inventory"
     Then the viewer sees 2 rows for "CRM System" in the catalog "Rows Inventory"
     And the catalog "Rows Inventory" keeps the default join mode "aggregate"
 
@@ -40,7 +40,7 @@ Feature: Catalog joins
   @AC3 @REQ-045 @AC3
   Scenario: Target not reachable
     Given the enterprise architect has created the catalog "Unreachable Inventory" with scope "instance"
-    When the enterprise architect adds the join "Nodes" via "Data Flow" outbound to "Technology Component" to "Unreachable Inventory"
+    When the enterprise architect adds the join "Nodes" via "Interface Flow" outbound to "Technology Component" to "Unreachable Inventory"
     Then the join change is rejected with 422 naming "targetMetatypeId"
 
   @AC4 @REQ-045 @AC5
@@ -52,9 +52,9 @@ Feature: Catalog joins
   @AC6 @REQ-045 @AC4
   Scenario: Remove a join
     Given the applications "CRM System", "ERP" and "Intranet" exist with the status "active"
-    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Data Flow"
+    And the application "CRM System" reaches the interfaces "REST API" and "SFTP Export" via "Interface Flow"
     And the enterprise architect has created the catalog "Removed Join Inventory" with scope "instance"
-    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Removed Join Inventory"
+    And the enterprise architect adds the join "Interfaces" via "Interface Flow" outbound to "Interface" to "Removed Join Inventory"
     When the enterprise architect removes the join "Interfaces" from "Removed Join Inventory"
     Then the catalog "Removed Join Inventory" has no joins
     And the viewer sees no join results in the catalog "Removed Join Inventory"
@@ -62,7 +62,7 @@ Feature: Catalog joins
   @US-053 @AC4
   Scenario: Remove a join used by a view
     Given the enterprise architect has created the catalog "Viewed Join Inventory" with scope "instance"
-    And the enterprise architect adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Viewed Join Inventory"
+    And the enterprise architect adds the join "Interfaces" via "Interface Flow" outbound to "Interface" to "Viewed Join Inventory"
     And the enterprise architect saves the view "Detail view" with the join "Interfaces" in rows mode sorted by its name in "Viewed Join Inventory"
     When the enterprise architect removes the join "Interfaces" from "Viewed Join Inventory"
     Then the view "Detail view" of "Viewed Join Inventory" has neither a join mode nor a sort
@@ -70,6 +70,6 @@ Feature: Catalog joins
   @REQ-045 @ADR-032
   Scenario: Reader without catalog management
     Given the enterprise architect has created the catalog "Protected Join Inventory" with scope "instance"
-    When the viewer adds the join "Interfaces" via "Data Flow" outbound to "Interface" to "Protected Join Inventory"
+    When the viewer adds the join "Interfaces" via "Interface Flow" outbound to "Interface" to "Protected Join Inventory"
     Then the join change is rejected with 403
     And the catalog "Protected Join Inventory" has no joins

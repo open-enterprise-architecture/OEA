@@ -45,6 +45,7 @@ import io.oea.app.metamodel.MetamodelConfigurations;
 import io.oea.app.metamodel.MetamodelLabels;
 import io.oea.app.metamodel.MetatypeCatalog;
 import io.oea.app.metamodel.MetatypeEditing;
+import io.oea.app.metamodel.LineageModels;
 import io.oea.app.metamodel.OrganizationModels;
 import io.oea.app.metamodel.PropertyDefinitions;
 import io.oea.app.metamodel.PropertyMappings;
@@ -102,11 +103,15 @@ public class MetamodelController implements MetamodelApi {
 
 	private final OrganizationModels organizationModels;
 
+	private final LineageModels lineageModels;
+
 	public MetamodelController(MetatypeCatalog catalog, MetatypeEditing metatypes, PropertyDefinitions properties,
 			PropertyMappings mappings, ReimportPolicies policies, MetamodelLabels labels,
 			AllowedConnections allowedConnections, MetamodelConfigurations configurations, MetamodelChanges changes,
-			ParallelChangeSettings parallelChanges, ArchitectureLayers layers, OrganizationModels organizationModels) {
+			ParallelChangeSettings parallelChanges, ArchitectureLayers layers, OrganizationModels organizationModels,
+			LineageModels lineageModels) {
 		this.organizationModels = organizationModels;
+		this.lineageModels = lineageModels;
 		this.layers = layers;
 		this.parallelChanges = parallelChanges;
 		this.configurations = configurations;
@@ -199,6 +204,35 @@ public class MetamodelController implements MetamodelApi {
 
 	private static io.oea.api.generated.model.OrganizationModelPart part(UUID id, String name) {
 		return new io.oea.api.generated.model.OrganizationModelPart(id).metatypeName(name);
+	}
+
+	@Override
+	public ResponseEntity<io.oea.api.generated.model.LineageModel> getLineageModel() {
+		return lineageModel(this.lineageModels.get());
+	}
+
+	@Override
+	@ContractViolationResponse(status = 422, title = "Invalid lineage model", detail = "Some fields are invalid.")
+	public ResponseEntity<io.oea.api.generated.model.LineageModel> updateLineageModel(String ifMatch,
+			io.oea.api.generated.model.LineageModelWrite write) {
+		return lineageModel(this.lineageModels.update(principal(),
+				new LineageModels.Parts(write.getDataObject(), write.getDataFlow(), write.getCarriesData(),
+						write.getDataInput(), write.getDataOutput()),
+				expectedVersion(ifMatch)));
+	}
+
+	private static ResponseEntity<io.oea.api.generated.model.LineageModel> lineageModel(LineageModels.View view) {
+		LineageModels.Parts parts = view.parts();
+		LineageModels.Names names = view.names();
+		io.oea.api.generated.model.LineageModel body = new io.oea.api.generated.model.LineageModel(
+				linePart(parts.dataObject(), names.dataObject()), linePart(parts.dataFlow(), names.dataFlow()),
+				linePart(parts.carriesData(), names.carriesData()), linePart(parts.dataInput(), names.dataInput()),
+				linePart(parts.dataOutput(), names.dataOutput()), view.version());
+		return ResponseEntity.ok().eTag(etag(view.version())).body(body);
+	}
+
+	private static io.oea.api.generated.model.LineageModelPart linePart(UUID id, String name) {
+		return new io.oea.api.generated.model.LineageModelPart(id).metatypeName(name);
 	}
 
 	@Override

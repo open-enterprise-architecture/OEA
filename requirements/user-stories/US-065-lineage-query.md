@@ -2,8 +2,8 @@
 
 **ID**: US-065
 **Story Points**: 5
-**Status**: backlog
-**Sprint**: unassigned
+**Status**: in-progress
+**Sprint**: S18
 
 ## Story
 
@@ -50,6 +50,10 @@ As a Data Architect, I want to query via API all source systems (upstream) and a
 
 - BFS traversal via carries-data → data-flow → system; max 50 hops
 - Cycle detection via visited set
+
+## Implementation Notes
+
+Realized by the change `us-065-lineage-model-and-query`: `POST /views/lineage/query` (`queryLineage`) replaces `GET /api/v1/lineage`; `direction` `impact` gives AC3, the cycle flag AC4, an empty answer AC5. The page SCR-023 follows in `us-066-lineage-view`.
 
 ## Definition of Done
 

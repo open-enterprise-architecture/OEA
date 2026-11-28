@@ -101,6 +101,20 @@ public class EntityStore {
 				(rs, n) -> new int[] { rs.getInt(1), rs.getInt(2) }, entityId).stream().findFirst();
 	}
 
+	/**
+	 * Whether the entity is a connection that itself starts or ends at a connection: a new
+	 * connection must not use it as an endpoint (depth one, US-064 AC4, ADR-010).
+	 */
+	public boolean connectsConnection(int entityId) {
+		return Boolean.TRUE.equals(this.jdbc.queryForObject("""
+				SELECT EXISTS (
+				    SELECT 1 FROM entity_connections c
+				    WHERE c.entity_id = ?
+				      AND (EXISTS (SELECT 1 FROM entity_connections s WHERE s.entity_id = c.source_entity_id)
+				           OR EXISTS (SELECT 1 FROM entity_connections t WHERE t.entity_id = c.target_entity_id)))""",
+				Boolean.class, entityId));
+	}
+
 	/** Stores the fixed endpoints of a new connection. */
 	public void insertConnection(int entityId, int sourceId, int targetId) {
 		this.jdbc.update("INSERT INTO entity_connections (entity_id, source_entity_id, target_entity_id) VALUES (?, ?, ?)",

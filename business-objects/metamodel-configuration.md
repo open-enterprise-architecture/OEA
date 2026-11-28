@@ -2,7 +2,7 @@
 identifier: metamodel-configuration
 name_de: Metamodell-Konfiguration
 name_en: Metamodel Configuration
-version: 1.15.0
+version: 1.16.0
 status: draft
 maturity: initial
 owner_role: Business Engineer
@@ -450,6 +450,8 @@ Version 1.14.0 (change `s17-architecture-layers`, owner decisions 2026-11-18) ma
 
 Version 1.15.0 (change `us-075-lane-assignments`, owner decisions 2026-11-27) adds the **organization model**: one setting (`organization_model`, V53) naming the metatypes that play organizational unit, role, person, belongs-to, performs-role and responsible, each unset until set. It is separate from the person metatype of property visibility, because that one drives connection-scoped visibility and belongs to security administration (SoD-2), while the organization model belongs to metamodel administration. A package fills only the parts that are unset and never overwrites a part that is set; a re-import therefore cannot take away the choice of the organization. Without such a setting the canvas would have to recognize the types by name, which are translated and can be changed.
 
+Version 1.16.0 (change `us-065-lineage-model-and-query`, owner decisions 2026-11-28) adds the **lineage model**: one setting (`lineage_model`, V54) naming the metatypes that play data object, data flow, carries-data, data input and data output, each unset until set, like the organization model. A connection part must allow the part it has to reach (carries-data: the data flow as source and the data object as target; data input: the data object as source; data output: the data object as target), unless its list is empty. The TOGAF starter package 1.5.0 fills the first three parts and the BPMN package 1.2.0 the last two; a package fills only unset parts.
+
 ## Change History
 
 | Version | Date | Author | Change |
@@ -479,3 +481,4 @@ Version 1.15.0 (change `us-075-lane-assignments`, owner decisions 2026-11-27) ad
 | 1.13.0 | 2026-11-18 | Change us-135-component-hierarchy | `isComposition` of connection types, the built-in element type "Structuring aid"; BR-33 |
 | 1.14.0 | 2026-11-18 | Change s17-architecture-layers | `ArchitectureLayerDefinition` as rows with UUID, `sortOrder`, `scope` and `version`; `architectureLayerId` references a layer; BR-15 and BR-18 aligned; `color` and `description` not implemented |
 | 1.15.0 | 2026-11-27 | Change us-075-lane-assignments | The organization model setting (six nullable parts, version) and the package section `organizationModel` that fills the unset parts |
+| 1.16.0 | 2026-11-28 | Change us-065-lineage-model-and-query | The lineage model setting (five nullable parts, version) and the package section `lineageModel` that fills the unset parts |

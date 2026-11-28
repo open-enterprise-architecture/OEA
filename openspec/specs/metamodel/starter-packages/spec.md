@@ -15,7 +15,7 @@ Trace: REQ-112 AC1, REQ-076, REQ-077, ADR-005, owner decisions 2026-11-27
 #### Scenario: Package list of a new instance
 
 - **WHEN** a person with `metamodel:write` lists the starter packages of an instance without metatypes
-- **THEN** `oea-starter-togaf-classic` is listed with eight metatypes, among them `Application Component`, `Data Object` and `Technology Component`, `oea-starter-bpmn` with its metatypes, among them `Pool`, `User Task` and `Sequence Flow`, and `oea-starter-organization` with `Organizational Unit`, `Role` and `Person`, all as not imported
+- **THEN** `oea-starter-togaf-classic` is listed with ten metatypes, among them `Application Component`, `Data Object`, `Data Flow` and `Technology Component`, `oea-starter-bpmn` with its metatypes, among them `Pool`, `User Task` and `Sequence Flow`, and `oea-starter-organization` with `Organizational Unit`, `Role` and `Person`, all as not imported
 
 ### Requirement: Import of a starter package by identifier
 
@@ -51,9 +51,9 @@ Trace: ADR-005 (bootstrapping flow), docs/walking-skeleton.md step 5
 
 ### Requirement: BPMN starter package
 
-`oea-starter-bpmn` 1.1.0 SHALL bring the BPMN types of REQ-076 and REQ-081: 28 element metatypes with "BPMN Data Object" and "BPMN Data Store", the connection types of 1.0.0 and "Data Input Association", "Data Output Association" and "Realized By" with open data ends, their properties, en and de labels, and the viewpoint "Process Model (BPMN 2.0)" (`bpmn2`) with all of them.
+`oea-starter-bpmn` 1.2.0 SHALL bring the BPMN types of REQ-076 and REQ-081: 28 element metatypes with "BPMN Data Object" and "BPMN Data Store", the connection types of 1.0.0, the data associations and "Realized By" with open data ends, their properties, en and de labels, the viewpoint "Process Model (BPMN 2.0)" (`bpmn2`) with all of them, and the section `lineageModel`.
 
-Trace: REQ-076 AC1, AC6, REQ-081 AC1, US-074 AC1, US-083, owner decisions 2026-11-27 and 2026-11-28
+Trace: REQ-076 AC1, AC6, REQ-081 AC1, US-074 AC1, US-083, REQ-081 AC6, owner decisions 2026-11-27 and 2026-11-28
 
 #### Scenario: BPMN imported next to TOGAF
 
@@ -89,6 +89,12 @@ Trace: REQ-076 AC1, AC6, REQ-081 AC1, US-074 AC1, US-083, owner decisions 2026-1
 - **GIVEN** the TOGAF and the BPMN package are imported
 - **WHEN** a batch writes a "Data Input Association" from the TOGAF "Data Object" "Order" to a task, and one to a gateway
 - **THEN** the first is stored, and the second is rejected with 422 for its target
+
+#### Scenario: Update over 1.1.0
+
+- **GIVEN** 1.1.0 is imported with diagrams, and no data input part is set
+- **WHEN** Kurt updates to 1.2.0
+- **THEN** data input and data output name "Data Input Association" and "Data Output Association", the import result lists both parts, and the BPMN types, the viewpoint and the diagrams are unchanged
 
 ### Requirement: Starter packages on the metamodel configuration
 
@@ -145,3 +151,41 @@ Trace: US-075, US-076, REQ-077, owner decisions 2026-11-27
 
 - **WHEN** a metamodel administrator imports `oea-starter-organization` into an instance without other packages
 - **THEN** the import succeeds, and a re-import changes nothing
+
+### Requirement: Lineage types of the TOGAF starter package
+
+`oea-starter-togaf-classic` 1.5.0 SHALL add "Data Flow" between application and technology elements, "Carries Data" from it to "Data Object", optional data properties on both (classification, owner, personal data categories; protocol, frequency, transformation description), and the section `lineageModel`. An update over 1.4.0 SHALL keep the existing content.
+
+Trace: US-063, US-064, REQ-060, REQ-061, ADR-010, owner decisions 2026-11-28
+
+#### Scenario: Carries data
+
+- **GIVEN** 1.5.0 is imported, with the data flow "SAP ERP → DWH" and the data object "Customer Master"
+- **WHEN** Lukas connects the data flow to "Customer Master" by "Carries Data"
+- **THEN** the connection is stored with an ID of its own, its source the data flow and its target the data object
+
+#### Scenario: Source without the n-connection
+
+- **WHEN** Lukas connects an Application Component to "Customer Master" by "Carries Data"
+- **THEN** the request is rejected with 422 `SOURCE_NOT_ALLOWED`, and nothing is stored
+
+#### Scenario: Target is a connection
+
+- **WHEN** Lukas connects the data flow by "Carries Data" to another data flow
+- **THEN** the request is rejected with 422 `TARGET_NOT_ALLOWED`
+
+#### Scenario: No connection of the carrying connection
+
+- **WHEN** Lukas starts a "Realized By" connection, whose source list is empty, at a "Carries Data" connection
+- **THEN** the request is rejected with 422 `CONNECTION_DEPTH_EXCEEDED` naming the source
+
+#### Scenario: Text limits
+
+- **WHEN** Lukas saves "Personal data categories" of 500 and of 501 characters, "Transformation description" of 1000 and of 1001, and "Data owner" of 255 and of 256
+- **THEN** each first value is stored, and each second is rejected with 422 naming the property, and nothing changes
+
+#### Scenario: Update over 1.4.0
+
+- **GIVEN** 1.4.0 is imported with data objects and diagrams
+- **WHEN** Kurt updates to 1.5.0
+- **THEN** the new types and properties are added, "Data Flow" is allowed in "Application Landscape" and "Technology Landscape", the existing entities and diagrams keep their values and IDs, and no data object becomes incomplete

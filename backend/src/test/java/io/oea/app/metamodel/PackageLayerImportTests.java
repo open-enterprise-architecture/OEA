@@ -40,7 +40,7 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Spec metamodel/architecture-layers, requirement "Layers in packages" (change
  * s17-architecture-layers), on an own database: import, references, limits, conflicts and
- * re-imports of packages with layers, and the starter package 1.4.0.
+ * re-imports of packages with layers, and the starter package 1.5.0.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -312,7 +312,7 @@ class PackageLayerImportTests {
 		assertThat(count("SELECT count(*) FROM architecture_layers")).isZero();
 	}
 
-	// the starter package 1.4.0
+	// the starter package 1.5.0
 
 	@Test
 	void starterPackageBringsFourLayers() {

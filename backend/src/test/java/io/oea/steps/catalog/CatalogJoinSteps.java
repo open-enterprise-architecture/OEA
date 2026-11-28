@@ -20,7 +20,7 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Steps for features/catalog/catalog-joins.feature and the join scenarios of
  * features/catalog/catalog-query.feature (us-048-catalog-joins), on the instance of the catalog
- * features. The metatype "Interface" maps the property "Protocol"; an interface's protocol is the
+ * features. The metatype "Interface" maps the property "Interface protocol"; an interface's protocol is the
  * first word of its name ("REST API" → "REST"). Joins show the name and, for interfaces, the
  * protocol.
  */
@@ -38,11 +38,11 @@ public class CatalogJoinSteps {
 	public void connectionMetatype(String connection, String source, String target) throws Exception {
 		metatype(target, false);
 		if ("Interface".equals(target)) {
-			String protocol = idOrNull("SELECT id::text FROM property_definitions WHERE name = 'Protocol'");
+			String protocol = idOrNull("SELECT id::text FROM property_definitions WHERE name = 'Interface protocol'");
 			if (protocol == null) {
 				protocol = instance().oidc().single("""
 						INSERT INTO property_definitions (name, sql_column_name, data_type)
-						VALUES ('Protocol', 'protocol', 'string') RETURNING id::text""");
+						VALUES ('Interface protocol', 'interface_protocol', 'string') RETURNING id::text""");
 				instance().oidc().update("""
 						INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
 						VALUES ('%s', '%s', 'optional', DATE '2026-01-01', 'organization')"""
@@ -94,7 +94,7 @@ public class CatalogJoinSteps {
 				INSERT INTO property_definitions (name, sql_column_name, data_type) VALUES ('%s', '%s', 'string')
 				RETURNING id::text""".formatted("Unmapped " + UUID.randomUUID().toString().substring(0, 8),
 				"p_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12)));
-		ObjectNode join = join("Unknown", "Data Flow", "outbound", target);
+		ObjectNode join = join("Unknown", "Interface Flow", "outbound", target);
 		ArrayNode columns = join.putArray("targetColumns");
 		columns.addObject().put("field", "name");
 		columns.addObject().put("propertyDefId", property);
@@ -123,12 +123,12 @@ public class CatalogJoinSteps {
 	@When("the {role} queries the catalog {string} with the join {string} in mode {string} sorted by the protocol")
 	public void querySortedByProtocol(Session session, String catalog, String join, String mode) throws Exception {
 		String id = joinId(catalog, join);
-		query(session, catalog, mode(id, mode) + "&sort=" + id + ".protocol:asc");
+		query(session, catalog, mode(id, mode) + "&sort=" + id + ".interface_protocol:asc");
 	}
 
 	@When("the {role} queries the catalog {string} sorted by the protocol of the join {string}")
 	public void querySortedAggregated(Session session, String catalog, String join) throws Exception {
-		query(session, catalog, "sort=" + joinId(catalog, join) + ".protocol:asc");
+		query(session, catalog, "sort=" + joinId(catalog, join) + ".interface_protocol:asc");
 	}
 
 	// outcomes
@@ -192,7 +192,7 @@ public class CatalogJoinSteps {
 		String join = result.path("joins").get(0).path("id").asString();
 		result.path("rows").forEach((row) -> {
 			JsonNode results = row.path("joinResults").path(join);
-			protocols.add(results.isEmpty() ? null : results.get(0).path("values").path("protocol").asString(null));
+			protocols.add(results.isEmpty() ? null : results.get(0).path("values").path("interface_protocol").asString(null));
 		});
 		// ERP and Intranet have no interface and come last
 		assertThat(protocols).containsExactly(first, second, null, null);
@@ -265,7 +265,7 @@ public class CatalogJoinSteps {
 		ObjectNode request = object();
 		ArrayNode entities = request.putArray("entities");
 		String protocol = "Interface".equals(targetMetatype)
-				? idOrNull("SELECT id::text FROM property_definitions WHERE name = 'Protocol'") : null;
+				? idOrNull("SELECT id::text FROM property_definitions WHERE name = 'Interface protocol'") : null;
 		List<String> refs = new ArrayList<>();
 		for (String target : targets) {
 			String ref = "t" + UUID.randomUUID().toString().substring(0, 8);
@@ -305,7 +305,7 @@ public class CatalogJoinSteps {
 			.put("targetMetatypeId", metatypeId(target));
 		ArrayNode columns = join.putArray("targetColumns");
 		columns.addObject().put("field", "name");
-		String protocol = idOrNull("SELECT id::text FROM property_definitions WHERE name = 'Protocol'");
+		String protocol = idOrNull("SELECT id::text FROM property_definitions WHERE name = 'Interface protocol'");
 		if ("Interface".equals(target) && protocol != null) {
 			columns.addObject().put("propertyDefId", protocol);
 		}

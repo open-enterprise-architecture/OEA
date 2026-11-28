@@ -138,7 +138,7 @@ class BpmnStarterPackageTests {
 				+ "'Condition')", Integer.class)).isEqualTo(6);
 		JsonNode imported = shipped(ok(call(HttpMethod.GET, "/api/v1/metamodel/starter-packages", null, this.admin, null)));
 		assertThat(imported.path("imported").asBoolean()).isTrue();
-		assertThat(imported.path("importedVersion").asString()).isEqualTo("1.1.0");
+		assertThat(imported.path("importedVersion").asString()).isEqualTo("1.2.0");
 	}
 
 	@Test

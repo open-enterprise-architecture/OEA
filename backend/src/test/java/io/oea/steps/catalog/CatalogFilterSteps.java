@@ -72,7 +72,7 @@ public class CatalogFilterSteps {
 		instance().oidc().update("""
 				INSERT INTO metatype_property_mappings (metatype_id, property_def_id, necessity, valid_from, scope)
 				SELECT m.id, '%s', 'optional', DATE '2026-01-01', 'organization' FROM metatypes m
-				WHERE m.name = 'Data Object' AND NOT EXISTS (SELECT 1 FROM metatype_property_mappings x
+				WHERE m.name = 'Info Object' AND NOT EXISTS (SELECT 1 FROM metatype_property_mappings x
 				                                             WHERE x.metatype_id = m.id AND x.property_def_id = '%1$s')"""
 			.formatted(property));
 	}
@@ -242,12 +242,12 @@ public class CatalogFilterSteps {
 		for (int i = 0; i < objects.size(); i++) {
 			ObjectNode entity = entities.addObject()
 				.put("name", objects.get(i))
-				.put("metatypeId", metatypeId("Data Object"))
+				.put("metatypeId", metatypeId("Info Object"))
 				.put("externalId", this.connections.ref(objects.get(i)));
 			entity.putArray("properties").addObject().put("propertyDefId", classificationId())
 				.put("value", classifications.get(i));
 			links.addObject()
-				.put("connectionMetatypeId", metatypeId("Carries Data"))
+				.put("connectionMetatypeId", metatypeId("Carries Info"))
 				.put("sourceExternalId", this.connections.ref(flow))
 				.put("targetExternalId", this.connections.ref(objects.get(i)));
 		}

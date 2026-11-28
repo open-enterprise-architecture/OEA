@@ -2481,41 +2481,148 @@ components:
           items: { $ref: '#/components/schemas/DiagramEntity' }
         page: { $ref: '#/components/schemas/PageMeta' }
 
-    # ── Data Lineage ──────────────────────────────────────────────────────────
+    # ── Data Lineage (UC-08; change us-065-lineage-model-and-query) ───────────
+    LineageModelPart:
+      type: object
+      required: [metatypeId]
+      description: One part of the lineage model; null while the part is unset
+      properties:
+        metatypeId:   { type: [string, 'null'], format: uuid }
+        metatypeName: { type: [string, 'null'], readOnly: true }
+
+    LineageModel:
+      type: object
+      description: |
+        The lineage model of the instance (change us-065-lineage-model-and-query): which element
+        metatype plays the data object and which connection metatypes play data flow, carries-data,
+        data input and data output. Each part may be unset.
+      required: [dataObject, dataFlow, carriesData, dataInput, dataOutput, version]
+      properties:
+        dataObject:  { $ref: '#/components/schemas/LineageModelPart' }
+        dataFlow:    { $ref: '#/components/schemas/LineageModelPart' }
+        carriesData: { $ref: '#/components/schemas/LineageModelPart' }
+        dataInput:   { $ref: '#/components/schemas/LineageModelPart' }
+        dataOutput:  { $ref: '#/components/schemas/LineageModelPart' }
+        version:     { type: integer, minimum: 1, readOnly: true }
+
+    LineageModelWrite:
+      type: object
+      description: The whole setting; a part that is null or missing is unset
+      properties:
+        dataObject:  { type: [string, 'null'], format: uuid, description: "An element metatype" }
+        dataFlow:    { type: [string, 'null'], format: uuid, description: "A connection metatype" }
+        carriesData: { type: [string, 'null'], format: uuid, description: "A connection metatype whose allowed sources reach the data flow, and whose allowed targets reach the data object, or are empty" }
+        dataInput:   { type: [string, 'null'], format: uuid, description: "A connection metatype whose allowed sources reach the data object or are empty" }
+        dataOutput:  { type: [string, 'null'], format: uuid, description: "A connection metatype whose allowed targets reach the data object or are empty" }
+
+    LineageDirection:
+      type: string
+      enum: [upstream, downstream, both, impact]
+      description: |
+        `downstream` follows the data from the origins to the sinks, `upstream` against it, `both`
+        is the union of both walks, `impact` is `downstream` with `impact` true on each node
+        (US-065 AC3).
+
+    LineageQuery:
+      type: object
+      required: [startEntityId]
+      properties:
+        startEntityId: { type: integer, minimum: 1, description: "The data object or the system the lineage starts at; never a connection (422)" }
+        direction:     { $ref: '#/components/schemas/LineageDirection' }
+        maxDepth:      { type: integer, minimum: 1, maximum: 100, default: 50 }
+        metatypeIds:
+          type: array
+          maxItems: 50
+          description: Keeps only the nodes of these metatypes and their subtypes; the walk and the edges stay unchanged (422 for an unknown metatype)
+          items: { type: string, format: uuid }
+        dataObjectId:
+          type: integer
+          minimum: 1
+          description: "Only for a start that is no data object: walks only the data flows that carry this data object (400 with a data object start, 422 when it is no active data object)"
+
+    LineageStart:
+      type: object
+      required: [id, name, metatypeId]
+      properties:
+        id:         { type: integer }
+        name:       { type: string }
+        metatypeId: { type: string, format: uuid }
+
+    LineageRole:
+      type: string
+      enum: [origin, intermediate, sink, reader, writer]
+
     LineageNode:
       type: object
-      required: [id, name, nodeType, metatype]
+      description: A system or a task reached by the walk; the start itself is never a node
+      required: [id, name, metatypeId, roles, depth, impact]
       properties:
-        id:       { type: integer }
-        name:     { type: string }
-        nodeType:
-          type: string
-          enum: [source, transform, target]
-        metatype: { $ref: '#/components/schemas/MetatypeSummary' }
-        metrics:
-          type: [object, 'null']
-          properties:
-            recordsPerDay: { type: integer }
-            latencyMs:     { type: integer }
+        id:         { type: integer }
+        name:       { type: string }
+        metatypeId: { type: string, format: uuid }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/LineageRole' }
+        depth:      { type: integer, minimum: 0 }
+        impact:     { type: boolean, description: "True on every node of an `impact` query, false otherwise" }
 
-    LineageView:
+    LineageCarriedBy:
       type: object
-      required: [id, name, nodes, edges]
+      required: [connectionId, dataObjectId, dataObjectName]
       properties:
-        id:    { type: string, format: uuid }
-        name:  { type: string }
+        connectionId:   { type: integer, description: "The carries-data connection" }
+        dataObjectId:   { type: integer }
+        dataObjectName: { type: string }
+
+    LineageEdgeKind:
+      type: string
+      enum: [data-flow, data-input, data-output]
+
+    LineageEdge:
+      type: object
+      required: [id, kind, metatypeId, sourceId, targetId, carriedBy, carriedByTruncated, transformationRestricted]
+      properties:
+        id:         { type: integer, description: "The data flow or the data association" }
+        kind:       { $ref: '#/components/schemas/LineageEdgeKind' }
+        metatypeId: { type: string, format: uuid }
+        sourceId:   { type: integer }
+        targetId:   { type: integer }
+        carriedBy:
+          type: array
+          maxItems: 50
+          description: The carries-data connections of a data flow by ID; for a data object start the start only; empty for a data association
+          items: { $ref: '#/components/schemas/LineageCarriedBy' }
+        carriedByTruncated: { type: boolean, description: "True when the data flow has more than 50 carries-data connections" }
+        transformationType:
+          type: [string, 'null']
+          description: The value of "Transformation type" of a data output association; absent otherwise or when it is restricted
+        transformationRestricted:
+          type: boolean
+          description: True when the caller may not read "Transformation type" of this data output association, whether or not a value exists
+
+    LineageResult:
+      type: object
+      required: [start, direction, cycleDetected, truncated, nodes, edges, paths]
+      properties:
+        start:         { $ref: '#/components/schemas/LineageStart' }
+        direction:     { $ref: '#/components/schemas/LineageDirection' }
+        cycleDetected: { type: boolean }
+        truncated:     { type: boolean, description: "True when more than 5000 nodes or 10000 edges were reached" }
         nodes:
           type: array
+          maxItems: 5000
           items: { $ref: '#/components/schemas/LineageNode' }
         edges:
           type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/LineageEdge' }
+        paths:
+          type: array
+          maxItems: 100
+          description: Simple paths of entity IDs along the returned data flows, from an origin or the start to a sink; sink first for `upstream`
           items:
-            type: object
-            required: [sourceId, targetId]
-            properties:
-              sourceId: { type: integer }
-              targetId: { type: integer }
-              label:    { type: [string, 'null'] }
+            type: array
+            items: { type: integer }
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
     DashboardScope:
@@ -3462,6 +3569,22 @@ components:
             belongsTo:    { type: string, format: uuid }
             performsRole: { type: string, format: uuid }
             responsible:  { type: string, format: uuid }
+        lineageModel:
+          type: object
+          description: |
+            The parts of the lineage model (`getLineageModel`) that the package fills (change
+            us-065-lineage-model-and-query): per part the ID of a metatype of the package, an
+            element metatype for `dataObject`, a connection metatype for the others (422 naming
+            `/lineageModel/<part>` otherwise). The import fills only the parts that are unset,
+            audits them as `metamodel.lineage-model-updated` with `cause` `package-import` and
+            lists them as `lineageModelFilled`.
+          additionalProperties: false
+          properties:
+            dataObject:  { type: string, format: uuid }
+            dataFlow:    { type: string, format: uuid }
+            carriesData: { type: string, format: uuid }
+            dataInput:   { type: string, format: uuid }
+            dataOutput:  { type: string, format: uuid }
         shapeAssignments:
           type: array
           description: Not supported yet; a package with shape assignments is rejected with `unsupported-package-content`
@@ -6031,6 +6154,10 @@ components:
           type: [array, 'null']
           description: The parts of the organization model that a metamodel package import filled (`orgUnit`, `role`, `person`, `belongsTo`, `performsRole`, `responsible`); null for other imports
           items: { type: string, enum: [orgUnit, role, person, belongsTo, performsRole, responsible] }
+        lineageModelFilled:
+          type: [array, 'null']
+          description: The parts of the lineage model that a metamodel package import filled (`dataObject`, `dataFlow`, `carriesData`, `dataInput`, `dataOutput`); null for other imports
+          items: { type: string, enum: [dataObject, dataFlow, carriesData, dataInput, dataOutput] }
         layersUpdated:
           type: [integer, 'null']
           description: Architecture layers of the package a metamodel package import updated; null for other imports
@@ -9227,33 +9354,69 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
-  # ║  VIEW – DATA LINEAGE (SCR-023)                                         ║
+  # ║  DATA LINEAGE (UC-08, US-065; change us-065-lineage-model-and-query)    ║
   # ╚═════════════════════════════════════════════════════════════════════════╝
-  /views/lineage/{id}:
-    get:
-      operationId: getLineageView
-      summary: Data lineage graph (SCR-023)
-      description: 'Returns the data lineage graph around one entity. Not implemented yet. Requires entity:read.'
-      tags: [Views – Editors]
+  /views/lineage/query:
+    post:
+      operationId: queryLineage
+      summary: Data lineage of a data object or a system (UC-08, US-065, REQ-062)
+      description: |
+        Walks the active data flows from a start element: from a data object over the flows that
+        carry it, from a system hop by hop. `direction` is `downstream`, `upstream`, `both` (the
+        default, the union of both walks) or `impact` (`downstream` with `impact` true on each
+        node). `maxDepth` is 1 to 100 (default 50); at most 5000 nodes and 10000 edges are
+        returned, `truncated` says that there are more; a filter `metatypeIds` of at most 50
+        metatypes keeps only the nodes of them and their subtypes, the edges stay. The tasks of the
+        data associations of a data object join at depth 1, writers upstream and readers
+        downstream, when the data-input and data-output parts of the lineage model are set. Deleted
+        entities are left out.
+
+        400 for a missing `startEntityId`, a value out of range, more than 50 `metatypeIds` or a
+        `dataObjectId` with a data object start; 404 for an unknown or deleted start; 422 naming
+        `metatypeIds` for an unknown metatype, `dataObjectId` for an entity that is no active data
+        object, `startEntityId` for a connection; 422 `LINEAGE_MODEL_INCOMPLETE` naming
+        `lineageModel` when the data-object, data-flow or carries-data part is unset. The only
+        property value returned is "Transformation type" of a data output association, under
+        property visibility (`transformationRestricted`); a value read through an override role
+        writes one `property-override-access` event per query with the channel `lineage`. A `POST`
+        because the filter list can be long; it only reads and is not audited otherwise.
+      tags: [Lineage]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:read"]}
-      x-oea-status: planned
-      parameters:
-        - $ref: '#/components/parameters/UuidIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LineageQuery' }
       responses:
         '200':
-          description: Lineage nodes and edges
+          description: The lineage
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/LineageView' }
+              schema: { $ref: '#/components/schemas/LineageResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404':
-          description: Not found
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: |
+            An unknown metatype, a `dataObjectId` that is no data object, a connection as start, or
+            an incomplete lineage model (`errors[].code` `LINEAGE_MODEL_INCOMPLETE`, `field`
+            `lineageModel`)
           content:
             application/problem+json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - type: object
+                    required: [invalidFields]
+                    properties:
+                      invalidFields:
+                        type: array
+                        items: { type: string }
+                      errors:
+                        type: array
+                        items: { $ref: '#/components/schemas/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   # ╔═════════════════════════════════════════════════════════════════════════╗
   # ║  DASHBOARDS (US-055, US-058 to US-060, US-062)                         ║
@@ -10577,6 +10740,67 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/OrganizationModel' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MetamodelForbidden' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '428': { $ref: '#/components/responses/PreconditionRequired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metamodel/lineage-model:
+    get:
+      operationId: getLineageModel
+      summary: Lineage model of the instance (SCR-030)
+      description: |
+        Which metatypes play the parts data object, data flow, carries-data, data input and data
+        output (change us-065-lineage-model-and-query), with the version as `ETag`. A part is null
+        while it is unset. Read only, not audited.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "anyOfPermissions": ["entity:read", "metamodel:write"]}
+      responses:
+        '200':
+          description: The lineage model
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LineageModel' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+    put:
+      operationId: updateLineageModel
+      summary: Change the lineage model (SCR-030)
+      description: |
+        Sets the five parts. Needs `If-Match` with the version read (428 without, 412 when stale).
+        `dataObject` names an existing element metatype, the others existing connection metatypes
+        (422 `validation-failed` with `invalidFields` naming the part otherwise). `carriesData`
+        must allow the data flow metatype (or a base type of it) as source and the data object
+        metatype (or a base type) as target, `dataInput` the data object as source, `dataOutput`
+        the data object as target, each unless its list is empty (422 naming the part); each check
+        runs whenever both of its parts are set. A change raises the version and audits
+        `metamodel.lineage-model-updated` with the changed parts; a write that changes nothing
+        keeps the version and audits nothing. In `import-only` the answer is 403
+        `metamodel-locked`.
+      tags: [Metamodel]
+      x-oea-authorization: {"access": "permission", "permissions": ["metamodel:write"]}
+      parameters:
+        - $ref: '#/components/parameters/IfMatchRequiredHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LineageModelWrite' }
+      responses:
+        '200':
+          description: Updated
+          headers:
+            ETag: { $ref: '#/components/headers/VersionETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LineageModel' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/MetamodelForbidden' }
@@ -13968,7 +14192,8 @@ paths:
         Connections are written after the entities; their endpoints are checked against the
         connection metatype (codes `SOURCE_REQUIRED`, `SOURCE_AMBIGUOUS`, `SOURCE_NOT_FOUND`,
         `SOURCE_NOT_ALLOWED`, the same for `TARGET_`, `METATYPE_NOT_CONNECTION` and
-        `ENDPOINT_CHANGE_NOT_SUPPORTED`). An update of an entity with an open issue of a solution
+        `ENDPOINT_CHANGE_NOT_SUPPORTED`). An endpoint that is a connection that itself starts or ends
+        at a connection is rejected with `CONNECTION_DEPTH_EXCEEDED` on the endpoint field (ADR-010). An update of an entity with an open issue of a solution
         fails with `OPEN_ISSUES` (US-153 AC1). Not supported yet: `dryRun=true` (US-141 AC3) is
         rejected with 422; `parentId` and `lifecycle` are item errors.
         `X-Agent-Id` is stored only as the informational audit field `agent_label`
@@ -14040,7 +14265,10 @@ paths:
         `visibility-scope:assign`, otherwise 403 (REQ-161). A value of a `role-restricted`
         property needs one of its write roles, otherwise 403 (REQ-126); a value of a
         `connection-scoped` property cannot be set on creation, because the connection is not
-        yet in the writer's scope (403, REQ-127).
+        yet in the writer's scope (403, REQ-127). An endpoint that is a connection must itself
+        run between elements: a connection at a connection that itself starts or ends at a
+        connection is rejected with 422 `CONNECTION_DEPTH_EXCEEDED` naming the endpoint, whatever
+        the endpoint lists of the connection metatype allow (ADR-010, US-064 AC4).
       tags: [Entities – Write]
       x-oea-authorization: {"access": "permission", "permissions": ["entity:write"], "conditions": [{"when": "a connection of a type used as scopingConnectionType is written", "permissions": ["visibility-scope:assign"]}]}
       requestBody:
@@ -14838,7 +15066,9 @@ tags:
   - name: Views – Navigation
     description: Navigation tree – reading it and managing its folders and catalog entries (UC-13, US-054); the sidebar of the web portal (SCR-055) and the explorer (SCR-010/011)
   - name: Views – Editors
-    description: Diagram, lineage, dashboard and roadmap editors (SCR-021–025)
+    description: Diagram, dashboard and roadmap editors
+  - name: Lineage
+    description: The lineage query over data flows and the data they carry (UC-08, US-065, REQ-062); the lineage page SCR-023 follows in us-066-lineage-view
   - name: Entities
     description: Entity history and restore (UC-14/15/16)
   - name: Entities – Write

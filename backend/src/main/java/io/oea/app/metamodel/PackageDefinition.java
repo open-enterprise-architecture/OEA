@@ -15,11 +15,13 @@ import java.util.UUID;
  * @param layers the architecture layers the package installs as imported ones (s17-architecture-layers D3)
  * @param organizationModel the metatypes of the package for the parts of the organization model, a part
  *        {@code null} when the package names none (us-075-lane-assignments D2)
+ * @param lineageModel the metatypes of the package for the parts of the lineage model, a part
+ *        {@code null} when the package names none (us-065-lineage-model-and-query D3)
  */
 public record PackageDefinition(String packageId, String version, String publisher, String strategy,
 		List<String> unsupportedSections, List<Category> categories, List<Property> properties,
 		List<Metatype> metatypes, Map<String, Map<String, String>> labels, List<Viewpoint> viewpoints,
-		List<Layer> layers, OrganizationModels.Parts organizationModel) {
+		List<Layer> layers, OrganizationModels.Parts organizationModel, LineageModels.Parts lineageModel) {
 
 	/** An architecture layer of the package, identified by its stable ID within the package. */
 	public record Layer(UUID id, String name, int sortOrder) {

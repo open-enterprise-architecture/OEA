@@ -15,6 +15,7 @@ covers:
 - [Solutions](./solutions): create a solution for a change initiative and describe its architecture vision
 - [Dashboards](./dashboards): arrange text and catalog tables in a grid, for yourself or for everyone
 - [Diagrams](./diagrams): create, find, rename, delete and restore diagrams, and place elements on their canvas
+- [Data lineage](./data-lineage): model data flows and the data they carry, query where data comes from and where it goes
 - [Deleted entities](./deleted-entities): find deleted entities and restore them with what their deletion took along
 - [Writing entities in batch](./entities-batch): create and update entities from a source system through the API
 

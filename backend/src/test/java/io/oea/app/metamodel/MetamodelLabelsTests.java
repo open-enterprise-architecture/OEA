@@ -93,7 +93,7 @@ class MetamodelLabelsTests {
 			MvcTestResult result = call(HttpMethod.POST,
 					"/metamodel/starter-packages/oea-starter-togaf-classic/import", null, this.admin);
 			assertThat(result).as(() -> content(result)).hasStatus(HttpStatus.OK);
-			assertThat(body(result).path("labelCount").asInt()).isEqualTo(26);
+			assertThat(body(result).path("labelCount").asInt()).isEqualTo(68);
 		}
 		// labels of the organization left by another test
 		this.jdbc.update("DELETE FROM i18n_entries WHERE scope = 'organization'");

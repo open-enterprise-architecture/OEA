@@ -191,6 +191,14 @@ Der Abschnitt *Organisationsmodell* sagt, welche Entitätstypen in [Zuordnungen]
 - Die **Person** hier ist getrennt vom [Entitätstyp von Personen](./property-visibility#person-metatype) der Eigenschaftssichtbarkeit, der zur Sicherheitsverwaltung gehört; sind beide gesetzt und unterschiedlich, zeigt der Abschnitt einen Hinweis. Konto-Verknüpfungen nutzen den der Eigenschaftssichtbarkeit.
 - Wird der Entitätstyp eines Teils gelöscht, ist der Teil nicht mehr gesetzt. Jede Änderung wird als `metamodel.organization-model-updated` mit den geänderten Teilen protokolliert; `GET` und `PUT /metamodel/organization-model` lesen und setzen die Einstellung (`If-Match` mit der Version; `412` und `428` wie bei anderen Einstellungen, `403` mit `urn:oea:problem:metamodel-locked` in einem gesperrten Metamodell).
 
+## Lineage-Modell {#lineage-model}
+
+Der Abschnitt *Lineage-Modell* neben dem Organisationsmodell sagt, welche Typen in der [Datenherkunft](../usage/data-lineage) welche Rolle spielen: der Entitätstyp des *Datenobjekts* und die Verbindungstypen von *Datenfluss*, *transportiert Daten*, *Dateneingabe* und *Datenausgabe*. Alle, die das Metamodell lesen, sehen sie; wer `metamodel:write` hat, wählt je Teil einen Typ (oder *Nicht gesetzt*) und wählt *Speichern*, das alle fünf Teile mit der gelesenen Version schreibt. Ein gesperrtes Metamodell bietet keine Änderung an.
+
+- Das Datenobjekt braucht einen Entitätstyp, die anderen Teile einen Verbindungstyp; sonst nennt die Seite den Teil (`422`). *Transportiert Daten* muss den Datenfluss als Quelle und das Datenobjekt als Ziel erlauben, *Dateneingabe* das Datenobjekt als Quelle und *Datenausgabe* das Datenobjekt als Ziel, jeweils außer seine Liste ist leer (sie erreicht dann jeden Typ); Basistypen zählen. Die Prüfung gilt, sobald beide Teile gesetzt sind.
+- Der Import des TOGAF-Pakets 1.5.0 füllt Datenobjekt, Datenfluss und transportiert Daten, der Import des BPMN-Pakets 1.2.0 Dateneingabe und Datenausgabe, jeweils nur Teile, die nicht gesetzt sind. Ein Teil, den du auf einen eigenen Typ gesetzt hast, bleibt. Die Lineage-Abfrage braucht Datenobjekt, Datenfluss und transportiert Daten (sonst `422 LINEAGE_MODEL_INCOMPLETE`); ohne Dateneingabe oder Datenausgabe liefert sie keine Leser oder keine Schreiber.
+- Wird der Entitätstyp eines Teils gelöscht, ist der Teil nicht mehr gesetzt. Jede Änderung wird als `metamodel.lineage-model-updated` mit den geänderten Teilen protokolliert; `GET` und `PUT /metamodel/lineage-model` lesen und setzen die Einstellung (`If-Match` mit der Version; `412` und `428` wie bei anderen Einstellungen, `403` mit `urn:oea:problem:metamodel-locked` in einem gesperrten Metamodell).
+
 ## Das Metamodell sperren {#lock-mode}
 
 Pflegt deine Organisation ihr Metamodell in einem versionierten Repository und importiert es als Paket, sperrst du das Metamodell, damit niemand es von Hand ändert:

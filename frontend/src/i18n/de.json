@@ -384,7 +384,8 @@
       "changes": "Änderungen",
       "settings": "Einstellungen",
       "viewpoints": "Viewpoints",
-      "organization": "Organisationsmodell"
+      "organization": "Organisationsmodell",
+      "lineage": "Lineage-Modell"
     },
     "scope": {
       "title": "Herkunft",
@@ -777,6 +778,23 @@
         "belongsTo": "Gehört zu (Verbindung)",
         "performsRole": "Übernimmt Rolle (Verbindung)",
         "responsible": "Verantwortlich (Verbindung)"
+      }
+    },
+    "lineage": {
+      "title": "Lineage-Modell",
+      "hint": "Welcher Objekttyp das Datenobjekt ist und welche Verbindungstypen Datenfluss, Transportiert-Daten, Dateneingabe und Datenausgabe sind. Die Lineage-Abfrage braucht Datenobjekt, Datenfluss und Transportiert-Daten.",
+      "unset": "Nicht gesetzt",
+      "loadFailed": "Das Lineage-Modell konnte nicht geladen werden.",
+      "saved": "Das Lineage-Modell ist gespeichert.",
+      "invalid": "Einige Teile passen nicht: das Datenobjekt braucht einen Objekttyp, die anderen einen Verbindungstyp, dessen erlaubte Enden den Datenfluss und das Datenobjekt erreichen.",
+      "partInvalid": "Dieser Teil passt nicht.",
+      "save": "Speichern",
+      "part": {
+        "dataObject": "Datenobjekt",
+        "dataFlow": "Datenfluss (Verbindung)",
+        "carriesData": "Transportiert Daten (Verbindung)",
+        "dataInput": "Dateneingabe (Verbindung)",
+        "dataOutput": "Datenausgabe (Verbindung)"
       }
     }
   },

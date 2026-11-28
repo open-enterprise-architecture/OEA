@@ -3,10 +3,10 @@ id: REQ-060
 title: Create and manage data object (data-object) as an entity
 type: functional
 priority: should
-status: proposed
-version: 0.1.0
+status: accepted
+version: 0.2.0
 created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-11-28
 author: requirements-engineer
 references:
   use_cases:
@@ -114,6 +114,8 @@ The PropertyDefinitions in this REQ are recommendations for the standard `data-o
 
 ## Implementation Notes
 
+- Realized by the change `us-065-lineage-model-and-query` (owner decisions 2026-11-28): the TOGAF starter package 1.5.0 brings "Data Object" with the optional properties "Data classification" (`public`, `internal`, `confidential`, `restricted`), "Personal data categories" (up to 500 characters) and "Data owner" (up to 255 characters); the lineage model setting names the data object type. The properties are optional, so existing data objects stay complete.
+
 - `POST /api/v1/entities` with `entityTypeId=data-object`
 - Integer ID: DB sequence, instance-wide; no UUID
 - PropertyValue validation: server-side against MetamodelConfiguration
@@ -130,3 +132,4 @@ The PropertyDefinitions in this REQ are recommendations for the standard `data-o
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1.0 | 2026-06-26 | requirements-engineer | Initial draft |
+| 0.2.0 | 2026-11-28 | Change us-065-lineage-model-and-query | Implementation note: TOGAF package 1.5.0 and the lineage model |
